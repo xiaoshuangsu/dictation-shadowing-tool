@@ -1,0 +1,139 @@
+{
+  "title": "First Snowfall",
+  "audio_file": "learn-english-via-listening-1001.mp3",
+  "segments": [
+    {
+      "id": 1,
+      "start": 0.0,
+      "end": 1.6,
+      "text": "First snowfall."
+    },
+    {
+      "id": 2,
+      "start": 3.6,
+      "end": 5.6,
+      "text": "Today is November 26th."
+    },
+    {
+      "id": 3,
+      "start": 6.3,
+      "end": 7.8,
+      "text": "It snowed all day today."
+    },
+    {
+      "id": 4,
+      "start": 8.8,
+      "end": 10.4,
+      "text": "The snow is beautiful."
+    },
+    {
+      "id": 5,
+      "start": 11.5,
+      "end": 13.2,
+      "text": "The snow finally stopped."
+    },
+    {
+      "id": 6,
+      "start": 14.9,
+      "end": 16.6,
+      "text": "My sister and I are excited."
+    },
+    {
+      "id": 7,
+      "start": 17.6,
+      "end": 19.5,
+      "text": "My mom doesn't like the snow."
+    },
+    {
+      "id": 8,
+      "start": 20.5,
+      "end": 22.6,
+      "text": "My mom has to shovel the driveway."
+    },
+    {
+      "id": 9,
+      "start": 23.7,
+      "end": 25.6,
+      "text": "My sister and I get to play."
+    },
+    {
+      "id": 10,
+      "start": 26.7,
+      "end": 28.9,
+      "text": "I put on my hat and mittens."
+    },
+    {
+      "id": 11,
+      "start": 29.7,
+      "end": 31.3,
+      "text": "My mom puts on my scarf."
+    },
+    {
+      "id": 12,
+      "start": 32.4,
+      "end": 34.2,
+      "text": "My mom zippers my jacket."
+    },
+    {
+      "id": 13,
+      "start": 35.1,
+      "end": 37.7,
+      "text": "My sister puts on her hat and mittens."
+    },
+    {
+      "id": 14,
+      "start": 38.6,
+      "end": 40.5,
+      "text": "My mom puts on her scarf."
+    },
+    {
+      "id": 15,
+      "start": 41.7,
+      "end": 43.5,
+      "text": "My mom zippers her jacket."
+    },
+    {
+      "id": 16,
+      "start": 44.7,
+      "end": 46.6,
+      "text": "My sister and I go outside."
+    },
+    {
+      "id": 17,
+      "start": 47.3,
+      "end": 49.5,
+      "text": "We begin to make a snowman."
+    },
+    {
+      "id": 18,
+      "start": 50.4,
+      "end": 52.6,
+      "text": "My mom starts to shovel the snow."
+    },
+    {
+      "id": 19,
+      "start": 53.7,
+      "end": 55.7,
+      "text": "My sister and I make snow angels."
+    },
+    {
+      "id": 20,
+      "start": 56.7,
+      "end": 58.7,
+      "text": "My sister and I throw snowballs."
+    },
+    {
+      "id": 21,
+      "start": 59.4,
+      "end": 61.4,
+      "text": "It starts to snow again."
+    },
+    {
+      "id": 22,
+      "start": 62.2,
+      "end": 64.5,
+      "text": "We go inside for hot chocolate."
+    }
+  ],
+  "total_duration": 64.5
+}
