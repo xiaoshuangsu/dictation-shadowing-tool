@@ -1,9 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  output: 'export',
   basePath: '/dictation-shadowing-tool',
-  assetPrefix: '/dictation-shadowing-tool',
+  assetPrefix: 'https://xiaoshuangsu.github.io/dictation-shadowing-tool/',
+  output: 'export',
   images: {
     unoptimized: true,
   },
