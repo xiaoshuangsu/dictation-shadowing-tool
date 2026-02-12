@@ -1,6 +1,7 @@
 {
   "name": "dictation-shadowing-tool",
   "version": "0.1.0",
+  "homepage": "https://xiaoshuangsu.github.io/dictation-shadowing-tool/",
   "private": true,
   "scripts": {
     "dev": "next dev",
