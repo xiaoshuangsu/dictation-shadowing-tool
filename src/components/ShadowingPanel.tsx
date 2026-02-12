@@ -32,6 +32,7 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
   const onCompleteRef = useRef(onComplete)
   const userTranscriptRef = useRef(userTranscript)
   const recordedChunksRef = useRef<Blob[]>([])
+  const recordedMimeTypeRef = useRef<string>('')
 
   // 更新 refs 当值变化时
   useEffect(() => {
@@ -58,12 +59,36 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
   useEffect(() => {
     if (typeof window === 'undefined') return
 
+    // 检测支持的音频 MIME 类型
+    const getSupportedMimeType = () => {
+      const types = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/mp4',
+        'audio/mp3',
+        ''
+      ]
+      for (const type of types) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          return type
+        }
+      }
+      return ''
+    }
+
     // 初始化 MediaRecorder
     if (navigator.mediaDevices) {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-          const chunks: Blob[] = []
-          const recorder = new MediaRecorder(stream)
+          const supportedType = getSupportedMimeType()
+          console.log("Supported MIME type:", supportedType || 'default')
+          recordedMimeTypeRef.current = supportedType
+
+          // iOS Safari 支持
+          const options = supportedType ? { mimeType: supportedType } : undefined
+          const recorder = new MediaRecorder(stream, options)
           setMediaRecorder(recorder)
           mediaRecorderRef.current = recorder
 
@@ -77,7 +102,7 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
           recorder.onstop = () => {
             console.log("Recorder stopped, chunks:", recordedChunksRef.current.length)
             if (recordedChunksRef.current.length > 0) {
-              const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' })
+              const blob = new Blob(recordedChunksRef.current, { type: recordedMimeTypeRef.current || 'audio/webm' })
               const url = URL.createObjectURL(blob)
               console.log("Created audio URL:", url)
               setRecordedAudioUrl(url)
@@ -144,10 +169,16 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
         })
         .catch(err => {
           console.error("Error accessing microphone:", err)
-          setMicError("无法访问麦克风，请检查浏览器权限设置")
+          // 检测是否是移动设备
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+          if (isMobile) {
+            setMicError("移动端录音功能受限，建议使用电脑浏览器进行影子跟读练习")
+          } else {
+            setMicError("无法访问麦克风，请检查浏览器权限设置")
+          }
         })
     } else {
-      setMicError("您的浏览器不支持录音功能")
+      setMicError("您的浏览器不支持录音功能，建议使用最新版 Chrome 或 Edge 浏览器")
     }
 
     return () => {
