@@ -31,6 +31,7 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
   const sentenceRef = useRef(sentence)
   const onCompleteRef = useRef(onComplete)
   const userTranscriptRef = useRef(userTranscript)
+  const recordedChunksRef = useRef<Blob[]>([])
 
   // 更新 refs 当值变化时
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
     setShowResult(false)
     setRecordedAudioUrl(null)
     setMicError(null)
+    recordedChunksRef.current = []
   }, [sentence.id])
 
   // 初始化 MediaRecorder 和 SpeechRecognition
@@ -67,18 +69,19 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
 
           recorder.ondataavailable = (event) => {
             if (event.data.size > 0) {
-              chunks.push(event.data)
+              recordedChunksRef.current.push(event.data)
+              console.log("Chunk received, total chunks:", recordedChunksRef.current.length)
             }
           }
 
           recorder.onstop = () => {
-            console.log("Recorder stopped, chunks:", chunks.length)
-            if (chunks.length > 0) {
-              const blob = new Blob(chunks, { type: 'audio/webm' })
+            console.log("Recorder stopped, chunks:", recordedChunksRef.current.length)
+            if (recordedChunksRef.current.length > 0) {
+              const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' })
               const url = URL.createObjectURL(blob)
               console.log("Created audio URL:", url)
               setRecordedAudioUrl(url)
-              chunks.length = 0
+              recordedChunksRef.current = []
             } else {
               console.error("No audio data recorded")
             }
@@ -166,6 +169,7 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
       setUserTranscript("")
       setShowResult(false)
       setRecordedAudioUrl(null)
+      recordedChunksRef.current = []
 
       // 开始语音识别
       recognitionRef.current.start()
