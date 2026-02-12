@@ -232,7 +232,7 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
       {/* 原音播放器（隐藏） */}
       <audio
         ref={originalAudioRef}
-        src="/learn-english-via-listening-1001.mp3"
+        src="/dictation-shadowing-tool/learn-english-via-listening-1001.mp3"
       />
 
       <p className="text-sm text-gray-500 mb-4">

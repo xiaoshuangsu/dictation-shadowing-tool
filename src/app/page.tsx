@@ -9,7 +9,7 @@ import ShadowingPanel from "@/components/ShadowingPanel"
 const AUDIO_TITLE = "First Snowfall"
 
 // Audio file URL
-const AUDIO_SRC = "/learn-english-via-listening-1001.mp3"
+const AUDIO_SRC = "/dictation-shadowing-tool/learn-english-via-listening-1001.mp3"
 
 // Sentence data with precise timestamps (auto-transcribed with Whisper)
 const sampleSentences = [
