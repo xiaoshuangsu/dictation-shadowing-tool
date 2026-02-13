@@ -154,55 +154,57 @@ export default function Home() {
           </div>
 
           {/* Top Control Bar */}
-          <div className="flex justify-between items-center mb-6">
-            {/* Navigation Controls */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handlePrevious}
-                disabled={isFirstSentence}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+          <div className="bg-gray-100 rounded-lg p-4 mb-6">
+            <div className="flex justify-between items-center">
+              {/* Navigation Controls */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handlePrevious}
+                  disabled={isFirstSentence}
+                  className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
 
-              <AudioPlayer
-                audioSrc={AUDIO_SRC}
-                currentSentence={currentSentence}
-                playbackRate={playbackRate}
-                autoPlayTrigger={autoPlayTrigger}
-                onPlayEnd={() => {}}
-              />
+                <AudioPlayer
+                  audioSrc={AUDIO_SRC}
+                  currentSentence={currentSentence}
+                  playbackRate={playbackRate}
+                  autoPlayTrigger={autoPlayTrigger}
+                  onPlayEnd={() => {}}
+                />
 
-              <button
-                onClick={handleNext}
-                disabled={isLastSentence}
-                className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
+                <button
+                  onClick={handleNext}
+                  disabled={isLastSentence}
+                  className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
 
-            {/* Speed Control */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Speed:</span>
-              <select
-                value={playbackRate}
-                onChange={(e) => setPlaybackRate(Number(e.target.value))}
-                className="border rounded-lg px-2 py-1 text-sm"
-              >
-                <option value="0.25">0.25x</option>
-                <option value="0.5">0.5x</option>
-                <option value="0.75">0.75x</option>
-                <option value="1">1x</option>
-                <option value="1.25">1.25x</option>
-                <option value="1.5">1.5x</option>
-                <option value="1.75">1.75x</option>
-                <option value="2">2x</option>
-              </select>
+              {/* Speed Control */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Speed:</span>
+                <select
+                  value={playbackRate}
+                  onChange={(e) => setPlaybackRate(Number(e.target.value))}
+                  className="border rounded-lg px-2 py-1 text-sm bg-white"
+                >
+                  <option value="0.25">0.25x</option>
+                  <option value="0.5">0.5x</option>
+                  <option value="0.75">0.75x</option>
+                  <option value="1">1x</option>
+                  <option value="1.25">1.25x</option>
+                  <option value="1.5">1.5x</option>
+                  <option value="1.75">1.75x</option>
+                  <option value="2">2x</option>
+                </select>
+              </div>
             </div>
           </div>
 
