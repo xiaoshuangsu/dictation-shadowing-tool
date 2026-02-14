@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import AudioPlayer from "@/components/AudioPlayer"
 import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
+import WordMode from "@/components/WordMode"
 
 // Audio Title
 const AUDIO_TITLE = "First Snowfall"
@@ -37,7 +38,7 @@ const sampleSentences = [
   { id: 22, text: "We go inside for hot chocolate.", startTime: 62.2, endTime: 64.5 },
 ]
 
-type PracticeMode = "dictation" | "shadowing"
+type PracticeMode = "dictation" | "shadowing" | "word" | "whole"
 
 export default function Home() {
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
@@ -107,14 +108,49 @@ export default function Home() {
           <div className="inline-flex bg-white rounded-lg p-1 shadow-sm">
             <button
               onClick={() => {
-                setMode("dictation")
-                setCurrentSentenceIndex(0)  // 重置到第一句
-                // 重置 transcript 状态
+                setMode("word")
+                setCurrentSentenceIndex(0)
                 setCompletedSentences(new Set())
                 setCorrectSentences(new Set())
                 setIncorrectSentences(new Set())
                 setCorrectCount(0)
-                setShowTranscript(false)  // 隐藏 transcript
+                setShowTranscript(false)
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                mode === "word"
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Word
+            </button>
+            <button
+              onClick={() => {
+                setMode("whole")
+                setCurrentSentenceIndex(0)
+                setCompletedSentences(new Set())
+                setCorrectSentences(new Set())
+                setIncorrectSentences(new Set())
+                setCorrectCount(0)
+                setShowTranscript(false)
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                mode === "whole"
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              Whole Caption
+            </button>
+            <button
+              onClick={() => {
+                setMode("dictation")
+                setCurrentSentenceIndex(0)
+                setCompletedSentences(new Set())
+                setCorrectSentences(new Set())
+                setIncorrectSentences(new Set())
+                setCorrectCount(0)
+                setShowTranscript(false)
               }}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 mode === "dictation"
@@ -127,13 +163,12 @@ export default function Home() {
             <button
               onClick={() => {
                 setMode("shadowing")
-                setCurrentSentenceIndex(0)  // 重置到第一句
-                // 重置 transcript 状态
+                setCurrentSentenceIndex(0)
                 setCompletedSentences(new Set())
                 setCorrectSentences(new Set())
                 setIncorrectSentences(new Set())
                 setCorrectCount(0)
-                setShowTranscript(false)  // 隐藏 transcript
+                setShowTranscript(false)
               }}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 mode === "shadowing"
@@ -209,7 +244,23 @@ export default function Home() {
           </div>
 
           {/* Practice Area */}
-          {mode === "dictation" ? (
+          {mode === "word" ? (
+            <WordMode
+              sentence={currentSentence}
+              onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
+              currentIndex={currentSentenceIndex}
+              totalSentences={sampleSentences.length}
+              onNext={handleNext}
+              isLastSentence={isLastSentence}
+            />
+          ) : mode === "whole" ? (
+            <DictationBox
+              sentence={currentSentence}
+              onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
+              onNext={handleNext}
+              isLastSentence={isLastSentence}
+            />
+          ) : mode === "dictation" ? (
             <DictationBox
               sentence={currentSentence}
               onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
