@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import ConfirmModal from "./ConfirmModal"
 
 interface Sentence {
   id: number
@@ -22,6 +23,9 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [showAllWords, setShowAllWords] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [isRevealed, setIsRevealed] = useState(false)
+  const [isLocked, setIsLocked] = useState(false)
 
   // Word-level state
   const sentenceWords = sentence.text.split(" ")
@@ -32,6 +36,9 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     setUserInput("")
     setShowResult(false)
     setShowAllWords(false)
+    setShowConfirmModal(false)
+    setIsRevealed(false)
+    setIsLocked(false)
     setWordStatuses(new Map())
   }, [sentence.id])
 
@@ -41,8 +48,8 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     const newStatuses = new Map<number, WordStatus>()
 
     sentenceWords.forEach((word, index) => {
-      const userWord = userWords[index]?.toLowerCase().replace(/[^\w]/g, "")
-      const targetWord = word.toLowerCase().replace(/[^\w]/g, "")
+      const userWord = userWords[index]?.toLowerCase().replace(/[^\w\s]/g, "")
+      const targetWord = word.toLowerCase().replace(/[^\w\s]/g, "")
 
       if (!userWord) {
         newStatuses.set(index, "pending")
@@ -65,9 +72,19 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   }
 
   const handleShowAllWords = () => {
-    setShowAllWords(true)
+    setShowConfirmModal(true)
+  }
 
-    // Mark all incorrect words as errors in parent
+  const handleConfirmShowWords = () => {
+    setShowConfirmModal(false)
+    setShowAllWords(true)
+    setIsRevealed(true)
+    setIsLocked(true)
+
+    // Fill input with correct answer
+    setUserInput(sentence.text)
+
+    // Calculate and submit score
     let correctCount = 0
     wordStatuses.forEach((status) => {
       if (status === "correct") {
@@ -81,6 +98,10 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     }
   }
 
+  const handleCancelShowWords = () => {
+    setShowConfirmModal(false)
+  }
+
   const handleHideAllWords = () => {
     setShowAllWords(false)
   }
@@ -91,6 +112,9 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     }
     setShowResult(false)
     setShowAllWords(false)
+    setShowConfirmModal(false)
+    setIsRevealed(false)
+    setIsLocked(false)
     setUserInput("")
   }
 
@@ -100,7 +124,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       e.preventDefault()
       if (!showResult && userInput.trim()) {
         handleCheckAnswer()
-      } else if (showResult) {
+      } else if (showResult || isRevealed) {
         handleNext()
       }
     }
@@ -117,6 +141,15 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
   const isCorrect = checkCorrect()
 
+  // Calculate missing words count for modal message
+  let correctCount = 0
+  wordStatuses.forEach((status) => {
+    if (status === "correct") {
+      correctCount++
+    }
+  })
+  const missingWordsCount = sentenceWords.length - correctCount
+
   return (
     <div>
       {/* Label */}
@@ -130,7 +163,8 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base"
+          disabled={isLocked}
+          className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
           placeholder="Type your answer here..."
         />
       </div>
@@ -140,7 +174,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
         {/* Show Words Toggle */}
         <div className="flex justify-end mb-2">
           <button
-            onClick={() => showAllWords ? handleHideAllWords() : handleShowAllWords()}
+            onClick={showAllWords ? handleHideAllWords : handleShowAllWords}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
             {showAllWords ? "Hide Words" : "Show Words"}
@@ -159,8 +193,8 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
               let displayText: string
               let bgClass: string
 
-              if (showAllWords) {
-                // Show Words clicked - reveal all original words
+              if (showAllWords || isRevealed) {
+                // Show Words clicked or revealed - reveal all original words
                 displayText = word
                 bgClass = status === "correct"
                   ? "bg-green-100 border-green-400"
@@ -218,11 +252,11 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
       {/* Check Answer / Next Button */}
       <button
-        onClick={showResult || showAllWords ? handleNext : handleCheckAnswer}
-        disabled={!showResult && !showAllWords && !userInput.trim()}
+        onClick={showResult || isRevealed ? handleNext : handleCheckAnswer}
+        disabled={!showResult && !isRevealed && !userInput.trim()}
         className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
-        {showResult || showAllWords ? (
+        {showResult || isRevealed ? (
           <>
             Next
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -236,8 +270,18 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
       {/* Hint */}
       <p className="text-xs text-gray-500 mt-2 text-center">
-        Press Enter to {showResult || showAllWords ? "continue" : "check"}
+        Press Enter to {showResult || isRevealed ? "continue" : "check"}
       </p>
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onClose={handleCancelShowWords}
+        onConfirm={handleConfirmShowWords}
+        message={`Are you sure you want to show all words and submit your answer?
+
+The score for this sentence will be reduced according to the number of words you have not shown (${missingWordsCount} words).`}
+      />
     </div>
   )
 }
