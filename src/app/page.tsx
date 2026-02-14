@@ -170,12 +170,6 @@ export default function Home() {
                 <option value="word">Word</option>
                 <option value="whole">Whole Caption</option>
               </select>
-              {/* Custom dropdown arrow icon */}
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12l-6 6 0 0 6" />
-                </svg>
-              </div>
             </div>
           </div>
         )}
