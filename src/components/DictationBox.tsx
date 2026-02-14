@@ -16,19 +16,66 @@ interface DictationBoxProps {
   isLastSentence?: boolean
 }
 
+type WordStatus = "correct" | "incorrect" | "pending"
+
 export default function DictationBox({ sentence, onComplete, onNext, isLastSentence }: DictationBoxProps) {
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
+  const [showAllWords, setShowAllWords] = useState(false)
+
+  // Word-level state
+  const sentenceWords = sentence.text.split(" ")
+  const [wordStatuses, setWordStatuses] = useState<Map<number, WordStatus>>(new Map())
 
   // Reset when sentence changes
   useEffect(() => {
     setUserInput("")
     setShowResult(false)
+    setShowAllWords(false)
+    setWordStatuses(new Map())
   }, [sentence.id])
+
+  // Update word statuses as user types
+  useEffect(() => {
+    const userWords = userInput.trim().split(/\s+/)
+    const newStatuses = new Map<number, WordStatus>()
+
+    sentenceWords.forEach((word, index) => {
+      const userWord = userWords[index]?.toLowerCase().replace(/[^\w]/g, "")
+      const targetWord = word.toLowerCase().replace(/[^\w]/g, "")
+
+      if (!userWord) {
+        newStatuses.set(index, "pending")
+      } else if (userWord === targetWord) {
+        newStatuses.set(index, "correct")
+      } else {
+        newStatuses.set(index, "incorrect")
+      }
+    })
+
+    setWordStatuses(newStatuses)
+  }, [userInput, sentenceWords])
 
   const handleCheckAnswer = () => {
     setShowResult(true)
     const isCorrect = checkCorrect()
+    if (onComplete) {
+      onComplete(isCorrect)
+    }
+  }
+
+  const handleShowAllWords = () => {
+    setShowAllWords(true)
+
+    // Mark all incorrect words as errors in parent
+    let correctCount = 0
+    wordStatuses.forEach((status) => {
+      if (status === "correct") {
+        correctCount++
+      }
+    })
+
+    const isCorrect = correctCount === sentenceWords.length
     if (onComplete) {
       onComplete(isCorrect)
     }
@@ -39,6 +86,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       onNext()
     }
     setShowResult(false)
+    setShowAllWords(false)
     setUserInput("")
   }
 
@@ -81,6 +129,44 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
           className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base"
           placeholder="Type your answer here..."
         />
+      </div>
+
+      {/* Word Cards Display */}
+      <div className="mb-4">
+        {/* Show Words Toggle */}
+        <div className="flex justify-end mb-2">
+          <button
+            onClick={() => showAllWords ? setShowAllWords(false) : handleShowAllWords()}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            {showAllWords ? "Hide Words" : "Show Words"}
+          </button>
+        </div>
+
+        {/* Word Cards */}
+        {(showAllWords || userInput.trim().length > 0) && (
+          <div className="flex flex-wrap gap-2">
+            {sentenceWords.map((word, index) => {
+              const status = wordStatuses.get(index) || "pending"
+              const bgClass = status === "correct"
+                ? "bg-green-100 border-green-400"
+                : status === "incorrect"
+                ? "bg-red-100 border-red-400"
+                : "bg-gray-100 border-gray-300"
+
+              return (
+                <div
+                  key={index}
+                  className={`px-3 py-2 rounded-lg border-2 ${bgClass}`}
+                >
+                  <span className="text-sm font-medium">
+                    {showAllWords || status !== "pending" ? word : "*"}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Result Display */}
