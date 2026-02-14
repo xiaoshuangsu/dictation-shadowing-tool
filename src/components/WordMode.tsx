@@ -25,10 +25,10 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
   const sentenceWords = sentence.text.split(" ")
   
-  // Pick a random word from the sentence (not the first one, to make it interesting)
-  // Use sentence.id to deterministically pick the same word for the same sentence
-  const targetWordIndex = (sentence.id % Math.max(2, sentenceWords.length - 1)) + 1
-  const targetWord = sentenceWords[targetWordIndex]
+  // Hide the last word (or use sentence.id to pick different words)
+  const hiddenWordIndex = sentenceWords.length - 1
+  const hiddenWord = sentenceWords[hiddenWordIndex]
+  const visibleWords = sentenceWords.slice(0, hiddenWordIndex)
 
   // Reset when sentence changes
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   }
 
   const checkWordCorrect = () => {
-    return normalizeText(userInput) === normalizeText(targetWord || "")
+    return normalizeText(userInput) === normalizeText(hiddenWord || "")
   }
 
   const isCorrect = checkWordCorrect()
@@ -78,29 +78,24 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
   return (
     <div>
-      {/* Current Word Indicator */}
+      {/* Current Sentence Indicator */}
       <div className="text-center mb-4">
         <span className="text-sm text-gray-600">Sentence {currentIndex + 1} / {totalSentences}</span>
       </div>
 
-      {/* Display Text with Blank */}
+      {/* Display Text with One Hidden Word */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <p className="text-lg leading-relaxed">
-          {sentenceWords.map((word, index) => {
-            if (index === targetWordIndex) {
-              // Target word - show blank
-              return <span key={index} className="inline-block border-b-2 border-blue-500 px-2 min-w-[80px] text-center text-blue-600 font-medium">[ ______ ]</span>
-            } else {
-              // Other words - show original
-              return <span key={index} className="text-gray-800">{word} </span>
-            }
-          })}
+          {visibleWords.map((word, index) => (
+            <span key={index} className="text-gray-800">{word} </span>
+          ))}
+          <span className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[     ]</span>
         </p>
       </div>
 
       {/* Label */}
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Type the word you hear:
+        Type the missing word:
       </label>
 
       {/* Input Area */}
@@ -119,7 +114,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       {showResult && !isCorrect && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
           <p className="text-sm text-red-700">
-            Not correct. The answer was: <span className="font-semibold">{targetWord}</span>
+            Not correct. The answer was: <span className="font-semibold">{hiddenWord}</span>
           </p>
         </div>
       )}
@@ -146,7 +141,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         disabled={!userInput.trim() || showResult || sentenceCompleted}
         className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
-        Check Word
+        Check Answer
       </button>
 
       {/* Hint */}
