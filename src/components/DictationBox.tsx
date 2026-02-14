@@ -148,11 +148,24 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
           <div className="flex flex-wrap gap-2">
             {sentenceWords.map((word, index) => {
               const status = wordStatuses.get(index) || "pending"
-              const bgClass = status === "correct"
-                ? "bg-green-100 border-green-400"
-                : status === "incorrect"
-                ? "bg-red-100 border-red-400"
-                : "bg-gray-100 border-gray-300"
+              const userWords = userInput.trim().split(/\s+/)
+              const userWord = userWords[index] || ""
+
+              // Determine display text and color based on status
+              let displayText: string
+              let bgClass: string
+
+              if (status === "correct") {
+                displayText = word
+                bgClass = "bg-green-100 border-green-400"
+              } else if (status === "incorrect") {
+                displayText = `${userWord}*`
+                bgClass = "bg-red-100 border-red-400"
+              } else {
+                // pending - show asterisks matching word length
+                displayText = "*".repeat(word.split("").length)
+                bgClass = "bg-gray-100 border-gray-300"
+              }
 
               return (
                 <div
@@ -160,7 +173,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
                   className={`px-3 py-2 rounded-lg border-2 ${bgClass}`}
                 >
                   <span className="text-sm font-medium">
-                    {showAllWords || status !== "pending" ? word : "*"}
+                    {displayText}
                   </span>
                 </div>
               )
