@@ -81,6 +81,10 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     }
   }
 
+  const handleHideAllWords = () => {
+    setShowAllWords(false)
+  }
+
   const handleNext = () => {
     if (onNext && !isLastSentence) {
       onNext()
@@ -136,7 +140,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
         {/* Show Words Toggle */}
         <div className="flex justify-end mb-2">
           <button
-            onClick={() => showAllWords ? setShowAllWords(false) : setShowAllWords(true)}
+            onClick={() => showAllWords ? handleHideAllWords() : handleShowAllWords()}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
             {showAllWords ? "Hide Words" : "Show Words"}
@@ -214,11 +218,11 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
       {/* Check Answer / Next Button */}
       <button
-        onClick={showResult ? handleNext : handleCheckAnswer}
-        disabled={!showResult && !userInput.trim()}
+        onClick={showResult || showAllWords ? handleNext : handleCheckAnswer}
+        disabled={!showResult && !showAllWords && !userInput.trim()}
         className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
-        {showResult ? (
+        {showResult || showAllWords ? (
           <>
             Next
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +236,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
       {/* Hint */}
       <p className="text-xs text-gray-500 mt-2 text-center">
-        Press Enter to {showResult ? "continue" : "check"}
+        Press Enter to {showResult || showAllWords ? "continue" : "check"}
       </p>
     </div>
   )
