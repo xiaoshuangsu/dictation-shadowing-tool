@@ -21,11 +21,11 @@ interface WordModeProps {
 export default function WordMode({ sentence, onComplete, currentIndex, totalSentences, onNext, isLastSentence }: WordModeProps) {
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
-  const [sentenceCompleted, setSentenceCompleted] = useState(false)
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
 
   const sentenceWords = sentence.text.split(" ")
   
-  // Hide the last word (or use sentence.id to pick different words)
+  // Hide the last word
   const hiddenWordIndex = sentenceWords.length - 1
   const hiddenWord = sentenceWords[hiddenWordIndex]
   const visibleWords = sentenceWords.slice(0, hiddenWordIndex)
@@ -34,7 +34,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   useEffect(() => {
     setUserInput("")
     setShowResult(false)
-    setSentenceCompleted(false)
+    setIsCorrect(null)
   }, [sentence.id])
 
   // Check if word is correct
@@ -46,24 +46,24 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     return normalizeText(userInput) === normalizeText(hiddenWord || "")
   }
 
-  const isCorrect = checkWordCorrect()
-
   const handleSubmitWord = () => {
+    const correct = checkWordCorrect()
     setShowResult(true)
+    setIsCorrect(correct)
 
     if (onComplete) {
-      onComplete(isCorrect)
+      onComplete(correct)
     }
 
-    // Auto-advance to next sentence after showing result
-    setTimeout(() => {
-      setSentenceCompleted(true)
+    // Only advance if correct
+    if (correct) {
       setTimeout(() => {
         if (onNext && !isLastSentence) {
           onNext()
         }
       }, 1500)
-    }, 1000)
+    }
+    // If incorrect, allow user to retry - don't auto-advance
   }
 
   // Handle Enter key
@@ -72,8 +72,18 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       e.preventDefault()
       if (!showResult && userInput.trim()) {
         handleSubmitWord()
+      } else if (showResult) {
+        // On Enter after showing result, clear result to allow retry
+        setShowResult(false)
+        setIsCorrect(null)
       }
     }
+  }
+
+  const handleRetry = () => {
+    setShowResult(false)
+    setIsCorrect(null)
+    setUserInput("")
   }
 
   return (
@@ -102,24 +112,37 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       <div className="relative mb-4">
         <textarea
           value={userInput}
-          onChange={(e) => setUserInput(e.target.value)}
+          onChange={(e) => {
+            setUserInput(e.target.value)
+            // Clear result when user starts typing again
+            if (showResult) {
+              setShowResult(false)
+              setIsCorrect(null)
+            }
+          }}
           onKeyDown={handleKeyDown}
-          disabled={showResult || sentenceCompleted}
+          disabled={showResult && isCorrect === true}
           className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
           placeholder="Type your answer here..."
         />
       </div>
 
       {/* Result Display */}
-      {showResult && !isCorrect && (
+      {showResult && isCorrect === false && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-700">
+          <p className="text-sm text-red-700 mb-2">
             Not correct. The answer was: <span className="font-semibold">{hiddenWord}</span>
           </p>
+          <button
+            onClick={handleRetry}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium underline"
+          >
+            Try again
+          </button>
         </div>
       )}
 
-      {showResult && isCorrect && (
+      {showResult && isCorrect === true && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200">
           <p className="text-sm text-green-700">
             Correct! Moving to next sentence...
@@ -127,18 +150,10 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         </div>
       )}
 
-      {sentenceCompleted && (
-        <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
-          <p className="text-sm text-blue-700">
-            Sentence completed! Moving to next sentence...
-          </p>
-        </div>
-      )}
-
       {/* Submit Button */}
       <button
         onClick={handleSubmitWord}
-        disabled={!userInput.trim() || showResult || sentenceCompleted}
+        disabled={!userInput.trim() || (showResult && isCorrect === true)}
         className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
         Check Answer
