@@ -81,11 +81,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
   return (
     <div>
-      {/* Current Sentence Indicator */}
-      <div className="text-center mb-4">
-        <span className="text-sm text-gray-600">Sentence {currentIndex + 1} / {totalSentences}</span>
-      </div>
-
       {/* Display Text with One Hidden Word */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <p className="text-lg leading-relaxed">
