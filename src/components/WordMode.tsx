@@ -133,7 +133,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       {showResult && isCorrect === true && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200">
           <p className="text-sm text-green-700">
-            Correct! Use the navigation buttons to continue.
+            Correct!
           </p>
         </div>
       )}
