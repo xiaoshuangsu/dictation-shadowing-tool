@@ -136,14 +136,14 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
         {/* Show Words Toggle */}
         <div className="flex justify-end mb-2">
           <button
-            onClick={() => showAllWords ? setShowAllWords(false) : handleShowAllWords()}
+            onClick={() => showAllWords ? setShowAllWords(false) : setShowAllWords(true)}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
             {showAllWords ? "Hide Words" : "Show Words"}
           </button>
         </div>
 
-        {/* Word Cards */}
+        {/* Word Cards - Always visible when typing or revealed */}
         {(showAllWords || userInput.trim().length > 0) && (
           <div className="flex flex-wrap gap-2">
             {sentenceWords.map((word, index) => {
@@ -151,20 +151,33 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
               const userWords = userInput.trim().split(/\s+/)
               const userWord = userWords[index] || ""
 
-              // Determine display text and color based on status
+              // Determine display text and color based on status and showAllWords
               let displayText: string
               let bgClass: string
 
-              if (status === "correct") {
+              if (showAllWords) {
+                // Show Words clicked - reveal all original words
                 displayText = word
-                bgClass = "bg-green-100 border-green-400"
-              } else if (status === "incorrect") {
-                displayText = `${userWord}*`
-                bgClass = "bg-red-100 border-red-400"
+                bgClass = status === "correct"
+                  ? "bg-green-100 border-green-400"
+                  : status === "incorrect"
+                  ? "bg-red-100 border-red-400"
+                  : "bg-gray-100 border-gray-300"
               } else {
-                // pending - show asterisks matching word length
-                displayText = "*".repeat(word.split("").length)
-                bgClass = "bg-gray-100 border-gray-300"
+                // Default - show word-by-word status
+                if (status === "correct") {
+                  // Show original word in green
+                  displayText = word
+                  bgClass = "bg-green-100 border-green-400"
+                } else if (status === "incorrect") {
+                  // Show user input + * in red
+                  displayText = `${userWord}*`
+                  bgClass = "bg-red-100 border-red-400"
+                } else {
+                  // pending/missing - show asterisks matching word length in gray
+                  displayText = "*".repeat(word.split("").length)
+                  bgClass = "bg-gray-100 border-gray-300"
+                }
               }
 
               return (
