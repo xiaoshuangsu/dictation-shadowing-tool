@@ -54,6 +54,15 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     if (onComplete) {
       onComplete(correct)
     }
+
+    // Only advance if correct
+    if (correct) {
+      setTimeout(() => {
+        if (onNext && !isLastSentence) {
+          onNext()
+        }
+      }, 1500)
+    }
   }
 
   // Handle Enter key
@@ -68,11 +77,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         setIsCorrect(null)
       }
     }
-  }
-
-  const handleTryAgain = () => {
-    setShowResult(false)
-    setIsCorrect(null)
   }
 
   return (
@@ -103,7 +107,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
           value={userInput}
           onChange={(e) => {
             setUserInput(e.target.value)
-            // Allow editing again
+            // Allow editing again by clearing result
             if (showResult) {
               setShowResult(false)
               setIsCorrect(null)
@@ -118,15 +122,9 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       {/* Result Display */}
       {showResult && isCorrect === false && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-700 mb-2">
+          <p className="text-sm text-red-700">
             Not correct. Please listen again and try!
           </p>
-          <button
-            onClick={handleTryAgain}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-          >
-            Try Again
-          </button>
         </div>
       )}
 
