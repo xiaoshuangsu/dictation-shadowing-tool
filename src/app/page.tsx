@@ -173,7 +173,7 @@ export default function Home() {
               {/* Custom dropdown arrow icon */}
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 7l10 5 0 0" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 9l6 6 0 0 6" />
                 </svg>
               </div>
             </div>
