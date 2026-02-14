@@ -24,11 +24,9 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   const [userInput, setUserInput] = useState("")
   const [wordIndex, setWordIndex] = useState(0)
   const [showResult, setShowResult] = useState(false)
-  const [sentenceCompleted, setSentenceCompleted] = useState(false)
 
   const sentenceWords = sentence.text.split(" ")
   const [wordStatuses, setWordStatuses] = useState<Map<number, WordStatus>>(new Map())
-
   const currentWord = sentenceWords[wordIndex]
 
   // Reset when sentence changes
@@ -36,7 +34,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setUserInput("")
     setWordIndex(0)
     setShowResult(false)
-    setSentenceCompleted(false)
     setWordStatuses(new Map())
   }, [sentence.id])
 
@@ -72,7 +69,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         setShowResult(false)
       } else {
         // Completed all words in this sentence
-        setSentenceCompleted(true)
         // Auto-advance to next sentence after delay
         setTimeout(() => {
           if (onNext && !isLastSentence) {
@@ -111,10 +107,10 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
               return <span key={index} className="text-green-700 font-semibold">{word} </span>
             } else if (index === wordIndex) {
               // Current word - show blank
-              return <span key={index} className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[ ______ ]</span>
+              return <span key={index} className="inline-block border-b-2 border-blue-500 px-2 min-w-[80px] text-center text-blue-600 font-medium">[ ______ ]</span>
             } else {
-              // Future words - show asterisks
-              return <span key={index} className="text-gray-400">{"*".repeat(word.length)} </span>
+              // Future words - show original word
+              return <span key={index} className="text-gray-800">{word} </span>
             }
           })}
         </p>
@@ -131,7 +127,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={showResult || sentenceCompleted}
+          disabled={showResult}
           className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
           placeholder="Type your answer here..."
         />
@@ -154,18 +150,10 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         </div>
       )}
 
-      {sentenceCompleted && (
-        <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
-          <p className="text-sm text-blue-700">
-            Sentence completed! Moving to next sentence...
-          </p>
-        </div>
-      )}
-
       {/* Submit Button */}
       <button
         onClick={handleSubmitWord}
-        disabled={!userInput.trim() || showResult || sentenceCompleted}
+        disabled={!userInput.trim() || showResult}
         className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
         Check Word

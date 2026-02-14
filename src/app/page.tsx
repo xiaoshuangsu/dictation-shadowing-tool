@@ -38,11 +38,13 @@ const sampleSentences = [
   { id: 22, text: "We go inside for hot chocolate.", startTime: 62.2, endTime: 64.5 },
 ]
 
-type PracticeMode = "dictation" | "shadowing" | "word" | "whole"
+type PracticeMode = "dictation" | "shadowing"
+type DictationMode = "word" | "whole"
 
 export default function Home() {
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [mode, setMode] = useState<PracticeMode>("dictation")
+  const [dictationMode, setDictationMode] = useState<DictationMode>("word")
   const [correctCount, setCorrectCount] = useState(0)
   const [showTranscript, setShowTranscript] = useState(false)
   const [completedSentences, setCompletedSentences] = useState<Set<number>>(new Set())
@@ -108,42 +110,6 @@ export default function Home() {
           <div className="inline-flex bg-white rounded-lg p-1 shadow-sm">
             <button
               onClick={() => {
-                setMode("word")
-                setCurrentSentenceIndex(0)
-                setCompletedSentences(new Set())
-                setCorrectSentences(new Set())
-                setIncorrectSentences(new Set())
-                setCorrectCount(0)
-                setShowTranscript(false)
-              }}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === "word"
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              Word
-            </button>
-            <button
-              onClick={() => {
-                setMode("whole")
-                setCurrentSentenceIndex(0)
-                setCompletedSentences(new Set())
-                setCorrectSentences(new Set())
-                setIncorrectSentences(new Set())
-                setCorrectCount(0)
-                setShowTranscript(false)
-              }}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === "whole"
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              Whole Caption
-            </button>
-            <button
-              onClick={() => {
                 setMode("dictation")
                 setCurrentSentenceIndex(0)
                 setCompletedSentences(new Set())
@@ -180,6 +146,48 @@ export default function Home() {
             </button>
           </div>
         </div>
+
+        {/* Dictation Mode Sub-toggle (only show in Dictation mode) */}
+        {mode === "dictation" && (
+          <div className="flex justify-center mb-4">
+            <div className="inline-flex bg-white rounded-lg p-1 shadow-sm">
+              <button
+                onClick={() => {
+                  setDictationMode("word")
+                  setCurrentSentenceIndex(0)
+                  setCompletedSentences(new Set())
+                  setCorrectSentences(new Set())
+                  setIncorrectSentences(new Set())
+                  setCorrectCount(0)
+                }}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  dictationMode === "word"
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Word
+              </button>
+              <button
+                onClick={() => {
+                  setDictationMode("whole")
+                  setCurrentSentenceIndex(0)
+                  setCompletedSentences(new Set())
+                  setCorrectSentences(new Set())
+                  setIncorrectSentences(new Set())
+                  setCorrectCount(0)
+                }}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  dictationMode === "whole"
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Whole Caption
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Card */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
@@ -244,29 +252,24 @@ export default function Home() {
           </div>
 
           {/* Practice Area */}
-          {mode === "word" ? (
-            <WordMode
-              sentence={currentSentence}
-              onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
-              currentIndex={currentSentenceIndex}
-              totalSentences={sampleSentences.length}
-              onNext={handleNext}
-              isLastSentence={isLastSentence}
-            />
-          ) : mode === "whole" ? (
-            <DictationBox
-              sentence={currentSentence}
-              onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
-              onNext={handleNext}
-              isLastSentence={isLastSentence}
-            />
-          ) : mode === "dictation" ? (
-            <DictationBox
-              sentence={currentSentence}
-              onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
-              onNext={handleNext}
-              isLastSentence={isLastSentence}
-            />
+          {mode === "dictation" ? (
+            dictationMode === "word" ? (
+              <WordMode
+                sentence={currentSentence}
+                onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
+                currentIndex={currentSentenceIndex}
+                totalSentences={sampleSentences.length}
+                onNext={handleNext}
+                isLastSentence={isLastSentence}
+              />
+            ) : (
+              <DictationBox
+                sentence={currentSentence}
+                onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
+                onNext={handleNext}
+                isLastSentence={isLastSentence}
+              />
+            )
           ) : (
             <ShadowingPanel
               sentence={currentSentence}
