@@ -149,42 +149,33 @@ export default function Home() {
 
         {/* Dictation Mode Sub-toggle (only show in Dictation mode) */}
         {mode === "dictation" && (
-          <div className="flex justify-center mb-4">
-            <div className="inline-flex bg-white rounded-lg p-1 shadow-sm">
-              <button
-                onClick={() => {
-                  setDictationMode("word")
+          <div className="flex justify-start mb-4 items-center gap-3">
+            <span className="text-sm font-medium text-gray-700">
+              Dictation mode:
+            </span>
+            <div className="relative">
+              <select
+                value={dictationMode}
+                onChange={(e) => {
+                  const newMode = e.target.value as "word" | "whole"
+                  setDictationMode(newMode)
                   setCurrentSentenceIndex(0)
                   setCompletedSentences(new Set())
                   setCorrectSentences(new Set())
                   setIncorrectSentences(new Set())
                   setCorrectCount(0)
                 }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  dictationMode === "word"
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
+                className="appearance-none pr-8 pl-4 pr-10 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
               >
-                Word
-              </button>
-              <button
-                onClick={() => {
-                  setDictationMode("whole")
-                  setCurrentSentenceIndex(0)
-                  setCompletedSentences(new Set())
-                  setCorrectSentences(new Set())
-                  setIncorrectSentences(new Set())
-                  setCorrectCount(0)
-                }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  dictationMode === "whole"
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                Whole Caption
-              </button>
+                <option value="word">Word</option>
+                <option value="whole">Whole Caption</option>
+              </select>
+              {/* Custom dropdown arrow icon */}
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7 7" />
+                </svg>
+              </div>
             </div>
           </div>
         )}
