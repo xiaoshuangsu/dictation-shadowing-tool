@@ -54,14 +54,12 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     if (onComplete) {
       onComplete(correct)
     }
+    // Don't auto-advance, let user click Next button
+  }
 
-    // Only advance if correct
-    if (correct) {
-      setTimeout(() => {
-        if (onNext && !isLastSentence) {
-          onNext()
-        }
-      }, 1500)
+  const handleNext = () => {
+    if (onNext && !isLastSentence) {
+      onNext()
     }
   }
 
@@ -71,10 +69,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       e.preventDefault()
       if (!showResult && userInput.trim()) {
         handleSubmitWord()
-      } else if (showResult) {
-        // Allow editing again
-        setShowResult(false)
-        setIsCorrect(null)
       }
     }
   }
@@ -131,18 +125,27 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         </div>
       )}
 
-      {/* Submit Button */}
+      {/* Submit / Next Button */}
       <button
-        onClick={handleSubmitWord}
-        disabled={!userInput.trim()}
-        className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+        onClick={showResult ? handleNext : handleSubmitWord}
+        disabled={!showResult && !userInput.trim()}
+        className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
-        Check Answer
+        {showResult ? (
+          <>
+            Next
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </>
+        ) : (
+          "Check Answer"
+        )}
       </button>
 
       {/* Hint */}
       <p className="text-xs text-gray-500 mt-2 text-center">
-        Press Enter to check
+        Press Enter to {showResult ? "continue" : "check"}
       </p>
     </div>
   )
