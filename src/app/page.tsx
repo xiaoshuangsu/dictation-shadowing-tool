@@ -52,6 +52,7 @@ export default function Home() {
   const [incorrectSentences, setIncorrectSentences] = useState<Set<number>>(new Set())
   const [playbackRate, setPlaybackRate] = useState(1)
   const [autoPlayTrigger, setAutoPlayTrigger] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
 
   const currentSentence = sampleSentences[currentSentenceIndex]
 
@@ -74,6 +75,10 @@ export default function Home() {
     }
   }
 
+  const handleTimeUpdate = (time: number) => {
+    setCurrentTime(time)
+  }
+
   const handleComplete = (sentenceId: number, isCorrect: boolean) => {
     const newCompleted = new Set(completedSentences)
     newCompleted.add(sentenceId)
@@ -94,6 +99,18 @@ export default function Home() {
   const handleSentenceClick = (index: number) => {
     setCurrentSentenceIndex(index)
     setAutoPlayTrigger(prev => prev + 1)
+  }
+
+  // Calculate which words should be highlighted based on current playback time
+  const getHighlightedWordIndex = (sentence: typeof sampleSentences[0]) => {
+    if (currentTime < sentence.startTime || currentTime > sentence.endTime) {
+      return -1 // Not playing this sentence
+    }
+
+    const progress = (currentTime - sentence.startTime) / (sentence.endTime - sentence.startTime)
+    const words = sentence.text.split(' ')
+    const highlightedIndex = Math.floor(progress * words.length)
+    return Math.min(highlightedIndex, words.length - 1)
   }
 
   const isLastSentence = currentSentenceIndex === sampleSentences.length - 1
@@ -207,6 +224,7 @@ export default function Home() {
                   playbackRate={playbackRate}
                   autoPlayTrigger={autoPlayTrigger}
                   onPlayEnd={() => {}}
+                  onTimeUpdate={handleTimeUpdate}
                 />
 
                 <button
@@ -314,7 +332,7 @@ export default function Home() {
                         </span>
                       </div>
 
-                      {/* Sentence Content - Always show text in transcript */}
+                      {/* Sentence Content - Always show text in transcript with word-level highlighting */}
                       <div className="flex-1">
                         <p className={`text-sm ${
                           mode === "shadowing"
@@ -323,11 +341,28 @@ export default function Home() {
                               : isIncorrect
                               ? "text-orange-800"
                               : "text-gray-800"
-                            : isCompleted
-                            ? "text-gray-800"
                             : "text-gray-800"
                         }`}>
-                          {sentence.text}
+                          {sentence.text.split(' ').map((word, wordIndex) => {
+                            const highlightedWordIndex = index === currentSentenceIndex ? getHighlightedWordIndex(sentence) : -1
+                            const isHighlighted = wordIndex <= highlightedWordIndex
+                            const isCurrentWord = wordIndex === highlightedWordIndex
+
+                            return (
+                              <span
+                                key={wordIndex}
+                                className={
+                                  isCurrentWord
+                                    ? "bg-yellow-300 rounded px-1 font-semibold"
+                                    : isHighlighted && index === currentSentenceIndex
+                                    ? "bg-yellow-100 rounded px-1"
+                                    : ""
+                                }
+                              >
+                                {word}{' '}
+                              </span>
+                            )
+                          })}
                         </p>
                       </div>
 
