@@ -15,9 +15,10 @@ interface AudioPlayerProps {
   playbackRate?: number
   autoPlayTrigger?: number
   onPlayEnd?: () => void
+  onTimeUpdate?: (currentTime: number) => void
 }
 
-export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 1, autoPlayTrigger = 0, onPlayEnd }: AudioPlayerProps) {
+export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 1, autoPlayTrigger = 0, onPlayEnd, onTimeUpdate }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const prevTriggerRef = useRef(0)
@@ -38,6 +39,23 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       }, (durationToPlay / playbackRate) * 1000 + 200)
     }
   }
+
+  // Set up timeupdate event listener
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return
+
+    const handleTimeUpdate = () => {
+      if (onTimeUpdate) {
+        onTimeUpdate(audio.currentTime)
+      }
+    }
+
+    audio.addEventListener('timeupdate', handleTimeUpdate)
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate)
+    }
+  }, [onTimeUpdate])
 
   // Auto-play when trigger changes
   useEffect(() => {
