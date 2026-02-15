@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2025-02-14
+
+### Changed
+- Transcript now always shows full text without hiding uncompleted sentences with asterisks
+- Users can easily review all content in the transcript panel
+
 ## [1.3.0] - 2025-02-14
 
 ### Added
