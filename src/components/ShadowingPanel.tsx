@@ -12,9 +12,11 @@ interface Sentence {
 interface ShadowingPanelProps {
   sentence: Sentence
   onComplete?: (isCorrect: boolean) => void
+  onNext?: () => void
+  isLastSentence?: boolean
 }
 
-export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelProps) {
+export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
   const [userTranscript, setUserTranscript] = useState("")
@@ -368,9 +370,27 @@ export default function ShadowingPanel({ sentence, onComplete }: ShadowingPanelP
               : "bg-blue-500 text-white hover:bg-blue-600 hover:scale-105 shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:scale-100"
           }`}
         >
-          <svg className={`w-12 h-12 ${isRecording ? "animate-pulse" : ""}`} fill="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-8 h-8 ${isRecording ? "animate-pulse" : ""}`} fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3s-3 1.34-3 3v6c0 1.66 1.34 3 3 3z"/>
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Next 按钮 */}
+      <div className="flex justify-center mb-6">
+        <button
+          onClick={() => {
+            if (onNext && !isLastSentence) {
+              onNext()
+            }
+          }}
+          disabled={isLastSentence}
+          className="px-6 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+        >
+          Next
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
       </div>
