@@ -259,6 +259,8 @@ export default function Home() {
             <ShadowingPanel
               sentence={currentSentence}
               onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
+              onNext={handleNext}
+              isLastSentence={isLastSentence}
             />
           )}
         </div>
