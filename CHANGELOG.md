@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2025-02-14
+
+### Added
+- Word-level highlighting in transcript during audio playback
+- Current playing word highlighted with darker yellow background
+- Already-played words highlighted with lighter yellow background
+- Synchronized highlighting with audio progress
+
 ## [1.4.0] - 2025-02-14
 
 ### Changed
