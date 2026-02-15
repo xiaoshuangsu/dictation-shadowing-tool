@@ -36,6 +36,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setUserInput("")
     setShowResult(false)
     setIsCorrect(null)
+    setShowWord(false)
   }, [sentence.id])
 
   // Check if word is correct
