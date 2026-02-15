@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2025-02-14
+
+### Added
+- Allow clicking transcript sentences to play audio
+- Hover effect on transcript sentences for better UX
+- Works in both Dictation and Shadowing modes
+
 ## [1.2.0] - 2025-02-14
 
 ### Added
