@@ -377,6 +377,26 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
         </button>
       </div>
 
+      {/* Next 按钮 */}
+      {recordedAudioUrl && (
+        <div className="flex justify-center mb-4">
+          <button
+            onClick={() => {
+              if (onNext && !isLastSentence) {
+                onNext()
+              }
+            }}
+            disabled={isLastSentence}
+            className="px-6 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            Next
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* 录音状态提示 */}
       {isRecording && (
         <div className="text-center mb-4">
