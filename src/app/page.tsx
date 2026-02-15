@@ -91,6 +91,11 @@ export default function Home() {
     }
   }
 
+  const handleSentenceClick = (index: number) => {
+    setCurrentSentenceIndex(index)
+    setAutoPlayTrigger(prev => prev + 1)
+  }
+
   const isLastSentence = currentSentenceIndex === sampleSentences.length - 1
   const isFirstSentence = currentSentenceIndex === 0
 
@@ -288,7 +293,8 @@ export default function Home() {
                 return (
                   <div
                     key={sentence.id}
-                    className={`border rounded-lg p-3 relative ${
+                    onClick={() => handleSentenceClick(index)}
+                    className={`border rounded-lg p-3 relative cursor-pointer hover:bg-blue-100 transition-colors ${
                       index === currentSentenceIndex
                         ? "bg-blue-50 border-2 border-blue-500"
                         : isCompleted
