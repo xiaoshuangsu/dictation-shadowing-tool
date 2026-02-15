@@ -12,7 +12,7 @@ interface Sentence {
 
 interface DictationBoxProps {
   sentence: Sentence
-  onComplete?: (isCorrect: boolean) => void
+  onComplete?: (isCorrect: boolean, usedShowWords?: boolean) => void
   onNext?: () => void
   isLastSentence?: boolean
 }
@@ -67,7 +67,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     setShowResult(true)
     const isCorrect = checkCorrect()
     if (onComplete) {
-      onComplete(isCorrect)
+      onComplete(isCorrect, false) // Didn't use show words
     }
   }
 
@@ -94,7 +94,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
     const isCorrect = correctCount === sentenceWords.length
     if (onComplete) {
-      onComplete(isCorrect)
+      onComplete(isCorrect, true) // Used show words
     }
   }
 

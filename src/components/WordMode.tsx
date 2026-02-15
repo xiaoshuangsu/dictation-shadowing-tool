@@ -11,7 +11,7 @@ interface Sentence {
 
 interface WordModeProps {
   sentence: Sentence
-  onComplete?: (isCorrect: boolean) => void
+  onComplete?: (isCorrect: boolean, usedShowWords?: boolean) => void
   currentIndex: number
   totalSentences: number
   onNext?: () => void
@@ -54,7 +54,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setIsCorrect(correct)
 
     if (onComplete) {
-      onComplete(correct)
+      onComplete(correct, false) // Didn't use show words
     }
     // Don't auto-advance, let user click Next button
   }
@@ -65,7 +65,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setIsCorrect(true)
 
     if (onComplete) {
-      onComplete(true)
+      onComplete(true, true) // Mark as used show words
     }
   }
 
