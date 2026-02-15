@@ -5,6 +5,9 @@ import AudioPlayer from "@/components/AudioPlayer"
 import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
 import WordMode from "@/components/WordMode"
+import AuthButton from "@/components/auth/AuthButton"
+import { useAuth } from "@/lib/hooks/useAuth"
+import { savePracticeRecord } from "@/lib/supabase/client"
 
 // Audio Title
 const AUDIO_TITLE = "First Snowfall"
@@ -42,6 +45,7 @@ type PracticeMode = "dictation" | "shadowing"
 type DictationMode = "word" | "whole"
 
 export default function Home() {
+  const { user } = useAuth()
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [mode, setMode] = useState<PracticeMode>("dictation")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
@@ -53,6 +57,7 @@ export default function Home() {
   const [playbackRate, setPlaybackRate] = useState(1)
   const [autoPlayTrigger, setAutoPlayTrigger] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
+  const [isRevealed, setIsRevealed] = useState(false) // Track if user used "Show Words"
 
   const currentSentence = sampleSentences[currentSentenceIndex]
 
@@ -79,7 +84,8 @@ export default function Home() {
     setCurrentTime(time)
   }
 
-  const handleComplete = (sentenceId: number, isCorrect: boolean) => {
+  const handleComplete = async (sentenceId: number, isCorrect: boolean, usedShowWords: boolean = false) => {
+    // Update local state (existing logic)
     const newCompleted = new Set(completedSentences)
     newCompleted.add(sentenceId)
     setCompletedSentences(newCompleted)
@@ -94,6 +100,29 @@ export default function Home() {
       newIncorrectSet.add(sentenceId)
       setIncorrectSentences(newIncorrectSet)
     }
+
+    // Save to Supabase if user is logged in
+    if (user) {
+      try {
+        await savePracticeRecord({
+          userId: user.id,
+          sentenceId,
+          sentenceText: currentSentence.text,
+          practiceMode: mode,
+          dictationMode: mode === 'dictation' ? dictationMode : undefined,
+          isCorrect,
+          usedShowWords,
+          audioTitle: AUDIO_TITLE,
+        })
+        console.log('Practice record saved to Supabase')
+      } catch (error) {
+        console.error('Failed to save practice record:', error)
+        // Don't show error to user - practice continues normally
+      }
+    }
+
+    // Reset the revealed state for next sentence
+    setIsRevealed(false)
   }
 
   const handleSentenceClick = (index: number) => {
@@ -118,10 +147,17 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      {/* Navigation Bar */}
+      <nav className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+          <h1 className="text-xl font-bold text-gray-800">{AUDIO_TITLE}</h1>
+          <AuthButton />
+        </div>
+      </nav>
+
       <div className="max-w-2xl mx-auto p-4">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">{AUDIO_TITLE}</h1>
           <div className="text-sm text-gray-600">
             Correct: {correctCount} / {sampleSentences.length}
           </div>
@@ -139,6 +175,7 @@ export default function Home() {
                 setIncorrectSentences(new Set())
                 setCorrectCount(0)
                 setShowTranscript(false)
+                setIsRevealed(false)
               }}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 mode === "dictation"
@@ -157,6 +194,7 @@ export default function Home() {
                 setIncorrectSentences(new Set())
                 setCorrectCount(0)
                 setShowTranscript(false)
+                setIsRevealed(false)
               }}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 mode === "shadowing"
@@ -186,6 +224,7 @@ export default function Home() {
                   setCorrectSentences(new Set())
                   setIncorrectSentences(new Set())
                   setCorrectCount(0)
+                  setIsRevealed(false)
                 }}
                 className="appearance-none pr-8 pl-4 pr-10 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
               >
