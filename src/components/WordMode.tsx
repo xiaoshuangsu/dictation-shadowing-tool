@@ -147,7 +147,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       {/* Submit / Next Button */}
       <button
         onClick={showResult ? handleNext : handleSubmitWord}
-        disabled={(!showResult && !userInput.trim()) || showWord}
+        disabled={!showResult && !userInput.trim()}
         className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
       >
         {showResult ? (
