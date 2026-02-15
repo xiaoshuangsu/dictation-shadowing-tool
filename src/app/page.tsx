@@ -314,29 +314,21 @@ export default function Home() {
                         </span>
                       </div>
 
-                      {/* Sentence Content - Dictation uses asterisks, Shadowing always shows text */}
+                      {/* Sentence Content - Always show text in transcript */}
                       <div className="flex-1">
-                        {mode === "shadowing" ? (
-                          // Shadowing: 始终显示原文，根据正确性着色
-                          <p className={`text-sm ${
-                            isCorrect
+                        <p className={`text-sm ${
+                          mode === "shadowing"
+                            ? isCorrect
                               ? "text-green-800"
                               : isIncorrect
                               ? "text-orange-800"
                               : "text-gray-800"
-                          }`}>
-                            {sentence.text}
-                          </p>
-                        ) : (
-                          // Dictation: 已完成显示原文，未完成显示星号
-                          isCompleted ? (
-                            <p className="text-sm text-gray-800">{sentence.text}</p>
-                          ) : (
-                            <p className="text-sm text-gray-400">
-                              {"* ".repeat(sentence.text.split(" ").length)}
-                            </p>
-                          )
-                        )}
+                            : isCompleted
+                            ? "text-gray-800"
+                            : "text-gray-800"
+                        }`}>
+                          {sentence.text}
+                        </p>
                       </div>
 
                       {/* Status Icon */}
