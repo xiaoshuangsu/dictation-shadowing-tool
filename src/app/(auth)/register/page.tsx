@@ -7,7 +7,7 @@
 
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import RegisterForm from '@/components/auth/RegisterForm'
@@ -16,13 +16,16 @@ import Link from 'next/link'
 export default function RegisterPage() {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
+  const [manualRedirect, setManualRedirect] = useState(false)
 
   // Redirect to profile if already logged in
   useEffect(() => {
-    if (!loading && isAuthenticated) {
+    if (!loading && isAuthenticated && !manualRedirect) {
+      console.log('User authenticated, redirecting to profile...')
+      setManualRedirect(true)
       router.push('/profile')
     }
-  }, [isAuthenticated, loading, router])
+  }, [isAuthenticated, loading, router, manualRedirect])
 
   // Show loading state
   if (loading) {
