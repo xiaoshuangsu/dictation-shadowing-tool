@@ -62,11 +62,11 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         setError(result.error || '注册失败')
         setLoading(false)
       } else {
-        // Registration successful - redirect to login
-        console.log('Registration successful, redirecting to login...')
+        // Registration successful - redirect to home
+        console.log('Registration successful, redirecting to home...')
         setLoading(false)
-        // Redirect to login page instead of showing alert
-        window.location.href = '/login'
+        // Redirect to home page
+        window.location.href = '/'
       }
     } catch (err) {
       setError('注册失败，请稍后重试')
