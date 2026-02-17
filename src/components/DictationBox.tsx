@@ -12,7 +12,7 @@ interface Sentence {
 
 interface DictationBoxProps {
   sentence: Sentence
-  onComplete?: (isCorrect: boolean, usedShowWords?: boolean) => void
+  onComplete?: (isCorrect: boolean, usedShowWords?: boolean, practiceMinutes?: number) => void
   onNext?: () => void
   isLastSentence?: boolean
 }
@@ -26,6 +26,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [isRevealed, setIsRevealed] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
+  const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null)
 
   // Word-level state
   const sentenceWords = sentence.text.split(" ")
@@ -40,6 +41,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     setIsRevealed(false)
     setIsLocked(false)
     setWordStatuses(new Map())
+    setPracticeStartTime(Date.now()) // 开始计时
   }, [sentence.id])
 
   // Update word statuses as user types
@@ -66,8 +68,17 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   const handleCheckAnswer = () => {
     setShowResult(true)
     const isCorrect = checkCorrect()
+
+    // 计算练习时长（分钟）
+    const minutes = practiceStartTime
+      ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
+      : 0
+
+    // 最少记录0.1分钟（6秒），避免0分钟
+    const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+
     if (onComplete) {
-      onComplete(isCorrect, false) // Didn't use show words
+      onComplete(isCorrect, false, finalMinutes) // Didn't use show words
     }
   }
 
@@ -92,9 +103,17 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       }
     })
 
+    // 计算练习时长（分钟）
+    const minutes = practiceStartTime
+      ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
+      : 0
+
+    // 最少记录0.1分钟（6秒），避免0分钟
+    const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+
     const isCorrect = correctCount === sentenceWords.length
     if (onComplete) {
-      onComplete(isCorrect, true) // Used show words
+      onComplete(isCorrect, true, finalMinutes) // Used show words
     }
   }
 

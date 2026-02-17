@@ -11,7 +11,7 @@ interface Sentence {
 
 interface WordModeProps {
   sentence: Sentence
-  onComplete?: (isCorrect: boolean, usedShowWords?: boolean) => void
+  onComplete?: (isCorrect: boolean, usedShowWords?: boolean, practiceMinutes?: number) => void
   currentIndex: number
   totalSentences: number
   onNext?: () => void
@@ -23,9 +23,10 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [showWord, setShowWord] = useState(false)
+  const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null)
 
   const sentenceWords = sentence.text.split(" ")
-  
+
   // Hide the last word
   const hiddenWordIndex = sentenceWords.length - 1
   const hiddenWord = sentenceWords[hiddenWordIndex]
@@ -37,6 +38,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setShowResult(false)
     setIsCorrect(null)
     setShowWord(false)
+    setPracticeStartTime(Date.now()) // 开始计时
   }, [sentence.id])
 
   // Check if word is correct
@@ -53,8 +55,16 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setShowResult(true)
     setIsCorrect(correct)
 
+    // 计算练习时长（分钟）
+    const minutes = practiceStartTime
+      ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
+      : 0
+
+    // 最少记录0.1分钟（6秒），避免0分钟
+    const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+
     if (onComplete) {
-      onComplete(correct, false) // Didn't use show words
+      onComplete(correct, false, finalMinutes) // Didn't use show words
     }
     // Don't auto-advance, let user click Next button
   }
@@ -64,8 +74,16 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setUserInput(hiddenWord)
     setIsCorrect(true)
 
+    // 计算练习时长（分钟）
+    const minutes = practiceStartTime
+      ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
+      : 0
+
+    // 最少记录0.1分钟（6秒），避免0分钟
+    const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+
     if (onComplete) {
-      onComplete(true, true) // Mark as used show words
+      onComplete(true, true, finalMinutes) // Mark as used show words
     }
   }
 
