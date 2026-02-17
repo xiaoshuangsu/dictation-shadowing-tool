@@ -84,31 +84,47 @@ export async function initializeUserStats(userId: string): Promise<void> {
  * 更新累计统计数据 - Dictation（带时长）
  */
 export async function updateDictationStats(userId: string, minutes: number = 0): Promise<void> {
-  const { data: currentStats } = await supabase
-    .from('user_stats')
-    .select('total_dictation_sentences, total_dictation_minutes')
-    .eq('user_id', userId)
-    .single()
+  console.log('updateDictationStats - Starting:', { userId, minutes })
 
-  if (!currentStats) {
-    await initializeUserStats(userId)
-    return
-  }
-
-  // 向上取整到整数（数据库字段是 INTEGER 类型）
-  const minutesInt = Math.ceil(minutes)
-
-  const { error } = await supabase
-    .from('user_stats')
-    .update({
-      total_dictation_sentences: currentStats.total_dictation_sentences + 1,
-      total_dictation_minutes: currentStats.total_dictation_minutes + minutesInt,
-    })
-    .eq('user_id', userId)
+  // 使用 RPC 函数原子性地累加统计（支持浮点数累加，最后取整）
+  const { error } = await supabase.rpc('increment_user_stats_dictation', {
+    p_user_id: userId,
+    p_minutes: minutes, // 保持浮点数精度
+  })
 
   if (error) {
     console.error('Failed to update dictation stats:', error)
-    throw error
+    // 如果 RPC 函数不存在，回退到普通方法
+    console.log('RPC not found, falling back to direct query...')
+
+    const { data: currentStats } = await supabase
+      .from('user_stats')
+      .select('total_dictation_sentences, total_dictation_minutes')
+      .eq('user_id', userId)
+      .single()
+
+    if (!currentStats) {
+      await initializeUserStats(userId)
+      return
+    }
+
+    // 累加所有句子的实际时间后再取整
+    const newMinutes = Math.ceil(currentStats.total_dictation_minutes + minutes)
+
+    const { error: updateError } = await supabase
+      .from('user_stats')
+      .update({
+        total_dictation_sentences: currentStats.total_dictation_sentences + 1,
+        total_dictation_minutes: newMinutes,
+      })
+      .eq('user_id', userId)
+
+    if (updateError) {
+      console.error('Failed to update dictation stats:', updateError)
+      throw updateError
+    }
+  } else {
+    console.log('Dictation stats updated successfully via RPC')
   }
 }
 
@@ -121,41 +137,50 @@ export async function updateShadowingStats(
 ): Promise<void> {
   console.log('updateShadowingStats - Starting:', { userId, minutes })
 
-  const { data: currentStats } = await supabase
-    .from('user_stats')
-    .select('total_shadowing_minutes, total_shadowing_sessions')
-    .eq('user_id', userId)
-    .single()
-
-  console.log('updateShadowingStats - Current stats:', currentStats)
-
-  if (!currentStats) {
-    console.log('updateShadowingStats - No stats found, initializing...')
-    await initializeUserStats(userId)
-    return
-  }
-
-  // 向上取整到整数（数据库字段是 INTEGER 类型）
-  const minutesInt = Math.ceil(minutes)
-  const newMinutes = currentStats.total_shadowing_minutes + minutesInt
-  const newSessions = currentStats.total_shadowing_sessions + 1
-
-  console.log('updateShadowingStats - Updating to:', { minutesInt, newMinutes, newSessions })
-
-  const { error } = await supabase
-    .from('user_stats')
-    .update({
-      total_shadowing_minutes: newMinutes,
-      total_shadowing_sessions: newSessions,
-    })
-    .eq('user_id', userId)
+  // 使用 RPC 函数原子性地累加统计（支持浮点数累加，最后取整）
+  const { error } = await supabase.rpc('increment_user_stats_shadowing', {
+    p_user_id: userId,
+    p_minutes: minutes, // 保持浮点数精度
+  })
 
   if (error) {
     console.error('Failed to update shadowing stats:', error)
-    throw error
-  }
+    // 如果 RPC 函数不存在，回退到普通方法
+    console.log('RPC not found, falling back to direct query...')
 
-  console.log('updateShadowingStats - Success!')
+    const { data: currentStats } = await supabase
+      .from('user_stats')
+      .select('total_shadowing_minutes, total_shadowing_sessions')
+      .eq('user_id', userId)
+      .single()
+
+    if (!currentStats) {
+      console.log('updateShadowingStats - No stats found, initializing...')
+      await initializeUserStats(userId)
+      return
+    }
+
+    // 累加所有句子的实际时间后再取整
+    const newMinutes = Math.ceil(currentStats.total_shadowing_minutes + minutes)
+    const newSessions = currentStats.total_shadowing_sessions + 1
+
+    console.log('updateShadowingStats - Updating to:', { totalMinutes: currentStats.total_shadowing_minutes + minutes, roundedMinutes: newMinutes, newSessions })
+
+    const { error: updateError } = await supabase
+      .from('user_stats')
+      .update({
+        total_shadowing_minutes: newMinutes,
+        total_shadowing_sessions: newSessions,
+      })
+      .eq('user_id', userId)
+
+    if (updateError) {
+      console.error('Failed to update shadowing stats:', updateError)
+      throw updateError
+    }
+  } else {
+    console.log('Shadowing stats updated successfully via RPC')
+  }
 }
 
 // ============================================
