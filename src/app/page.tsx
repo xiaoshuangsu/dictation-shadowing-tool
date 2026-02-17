@@ -10,6 +10,7 @@ import WordMode from "@/components/WordMode"
 import AuthButton from "@/components/auth/AuthButton"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { savePracticeRecord } from "@/lib/supabase/client"
+import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
 
 // Audio Title
 const AUDIO_TITLE = "First Snowfall"
@@ -115,7 +116,12 @@ export default function Home() {
     setCurrentTime(time)
   }
 
-  const handleComplete = async (sentenceId: number, isCorrect: boolean, usedShowWords: boolean = false) => {
+  const handleComplete = async (
+    sentenceId: number,
+    isCorrect: boolean,
+    usedShowWords: boolean = false,
+    practiceMinutes?: number
+  ) => {
     // Update local state (existing logic)
     const newCompleted = new Set(completedSentences)
     newCompleted.add(sentenceId)
@@ -135,6 +141,7 @@ export default function Home() {
     // Save to Supabase if user is logged in
     if (user) {
       try {
+        // V3 数据留存：保存到 practice_records
         await savePracticeRecord({
           userId: user.id,
           sentenceId,
@@ -145,9 +152,17 @@ export default function Home() {
           usedShowWords,
           audioTitle: AUDIO_TITLE,
         })
-        console.log('Practice record saved to Supabase')
+
+        // V3 数据留存：更新连胜和统计数据
+        if (mode === 'dictation') {
+          await onDictationComplete(user.id)
+        } else if (mode === 'shadowing' && practiceMinutes) {
+          await onShadowingComplete(user.id, practiceMinutes)
+        }
+
+        console.log(`Practice data saved (${mode}, minutes: ${practiceMinutes || 0})`)
       } catch (error) {
-        console.error('Failed to save practice record:', error)
+        console.error('Failed to save practice data:', error)
         // Don't show error to user - practice continues normally
       }
     }
@@ -351,7 +366,7 @@ export default function Home() {
           ) : (
             <ShadowingPanel
               sentence={currentSentence}
-              onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
+              onComplete={(isCorrect, minutes) => handleComplete(currentSentence.id, isCorrect, false, minutes)}
               onNext={handleNext}
               isLastSentence={isLastSentence}
             />

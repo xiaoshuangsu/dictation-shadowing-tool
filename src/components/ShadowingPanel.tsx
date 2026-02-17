@@ -11,7 +11,7 @@ interface Sentence {
 
 interface ShadowingPanelProps {
   sentence: Sentence
-  onComplete?: (isCorrect: boolean) => void
+  onComplete?: (isCorrect: boolean, practiceMinutes: number) => void
   onNext?: () => void
   isLastSentence?: boolean
 }
@@ -22,6 +22,8 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
   const [userTranscript, setUserTranscript] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [micError, setMicError] = useState<string | null>(null)
+  const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null)
+  const [totalPracticeMinutes, setTotalPracticeMinutes] = useState(0)
 
   // 录音相关
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
@@ -55,6 +57,9 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
     setRecordedAudioUrl(null)
     setMicError(null)
     recordedChunksRef.current = []
+    // 重置计时器
+    setPracticeStartTime(Date.now()) // 开始计时
+    setTotalPracticeMinutes(0)
   }, [sentence.id])
 
   // 初始化 MediaRecorder 和 SpeechRecognition
@@ -142,7 +147,15 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
                   // 延迟调用 onComplete，确保状态更新后再触发 transcript 更新
                   setTimeout(() => {
                     if (onCompleteRef.current) {
-                      onCompleteRef.current(isCorrect)
+                      // 计算练习时长（分钟）
+                      const minutes = practiceStartTime
+                        ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
+                        : 0
+
+                      // 最少记录0.1分钟（6秒），避免0分钟
+                      const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+
+                      onCompleteRef.current(isCorrect, finalMinutes)
                     }
                   }, 100)
                 }

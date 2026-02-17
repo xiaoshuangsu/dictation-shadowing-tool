@@ -1,0 +1,419 @@
+/**
+ * V3 数据留存系统 - 连胜和统计数据访问层
+ *
+ * 核心功能：
+ * 1. 连胜系统（Streak）
+ * 2. 累计统计
+ * 3. 每日记录
+ */
+
+import { supabase } from './client'
+
+// ============================================
+// 类型定义
+// ============================================
+
+export interface UserStats {
+  user_id: string
+  total_dictation_sentences: number
+  total_shadowing_minutes: number
+  total_shadowing_sessions: number
+}
+
+export interface DailyRecord {
+  id: string
+  user_id: string
+  date: string
+  dictation_count: number
+  shadowing_minutes: number
+  completed: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface StreakData {
+  current_streak: number
+  max_streak: number
+  last_completed_date: string | null
+}
+
+// ============================================
+// 1. 累计统计相关函数
+// ============================================
+
+/**
+ * 获取用户累计统计数据
+ */
+export async function getUserStats(userId: string): Promise<UserStats | null> {
+  const { data, error } = await supabase
+    .from('user_stats')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error) {
+    console.error('Failed to fetch user stats:', error)
+    return null
+  }
+
+  return data
+}
+
+/**
+ * 初始化用户统计数据（新用户注册时调用）
+ */
+export async function initializeUserStats(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('user_stats')
+    .insert({
+      user_id: userId,
+      total_dictation_sentences: 0,
+      total_shadowing_minutes: 0,
+      total_shadowing_sessions: 0,
+    })
+
+  if (error) {
+    console.error('Failed to initialize user stats:', error)
+    throw error
+  }
+}
+
+/**
+ * 更新累计统计数据 - Dictation
+ */
+export async function updateDictationStats(userId: string): Promise<void> {
+  const { data: currentStats } = await supabase
+    .from('user_stats')
+    .select('total_dictation_sentences')
+    .eq('user_id', userId)
+    .single()
+
+  if (!currentStats) {
+    await initializeUserStats(userId)
+    return
+  }
+
+  const { error } = await supabase
+    .from('user_stats')
+    .update({
+      total_dictation_sentences: currentStats.total_dictation_sentences + 1,
+    })
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Failed to update dictation stats:', error)
+    throw error
+  }
+}
+
+/**
+ * 更新累计统计数据 - Shadowing
+ */
+export async function updateShadowingStats(
+  userId: string,
+  minutes: number
+): Promise<void> {
+  const { data: currentStats } = await supabase
+    .from('user_stats')
+    .select('total_shadowing_minutes, total_shadowing_sessions')
+    .eq('user_id', userId)
+    .single()
+
+  if (!currentStats) {
+    await initializeUserStats(userId)
+    return
+  }
+
+  const { error } = await supabase
+    .from('user_stats')
+    .update({
+      total_shadowing_minutes: currentStats.total_shadowing_minutes + minutes,
+      total_shadowing_sessions: currentStats.total_shadowing_sessions + 1,
+    })
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Failed to update shadowing stats:', error)
+    throw error
+  }
+}
+
+// ============================================
+// 2. 每日记录相关函数
+// ============================================
+
+/**
+ * 获取或创建今天的每日记录
+ */
+export async function getOrCreateTodayRecord(userId: string): Promise<DailyRecord> {
+  const today = new Date().toISOString().split('T')[0]
+
+  // 先尝试获取今天的记录
+  const { data: existingRecord, error: fetchError } = await supabase
+    .from('daily_records')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .single()
+
+  if (existingRecord) {
+    return existingRecord
+  }
+
+  // 如果不存在，创建新记录
+  const { data, error } = await supabase
+    .from('daily_records')
+    .insert({
+      user_id: userId,
+      date: today,
+      dictation_count: 0,
+      shadowing_minutes: 0,
+      completed: false,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Failed to create daily record:', error)
+    throw error
+  }
+
+  return data
+}
+
+/**
+ * 更新今日 Dictation 计数
+ */
+export async function updateTodayDictation(userId: string): Promise<void> {
+  const today = new Date().toISOString().split('T')[0]
+
+  // 使用 PostgreSQL 的 UPSERT 功能
+  const { data, error } = await supabase
+    .from('daily_records')
+    .upsert(
+      {
+        user_id: userId,
+        date: today,
+        dictation_count: 1, // 初始值
+      },
+      {
+        onConflict: 'user_id,date',
+        ignoreDuplicates: false,
+      }
+    )
+    .select()
+    .single()
+
+  if (error || !data) {
+    console.error('Failed to upsert daily record:', error)
+    return
+  }
+
+  // 如果记录已存在，需要增加计数
+  if (data.dictation_count > 0) {
+    const { error: updateError } = await supabase
+      .from('daily_records')
+      .update({
+        dictation_count: data.dictation_count + 1,
+      })
+      .eq('id', data.id)
+
+    if (updateError) {
+      console.error('Failed to update dictation count:', updateError)
+    }
+  }
+}
+
+/**
+ * 更新今日 Shadowing 分钟数
+ */
+export async function updateTodayShadowing(userId: string, minutes: number): Promise<void> {
+  const today = new Date().toISOString().split('T')[0]
+
+  // 使用 PostgreSQL 的 UPSERT 功能
+  const { data, error } = await supabase
+    .from('daily_records')
+    .upsert(
+      {
+        user_id: userId,
+        date: today,
+        shadowing_minutes: minutes, // 初始值
+      },
+      {
+        onConflict: 'user_id,date',
+        ignoreDuplicates: false,
+      }
+    )
+    .select()
+    .single()
+
+  if (error || !data) {
+    console.error('Failed to upsert daily record:', error)
+    return
+  }
+
+  // 如果记录已存在，需要增加分钟数
+  if (data.shadowing_minutes > 0 || data.dictation_count > 0) {
+    const { error: updateError } = await supabase
+      .from('daily_records')
+      .update({
+        shadowing_minutes: data.shadowing_minutes + minutes,
+      })
+      .eq('id', data.id)
+
+    if (updateError) {
+      console.error('Failed to update shadowing minutes:', updateError)
+    }
+  }
+}
+
+/**
+ * 获取最近 N 天的每日记录
+ */
+export async function getRecentDailyRecords(
+  userId: string,
+  days: number = 30
+): Promise<DailyRecord[]> {
+  const { data, error } = await supabase
+    .from('daily_records')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .limit(days)
+
+  if (error) {
+    console.error('Failed to fetch recent daily records:', error)
+    return []
+  }
+
+  return data || []
+}
+
+// ============================================
+// 3. 连胜系统相关函数
+// ============================================
+
+/**
+ * 获取用户连胜数据
+ */
+export async function getUserStreak(userId: string): Promise<StreakData | null> {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('current_streak, max_streak, last_completed_date')
+    .eq('id', userId)
+    .single()
+
+  if (error) {
+    console.error('Failed to fetch user streak:', error)
+    return null
+  }
+
+  return data
+}
+
+/**
+ * 获取用户完整档案（包含连胜和统计数据）
+ */
+export async function getUserCompleteProfile(userId: string): Promise<{
+  streak: StreakData | null
+  stats: UserStats | null
+  todayRecord: DailyRecord | null
+}> {
+  const [streak, stats, todayRecord] = await Promise.all([
+    getUserStreak(userId),
+    getUserStats(userId),
+    getOrCreateTodayRecord(userId),
+  ])
+
+  return {
+    streak,
+    stats,
+    todayRecord,
+  }
+}
+
+// ============================================
+// 4. 综合函数 - 练习完成时调用
+// ============================================
+
+/**
+ * Dictation 完成时的完整数据处理
+ */
+export async function onDictationComplete(userId: string): Promise<void> {
+  try {
+    // 1. 更新累计统计
+    await updateDictationStats(userId)
+
+    // 2. 更新今日记录
+    await updateTodayDictation(userId)
+
+    // 3.连胜判断由数据库触发器自动处理
+    console.log('Dictation data saved successfully')
+  } catch (error) {
+    console.error('Failed to save dictation data:', error)
+    throw error
+  }
+}
+
+/**
+ * Shadowing 完成时的完整数据处理
+ */
+export async function onShadowingComplete(userId: string, minutes: number): Promise<void> {
+  try {
+    // 1. 更新累计统计
+    await updateShadowingStats(userId, minutes)
+
+    // 2. 更新今日记录
+    await updateTodayShadowing(userId, minutes)
+
+    // 3. 连胜判断由数据库触发器自动处理
+    console.log('Shadowing data saved successfully')
+  } catch (error) {
+    console.error('Failed to save shadowing data:', error)
+    throw error
+  }
+}
+
+/**
+ * 检查今天是否已完成学习目标
+ */
+export async function checkTodayCompleted(userId: string): Promise<boolean> {
+  const today = new Date().toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('daily_records')
+    .select('completed')
+    .eq('user_id', userId)
+    .eq('date', today)
+    .single()
+
+  if (error || !data) {
+    return false
+  }
+
+  return data.completed
+}
+
+/**
+ * 获取本周的每日记录（用于日历视图）
+ */
+export async function getWeeklyRecords(userId: string): Promise<DailyRecord[]> {
+  const today = new Date()
+  const startOfWeek = new Date(today)
+  startOfWeek.setDate(today.getDate() - today.getDay()) // 周日
+  startOfWeek.setHours(0, 0, 0, 0)
+
+  const { data, error } = await supabase
+    .from('daily_records')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', startOfWeek.toISOString().split('T')[0])
+    .order('date', { ascending: true })
+
+  if (error) {
+    console.error('Failed to fetch weekly records:', error)
+    return []
+  }
+
+  return data || []
+}
