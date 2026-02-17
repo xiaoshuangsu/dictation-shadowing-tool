@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
   const [statsLoading, setStatsLoading] = useState(true)
+  const [selectedStatsTab, setSelectedStatsTab] = useState<'dictation' | 'shadowing'>('dictation')
 
   // V3 统计数据
   const [streakData, setStreakData] = useState({
@@ -192,57 +193,66 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Cumulative Stats Cards - Separated by Module */}
-              <div className="space-y-4">
-                {/* Dictation Stats Card */}
-                <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-blue-500">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-700">听写练习</p>
-                      <p className="text-xs text-gray-500">Dictation</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-blue-600">
-                        {cumulativeStats.total_dictation_sentences}
-                      </p>
-                      <p className="text-xs text-gray-500">总句数</p>
-                    </div>
-                  </div>
+              {/* Cumulative Stats - Tabbed Layout */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                {/* Tab Headers */}
+                <div className="flex gap-2 mb-6">
+                  <button
+                    onClick={() => setSelectedStatsTab('dictation')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                      selectedStatsTab === 'dictation'
+                        ? 'bg-blue-500 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    听写练习
+                  </button>
+                  <button
+                    onClick={() => setSelectedStatsTab('shadowing')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                      selectedStatsTab === 'shadowing'
+                        ? 'bg-purple-500 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    影子跟读
+                  </button>
                 </div>
 
-                {/* Shadowing Stats Card */}
-                <div className="bg-white rounded-lg shadow-sm p-5 border-l-4 border-purple-500">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                      </svg>
+                {/* Tab Content */}
+                {selectedStatsTab === 'dictation' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <p className="text-3xl font-bold text-blue-600 mb-1">
+                        {cumulativeStats.total_dictation_sentences}
+                      </p>
+                      <p className="text-sm text-gray-600">总句数</p>
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-700">影子跟读</p>
-                      <p className="text-xs text-gray-500">Shadowing</p>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <p className="text-3xl font-bold text-blue-600 mb-1">
+                        --
+                      </p>
+                      <p className="text-sm text-gray-600">总时间</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 pl-15">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-purple-600">
-                        {cumulativeStats.total_shadowing_minutes}
-                      </p>
-                      <p className="text-xs text-gray-500">总分钟数</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-purple-600">
+                )}
+
+                {selectedStatsTab === 'shadowing' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <p className="text-3xl font-bold text-purple-600 mb-1">
                         {cumulativeStats.total_shadowing_sessions}
                       </p>
-                      <p className="text-xs text-gray-500">总次数</p>
+                      <p className="text-sm text-gray-600">总句数</p>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg">
+                      <p className="text-3xl font-bold text-purple-600 mb-1">
+                        {cumulativeStats.total_shadowing_minutes}
+                      </p>
+                      <p className="text-sm text-gray-600">总时间（分钟）</p>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Today's Progress Card */}
