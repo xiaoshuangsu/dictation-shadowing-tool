@@ -24,6 +24,7 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
   const [micError, setMicError] = useState<string | null>(null)
   const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null)
   const [totalPracticeMinutes, setTotalPracticeMinutes] = useState(0)
+  const [hasCompleted, setHasCompleted] = useState(false) // 防止重复保存
 
   // 录音相关
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
@@ -60,6 +61,7 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
     // 重置计时器
     setPracticeStartTime(Date.now()) // 开始计时
     setTotalPracticeMinutes(0)
+    setHasCompleted(false) // 重置完成状态
   }, [sentence.id])
 
   // 初始化 MediaRecorder 和 SpeechRecognition
@@ -155,7 +157,13 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
                       // 最少记录0.1分钟（6秒），避免0分钟
                       const finalMinutes = minutes < 0.1 ? 0.1 : minutes
 
-                      console.log('ShadowingPanel - Calling onComplete:', { isCorrect, finalMinutes, practiceStartTime })
+                      console.log('ShadowingPanel - Calling onComplete:', {
+                        isCorrect,
+                        finalMinutes,
+                        practiceStartTime,
+                        sentenceId: sentence.id,
+                        sentenceText: sentence.text
+                      })
                       onCompleteRef.current(isCorrect, finalMinutes)
                     }
                   }, 100)
