@@ -38,7 +38,14 @@ export function useAuth(): AuthState {
     // Get current session
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth state...')
         const { data: { session } } = await supabase.auth.getSession()
+
+        console.log('Session from getSession():', session ? {
+          hasUser: !!session.user,
+          userId: session.user?.id,
+          userEmail: session.user?.email,
+        } : 'No session')
 
         if (mounted && session?.user) {
           // Fetch user profile
@@ -48,12 +55,16 @@ export function useAuth(): AuthState {
             .eq('id', session.user.id)
             .single()
 
+          console.log('User profile:', profile)
+
           setUser({
             id: session.user.id,
             email: session.user.email || '',
             username: profile?.username || session.user.email?.split('@')[0] || null,
             avatarUrl: profile?.avatar_url || null,
           })
+        } else {
+          console.log('No session found, user not logged in')
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error)
@@ -69,6 +80,8 @@ export function useAuth(): AuthState {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', { event, hasSession: !!session })
+
         if (!mounted) return
 
         if (session?.user) {
