@@ -104,14 +104,15 @@ export function useAuth(): AuthState {
 
     initializeAuth()
 
-    // Listen for auth changes
+    // Listen for auth changes - IMPORTANT: This should be the PRIMARY source of truth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', { event, hasSession: !!session })
+        console.log('Auth state changed:', { event, hasSession: !!session, userId: session?.user?.id })
 
         if (!mounted || !isSubscribed) return
 
-        if (session?.user) {
+        if (event === 'SIGNED_IN' && session?.user) {
+          console.log('User signed in, fetching profile...')
           // Fetch user profile
           const { data: profile } = await supabase
             .from('user_profiles')
@@ -125,10 +126,32 @@ export function useAuth(): AuthState {
             username: profile?.username || session.user.email?.split('@')[0] || null,
             avatarUrl: profile?.avatar_url || null,
           })
-        } else {
+
+          // Force loading to false when signed in
+          setLoading(false)
+        } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out')
           setUser(null)
+          setLoading(false)
+        } else {
+          // INITIAL_SESSION or TOKEN_REFRESH
+          if (session?.user) {
+            console.log('Session refreshed, updating user state')
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
+
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              username: profile?.username || session.user.email?.split('@')[0] || null,
+              avatarUrl: profile?.avatar_url || null,
+            })
+          }
+          setLoading(false)
         }
-        setLoading(false)
       }
     )
 
