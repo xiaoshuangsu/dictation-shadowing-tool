@@ -45,7 +45,7 @@ type PracticeMode = "dictation" | "shadowing"
 type DictationMode = "word" | "whole"
 
 export default function Home() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [mode, setMode] = useState<PracticeMode>("dictation")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
@@ -58,8 +58,20 @@ export default function Home() {
   const [autoPlayTrigger, setAutoPlayTrigger] = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [isRevealed, setIsRevealed] = useState(false) // Track if user used "Show Words"
+  const [showSignupPrompt, setShowSignupPrompt] = useState(false) // 注册提醒弹窗
 
   const currentSentence = sampleSentences[currentSentenceIndex]
+
+  // Show signup prompt for non-logged in users
+  useEffect(() => {
+    if (!authLoading && !user) {
+      // Check if user has already dismissed the prompt
+      const hasDismissed = localStorage.getItem('signupPromptDismissed')
+      if (!hasDismissed) {
+        setShowSignupPrompt(true)
+      }
+    }
+  }, [authLoading, user])
 
   // Auto-play when sentence index changes
   useEffect(() => {
@@ -444,6 +456,67 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Signup Prompt Modal */}
+      {showSignupPrompt && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              解锁您的学习进度
+            </h2>
+
+            <p className="text-gray-600 mb-6">
+              注册账号即可保存练习记录，追踪学习进度，查看详细统计数据。
+            </p>
+
+            <ul className="space-y-3 mb-6">
+              <li className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm text-gray-700">自动保存练习记录</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm text-gray-700">查看详细统计数据</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span className="text-sm text-gray-700">追踪学习进度</span>
+              </li>
+            </ul>
+
+            <div className="flex gap-3 mb-4">
+              <a
+                href="/register"
+                className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-center"
+              >
+                免费注册
+              </a>
+              <a
+                href="/login"
+                className="flex-1 py-3 px-4 bg-white text-gray-700 border-2 border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors text-center"
+              >
+                登录
+              </a>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowSignupPrompt(false)
+                localStorage.setItem('signupPromptDismissed', 'true')
+              }}
+              className="w-full text-sm text-gray-500 hover:text-gray-700"
+            >
+              暂不注册，继续练习
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
