@@ -59,7 +59,16 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
     try {
       console.log('Calling register function...')
-      const result = await register(email, password, username)
+
+      // Add timeout protection
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Register timeout after 10s')), 10000)
+      )
+
+      const result = await Promise.race([
+        register(email, password, username),
+        timeoutPromise
+      ]) as { success: boolean; error?: string }
 
       console.log('Register result:', result)
 
@@ -74,9 +83,9 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         const baseUrl = window.location.origin + '/dictation-shadowing-tool/'
         window.location.href = baseUrl
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Register exception:', err)
-      setError('注册失败，请稍后重试')
+      setError(err?.message || '注册失败，请稍后重试')
       setLoading(false)
     }
   }
