@@ -1,8 +1,9 @@
 /**
- * Profile Page
+ * Profile Page - V3 Data Retention System
  *
- * Displays user statistics and practice history.
- * Shows different content based on authentication state.
+ * Displays user statistics with left-right split layout:
+ * - Left: User info, streak stats, cumulative stats, today's progress
+ * - Right: Practice history
  */
 
 'use client'
@@ -11,8 +12,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getUserStats, getRecentPracticeRecords } from '@/lib/supabase/client'
+import { getUserCompleteProfile } from '@/lib/supabase/streak'
 import AuthButton from '@/components/auth/AuthButton'
-import StatsCards from '@/components/profile/StatsCards'
 import PracticeHistory from '@/components/profile/PracticeHistory'
 import UnlockedPrompt from '@/components/profile/UnlockedPrompt'
 import type { PracticeRecord } from '@/components/profile/PracticeHistory'
@@ -21,16 +22,25 @@ export default function ProfilePage() {
   const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
   const [statsLoading, setStatsLoading] = useState(true)
-  const [dictationStats, setDictationStats] = useState({
-    totalPractices: 0,
-    averageAccuracy: 0,
-    todayPractices: 0,
+
+  // V3 统计数据
+  const [streakData, setStreakData] = useState({
+    current_streak: 0,
+    max_streak: 0,
+    last_completed_date: null as string | null,
   })
-  const [shadowingStats, setShadowingStats] = useState({
-    totalPractices: 0,
-    averageAccuracy: 0,
-    todayPractices: 0,
+  const [cumulativeStats, setCumulativeStats] = useState({
+    total_dictation_sentences: 0,
+    total_shadowing_minutes: 0,
+    total_shadowing_sessions: 0,
   })
+  const [todayRecord, setTodayRecord] = useState({
+    dictation_count: 0,
+    shadowing_minutes: 0,
+    completed: false,
+  })
+
+  // 历史记录
   const [recentRecords, setRecentRecords] = useState<PracticeRecord[]>([])
 
   // Fetch user statistics
@@ -47,17 +57,36 @@ export default function ProfilePage() {
 
     setStatsLoading(true)
     try {
-      // Fetch stats from Supabase
-      const stats = await getUserStats(user.id)
+      // V3 数据：获取完整档案（连胜 + 累计统计 + 今日记录）
+      const completeProfile = await getUserCompleteProfile(user.id)
 
-      setDictationStats(stats.dictation)
-      setShadowingStats(stats.shadowing)
+      if (completeProfile.streak) {
+        setStreakData({
+          current_streak: completeProfile.streak.current_streak || 0,
+          max_streak: completeProfile.streak.max_streak || 0,
+          last_completed_date: completeProfile.streak.last_completed_date,
+        })
+      }
 
-      // Fetch recent records
+      if (completeProfile.stats) {
+        setCumulativeStats({
+          total_dictation_sentences: completeProfile.stats.total_dictation_sentences || 0,
+          total_shadowing_minutes: completeProfile.stats.total_shadowing_minutes || 0,
+          total_shadowing_sessions: completeProfile.stats.total_shadowing_sessions || 0,
+        })
+      }
+
+      if (completeProfile.todayRecord) {
+        setTodayRecord({
+          dictation_count: completeProfile.todayRecord.dictation_count || 0,
+          shadowing_minutes: completeProfile.todayRecord.shadowing_minutes || 0,
+          completed: completeProfile.todayRecord.completed || false,
+        })
+      }
+
+      // 获取历史记录
       const records = await getRecentPracticeRecords(user.id, 10)
-
-      // Transform records to match the component's expected format
-      const transformedRecords = records.map(r => ({
+      const transformedRecords = records.map((r) => ({
         id: r.id,
         sentenceText: r.sentence_text,
         practiceMode: r.practice_mode,
@@ -66,7 +95,6 @@ export default function ProfilePage() {
         usedShowWords: r.used_show_words,
         completedAt: new Date(r.completed_at),
       }))
-
       setRecentRecords(transformedRecords)
     } catch (error) {
       console.error('Failed to fetch user data:', error)
@@ -92,6 +120,8 @@ export default function ProfilePage() {
     return <UnlockedPrompt />
   }
 
+  const totalPractices = cumulativeStats.total_dictation_sentences + cumulativeStats.total_shadowing_sessions
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
@@ -107,8 +137,8 @@ export default function ProfilePage() {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Main Content - Left-Right Split Layout */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">个人中心</h1>
@@ -124,42 +154,167 @@ export default function ProfilePage() {
             <p className="mt-4 text-gray-600">加载统计数据中...</p>
           </div>
         ) : (
-          <>
-            {/* Stats Cards */}
-            <StatsCards
-              dictation={dictationStats}
-              shadowing={shadowingStats}
-            />
-
-            {/* Practice History */}
-            <PracticeHistory records={recentRecords} />
-
-            {/* Empty State */}
-            {dictationStats.totalPractices === 0 && shadowingStats.totalPractices === 0 && (
-              <div className="mt-6 bg-white rounded-lg shadow-sm p-8 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column - User Profile & Core Stats (1/3 width) */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* User Info Card */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl">
+                    {user?.username?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">{user?.username || '用户'}</h2>
+                    <p className="text-sm text-gray-600">{user?.email || ''}</p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  开始您的第一次练习
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  完成练习后，您的统计数据将显示在这里
-                </p>
-                <button
-                  onClick={() => router.push('/')}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  开始练习
-                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </button>
               </div>
-            )}
-          </>
+
+              {/* Streak Stats Card */}
+              <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg shadow-sm p-6 border border-orange-200">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <span className="text-2xl">🔥</span>
+                  连胜记录
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-700">当前连胜</span>
+                    <span className="text-2xl font-bold text-orange-600">
+                      {streakData.current_streak} 天
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-700">历史最高</span>
+                    <span className="text-2xl font-bold text-red-600">
+                      {streakData.max_streak} 天
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cumulative Stats Card */}
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">累计统计</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-xl">
+                      ✍️
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-600">听写句数</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {cumulativeStats.total_dictation_sentences}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-xl">
+                      🎙️
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-600">Shadowing 分钟</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {cumulativeStats.total_shadowing_minutes}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-xl">
+                      📊
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-gray-600">Shadowing 次数</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {cumulativeStats.total_shadowing_sessions}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today's Progress Card */}
+              <div
+                className={`rounded-lg shadow-sm p-6 border-2 ${
+                  todayRecord.completed ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-200'
+                }`}
+              >
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  今日进度 {todayRecord.completed && '✅'}
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-700">听写句子</span>
+                    <span
+                      className={`font-semibold ${
+                        todayRecord.dictation_count >= 3 ? 'text-green-600' : 'text-gray-900'
+                      }`}
+                    >
+                      {todayRecord.dictation_count} / 3
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min((todayRecord.dictation_count / 3) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-700">Shadowing 分钟</span>
+                    <span
+                      className={`font-semibold ${
+                        todayRecord.shadowing_minutes >= 5 ? 'text-green-600' : 'text-gray-900'
+                      }`}
+                    >
+                      {todayRecord.shadowing_minutes} / 5
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-purple-500 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min((todayRecord.shadowing_minutes / 5) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Practice History (2/3 width) */}
+            <div className="lg:col-span-2">
+              <PracticeHistory records={recentRecords} />
+
+              {/* Empty State */}
+              {totalPractices === 0 && (
+                <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg
+                      className="w-8 h-8 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">开始您的第一次练习</h3>
+                  <p className="text-gray-600 mb-4">完成后，您的统计数据将显示在这里</p>
+                  <button
+                    onClick={() => router.push('/')}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                  >
+                    开始练习
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
