@@ -250,6 +250,9 @@ export async function updateTodayDictation(userId: string): Promise<void> {
 export async function updateTodayShadowing(userId: string, minutes: number): Promise<void> {
   const today = new Date().toISOString().split('T')[0]
 
+  // 向上取整到整数（数据库字段是 INTEGER 类型）
+  const minutesInt = Math.ceil(minutes)
+
   // 使用 PostgreSQL 的 UPSERT 功能
   const { data, error } = await supabase
     .from('daily_records')
@@ -257,7 +260,7 @@ export async function updateTodayShadowing(userId: string, minutes: number): Pro
       {
         user_id: userId,
         date: today,
-        shadowing_minutes: minutes, // 初始值
+        shadowing_minutes: minutesInt, // 初始值（整数）
       },
       {
         onConflict: 'user_id,date',
@@ -274,10 +277,11 @@ export async function updateTodayShadowing(userId: string, minutes: number): Pro
 
   // 如果记录已存在，需要增加分钟数
   if (data.shadowing_minutes > 0 || data.dictation_count > 0) {
+    const newMinutes = data.shadowing_minutes + minutesInt
     const { error: updateError } = await supabase
       .from('daily_records')
       .update({
-        shadowing_minutes: data.shadowing_minutes + minutes,
+        shadowing_minutes: newMinutes,
       })
       .eq('id', data.id)
 
