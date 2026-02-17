@@ -17,10 +17,10 @@ export default function RegisterPage() {
   const { isAuthenticated } = useAuth()
   const router = useRouter()
 
-  // Redirect to home if already logged in
+  // Redirect to profile if already logged in
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/')
+      router.push('/profile')
     }
   }, [isAuthenticated, router])
 
@@ -40,7 +40,7 @@ export default function RegisterPage() {
         {/* Register Form Card */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <RegisterForm
-            onSuccess={() => router.push('/')}
+            onSuccess={() => router.push('/profile')}
           />
 
           {/* Login Link */}

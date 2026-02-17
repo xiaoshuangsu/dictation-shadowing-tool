@@ -60,13 +60,17 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       if (!result.success) {
         setError(result.error || '注册失败')
+        setLoading(false)
       } else {
-        // Registration successful
-        onSuccess?.()
+        // Registration successful - wait a moment for session to be set
+        setLoading(false)
+        // Delay to allow auth state to update
+        setTimeout(() => {
+          onSuccess?.()
+        }, 500)
       }
     } catch (err) {
       setError('注册失败，请稍后重试')
-    } finally {
       setLoading(false)
     }
   }
