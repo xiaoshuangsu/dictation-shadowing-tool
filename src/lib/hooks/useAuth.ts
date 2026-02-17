@@ -35,6 +35,7 @@ export function useAuth(): AuthState {
   useEffect(() => {
     let mounted = true
     let isSubscribed = true
+    let timeoutId: NodeJS.Timeout
 
     // Get current session
     const initializeAuth = async () => {
@@ -42,7 +43,23 @@ export function useAuth(): AuthState {
 
       try {
         console.log('Initializing auth state...')
-        const { data: { session } } = await supabase.auth.getSession()
+
+        // Add timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          console.log('Auth initialization timeout, setting loading to false')
+          if (mounted && isSubscribed) {
+            setLoading(false)
+          }
+        }, 5000) // 5 second timeout
+
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        // Clear timeout on success
+        if (timeoutId) clearTimeout(timeoutId)
+
+        if (sessionError) {
+          console.error('Session error:', sessionError)
+        }
 
         console.log('Session from getSession():', session ? {
           hasUser: !!session.user,
@@ -52,11 +69,16 @@ export function useAuth(): AuthState {
 
         if (mounted && isSubscribed && session?.user) {
           // Fetch user profile
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from('user_profiles')
             .select('*')
             .eq('id', session.user.id)
             .single()
+
+          if (profileError) {
+            console.error('Profile fetch error:', profileError)
+            // Still set user even if profile fetch fails
+          }
 
           console.log('User profile:', profile)
 
@@ -71,6 +93,8 @@ export function useAuth(): AuthState {
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error)
+        // Ensure loading is set to false even on error
+        if (timeoutId) clearTimeout(timeoutId)
       } finally {
         if (mounted && isSubscribed) {
           setLoading(false)
@@ -111,6 +135,7 @@ export function useAuth(): AuthState {
     return () => {
       mounted = false
       isSubscribed = false
+      if (timeoutId) clearTimeout(timeoutId)
       if (subscription) {
         subscription.unsubscribe()
       }
