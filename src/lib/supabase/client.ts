@@ -105,37 +105,68 @@ export async function savePracticeRecord(data: {
 }
 
 /**
- * Helper function to get user statistics
+ * Helper function to get user statistics (separated by mode)
  */
 export async function getUserStats(userId: string) {
-  // Get total practices
-  const { count: totalPractices } = await supabase
-    .from('practice_records')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
+  const today = new Date().toISOString().split('T')[0]
 
-  // Get total correct
-  const { count: totalCorrect } = await supabase
+  // Dictation stats
+  const { count: dictationTotal } = await supabase
     .from('practice_records')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
+    .eq('practice_mode', 'dictation')
+
+  const { count: dictationCorrect } = await supabase
+    .from('practice_records')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('practice_mode', 'dictation')
     .eq('is_correct', true)
 
-  // Get today's practices
-  const today = new Date().toISOString().split('T')[0]
-  const { count: todayPractices } = await supabase
+  const { count: dictationToday } = await supabase
     .from('practice_records')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
+    .eq('practice_mode', 'dictation')
+    .gte('completed_at', today)
+
+  // Shadowing stats
+  const { count: shadowingTotal } = await supabase
+    .from('practice_records')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('practice_mode', 'shadowing')
+
+  const { count: shadowingCorrect } = await supabase
+    .from('practice_records')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('practice_mode', 'shadowing')
+    .eq('is_correct', true)
+
+  const { count: shadowingToday } = await supabase
+    .from('practice_records')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('practice_mode', 'shadowing')
     .gte('completed_at', today)
 
   return {
-    totalPractices: totalPractices || 0,
-    totalCorrect: totalCorrect || 0,
-    todayPractices: todayPractices || 0,
-    averageAccuracy: totalPractices
-      ? Math.round(((totalCorrect || 0) / totalPractices) * 100)
-      : 0,
+    dictation: {
+      totalPractices: dictationTotal || 0,
+      averageAccuracy: dictationTotal
+        ? Math.round(((dictationCorrect || 0) / dictationTotal) * 100)
+        : 0,
+      todayPractices: dictationToday || 0,
+    },
+    shadowing: {
+      totalPractices: shadowingTotal || 0,
+      averageAccuracy: shadowingTotal
+        ? Math.round(((shadowingCorrect || 0) / shadowingTotal) * 100)
+        : 0,
+      todayPractices: shadowingToday || 0,
+    },
   }
 }
 
