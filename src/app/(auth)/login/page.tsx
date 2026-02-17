@@ -52,7 +52,11 @@ export default function LoginPage() {
         {/* Login Form Card */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <LoginForm
-            onSuccess={() => router.push('/profile')}
+            onSuccess={() => {
+              // Redirect to home and reload to establish session
+              const baseUrl = window.location.origin + '/dictation-shadowing-tool/'
+              window.location.href = baseUrl
+            }}
           />
 
           {/* Register Link */}

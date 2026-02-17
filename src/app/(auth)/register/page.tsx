@@ -55,7 +55,11 @@ export default function RegisterPage() {
         {/* Register Form Card */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <RegisterForm
-            onSuccess={() => router.push('/login')}
+            onSuccess={() => {
+              // Redirect to home
+              const baseUrl = window.location.origin + '/dictation-shadowing-tool/'
+              window.location.href = baseUrl
+            }}
           />
 
           {/* Login Link */}

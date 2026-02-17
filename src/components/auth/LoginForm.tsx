@@ -52,9 +52,8 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         setLoading(false)
       } else {
         console.log('Login successful! Redirecting to home...')
-        // Login successful - redirect to home page
-        // The page will reload and establish the session
-        window.location.href = '/'
+        // Login successful - use router and then reload
+        onSuccess?.()
       }
     } catch (err) {
       console.error('Login exception:', err)
