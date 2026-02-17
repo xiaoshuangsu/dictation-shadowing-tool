@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import AudioPlayer from "@/components/AudioPlayer"
 import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
@@ -491,18 +493,18 @@ export default function Home() {
             </ul>
 
             <div className="flex gap-3 mb-4">
-              <a
+              <Link
                 href="/register"
                 className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-center"
               >
                 免费注册
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/login"
                 className="flex-1 py-3 px-4 bg-white text-gray-700 border-2 border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors text-center"
               >
                 登录
-              </a>
+              </Link>
             </div>
 
             <button
