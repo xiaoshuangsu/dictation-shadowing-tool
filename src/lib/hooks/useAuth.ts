@@ -113,19 +113,40 @@ export function useAuth(): AuthState {
 
         if (event === 'SIGNED_IN' && session?.user) {
           console.log('User signed in, fetching profile...')
-          // Fetch user profile
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
 
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            username: profile?.username || session.user.email?.split('@')[0] || null,
-            avatarUrl: profile?.avatar_url || null,
-          })
+          // Fetch user profile with timeout
+          try {
+            const profilePromise = supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
+
+            const timeoutPromise = new Promise((resolve) =>
+              setTimeout(() => resolve({ data: null }), 5000)
+            )
+
+            const data = await Promise.race([profilePromise, timeoutPromise]) as { data: any }
+            const profile = data.data
+
+            console.log('User profile fetched:', profile)
+
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              username: profile?.username || session.user.email?.split('@')[0] || null,
+              avatarUrl: profile?.avatar_url || null,
+            })
+          } catch (profileError) {
+            console.error('Failed to fetch profile, setting basic user info:', profileError)
+            // Even if profile fetch fails, set user with basic info
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              username: session.user.email?.split('@')[0] || null,
+              avatarUrl: null,
+            })
+          }
 
           // Force loading to false when signed in
           setLoading(false)
