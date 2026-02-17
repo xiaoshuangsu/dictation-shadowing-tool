@@ -51,14 +51,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         setError(result.error || '登录失败')
         setLoading(false)
       } else {
-        console.log('Login successful, waiting 500ms before redirect')
-        // Login successful - wait a moment for session to be set
-        setLoading(false)
-        // Delay to allow auth state to update
-        setTimeout(() => {
-          console.log('Calling onSuccess callback')
-          onSuccess?.()
-        }, 500)
+        console.log('Login successful! Reloading page to establish session...')
+        // Login successful - reload page to establish session
+        // This is more reliable than router.push for auth state
+        window.location.href = '/profile'
       }
     } catch (err) {
       console.error('Login exception:', err)

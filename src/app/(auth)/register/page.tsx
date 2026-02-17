@@ -48,7 +48,7 @@ export default function RegisterPage() {
             听力练习工具
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            创建账号以保存您的练习记录和统计数据
+            注册后需要登录账号以保存练习记录
           </p>
         </div>
 
