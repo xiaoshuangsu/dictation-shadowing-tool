@@ -95,11 +95,14 @@ export async function updateDictationStats(userId: string, minutes: number = 0):
     return
   }
 
+  // 向上取整到整数（数据库字段是 INTEGER 类型）
+  const minutesInt = Math.ceil(minutes)
+
   const { error } = await supabase
     .from('user_stats')
     .update({
       total_dictation_sentences: currentStats.total_dictation_sentences + 1,
-      total_dictation_minutes: currentStats.total_dictation_minutes + minutes,
+      total_dictation_minutes: currentStats.total_dictation_minutes + minutesInt,
     })
     .eq('user_id', userId)
 
@@ -132,10 +135,12 @@ export async function updateShadowingStats(
     return
   }
 
-  const newMinutes = currentStats.total_shadowing_minutes + minutes
+  // 向上取整到整数（数据库字段是 INTEGER 类型）
+  const minutesInt = Math.ceil(minutes)
+  const newMinutes = currentStats.total_shadowing_minutes + minutesInt
   const newSessions = currentStats.total_shadowing_sessions + 1
 
-  console.log('updateShadowingStats - Updating to:', { newMinutes, newSessions })
+  console.log('updateShadowingStats - Updating to:', { minutesInt, newMinutes, newSessions })
 
   const { error } = await supabase
     .from('user_stats')
