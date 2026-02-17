@@ -21,9 +21,16 @@ export default function ProfilePage() {
   const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
   const [statsLoading, setStatsLoading] = useState(true)
-  const [totalPractices, setTotalPractices] = useState(0)
-  const [averageAccuracy, setAverageAccuracy] = useState(0)
-  const [todayPractices, setTodayPractices] = useState(0)
+  const [dictationStats, setDictationStats] = useState({
+    totalPractices: 0,
+    averageAccuracy: 0,
+    todayPractices: 0,
+  })
+  const [shadowingStats, setShadowingStats] = useState({
+    totalPractices: 0,
+    averageAccuracy: 0,
+    todayPractices: 0,
+  })
   const [recentRecords, setRecentRecords] = useState<PracticeRecord[]>([])
 
   // Fetch user statistics
@@ -43,9 +50,8 @@ export default function ProfilePage() {
       // Fetch stats from Supabase
       const stats = await getUserStats(user.id)
 
-      setTotalPractices(stats.totalPractices)
-      setTodayPractices(stats.todayPractices)
-      setAverageAccuracy(stats.averageAccuracy)
+      setDictationStats(stats.dictation)
+      setShadowingStats(stats.shadowing)
 
       // Fetch recent records
       const records = await getRecentPracticeRecords(user.id, 10)
@@ -121,16 +127,15 @@ export default function ProfilePage() {
           <>
             {/* Stats Cards */}
             <StatsCards
-              totalPractices={totalPractices}
-              averageAccuracy={averageAccuracy}
-              todayPractices={todayPractices}
+              dictation={dictationStats}
+              shadowing={shadowingStats}
             />
 
             {/* Practice History */}
             <PracticeHistory records={recentRecords} />
 
             {/* Empty State */}
-            {totalPractices === 0 && (
+            {dictationStats.totalPractices === 0 && shadowingStats.totalPractices === 0 && (
               <div className="mt-6 bg-white rounded-lg shadow-sm p-8 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
