@@ -155,6 +155,7 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
                       // 最少记录0.1分钟（6秒），避免0分钟
                       const finalMinutes = minutes < 0.1 ? 0.1 : minutes
 
+                      console.log('ShadowingPanel - Calling onComplete:', { isCorrect, finalMinutes, practiceStartTime })
                       onCompleteRef.current(isCorrect, finalMinutes)
                     }
                   }, 100)
