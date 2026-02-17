@@ -34,9 +34,12 @@ export function useAuth(): AuthState {
   // Initialize auth state on mount
   useEffect(() => {
     let mounted = true
+    let isSubscribed = true
 
     // Get current session
     const initializeAuth = async () => {
+      if (!mounted || !isSubscribed) return
+
       try {
         console.log('Initializing auth state...')
         const { data: { session } } = await supabase.auth.getSession()
@@ -47,7 +50,7 @@ export function useAuth(): AuthState {
           userEmail: session.user?.email,
         } : 'No session')
 
-        if (mounted && session?.user) {
+        if (mounted && isSubscribed && session?.user) {
           // Fetch user profile
           const { data: profile } = await supabase
             .from('user_profiles')
@@ -69,7 +72,7 @@ export function useAuth(): AuthState {
       } catch (error) {
         console.error('Failed to initialize auth:', error)
       } finally {
-        if (mounted) {
+        if (mounted && isSubscribed) {
           setLoading(false)
         }
       }
@@ -82,7 +85,7 @@ export function useAuth(): AuthState {
       async (event, session) => {
         console.log('Auth state changed:', { event, hasSession: !!session })
 
-        if (!mounted) return
+        if (!mounted || !isSubscribed) return
 
         if (session?.user) {
           // Fetch user profile
@@ -107,7 +110,10 @@ export function useAuth(): AuthState {
 
     return () => {
       mounted = false
-      subscription.unsubscribe()
+      isSubscribed = false
+      if (subscription) {
+        subscription.unsubscribe()
+      }
     }
   }, [])
 
