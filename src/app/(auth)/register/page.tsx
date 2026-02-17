@@ -14,15 +14,27 @@ import RegisterForm from '@/components/auth/RegisterForm'
 import Link from 'next/link'
 
 export default function RegisterPage() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
 
   // Redirect to profile if already logged in
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!loading && isAuthenticated) {
       router.push('/profile')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, loading, router])
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">加载中...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
