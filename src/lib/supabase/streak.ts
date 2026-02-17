@@ -207,40 +207,55 @@ export async function getOrCreateTodayRecord(userId: string): Promise<DailyRecor
 export async function updateTodayDictation(userId: string): Promise<void> {
   const today = new Date().toISOString().split('T')[0]
 
-  // 使用 PostgreSQL 的 UPSERT 功能
-  const { data, error } = await supabase
-    .from('daily_records')
-    .upsert(
-      {
-        user_id: userId,
-        date: today,
-        dictation_count: 1, // 初始值
-      },
-      {
-        onConflict: 'user_id,date',
-        ignoreDuplicates: false,
-      }
-    )
-    .select()
-    .single()
+  // 使用 PostgreSQL 原子操作累加计数
+  const { error } = await supabase.rpc('increment_today_dictation', {
+    p_user_id: userId,
+    p_date: today,
+  })
 
-  if (error || !data) {
-    console.error('Failed to upsert daily record:', error)
-    return
-  }
+  if (error) {
+    console.error('Failed to update today dictation count:', error)
+    // 如果 RPC 函数不存在，回退到普通方法
+    console.log('RPC not found, falling back to direct upsert...')
 
-  // 如果记录已存在，需要增加计数
-  if (data.dictation_count > 0) {
-    const { error: updateError } = await supabase
+    // 回退方案：直接查询并累加
+    const { data: existingRecord } = await supabase
       .from('daily_records')
-      .update({
-        dictation_count: data.dictation_count + 1,
-      })
-      .eq('id', data.id)
+      .select('id, dictation_count')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single()
 
-    if (updateError) {
-      console.error('Failed to update dictation count:', updateError)
+    if (existingRecord) {
+      // 记录已存在，累加计数
+      const { error: updateError } = await supabase
+        .from('daily_records')
+        .update({
+          dictation_count: existingRecord.dictation_count + 1,
+        })
+        .eq('id', existingRecord.id)
+
+      if (updateError) {
+        console.error('Failed to update dictation count:', updateError)
+      }
+    } else {
+      // 记录不存在，创建新记录
+      const { error: insertError } = await supabase
+        .from('daily_records')
+        .insert({
+          user_id: userId,
+          date: today,
+          dictation_count: 1,
+          shadowing_minutes: 0,
+          completed: false,
+        })
+
+      if (insertError) {
+        console.error('Failed to insert daily record:', insertError)
+      }
     }
+  } else {
+    console.log('Today dictation count updated successfully via RPC')
   }
 }
 
@@ -253,41 +268,56 @@ export async function updateTodayShadowing(userId: string, minutes: number): Pro
   // 向上取整到整数（数据库字段是 INTEGER 类型）
   const minutesInt = Math.ceil(minutes)
 
-  // 使用 PostgreSQL 的 UPSERT 功能
-  const { data, error } = await supabase
-    .from('daily_records')
-    .upsert(
-      {
-        user_id: userId,
-        date: today,
-        shadowing_minutes: minutesInt, // 初始值（整数）
-      },
-      {
-        onConflict: 'user_id,date',
-        ignoreDuplicates: false,
-      }
-    )
-    .select()
-    .single()
+  // 使用 PostgreSQL 原子操作累加时间
+  const { error } = await supabase.rpc('increment_today_shadowing', {
+    p_user_id: userId,
+    p_date: today,
+    p_minutes: minutesInt,
+  })
 
-  if (error || !data) {
-    console.error('Failed to upsert daily record:', error)
-    return
-  }
+  if (error) {
+    console.error('Failed to update today shadowing minutes:', error)
+    // 如果 RPC 函数不存在，回退到普通方法
+    console.log('RPC not found, falling back to direct upsert...')
 
-  // 如果记录已存在，需要增加分钟数
-  if (data.shadowing_minutes > 0 || data.dictation_count > 0) {
-    const newMinutes = data.shadowing_minutes + minutesInt
-    const { error: updateError } = await supabase
+    // 回退方案：直接查询并累加
+    const { data: existingRecord } = await supabase
       .from('daily_records')
-      .update({
-        shadowing_minutes: newMinutes,
-      })
-      .eq('id', data.id)
+      .select('id, shadowing_minutes')
+      .eq('user_id', userId)
+      .eq('date', today)
+      .single()
 
-    if (updateError) {
-      console.error('Failed to update shadowing minutes:', updateError)
+    if (existingRecord) {
+      // 记录已存在，累加时间
+      const { error: updateError } = await supabase
+        .from('daily_records')
+        .update({
+          shadowing_minutes: existingRecord.shadowing_minutes + minutesInt,
+        })
+        .eq('id', existingRecord.id)
+
+      if (updateError) {
+        console.error('Failed to update shadowing minutes:', updateError)
+      }
+    } else {
+      // 记录不存在，创建新记录
+      const { error: insertError } = await supabase
+        .from('daily_records')
+        .insert({
+          user_id: userId,
+          date: today,
+          dictation_count: 0,
+          shadowing_minutes: minutesInt,
+          completed: false,
+        })
+
+      if (insertError) {
+        console.error('Failed to insert daily record:', insertError)
+      }
     }
+  } else {
+    console.log('Today shadowing minutes updated successfully via RPC')
   }
 }
 
