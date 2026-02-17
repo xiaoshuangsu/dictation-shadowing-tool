@@ -32,6 +32,7 @@ export default function ProfilePage() {
   })
   const [cumulativeStats, setCumulativeStats] = useState({
     total_dictation_sentences: 0,
+    total_dictation_minutes: 0,
     total_shadowing_minutes: 0,
     total_shadowing_sessions: 0,
   })
@@ -72,6 +73,7 @@ export default function ProfilePage() {
       if (completeProfile.stats) {
         setCumulativeStats({
           total_dictation_sentences: completeProfile.stats.total_dictation_sentences || 0,
+          total_dictation_minutes: completeProfile.stats.total_dictation_minutes || 0,
           total_shadowing_minutes: completeProfile.stats.total_shadowing_minutes || 0,
           total_shadowing_sessions: completeProfile.stats.total_shadowing_sessions || 0,
         })
@@ -230,9 +232,9 @@ export default function ProfilePage() {
                     </div>
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <p className="text-3xl font-bold text-blue-600 mb-1">
-                        --
+                        {cumulativeStats.total_dictation_minutes}
                       </p>
-                      <p className="text-sm text-gray-600">总时间</p>
+                      <p className="text-sm text-gray-600">总时间（分钟）</p>
                     </div>
                   </div>
                 )}

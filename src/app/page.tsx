@@ -155,7 +155,8 @@ export default function Home() {
 
         // V3 数据留存：更新连胜和统计数据
         if (mode === 'dictation') {
-          await onDictationComplete(user.id)
+          // 传递听写时长（分钟），默认为0
+          await onDictationComplete(user.id, practiceMinutes || 0)
         } else if (mode === 'shadowing' && practiceMinutes) {
           await onShadowingComplete(user.id, practiceMinutes)
         }
@@ -349,7 +350,7 @@ export default function Home() {
             dictationMode === "word" ? (
               <WordMode
                 sentence={currentSentence}
-                onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
+                onComplete={(isCorrect, usedShowWords, minutes) => handleComplete(currentSentence.id, isCorrect, usedShowWords, minutes)}
                 currentIndex={currentSentenceIndex}
                 totalSentences={sampleSentences.length}
                 onNext={handleNext}
@@ -358,7 +359,7 @@ export default function Home() {
             ) : (
               <DictationBox
                 sentence={currentSentence}
-                onComplete={(isCorrect) => handleComplete(currentSentence.id, isCorrect)}
+                onComplete={(isCorrect, usedShowWords, minutes) => handleComplete(currentSentence.id, isCorrect, usedShowWords, minutes)}
                 onNext={handleNext}
                 isLastSentence={isLastSentence}
               />

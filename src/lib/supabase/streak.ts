@@ -16,6 +16,7 @@ import { supabase } from './client'
 export interface UserStats {
   user_id: string
   total_dictation_sentences: number
+  total_dictation_minutes: number
   total_shadowing_minutes: number
   total_shadowing_sessions: number
 }
@@ -68,6 +69,7 @@ export async function initializeUserStats(userId: string): Promise<void> {
     .insert({
       user_id: userId,
       total_dictation_sentences: 0,
+      total_dictation_minutes: 0,
       total_shadowing_minutes: 0,
       total_shadowing_sessions: 0,
     })
@@ -79,12 +81,12 @@ export async function initializeUserStats(userId: string): Promise<void> {
 }
 
 /**
- * 更新累计统计数据 - Dictation
+ * 更新累计统计数据 - Dictation（带时长）
  */
-export async function updateDictationStats(userId: string): Promise<void> {
+export async function updateDictationStats(userId: string, minutes: number = 0): Promise<void> {
   const { data: currentStats } = await supabase
     .from('user_stats')
-    .select('total_dictation_sentences')
+    .select('total_dictation_sentences, total_dictation_minutes')
     .eq('user_id', userId)
     .single()
 
@@ -97,6 +99,7 @@ export async function updateDictationStats(userId: string): Promise<void> {
     .from('user_stats')
     .update({
       total_dictation_sentences: currentStats.total_dictation_sentences + 1,
+      total_dictation_minutes: currentStats.total_dictation_minutes + minutes,
     })
     .eq('user_id', userId)
 
@@ -339,15 +342,15 @@ export async function getUserCompleteProfile(userId: string): Promise<{
 /**
  * Dictation 完成时的完整数据处理
  */
-export async function onDictationComplete(userId: string): Promise<void> {
+export async function onDictationComplete(userId: string, minutes: number = 0): Promise<void> {
   try {
     // 1. 更新累计统计
-    await updateDictationStats(userId)
+    await updateDictationStats(userId, minutes)
 
     // 2. 更新今日记录
     await updateTodayDictation(userId)
 
-    // 3.连胜判断由数据库触发器自动处理
+    // 3. 连胜判断由数据库触发器自动处理
     console.log('Dictation data saved successfully')
   } catch (error) {
     console.error('Failed to save dictation data:', error)
