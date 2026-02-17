@@ -43,13 +43,17 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
       if (!result.success) {
         setError(result.error || '登录失败')
+        setLoading(false)
       } else {
-        // Login successful
-        onSuccess?.()
+        // Login successful - wait a moment for session to be set
+        setLoading(false)
+        // Delay to allow auth state to update
+        setTimeout(() => {
+          onSuccess?.()
+        }, 500)
       }
     } catch (err) {
       setError('登录失败，请稍后重试')
-    } finally {
       setLoading(false)
     }
   }
