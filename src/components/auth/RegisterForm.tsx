@@ -27,6 +27,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     e.preventDefault()
     setError(null)
 
+    console.log('Register form submitted:', { email, username })
+
     // Basic validation
     if (!email || !username || !password || !confirmPassword) {
       setError('请填写所有字段')
@@ -56,19 +58,24 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     setLoading(true)
 
     try {
+      console.log('Calling register function...')
       const result = await register(email, password, username)
 
-      if (!result.success) {
-        setError(result.error || '注册失败')
+      console.log('Register result:', result)
+
+      if (!result || !result.success) {
+        console.error('Registration failed:', result?.error)
+        setError(result?.error || '注册失败')
         setLoading(false)
       } else {
-        // Registration successful - redirect to home
         console.log('Registration successful, redirecting to home...')
         setLoading(false)
-        // Redirect to home page
-        window.location.href = '/'
+        // Redirect to home page with full URL
+        const baseUrl = window.location.origin + '/dictation-shadowing-tool/'
+        window.location.href = baseUrl
       }
     } catch (err) {
+      console.error('Register exception:', err)
       setError('注册失败，请稍后重试')
       setLoading(false)
     }

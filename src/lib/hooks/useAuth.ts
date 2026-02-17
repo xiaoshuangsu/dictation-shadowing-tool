@@ -196,6 +196,8 @@ export function useAuth(): AuthState {
 
   const register = useCallback(async (email: string, password: string, username: string) => {
     try {
+      console.log('Attempting to register:', { email, username })
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -206,7 +208,11 @@ export function useAuth(): AuthState {
         },
       })
 
+      console.log('Supabase signUp result:', { data, error })
+
       if (error) {
+        console.error('Supabase signUp error:', error)
+
         let errorMessage = '注册失败，请稍后重试'
 
         if (error.message.includes('User already registered')) {
@@ -233,6 +239,7 @@ export function useAuth(): AuthState {
 
       return { success: true }
     } catch (error: any) {
+      console.error('Register exception:', error)
       return {
         success: false,
         error: error.message || '注册失败，请稍后重试',
