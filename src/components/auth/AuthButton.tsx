@@ -16,6 +16,15 @@ export default function AuthButton() {
   const [showMenu, setShowMenu] = useState(false)
   const router = useRouter()
 
+  // Debug logging
+  useEffect(() => {
+    console.log('AuthButton state:', {
+      loading,
+      isAuthenticated,
+      user: user ? { id: user.id, username: user.username } : null,
+    })
+  }, [loading, isAuthenticated, user])
+
   const handleLogout = async () => {
     await logout()
     setShowMenu(false)
