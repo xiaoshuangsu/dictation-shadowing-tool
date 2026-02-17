@@ -48,6 +48,15 @@ type DictationMode = "word" | "whole"
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth()
+
+  // Debug: Log user state
+  useEffect(() => {
+    console.log('Home page - Auth state:', {
+      loading: authLoading,
+      user: user ? { id: user.id, username: user.username } : null,
+      isAuthenticated: !!user,
+    })
+  }, [authLoading, user])
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [mode, setMode] = useState<PracticeMode>("dictation")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
@@ -66,12 +75,20 @@ export default function Home() {
 
   // Show signup prompt for non-logged in users
   useEffect(() => {
+    // Only show prompt if auth is initialized, user is not logged in, and hasn't dismissed
     if (!authLoading && !user) {
-      // Check if user has already dismissed the prompt
       const hasDismissed = localStorage.getItem('signupPromptDismissed')
       if (!hasDismissed) {
-        setShowSignupPrompt(true)
+        // Delay showing the prompt to ensure user sees the page first
+        const timer = setTimeout(() => {
+          setShowSignupPrompt(true)
+        }, 1000)
+        return () => clearTimeout(timer)
       }
+    }
+    // Hide prompt if user logs in
+    if (user) {
+      setShowSignupPrompt(false)
     }
   }, [authLoading, user])
 
