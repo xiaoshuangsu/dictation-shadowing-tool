@@ -144,20 +144,26 @@ export function useAuth(): AuthState {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
+      console.log('Attempting login with:', email)
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log('Login result:', { data, error })
+
       if (error) {
+        console.error('Login error:', error)
         return {
           success: false,
           error: error.message || '登录失败，请检查邮箱和密码',
         }
       }
 
+      console.log('Login successful, session:', data.session)
       return { success: true }
     } catch (error: any) {
+      console.error('Login exception:', error)
       return {
         success: false,
         error: error.message || '登录失败，请稍后重试',

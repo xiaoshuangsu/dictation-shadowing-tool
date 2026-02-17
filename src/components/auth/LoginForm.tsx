@@ -25,6 +25,8 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     e.preventDefault()
     setError(null)
 
+    console.log('Login form submitted with email:', email)
+
     // Basic validation
     if (!email || !password) {
       setError('请填写邮箱和密码')
@@ -39,20 +41,27 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     setLoading(true)
 
     try {
+      console.log('Calling login function...')
       const result = await login(email, password)
 
+      console.log('Login result:', result)
+
       if (!result.success) {
+        console.error('Login failed:', result.error)
         setError(result.error || '登录失败')
         setLoading(false)
       } else {
+        console.log('Login successful, waiting 500ms before redirect')
         // Login successful - wait a moment for session to be set
         setLoading(false)
         // Delay to allow auth state to update
         setTimeout(() => {
+          console.log('Calling onSuccess callback')
           onSuccess?.()
         }, 500)
       }
     } catch (err) {
+      console.error('Login exception:', err)
       setError('登录失败，请稍后重试')
       setLoading(false)
     }

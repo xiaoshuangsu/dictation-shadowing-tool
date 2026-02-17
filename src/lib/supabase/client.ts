@@ -13,12 +13,6 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Debug: Log environment variables
-if (typeof window !== 'undefined') {
-  console.log('Supabase URL:', supabaseUrl)
-  console.log('Supabase Key present:', !!supabaseAnonKey)
-}
-
 if (!supabaseUrl || !supabaseAnonKey) {
   if (typeof window !== 'undefined') {
     console.error(
@@ -39,6 +33,13 @@ export const supabase = createClient(
     },
   }
 )
+
+// Debug: Log initialization
+if (typeof window !== 'undefined') {
+  console.log('Supabase URL:', supabaseUrl)
+  console.log('Supabase Key present:', !!supabaseAnonKey)
+  console.log('Supabase client initialized')
+}
 
 export default supabase
 
