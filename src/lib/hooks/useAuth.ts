@@ -147,6 +147,17 @@ export function useAuth(): AuthState {
         return { success: false, error: errorMessage }
       }
 
+      // Debug logging
+      console.log('Register result:', { data, error })
+      console.log('Session after register:', data.session)
+
+      // Check if session was created
+      if (data.session) {
+        console.log('Session created successfully, user should be logged in')
+      } else {
+        console.log('No session created - user may need to confirm email')
+      }
+
       return { success: true }
     } catch (error: any) {
       return {
