@@ -156,9 +156,12 @@ export default function Home() {
         // V3 数据留存：更新连胜和统计数据
         if (mode === 'dictation') {
           // 传递听写时长（分钟），默认为0
+          console.log('handleComplete - Calling onDictationComplete with minutes:', practiceMinutes || 0)
           await onDictationComplete(user.id, practiceMinutes || 0)
-        } else if (mode === 'shadowing' && practiceMinutes) {
-          await onShadowingComplete(user.id, practiceMinutes)
+        } else if (mode === 'shadowing') {
+          // 传递影子跟读时长（分钟），默认为0
+          console.log('handleComplete - Calling onShadowingComplete with minutes:', practiceMinutes || 0)
+          await onShadowingComplete(user.id, practiceMinutes || 0)
         }
 
         console.log(`Practice data saved (${mode}, minutes: ${practiceMinutes || 0})`)

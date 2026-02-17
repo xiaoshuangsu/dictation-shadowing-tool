@@ -116,22 +116,32 @@ export async function updateShadowingStats(
   userId: string,
   minutes: number
 ): Promise<void> {
+  console.log('updateShadowingStats - Starting:', { userId, minutes })
+
   const { data: currentStats } = await supabase
     .from('user_stats')
     .select('total_shadowing_minutes, total_shadowing_sessions')
     .eq('user_id', userId)
     .single()
 
+  console.log('updateShadowingStats - Current stats:', currentStats)
+
   if (!currentStats) {
+    console.log('updateShadowingStats - No stats found, initializing...')
     await initializeUserStats(userId)
     return
   }
 
+  const newMinutes = currentStats.total_shadowing_minutes + minutes
+  const newSessions = currentStats.total_shadowing_sessions + 1
+
+  console.log('updateShadowingStats - Updating to:', { newMinutes, newSessions })
+
   const { error } = await supabase
     .from('user_stats')
     .update({
-      total_shadowing_minutes: currentStats.total_shadowing_minutes + minutes,
-      total_shadowing_sessions: currentStats.total_shadowing_sessions + 1,
+      total_shadowing_minutes: newMinutes,
+      total_shadowing_sessions: newSessions,
     })
     .eq('user_id', userId)
 
@@ -139,6 +149,8 @@ export async function updateShadowingStats(
     console.error('Failed to update shadowing stats:', error)
     throw error
   }
+
+  console.log('updateShadowingStats - Success!')
 }
 
 // ============================================
@@ -363,6 +375,8 @@ export async function onDictationComplete(userId: string, minutes: number = 0): 
  */
 export async function onShadowingComplete(userId: string, minutes: number): Promise<void> {
   try {
+    console.log('onShadowingComplete - Starting:', { userId, minutes })
+
     // 1. 更新累计统计
     await updateShadowingStats(userId, minutes)
 
