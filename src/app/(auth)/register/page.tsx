@@ -55,7 +55,7 @@ export default function RegisterPage() {
         {/* Register Form Card */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <RegisterForm
-            onSuccess={() => router.push('/profile')}
+            onSuccess={() => router.push('/login')}
           />
 
           {/* Login Link */}
