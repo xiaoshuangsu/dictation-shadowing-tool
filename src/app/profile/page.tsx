@@ -286,39 +286,57 @@ export default function ProfilePage() {
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   今日进度 {todayRecord.completed && '✅'}
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-700">听写句子</span>
-                    <span
-                      className={`font-semibold ${
-                        todayRecord.dictation_count >= 3 ? 'text-green-600' : 'text-gray-900'
-                      }`}
-                    >
-                      {todayRecord.dictation_count} / 3
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+
+                {/* 单一进度条 */}
+                <div className="mb-4">
+                  <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
-                      className="bg-blue-500 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((todayRecord.dictation_count / 3) * 100, 100)}%` }}
+                      className={`h-3 rounded-full transition-all ${
+                        todayRecord.completed ? 'bg-green-500' : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${Math.min(todayRecord.completed ? 100 : Math.max(
+                        (todayRecord.dictation_count / 10) * 100,
+                        (todayRecord.shadowing_minutes / 10) * 100
+                      ), 100)}%` }}
                     ></div>
                   </div>
+                </div>
+
+                {/* 百分比显示 */}
+                <div className="text-center mb-4">
+                  <span className={`text-2xl font-bold ${
+                    todayRecord.completed ? 'text-green-600' : 'text-blue-600'
+                  }`}>
+                    {todayRecord.completed ? '100' : Math.round(Math.max(
+                      (todayRecord.dictation_count / 10) * 100,
+                      (todayRecord.shadowing_minutes / 10) * 100
+                    ))}%
+                  </span>
+                </div>
+
+                {/* 详细信息 */}
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-700">Shadowing 分钟</span>
-                    <span
-                      className={`font-semibold ${
-                        todayRecord.shadowing_minutes >= 5 ? 'text-green-600' : 'text-gray-900'
-                      }`}
-                    >
-                      {todayRecord.shadowing_minutes} / 5
+                    <span className="text-gray-600">听写句子</span>
+                    <span className={`font-semibold ${
+                      todayRecord.dictation_count >= 10 ? 'text-green-600' : 'text-gray-900'
+                    }`}>
+                      {todayRecord.dictation_count} / 10 句
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded-full transition-all"
-                      style={{ width: `${Math.min((todayRecord.shadowing_minutes / 5) * 100, 100)}%` }}
-                    ></div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Shadowing</span>
+                    <span className={`font-semibold ${
+                      todayRecord.shadowing_minutes >= 10 ? 'text-green-600' : 'text-gray-900'
+                    }`}>
+                      {todayRecord.shadowing_minutes} / 10 分钟
+                    </span>
                   </div>
+                  {!todayRecord.completed && (
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      完成听写 10 句或 Shadowing 10 分钟即可达成今日目标
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
