@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 interface Sentence {
   id: number
@@ -11,7 +11,7 @@ interface Sentence {
 
 interface WordModeProps {
   sentence: Sentence
-  onComplete?: (isCorrect: boolean, usedShowWords?: boolean, practiceMinutes?: number) => void
+  onComplete?: (isCorrect: boolean, usedShowWords?: boolean, durationSeconds?: number) => void
   currentIndex: number
   totalSentences: number
   onNext?: () => void
@@ -23,7 +23,14 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [showWord, setShowWord] = useState(false)
-  const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null)
+
+  // V3.1 有效作答时间跟踪
+  const [timingStarted, setTimingStarted] = useState(false)
+  const startTimeRef = useRef<number | null>(null)
+  const pausedDurationRef = useRef<number>(0)
+  const pauseStartRef = useRef<number | null>(null)
+  const lastActivityRef = useRef<number>(Date.now())
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const sentenceWords = sentence.text.split(" ")
 
@@ -32,13 +39,111 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   const hiddenWord = sentenceWords[hiddenWordIndex]
   const visibleWords = sentenceWords.slice(0, hiddenWordIndex)
 
+  // V3.1: 启动计时
+  const startTiming = () => {
+    if (!timingStarted) {
+      setTimingStarted(true)
+      startTimeRef.current = Date.now()
+      pausedDurationRef.current = 0
+      lastActivityRef.current = Date.now()
+      console.log('WordMode - Timing started')
+    }
+  }
+
+  // V3.1: 暂停/恢复计时
+  const pauseTiming = () => {
+    if (timingStarted && !pauseStartRef.current) {
+      pauseStartRef.current = Date.now()
+      console.log('WordMode - Timing paused')
+    }
+  }
+
+  const resumeTiming = () => {
+    if (timingStarted && pauseStartRef.current) {
+      const pauseDuration = Date.now() - pauseStartRef.current
+      pausedDurationRef.current += pauseDuration
+      pauseStartRef.current = null
+      lastActivityRef.current = Date.now()
+      console.log('WordMode - Timing resumed')
+    }
+  }
+
+  // V3.1: 更新活动时间
+  const updateActivity = () => {
+    lastActivityRef.current = Date.now()
+    startTiming()
+
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
+
+    inactivityTimerRef.current = setTimeout(() => {
+      pauseTiming()
+      console.log('WordMode - Paused due to inactivity (60s)')
+    }, 60000)
+  }
+
+  // V3.1: 监听浏览器失焦/聚焦
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        pauseTiming()
+      } else {
+        resumeTiming()
+        updateActivity()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [timingStarted])
+
+  // V3.1: 计算有效作答时间
+  const calculateEffectiveTime = (): number => {
+    if (!startTimeRef.current) return 0
+
+    const endTime = Date.now()
+    const rawSeconds = (endTime - startTimeRef.current - pausedDurationRef.current) / 1000
+
+    // 有效性过滤
+    if (rawSeconds < 3) {
+      console.log('WordMode - Time too short (< 3s):', rawSeconds)
+      return 0
+    }
+
+    const audioDuration = sentence.endTime - sentence.startTime
+    const maxSeconds = Math.min(180, audioDuration * 5)
+    const effectiveSeconds = Math.min(rawSeconds, maxSeconds)
+
+    console.log('WordMode - Effective time:', {
+      raw: rawSeconds.toFixed(2),
+      effective: effectiveSeconds.toFixed(2),
+      max: maxSeconds
+    })
+
+    return Math.round(effectiveSeconds)
+  }
+
   // Reset when sentence changes
   useEffect(() => {
     setUserInput("")
     setShowResult(false)
     setIsCorrect(null)
     setShowWord(false)
-    setPracticeStartTime(Date.now()) // 开始计时
+
+    // 重置计时状态
+    setTimingStarted(false)
+    startTimeRef.current = null
+    pausedDurationRef.current = 0
+    pauseStartRef.current = null
+    lastActivityRef.current = Date.now()
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+      inactivityTimerRef.current = null
+    }
+    console.log('WordMode - Reset for new sentence')
   }, [sentence.id])
 
   // Check if word is correct
@@ -55,18 +160,16 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setShowResult(true)
     setIsCorrect(correct)
 
-    // 计算练习时长（分钟）
-    const minutes = practiceStartTime
-      ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
-      : 0
+    // V3.1: 计算有效作答时间（秒）
+    const durationSeconds = calculateEffectiveTime()
 
-    // 最少记录0.1分钟（6秒），避免0分钟
-    const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
 
     if (onComplete) {
-      onComplete(correct, false, finalMinutes) // Didn't use show words
+      onComplete(correct, false, durationSeconds)
     }
-    // Don't auto-advance, let user click Next button
   }
 
   const handleShowWord = () => {
@@ -74,16 +177,15 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setUserInput(hiddenWord)
     setIsCorrect(true)
 
-    // 计算练习时长（分钟）
-    const minutes = practiceStartTime
-      ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
-      : 0
+    // V3.1: 计算有效作答时间（秒）
+    const durationSeconds = calculateEffectiveTime()
 
-    // 最少记录0.1分钟（6秒），避免0分钟
-    const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
 
     if (onComplete) {
-      onComplete(true, true, finalMinutes) // Mark as used show words
+      onComplete(true, true, durationSeconds)
     }
   }
 
@@ -126,12 +228,17 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
           value={showWord ? hiddenWord : userInput}
           onChange={(e) => {
             setUserInput(e.target.value)
+            // V3.1: 更新活动时间
+            if (e.target.value.length > 0) {
+              updateActivity()
+            }
             // Allow editing again by clearing result
             if (showResult) {
               setShowResult(false)
               setIsCorrect(null)
             }
           }}
+          onFocus={updateActivity}
           onKeyDown={handleKeyDown}
           disabled={showWord}
           className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
