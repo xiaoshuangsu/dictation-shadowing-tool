@@ -303,8 +303,8 @@ export default function ProfilePage() {
                 </div>
 
                 {/* 百分比显示 */}
-                <div className="text-center mb-4">
-                  <span className={`text-2xl font-bold ${
+                <div className="text-center">
+                  <span className={`text-3xl font-bold ${
                     todayRecord.completed ? 'text-green-600' : 'text-blue-600'
                   }`}>
                     {todayRecord.completed ? '100' : Math.round(Math.max(
@@ -312,31 +312,6 @@ export default function ProfilePage() {
                       (todayRecord.shadowing_minutes / 10) * 100
                     ))}%
                   </span>
-                </div>
-
-                {/* 详细信息 */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">听写句子</span>
-                    <span className={`font-semibold ${
-                      todayRecord.dictation_count >= 10 ? 'text-green-600' : 'text-gray-900'
-                    }`}>
-                      {todayRecord.dictation_count} / 10 句
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Shadowing</span>
-                    <span className={`font-semibold ${
-                      todayRecord.shadowing_minutes >= 10 ? 'text-green-600' : 'text-gray-900'
-                    }`}>
-                      {todayRecord.shadowing_minutes} / 10 分钟
-                    </span>
-                  </div>
-                  {!todayRecord.completed && (
-                    <p className="text-xs text-gray-500 mt-2 text-center">
-                      完成听写 10 句或 Shadowing 10 分钟即可达成今日目标
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
