@@ -58,7 +58,6 @@ export default function Home() {
       isAuthenticated: !!user,
     })
   }, [authLoading, user])
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
   const [mode, setMode] = useState<PracticeMode>("dictation")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
   const [correctCount, setCorrectCount] = useState(0)
@@ -75,6 +74,59 @@ export default function Home() {
   // 跟踪主播放器的累计播放时间（Shadowing 使用）
   const [audioPlaybackSeconds, setAudioPlaybackSeconds] = useState(0)
   const audioPlaybackSecondsRef = useRef<number>(0)
+
+  // 初始化状态：从 localStorage 恢复进度（如果已登录）
+  const [currentSentenceIndex, setCurrentSentenceIndex] = useState<number>(0)
+  const [progressRestored, setProgressRestored] = useState(false)
+
+  // 保存练习进度到 localStorage
+  const savePracticeProgress = (sentenceIndex: number) => {
+    if (typeof window === 'undefined' || !user) return
+
+    try {
+      const progress = {
+        sentenceIndex,
+        mode,
+        dictationMode,
+        timestamp: Date.now(),
+      }
+      localStorage.setItem(`practice_progress_${user.id}`, JSON.stringify(progress))
+      console.log('Saved practice progress:', progress)
+    } catch (error) {
+      console.error('Failed to save progress:', error)
+    }
+  }
+
+  // 当用户登录后，恢复保存的进度状态
+  useEffect(() => {
+    if (user && !progressRestored && !authLoading) {
+      try {
+        const saved = localStorage.getItem(`practice_progress_${user.id}`)
+        if (saved) {
+          const progress = JSON.parse(saved)
+          // 恢复句子索引
+          if (progress.sentenceIndex !== undefined && progress.sentenceIndex > 0) {
+            setCurrentSentenceIndex(progress.sentenceIndex)
+            console.log('Restored practice progress:', progress)
+          }
+          // 恢复模式
+          if (progress.mode) {
+            setMode(progress.mode)
+          }
+          if (progress.dictationMode) {
+            setDictationMode(progress.dictationMode)
+          }
+        }
+        setProgressRestored(true)
+      } catch (error) {
+        console.error('Failed to restore progress:', error)
+        setProgressRestored(true)
+      }
+    } else if (!user) {
+      // 用户登出时重置状态
+      setProgressRestored(false)
+    }
+  }, [user, authLoading, progressRestored])
 
   // 当句子改变时重置播放时间
   useEffect(() => {
@@ -109,17 +161,23 @@ export default function Home() {
     if (currentSentenceIndex > 0) {
       setAutoPlayTrigger(prev => prev + 1)
     }
+    // 保存进度
+    savePracticeProgress(currentSentenceIndex)
   }, [currentSentenceIndex])
 
   const handleNext = () => {
     if (currentSentenceIndex < sampleSentences.length - 1) {
-      setCurrentSentenceIndex(currentSentenceIndex + 1)
+      const newIndex = currentSentenceIndex + 1
+      setCurrentSentenceIndex(newIndex)
+      savePracticeProgress(newIndex)
     }
   }
 
   const handlePrevious = () => {
     if (currentSentenceIndex > 0) {
-      setCurrentSentenceIndex(currentSentenceIndex - 1)
+      const newIndex = currentSentenceIndex - 1
+      setCurrentSentenceIndex(newIndex)
+      savePracticeProgress(newIndex)
     }
   }
 
@@ -189,6 +247,13 @@ export default function Home() {
         }
 
         console.log(`Practice data saved (${mode})`)
+
+        // 保存下一句的进度（如果不是最后一句）
+        if (!isLastSentence) {
+          const nextIndex = currentSentenceIndex + 1
+          savePracticeProgress(nextIndex)
+          console.log('Saved next sentence progress:', nextIndex)
+        }
       } catch (error) {
         console.error('Failed to save practice data:', error)
         // Don't show error to user - practice continues normally
@@ -202,6 +267,7 @@ export default function Home() {
   const handleSentenceClick = (index: number) => {
     setCurrentSentenceIndex(index)
     setAutoPlayTrigger(prev => prev + 1)
+    savePracticeProgress(index)
   }
 
   // Calculate which words should be highlighted based on current playback time
