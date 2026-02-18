@@ -16,25 +16,106 @@ interface AudioPlayerProps {
   autoPlayTrigger?: number
   onPlayEnd?: () => void
   onTimeUpdate?: (currentTime: number) => void
+  onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void // 新增：累计播放时间回调
 }
 
-export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 1, autoPlayTrigger = 0, onPlayEnd, onTimeUpdate }: AudioPlayerProps) {
+export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 1, autoPlayTrigger = 0, onPlayEnd, onTimeUpdate, onPlaybackTimeUpdate }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const prevTriggerRef = useRef(0)
 
+  // 真实播放时间跟踪
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+  const lastUpdateTimeRef = useRef<number>(0)
+  const totalPlayedSecondsRef = useRef<number>(0)
+
   const playSentence = () => {
     if (audioRef.current) {
-      audioRef.current.currentTime = currentSentence.startTime
-      audioRef.current.playbackRate = playbackRate
-      audioRef.current.play()
+      const audio = audioRef.current
+      audio.currentTime = currentSentence.startTime
+      audio.playbackRate = playbackRate
+
+      console.log('AudioPlayer - Playing sentence at', currentSentence.startTime)
+
+      // 添加播放时间跟踪
+      const handlePlay = () => {
+        if (!isAudioPlaying) {
+          setIsAudioPlaying(true)
+          lastUpdateTimeRef.current = Date.now()
+          console.log('AudioPlayer - Audio started playing')
+        }
+      }
+
+      const handlePause = () => {
+        if (isAudioPlaying) {
+          const now = Date.now()
+          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+          totalPlayedSecondsRef.current += elapsedSeconds
+
+          console.log(`AudioPlayer - Audio paused. Elapsed: ${elapsedSeconds.toFixed(2)}s, Total: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
+
+          // 通知父组件累计播放时间
+          if (onPlaybackTimeUpdate) {
+            onPlaybackTimeUpdate(totalPlayedSecondsRef.current)
+          }
+
+          setIsAudioPlaying(false)
+        }
+      }
+
+      const handleTimeUpdate = () => {
+        if (isAudioPlaying) {
+          const now = Date.now()
+          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+          lastUpdateTimeRef.current = now
+
+          // 累计播放时间
+          totalPlayedSecondsRef.current += elapsedSeconds
+
+          // 通知父组件累计播放时间
+          if (onPlaybackTimeUpdate) {
+            onPlaybackTimeUpdate(totalPlayedSecondsRef.current)
+          }
+        }
+      }
+
+      const handleEnded = () => {
+        if (isAudioPlaying) {
+          const now = Date.now()
+          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+          totalPlayedSecondsRef.current += elapsedSeconds
+
+          console.log(`AudioPlayer - Audio ended. Total played: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
+
+          // 通知父组件累计播放时间
+          if (onPlaybackTimeUpdate) {
+            onPlaybackTimeUpdate(totalPlayedSecondsRef.current)
+          }
+
+          setIsAudioPlaying(false)
+        }
+      }
+
+      // 添加事件监听器
+      audio.addEventListener('play', handlePlay, { once: false })
+      audio.addEventListener('pause', handlePause, { once: false })
+      audio.addEventListener('timeupdate', handleTimeUpdate, { once: false })
+      audio.addEventListener('ended', handleEnded, { once: false })
+
+      audio.play()
       setIsPlaying(true)
 
       const durationToPlay = currentSentence.endTime - currentSentence.startTime
       setTimeout(() => {
         if (audioRef.current) {
-          audioRef.current.pause()
+          audio.pause()
           setIsPlaying(false)
+
+          // 清理事件监听器
+          audio.removeEventListener('play', handlePlay)
+          audio.removeEventListener('pause', handlePause)
+          audio.removeEventListener('timeupdate', handleTimeUpdate)
+          audio.removeEventListener('ended', handleEnded)
         }
       }, (durationToPlay / playbackRate) * 1000 + 200)
     }

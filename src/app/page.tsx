@@ -72,6 +72,17 @@ export default function Home() {
   const [isRevealed, setIsRevealed] = useState(false) // Track if user used "Show Words"
   const [showSignupPrompt, setShowSignupPrompt] = useState(false) // 注册提醒弹窗
 
+  // 跟踪主播放器的累计播放时间（Shadowing 使用）
+  const [audioPlaybackSeconds, setAudioPlaybackSeconds] = useState(0)
+  const audioPlaybackSecondsRef = useRef<number>(0)
+
+  // 当句子改变时重置播放时间
+  useEffect(() => {
+    setAudioPlaybackSeconds(0)
+    audioPlaybackSecondsRef.current = 0
+    console.log('Reset audio playback time for new sentence')
+  }, [currentSentenceIndex])
+
   const currentSentence = sampleSentences[currentSentenceIndex]
 
   // Show signup prompt for non-logged in users
@@ -116,6 +127,13 @@ export default function Home() {
     setCurrentTime(time)
   }
 
+  // 接收 AudioPlayer 的累计播放时间
+  const handlePlaybackTimeUpdate = (totalPlayedSeconds: number) => {
+    setAudioPlaybackSeconds(totalPlayedSeconds)
+    audioPlaybackSecondsRef.current = totalPlayedSeconds
+    console.log(`Main page - Audio playback time updated: ${totalPlayedSeconds.toFixed(2)}s`)
+  }
+
   const handleComplete = async (
     sentenceId: number,
     isCorrect: boolean,
@@ -151,7 +169,7 @@ export default function Home() {
           isCorrect,
           usedShowWords,
           audioTitle: AUDIO_TITLE,
-          durationSeconds: mode === 'shadowing' ? (duration || 0) : undefined, // Shadowing 保存秒数
+          durationSeconds: mode === 'shadowing' ? Math.round(audioPlaybackSecondsRef.current) : undefined, // Shadowing 保存主播放器的秒数
         })
 
         // V3 数据留存：更新连胜和统计数据
@@ -161,14 +179,14 @@ export default function Home() {
           console.log('handleComplete - Calling onDictationComplete with minutes:', minutes)
           await onDictationComplete(user.id, minutes)
         } else if (mode === 'shadowing') {
-          // Shadowing: 传递秒数（转换为分钟）
-          const seconds = duration || 0
+          // Shadowing: 使用主播放器的累计播放时间（秒），转换为分钟
+          const seconds = Math.round(audioPlaybackSecondsRef.current)
           const minutes = seconds / 60
-          console.log('handleComplete - Calling onShadowingComplete with seconds:', seconds, 'minutes:', minutes)
+          console.log('handleComplete - Shadowing complete with audio playback seconds:', seconds, 'minutes:', minutes)
           await onShadowingComplete(user.id, minutes)
         }
 
-        console.log(`Practice data saved (${mode}, duration: ${duration})`)
+        console.log(`Practice data saved (${mode})`)
       } catch (error) {
         console.error('Failed to save practice data:', error)
         // Don't show error to user - practice continues normally
@@ -318,6 +336,7 @@ export default function Home() {
                   autoPlayTrigger={autoPlayTrigger}
                   onPlayEnd={() => {}}
                   onTimeUpdate={handleTimeUpdate}
+                  onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
                 />
 
                 <button
