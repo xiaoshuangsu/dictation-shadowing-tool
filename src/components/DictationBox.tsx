@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import ConfirmModal from "./ConfirmModal"
 
 interface Sentence {
@@ -26,11 +26,112 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [isRevealed, setIsRevealed] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
-  const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null)
+
+  // V3.1 有效作答时间跟踪
+  const [timingStarted, setTimingStarted] = useState(false)
+  const startTimeRef = useRef<number | null>(null)
+  const pausedDurationRef = useRef<number>(0)
+  const pauseStartRef = useRef<number | null>(null)
+  const lastActivityRef = useRef<number>(Date.now())
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Word-level state
   const sentenceWords = sentence.text.split(" ")
   const [wordStatuses, setWordStatuses] = useState<Map<number, WordStatus>>(new Map())
+
+  // V3.1: 启动计时（只触发一次）
+  const startTiming = () => {
+    if (!timingStarted) {
+      setTimingStarted(true)
+      startTimeRef.current = Date.now()
+      pausedDurationRef.current = 0
+      lastActivityRef.current = Date.now()
+      console.log('DictationBox - Timing started')
+    }
+  }
+
+  // V3.1: 暂停计时
+  const pauseTiming = () => {
+    if (timingStarted && !pauseStartRef.current) {
+      pauseStartRef.current = Date.now()
+      console.log('DictationBox - Timing paused')
+    }
+  }
+
+  // V3.1: 恢复计时
+  const resumeTiming = () => {
+    if (timingStarted && pauseStartRef.current) {
+      const pauseDuration = Date.now() - pauseStartRef.current
+      pausedDurationRef.current += pauseDuration
+      pauseStartRef.current = null
+      lastActivityRef.current = Date.now()
+      console.log('DictationBox - Timing resumed, paused duration:', pauseDuration)
+    }
+  }
+
+  // V3.1: 更新活动时间（重置无操作计时器）
+  const updateActivity = () => {
+    lastActivityRef.current = Date.now()
+    startTiming() // 第一次操作时启动计时
+
+    // 清除旧的无操作计时器
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
+
+    // 设置新的无操作计时器（60秒）
+    inactivityTimerRef.current = setTimeout(() => {
+      pauseTiming()
+      console.log('DictationBox - Paused due to inactivity (60s)')
+    }, 60000)
+  }
+
+  // V3.1: 监听浏览器失焦/聚焦事件
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        pauseTiming()
+      } else {
+        resumeTiming()
+        updateActivity() // 重新聚焦时更新活动时间
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [timingStarted])
+
+  // V3.1: 计算有效作答时间（秒）
+  const calculateEffectiveTime = (): number => {
+    if (!startTimeRef.current) return 0
+
+    const endTime = Date.now()
+    const rawSeconds = (endTime - startTimeRef.current - pausedDurationRef.current) / 1000
+
+    // 有效性过滤
+    // 1. 最小有效时间：< 3 秒不计入
+    if (rawSeconds < 3) {
+      console.log('DictationBox - Time too short (< 3s):', rawSeconds)
+      return 0
+    }
+
+    // 2. 最大单句上限：min(180秒, 音频时长 × 5)
+    const audioDuration = sentence.endTime - sentence.startTime
+    const maxSeconds = Math.min(180, audioDuration * 5)
+
+    // 3. 异常截断
+    const effectiveSeconds = Math.min(rawSeconds, maxSeconds)
+
+    console.log('DictationBox - Effective time:', {
+      raw: rawSeconds.toFixed(2),
+      effective: effectiveSeconds.toFixed(2),
+      max: maxSeconds
+    })
+
+    return Math.round(effectiveSeconds)
+  }
 
   // Reset when sentence changes
   useEffect(() => {
@@ -41,7 +142,18 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     setIsRevealed(false)
     setIsLocked(false)
     setWordStatuses(new Map())
-    setPracticeStartTime(Date.now()) // 开始计时
+
+    // 重置计时状态
+    setTimingStarted(false)
+    startTimeRef.current = null
+    pausedDurationRef.current = 0
+    pauseStartRef.current = null
+    lastActivityRef.current = Date.now()
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+      inactivityTimerRef.current = null
+    }
+    console.log('DictationBox - Reset for new sentence')
   }, [sentence.id])
 
   // Update word statuses as user types
@@ -63,22 +175,28 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     })
 
     setWordStatuses(newStatuses)
+
+    // V3.1: 用户输入时更新活动时间
+    if (userInput.length > 0) {
+      updateActivity()
+    }
   }, [userInput, sentenceWords])
 
   const handleCheckAnswer = () => {
     setShowResult(true)
     const isCorrect = checkCorrect()
 
-    // 计算练习时长（分钟）
-    const minutes = practiceStartTime
-      ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
-      : 0
+    // V3.1: 计算有效作答时间（秒）
+    const durationSeconds = calculateEffectiveTime()
 
-    // 最少记录0.1分钟（6秒），避免0分钟
-    const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+    // 清除无操作计时器
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
 
     if (onComplete) {
-      onComplete(isCorrect, false, finalMinutes) // Didn't use show words
+      // 传递秒数（不是分钟）
+      onComplete(isCorrect, false, durationSeconds)
     }
   }
 
@@ -103,17 +221,18 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       }
     })
 
-    // 计算练习时长（分钟）
-    const minutes = practiceStartTime
-      ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
-      : 0
+    // V3.1: 计算有效作答时间（秒）
+    const durationSeconds = calculateEffectiveTime()
 
-    // 最少记录0.1分钟（6秒），避免0分钟
-    const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+    // 清除无操作计时器
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current)
+    }
 
     const isCorrect = correctCount === sentenceWords.length
     if (onComplete) {
-      onComplete(isCorrect, true, finalMinutes) // Used show words
+      // 传递秒数（不是分钟）
+      onComplete(isCorrect, true, durationSeconds) // Used show words
     }
   }
 
@@ -182,6 +301,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={updateActivity}
           disabled={isLocked}
           className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
           placeholder="Type your answer here..."

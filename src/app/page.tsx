@@ -159,7 +159,7 @@ export default function Home() {
     // Save to Supabase if user is logged in
     if (user) {
       try {
-        // V3 数据留存：保存到 practice_records
+        // V3.1 数据留存：保存到 practice_records（数据库存秒）
         await savePracticeRecord({
           userId: user.id,
           sentenceId,
@@ -169,14 +169,16 @@ export default function Home() {
           isCorrect,
           usedShowWords,
           audioTitle: AUDIO_TITLE,
-          durationSeconds: mode === 'shadowing' ? Math.round(audioPlaybackSecondsRef.current) : undefined, // Shadowing 保存主播放器的秒数
+          // Dictation 和 Shadowing 都保存秒数
+          durationSeconds: (mode === 'dictation' ? (duration || 0) : Math.round(audioPlaybackSecondsRef.current)) || undefined,
         })
 
-        // V3 数据留存：更新连胜和统计数据
+        // V3 数据留存：更新连胜和统计数据（统计表存分钟）
         if (mode === 'dictation') {
-          // Dictation: 传递分钟数
-          const minutes = duration || 0
-          console.log('handleComplete - Calling onDictationComplete with minutes:', minutes)
+          // Dictation: duration 是秒数，转换为分钟
+          const seconds = duration || 0
+          const minutes = seconds / 60
+          console.log('handleComplete - Dictation complete with effective seconds:', seconds, 'minutes:', minutes)
           await onDictationComplete(user.id, minutes)
         } else if (mode === 'shadowing') {
           // Shadowing: 使用主播放器的累计播放时间（秒），转换为分钟
@@ -376,7 +378,7 @@ export default function Home() {
             dictationMode === "word" ? (
               <WordMode
                 sentence={currentSentence}
-                onComplete={(isCorrect, usedShowWords, minutes) => handleComplete(currentSentence.id, isCorrect, usedShowWords, minutes)}
+                onComplete={(isCorrect, usedShowWords, durationSeconds) => handleComplete(currentSentence.id, isCorrect, usedShowWords, durationSeconds)}
                 currentIndex={currentSentenceIndex}
                 totalSentences={sampleSentences.length}
                 onNext={handleNext}
@@ -385,7 +387,7 @@ export default function Home() {
             ) : (
               <DictationBox
                 sentence={currentSentence}
-                onComplete={(isCorrect, usedShowWords, minutes) => handleComplete(currentSentence.id, isCorrect, usedShowWords, minutes)}
+                onComplete={(isCorrect, usedShowWords, durationSeconds) => handleComplete(currentSentence.id, isCorrect, usedShowWords, durationSeconds)}
                 onNext={handleNext}
                 isLastSentence={isLastSentence}
               />
@@ -393,7 +395,7 @@ export default function Home() {
           ) : (
             <ShadowingPanel
               sentence={currentSentence}
-              onComplete={(isCorrect, minutes) => handleComplete(currentSentence.id, isCorrect, false, minutes)}
+              onComplete={(isCorrect, durationSeconds) => handleComplete(currentSentence.id, isCorrect, false, durationSeconds)}
               onNext={handleNext}
               isLastSentence={isLastSentence}
             />
