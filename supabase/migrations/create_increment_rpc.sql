@@ -48,7 +48,7 @@ BEGIN
   SET
     total_shadowing_minutes = CEIL(user_stats.total_shadowing_minutes + p_minutes),
     total_shadowing_sessions = user_stats.total_shadowing_sessions + 1
-  WHERE id = p_user_id;
+  WHERE user_id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -63,7 +63,7 @@ BEGIN
   SET
     total_dictation_minutes = CEIL(user_stats.total_dictation_minutes + p_minutes),
     total_dictation_sentences = user_stats.total_dictation_sentences + 1
-  WHERE id = p_user_id;
+  WHERE user_id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

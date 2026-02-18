@@ -65,6 +65,7 @@ export interface PracticeRecord {
   is_correct: boolean
   used_show_words: boolean
   audio_title: string
+  duration_seconds: number | null
   completed_at: string
 }
 
@@ -80,6 +81,7 @@ export async function savePracticeRecord(data: {
   isCorrect: boolean
   usedShowWords: boolean
   audioTitle: string
+  durationSeconds?: number
 }) {
   const { data: record, error } = await supabase
     .from('practice_records')
@@ -92,6 +94,7 @@ export async function savePracticeRecord(data: {
       is_correct: data.isCorrect,
       used_show_words: data.usedShowWords,
       audio_title: data.audioTitle,
+      duration_seconds: data.durationSeconds || null,
     })
     .select()
     .single()

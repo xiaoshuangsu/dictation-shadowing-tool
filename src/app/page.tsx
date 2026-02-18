@@ -120,7 +120,7 @@ export default function Home() {
     sentenceId: number,
     isCorrect: boolean,
     usedShowWords: boolean = false,
-    practiceMinutes?: number
+    duration?: number // Dictation: minutes, Shadowing: seconds
   ) => {
     // Update local state (existing logic)
     const newCompleted = new Set(completedSentences)
@@ -151,20 +151,24 @@ export default function Home() {
           isCorrect,
           usedShowWords,
           audioTitle: AUDIO_TITLE,
+          durationSeconds: mode === 'shadowing' ? (duration || 0) : undefined, // Shadowing 保存秒数
         })
 
         // V3 数据留存：更新连胜和统计数据
         if (mode === 'dictation') {
-          // 传递听写时长（分钟），默认为0
-          console.log('handleComplete - Calling onDictationComplete with minutes:', practiceMinutes || 0)
-          await onDictationComplete(user.id, practiceMinutes || 0)
+          // Dictation: 传递分钟数
+          const minutes = duration || 0
+          console.log('handleComplete - Calling onDictationComplete with minutes:', minutes)
+          await onDictationComplete(user.id, minutes)
         } else if (mode === 'shadowing') {
-          // 传递影子跟读时长（分钟），默认为0
-          console.log('handleComplete - Calling onShadowingComplete with minutes:', practiceMinutes || 0)
-          await onShadowingComplete(user.id, practiceMinutes || 0)
+          // Shadowing: 传递秒数（转换为分钟）
+          const seconds = duration || 0
+          const minutes = seconds / 60
+          console.log('handleComplete - Calling onShadowingComplete with seconds:', seconds, 'minutes:', minutes)
+          await onShadowingComplete(user.id, minutes)
         }
 
-        console.log(`Practice data saved (${mode}, minutes: ${practiceMinutes || 0})`)
+        console.log(`Practice data saved (${mode}, duration: ${duration})`)
       } catch (error) {
         console.error('Failed to save practice data:', error)
         // Don't show error to user - practice continues normally

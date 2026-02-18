@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getUserStats, getRecentPracticeRecords } from '@/lib/supabase/client'
 import { getUserCompleteProfile } from '@/lib/supabase/streak'
+import { supabase } from '@/lib/supabase/client'
 import AuthButton from '@/components/auth/AuthButton'
 import PracticeHistory from '@/components/profile/PracticeHistory'
 import UnlockedPrompt from '@/components/profile/UnlockedPrompt'
@@ -79,10 +80,29 @@ export default function ProfilePage() {
         })
       }
 
+      // 从 practice_records 计算今日的 Shadowing 时间
+      const today = new Date().toISOString().split('T')[0]
+      const { data: todayShadowingData } = await supabase
+        .from('practice_records')
+        .select('duration_seconds')
+        .eq('user_id', user.id)
+        .eq('practice_mode', 'shadowing')
+        .gte('completed_at', today)
+
+      const todayShadowingSeconds = (todayShadowingData || [])
+        .reduce((sum, record) => sum + (record.duration_seconds || 0), 0)
+      const todayShadowingMinutes = Math.ceil(todayShadowingSeconds / 60)
+
+      console.log('fetchUserData - Today shadowing time:', {
+        todayShadowingSeconds,
+        todayShadowingMinutes,
+        recordCount: todayShadowingData?.length || 0
+      })
+
       if (completeProfile.todayRecord) {
         setTodayRecord({
           dictation_count: completeProfile.todayRecord.dictation_count || 0,
-          shadowing_minutes: completeProfile.todayRecord.shadowing_minutes || 0,
+          shadowing_minutes: todayShadowingMinutes, // 使用计算出的真实时间
           completed: completeProfile.todayRecord.completed || false,
         })
       }
