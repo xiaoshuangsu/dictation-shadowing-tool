@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.0] - 2025-02-17
 
 ### Added
+- **练习进度保存与恢复**
+  - 自动保存当前练习句子到 localStorage
+  - 从 Profile 返回时恢复到最后练习的位置
+  - 保存时机：完成练习后、切换句子、点击转录文本
+  - 同时恢复练习模式（Dictation/Shadowing）和听写模式（Word/Whole Caption）
+  - 仅对已登录用户启用
+
 - **V3.1 Dictation 有效作答时间跟踪**
   - 跟踪真实参与听写思考与输入的时间（不是页面停留时间）
   - 计时启动：第一次点击播放音频 / 输入框获得焦点 / 开始输入
