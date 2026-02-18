@@ -44,20 +44,49 @@ export interface StreakData {
 
 /**
  * 获取用户累计统计数据
+ * Shadowing 总时间从 practice_records 表的 duration_seconds 计算
  */
 export async function getUserStats(userId: string): Promise<UserStats | null> {
-  const { data, error } = await supabase
+  // 获取 user_stats 表的数据
+  const { data: statsData, error: statsError } = await supabase
     .from('user_stats')
     .select('*')
     .eq('user_id', userId)
     .single()
 
-  if (error) {
-    console.error('Failed to fetch user stats:', error)
+  if (statsError) {
+    console.error('Failed to fetch user stats:', statsError)
     return null
   }
 
-  return data
+  // 从 practice_records 表计算真实的 Shadowing 总时间（秒）
+  const { data: shadowingTimeData, error: shadowingTimeError } = await supabase
+    .from('practice_records')
+    .select('duration_seconds')
+    .eq('user_id', userId)
+    .eq('practice_mode', 'shadowing')
+
+  if (shadowingTimeError) {
+    console.error('Failed to fetch shadowing duration:', shadowingTimeError)
+  }
+
+  // 累计所有 Shadowing 记录的 duration_seconds，转换为分钟
+  const totalShadowingSeconds = (shadowingTimeData || [])
+    .reduce((sum, record) => sum + (record.duration_seconds || 0), 0)
+
+  const totalShadowingMinutes = Math.ceil(totalShadowingSeconds / 60)
+
+  console.log('getUserStats - Calculated shadowing time:', {
+    totalShadowingSeconds,
+    totalShadowingMinutes,
+    recordCount: shadowingTimeData?.length || 0
+  })
+
+  // 返回混合数据：user_stats + 计算的 Shadowing 时间
+  return {
+    ...statsData,
+    total_shadowing_minutes: totalShadowingMinutes,
+  }
 }
 
 /**

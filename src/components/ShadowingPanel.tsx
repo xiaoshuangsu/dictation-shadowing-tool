@@ -11,7 +11,7 @@ interface Sentence {
 
 interface ShadowingPanelProps {
   sentence: Sentence
-  onComplete?: (isCorrect: boolean, practiceMinutes: number) => void
+  onComplete?: (isCorrect: boolean, durationSeconds: number) => void
   onNext?: () => void
   isLastSentence?: boolean
 }
@@ -22,9 +22,15 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
   const [userTranscript, setUserTranscript] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [micError, setMicError] = useState<string | null>(null)
-  const [practiceStartTime, setPracticeStartTime] = useState<number | null>(null)
-  const [totalPracticeMinutes, setTotalPracticeMinutes] = useState(0)
-  const [hasCompleted, setHasCompleted] = useState(false) // 防止重复保存
+
+  // 兜底时间跟踪：页面停留时间
+  const [pageStartTime, setPageStartTime] = useState<number | null>(null)
+
+  // 真实音频播放时间跟踪
+  const [totalPlayedSeconds, setTotalPlayedSeconds] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const lastUpdateTimeRef = useRef<number>(0)
+  const totalPlayedSecondsRef = useRef<number>(0)
 
   // 录音相关
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
@@ -58,10 +64,14 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
     setRecordedAudioUrl(null)
     setMicError(null)
     recordedChunksRef.current = []
-    // 重置计时器
-    setPracticeStartTime(Date.now()) // 开始计时
-    setTotalPracticeMinutes(0)
-    setHasCompleted(false) // 重置完成状态
+
+    // 重置播放时间跟踪
+    setTotalPlayedSeconds(0)
+    totalPlayedSecondsRef.current = 0
+    setIsPlaying(false)
+
+    // 记录页面开始时间（兜底逻辑）
+    setPageStartTime(Date.now())
   }, [sentence.id])
 
   // 初始化 MediaRecorder 和 SpeechRecognition
@@ -149,22 +159,35 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
                   // 延迟调用 onComplete，确保状态更新后再触发 transcript 更新
                   setTimeout(() => {
                     if (onCompleteRef.current) {
-                      // 计算练习时长（分钟）
-                      const minutes = practiceStartTime
-                        ? Math.round((Date.now() - practiceStartTime) / 60000 * 10) / 10 // 保留一位小数
-                        : 0
+                      // 时间计算优先级：真实播放时间 > 页面停留时间
+                      let durationSeconds = 0
 
-                      // 最少记录0.1分钟（6秒），避免0分钟
-                      const finalMinutes = minutes < 0.1 ? 0.1 : minutes
+                      // 1. 尝试使用真实音频播放时间
+                      if (totalPlayedSecondsRef.current > 0) {
+                        durationSeconds = Math.round(totalPlayedSecondsRef.current)
+                        console.log(`Using real audio playback time: ${durationSeconds}s`)
+                      }
+                      // 2. 兜底：使用页面停留时间
+                      else if (pageStartTime) {
+                        durationSeconds = Math.max(1, Math.round((Date.now() - pageStartTime) / 1000))
+                        console.log(`Using page stay time as fallback: ${durationSeconds}s`)
+                      }
+                      // 3. 最后兜底：默认 1 秒
+                      else {
+                        durationSeconds = 1
+                        console.log('Using default time: 1s')
+                      }
 
                       console.log('ShadowingPanel - Calling onComplete:', {
                         isCorrect,
-                        finalMinutes,
-                        practiceStartTime,
+                        durationSeconds,
+                        totalPlayedSeconds: totalPlayedSecondsRef.current,
+                        pageStartTime,
                         sentenceId: sentence.id,
                         sentenceText: sentence.text
                       })
-                      onCompleteRef.current(isCorrect, finalMinutes)
+                      // 传递秒数
+                      onCompleteRef.current(isCorrect, durationSeconds)
                     }
                   }, 100)
                 }
@@ -269,12 +292,73 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
     if (originalAudioRef.current) {
       const audio = originalAudioRef.current
       audio.currentTime = sentence.startTime
-      audio.play()
+
+      console.log('playOriginal - Starting playback at', sentence.startTime)
+
+      // 使用 useRef 存储事件处理器，确保可以正确移除
+      const handlePlay = () => {
+        if (!isPlaying) {
+          setIsPlaying(true)
+          lastUpdateTimeRef.current = Date.now()
+          console.log('Audio play event fired')
+        }
+      }
+
+      const handlePause = () => {
+        if (isPlaying) {
+          const now = Date.now()
+          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+          totalPlayedSecondsRef.current += elapsedSeconds
+          setTotalPlayedSeconds(totalPlayedSecondsRef.current)
+          setIsPlaying(false)
+
+          console.log(`Audio paused. Elapsed: ${elapsedSeconds.toFixed(2)}s, Total: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
+        }
+      }
+
+      const handleTimeUpdate = () => {
+        if (isPlaying) {
+          const now = Date.now()
+          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+          lastUpdateTimeRef.current = now
+
+          // 累计播放时间
+          totalPlayedSecondsRef.current += elapsedSeconds
+          setTotalPlayedSeconds(totalPlayedSecondsRef.current)
+        }
+      }
+
+      const handleEnded = () => {
+        if (isPlaying) {
+          const now = Date.now()
+          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+          totalPlayedSecondsRef.current += elapsedSeconds
+          setTotalPlayedSeconds(totalPlayedSecondsRef.current)
+          setIsPlaying(false)
+
+          console.log(`Audio ended. Elapsed: ${elapsedSeconds.toFixed(2)}s, Total: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
+        }
+      }
+
+      // 添加事件监听器
+      audio.addEventListener('play', handlePlay, { once: false })
+      audio.addEventListener('pause', handlePause, { once: false })
+      audio.addEventListener('timeupdate', handleTimeUpdate, { once: false })
+      audio.addEventListener('ended', handleEnded, { once: false })
+
+      audio.play().catch(err => {
+        console.error('Failed to play audio:', err)
+      })
 
       // 在句子的结束时间停止播放
       const durationToPlay = (sentence.endTime - sentence.startTime) * 1000
       setTimeout(() => {
         audio.pause()
+        // 清理事件监听器
+        audio.removeEventListener('play', handlePlay)
+        audio.removeEventListener('pause', handlePause)
+        audio.removeEventListener('timeupdate', handleTimeUpdate)
+        audio.removeEventListener('ended', handleEnded)
       }, durationToPlay + 100)
     }
   }
