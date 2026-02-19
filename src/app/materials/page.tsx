@@ -188,7 +188,7 @@ export default function MaterialsPage() {
                 : categoryMaterials.slice(0, 4) // 默认只显示4个
 
               return (
-                <section key={category.id}>
+                <section key={category.id} id={category.id}>
                   {/* Section Header */}
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">

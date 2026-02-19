@@ -67,6 +67,7 @@ function HomeContent() {
   const [sampleSentences, setSampleSentences] = useState(defaultSentences)
   const [isLoadingMaterial, setIsLoadingMaterial] = useState(false)
   const [materialError, setMaterialError] = useState<string | null>(null)
+  const [materialCategory, setMaterialCategory] = useState<string | null>(null)
 
   // 练习模式状态（需要在 useEffect 之前声明）
   const [mode, setMode] = useState<PracticeMode>("dictation")
@@ -97,7 +98,7 @@ function HomeContent() {
 
         const { data: material, error } = await supabase
           .from('materials')
-          .select('id, title, audio_path, duration, transcript')
+          .select('id, title, category, audio_path, duration, transcript')
           .eq('id', materialId)
           .single()
 
@@ -109,8 +110,9 @@ function HomeContent() {
 
         console.log('Material loaded:', material)
 
-        // 更新音频标题
+        // 更新音频标题和分类
         setAudioTitle(material.title)
+        setMaterialCategory(material.category)
 
         // 构建音频 URL（从 Supabase Storage）
         const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
@@ -209,6 +211,7 @@ function HomeContent() {
         dictationMode,
         materialId, // 保存素材 ID
         audioTitle, // 保存素材标题
+        category: materialCategory, // 保存分类
         timestamp: Date.now(),
       }
       localStorage.setItem(`practice_progress_${user.id}`, JSON.stringify(progress))
@@ -245,8 +248,11 @@ function HomeContent() {
           if (!materialId && progress.materialId && progress.audioTitle) {
             console.log('Restoring material from saved progress:', progress.materialId)
             setAudioTitle(progress.audioTitle)
+            if (progress.category) {
+              setMaterialCategory(progress.category)
+            }
             // 从 Supabase 加载素材数据
-            loadMaterialById(progress.materialId)
+            loadMaterialById(progress.materialId, progress.category)
           }
         }
         setProgressRestored(true)
@@ -261,12 +267,12 @@ function HomeContent() {
   }, [user, authLoading, progressRestored, materialId])
 
   // 加载素材的辅助函数
-  const loadMaterialById = async (id: string) => {
+  const loadMaterialById = async (id: string, category?: string | null) => {
     try {
       console.log('Loading material by ID:', id)
       const { data: material, error } = await supabase
         .from('materials')
-        .select('id, title, audio_path, duration, transcript')
+        .select('id, title, category, audio_path, duration, transcript')
         .eq('id', id)
         .single()
 
@@ -276,6 +282,9 @@ function HomeContent() {
       // 构建音频 URL
       const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
       setAudioSrc(supabaseAudioUrl)
+      if (material.category) {
+        setMaterialCategory(material.category)
+      }
 
       // 使用 transcript 或自动分割
       if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
@@ -474,6 +483,38 @@ function HomeContent() {
           <AuthButton />
         </div>
       </nav>
+
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 py-2">
+          <nav className="flex items-center text-sm" aria-label="Breadcrumb">
+            <Link href="/" className="text-gray-500 hover:text-blue-600 transition-colors">
+              Home
+            </Link>
+            <span className="mx-2 text-gray-400">»</span>
+            <Link href="/materials" className="text-gray-500 hover:text-blue-600 transition-colors">
+              Materials
+            </Link>
+            {materialCategory && (
+              <>
+                <span className="mx-2 text-gray-400">»</span>
+                <Link
+                  href={`/materials#${materialCategory}`}
+                  className="text-gray-500 hover:text-blue-600 transition-colors"
+                >
+                  {materialCategory}
+                </Link>
+              </>
+            )}
+            {audioTitle && (
+              <>
+                <span className="mx-2 text-gray-400">»</span>
+                <span className="text-gray-700 font-medium">{audioTitle}</span>
+              </>
+            )}
+          </nav>
+        </div>
+      </div>
 
       <div className="max-w-2xl mx-auto p-4">
         {/* Error state */}
