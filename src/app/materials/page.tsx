@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
-import { MaterialCard } from '@/components/materials/MaterialCard'
 
-// 硬编码 Supabase 配置（GitHub Pages 静态构建无法使用环境变量）
+// 硬编码 Supabase 配置
 const supabase = createClient(
   'https://cuxotlijjnxbsirpdkgr.supabase.co',
   'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
@@ -25,17 +24,13 @@ type Material = {
   updated_at: string
 }
 
-// 分类配置
+// 分类顺序和配置
 const CATEGORIES = [
-  { id: 'all', label: '全部' },
   { id: '日常生活', label: '日常生活' },
-  { id: '文化历史', label: '文化历史' },
   { id: '历史演讲', label: '历史演讲' },
+  { id: '文化历史', label: '文化历史' },
   { id: '艺术文化', label: '艺术文化' },
 ]
-
-// 难度配置
-const DIFFICULTIES = ['A1', 'A2', 'B1', 'B2']
 
 // 难度颜色映射
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -48,17 +43,15 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export default function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
 
-  // 获取素材数据
   useEffect(() => {
     async function fetchMaterials() {
       try {
         const { data, error } = await supabase
           .from('materials')
           .select('*')
+          .order('category')
           .order('title')
 
         if (error) throw error
@@ -75,33 +68,38 @@ export default function MaterialsPage() {
 
   // 过滤素材
   const filteredMaterials = materials.filter(material => {
-    // 分类过滤
-    if (selectedCategory !== 'all' && material.category !== selectedCategory) {
-      return false
-    }
-
-    // 难度过滤
     if (selectedDifficulty && material.difficulty !== selectedDifficulty) {
       return false
     }
-
-    // 搜索过滤
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase()
-      return (
-        material.title.toLowerCase().includes(query) ||
-        material.category.toLowerCase().includes(query)
-      )
-    }
-
     return true
   })
 
-  // 处理素材点击
-  const handleMaterialClick = (material: Material) => {
-    // TODO: 跳转到练习页面并加载该素材
-    console.log('Selected material:', material)
-    alert(`即将播放: ${material.title}\n\n此功能需要进一步实现跳转到练习页面并加载该素材。`)
+  // 按分类分组
+  const materialsByCategory: Record<string, Material[]> = {}
+  for (const category of CATEGORIES) {
+    materialsByCategory[category.id] = filteredMaterials.filter(
+      m => m.category === category.id
+    )
+  }
+
+  // 获取缩略图 URL
+  const getThumbnailUrl = (path: string | null) => {
+    if (!path) return null
+    return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${path}`
+  }
+
+  // 格式化时长
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return '--:--'
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // 格式化文件大小
+  const formatFileSize = (bytes: number) => {
+    const mb = bytes / 1024 / 1024
+    return mb.toFixed(1)
   }
 
   return (
@@ -136,59 +134,32 @@ export default function MaterialsPage() {
               <span>个素材</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{CATEGORIES.length - 1}</span>
+              <span className="font-semibold text-gray-900">{CATEGORIES.length}</span>
               <span>个分类</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{DIFFICULTIES.length}</span>
-              <span>个难度级别</span>
-            </div>
           </div>
-        </div>
-      </div>
 
-      {/* 过滤器 */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          {/* 分类 Tab */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {CATEGORIES.map(category => (
+          {/* 难度过滤 */}
+          <div className="mt-8 flex items-center gap-4">
+            <span className="text-sm text-gray-600">难度筛选：</span>
+            <div className="flex gap-2">
               <button
-                key={category.id}
-                onClick={() => setSelectedCategory(category.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  selectedCategory === category.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                onClick={() => setSelectedDifficulty(null)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                  !selectedDifficulty
+                    ? 'bg-gray-800 text-white border-gray-800'
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                 }`}
               >
-                {category.label}
+                全部
               </button>
-            ))}
-          </div>
-
-          {/* 搜索和难度过滤 */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* 搜索框 */}
-            <div className="flex-1 max-w-md">
-              <input
-                type="text"
-                placeholder="搜索素材标题..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* 难度过滤 */}
-            <div className="flex gap-2">
-              {DIFFICULTIES.map(difficulty => (
+              {(['A1', 'A2', 'B1', 'B2'] as const).map(difficulty => (
                 <button
                   key={difficulty}
                   onClick={() => setSelectedDifficulty(
                     selectedDifficulty === difficulty ? null : difficulty
                   )}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                     selectedDifficulty === difficulty
                       ? DIFFICULTY_COLORS[difficulty]
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
@@ -202,26 +173,115 @@ export default function MaterialsPage() {
         </div>
       </div>
 
-      {/* 素材列表 */}
+      {/* 素材列表（按分类分组） */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             <p className="mt-4 text-gray-600">加载中...</p>
           </div>
-        ) : filteredMaterials.length === 0 ? (
+        ) : (
+          <div className="space-y-12">
+            {CATEGORIES.map((category) => {
+              const categoryMaterials = materialsByCategory[category.id] || []
+
+              if (categoryMaterials.length === 0) return null
+
+              return (
+                <section key={category.id}>
+                  {/* Section Header */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">{category.label}</h2>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {categoryMaterials.length} 节课
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedDifficulty(null)
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      查看全部 →
+                    </button>
+                  </div>
+
+                  {/* Card Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {categoryMaterials.map((material) => {
+                      const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
+
+                      return (
+                        <div
+                          key={material.id}
+                          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer group"
+                        >
+                          {/* 图片区域 */}
+                          <div className="relative aspect-[3/2] bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
+                            {thumbnailUrl ? (
+                              <img
+                                src={thumbnailUrl}
+                                alt={material.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <svg className="w-12 h-12 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                </svg>
+                              </div>
+                            )}
+
+                            {/* 左上角：难度标签 */}
+                            <div className="absolute top-3 left-3">
+                              <span className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${DIFFICULTY_COLORS[material.difficulty]}`}>
+                                {material.difficulty}
+                              </span>
+                            </div>
+
+                            {/* 右上角：播放时长 */}
+                            {material.duration && (
+                              <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded text-xs font-medium">
+                                {formatDuration(material.duration)}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 内容区域 */}
+                          <div className="p-4">
+                            {/* 分类标签 */}
+                            <div className="mb-2">
+                              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                {material.category}
+                              </span>
+                            </div>
+
+                            {/* 标题 */}
+                            <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed">
+                              {material.title}
+                            </h3>
+
+                            {/* 元信息 */}
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>{formatFileSize(material.audio_size)} MB</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )
+            })}
+          </div>
+        )}
+
+        {/* 空状态 */}
+        {!loading && Object.values(materialsByCategory).every(arr => arr.length === 0) && (
           <div className="text-center py-12">
             <p className="text-gray-500 text-lg">没有找到匹配的素材</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredMaterials.map(material => (
-              <MaterialCard
-                key={material.id}
-                material={material}
-                onPlay={handleMaterialClick}
-              />
-            ))}
           </div>
         )}
       </div>
