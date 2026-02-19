@@ -2,8 +2,28 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { supabase, type Material } from '@/lib/supabase/client'
+import { createClient } from '@supabase/supabase-js'
 import { MaterialCard } from '@/components/materials/MaterialCard'
+
+// 硬编码 Supabase 配置（GitHub Pages 静态构建无法使用环境变量）
+const supabase = createClient(
+  'https://cuxotlijjnxbsirpdkgr.supabase.co',
+  'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
+)
+
+type Material = {
+  id: string
+  title: string
+  category: string
+  difficulty: 'A1' | 'A2' | 'B1' | 'B2'
+  audio_path: string
+  thumbnail_path: string | null
+  audio_size: number
+  duration: number | null
+  play_count: number
+  created_at: string
+  updated_at: string
+}
 
 // 分类配置
 const CATEGORIES = [
