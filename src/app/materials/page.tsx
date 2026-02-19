@@ -263,18 +263,18 @@ export default function MaterialsPage() {
 
                             {/* 操作按钮 */}
                             <div className="flex gap-2">
-                              <a
+                              <Link
                                 href={`/?id=${material.id}&mode=dictation`}
                                 className="flex-1 text-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                               >
                                 听写
-                              </a>
-                              <a
+                              </Link>
+                              <Link
                                 href={`/?id=${material.id}&mode=shadowing`}
                                 className="flex-1 text-center px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                               >
                                 影子
-                              </a>
+                              </Link>
                             </div>
                           </div>
                         </div>
