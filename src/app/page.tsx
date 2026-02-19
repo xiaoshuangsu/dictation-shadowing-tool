@@ -290,7 +290,13 @@ export default function Home() {
       {/* Navigation Bar */}
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-800">{AUDIO_TITLE}</h1>
+          <div className="flex items-center gap-4">
+            <Link href="/materials" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">
+              素材库
+            </Link>
+            <span className="text-gray-300">|</span>
+            <h1 className="text-xl font-bold text-gray-800">{AUDIO_TITLE}</h1>
+          </div>
           <AuthButton />
         </div>
       </nav>

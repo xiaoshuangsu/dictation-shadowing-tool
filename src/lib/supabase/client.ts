@@ -69,6 +69,20 @@ export interface PracticeRecord {
   completed_at: string
 }
 
+export interface Material {
+  id: string
+  title: string
+  category: string
+  difficulty: 'A1' | 'A2' | 'B1' | 'B2'
+  audio_path: string
+  thumbnail_path: string | null
+  audio_size: number
+  duration: number | null
+  play_count: number
+  created_at: string
+  updated_at: string
+}
+
 /**
  * Helper function to save a practice record
  */
