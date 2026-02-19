@@ -68,6 +68,9 @@ function HomeContent() {
   const [isLoadingMaterial, setIsLoadingMaterial] = useState(false)
   const [materialError, setMaterialError] = useState<string | null>(null)
 
+  // 练习模式状态（需要在 useEffect 之前声明）
+  const [mode, setMode] = useState<PracticeMode>("dictation")
+
   // Debug: Log user state
   useEffect(() => {
     console.log('Home page - Auth state:', {
@@ -175,7 +178,6 @@ function HomeContent() {
     }
   }, [practiceMode, materialId])
 
-  const [mode, setMode] = useState<PracticeMode>("dictation")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
   const [correctCount, setCorrectCount] = useState(0)
   const [showTranscript, setShowTranscript] = useState(false)
