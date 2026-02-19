@@ -22,6 +22,9 @@ from pathlib import Path
 from supabase import create_client, Client
 import whisper
 
+# 设置 ffmpeg 路径（如果不在 PATH 中）
+os.environ['PATH'] = '/opt/homebrew/bin:' + os.environ.get('PATH', '')
+
 # ==================== 配置 ====================
 # Supabase 配置
 SUPABASE_URL = "https://cuxotlijjnxbsirpdkgr.supabase.co"
@@ -59,7 +62,7 @@ print("=" * 60)
 # ==================== 加载 Whisper 模型 ====================
 print(f"\n正在加载 Whisper 模型 ({WHISPER_MODEL})...")
 print("提示：首次运行会自动下载模型文件（约 150MB）")
-model = whisper.load_model(WISPER_MODEL)
+model = whisper.load_model(WHISPER_MODEL)
 print("✓ 模型加载完成")
 
 # ==================== 获取素材列表 ====================

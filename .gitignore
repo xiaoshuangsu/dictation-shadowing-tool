@@ -52,3 +52,9 @@ test-audio/*
 *.test.mp3
 *.test.wav
 *.test.ogg
+
+# Python scripts for Whisper transcription (developer tools)
+transcribe*.py
+check_*.py
+run_migration.py
+temp_audio/
