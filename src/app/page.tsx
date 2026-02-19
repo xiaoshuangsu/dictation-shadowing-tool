@@ -473,13 +473,9 @@ function HomeContent() {
       {/* Navigation Bar */}
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <Link href="/materials" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">
-              素材库
-            </Link>
-            <span className="text-gray-300">|</span>
-            <h1 className="text-xl font-bold text-gray-800">{audioTitle}</h1>
-          </div>
+          <Link href="/materials" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">
+            素材库
+          </Link>
           <AuthButton />
         </div>
       </nav>
@@ -516,6 +512,59 @@ function HomeContent() {
         </div>
       </div>
 
+      {/* Material Title */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 py-6 text-center">
+          <h1 className="text-4xl font-bold text-slate-800">{audioTitle}</h1>
+        </div>
+      </div>
+
+      {/* Mode Toggle */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-center">
+          <div className="inline-flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => {
+                setMode("dictation")
+                setCurrentSentenceIndex(0)
+                setCompletedSentences(new Set())
+                setCorrectSentences(new Set())
+                setIncorrectSentences(new Set())
+                setCorrectCount(0)
+                setShowTranscript(false)
+                setIsRevealed(false)
+              }}
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                mode === "dictation"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              Dictation
+            </button>
+            <button
+              onClick={() => {
+                setMode("shadowing")
+                setCurrentSentenceIndex(0)
+                setCompletedSentences(new Set())
+                setCorrectSentences(new Set())
+                setIncorrectSentences(new Set())
+                setCorrectCount(0)
+                setShowTranscript(false)
+                setIsRevealed(false)
+              }}
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
+                mode === "shadowing"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:text-gray-800"
+              }`}
+            >
+              Shadowing
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-2xl mx-auto p-4">
         {/* Error state */}
         {materialError && (
@@ -532,50 +581,6 @@ function HomeContent() {
         <div className="flex justify-between items-center mb-6">
           <div className="text-sm text-gray-600">
             Correct: {correctCount} / {sampleSentences.length}
-          </div>
-        </div>
-
-        {/* Mode Toggle */}
-        <div className="flex justify-center mb-4">
-          <div className="inline-flex bg-white rounded-lg p-1 shadow-sm">
-            <button
-              onClick={() => {
-                setMode("dictation")
-                setCurrentSentenceIndex(0)
-                setCompletedSentences(new Set())
-                setCorrectSentences(new Set())
-                setIncorrectSentences(new Set())
-                setCorrectCount(0)
-                setShowTranscript(false)
-                setIsRevealed(false)
-              }}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === "dictation"
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              Dictation
-            </button>
-            <button
-              onClick={() => {
-                setMode("shadowing")
-                setCurrentSentenceIndex(0)
-                setCompletedSentences(new Set())
-                setCorrectSentences(new Set())
-                setIncorrectSentences(new Set())
-                setCorrectCount(0)
-                setShowTranscript(false)
-                setIsRevealed(false)
-              }}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === "shadowing"
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              Shadowing
-            </button>
           </div>
         </div>
 
