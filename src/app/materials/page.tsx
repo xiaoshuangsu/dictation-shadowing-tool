@@ -257,9 +257,25 @@ export default function MaterialsPage() {
                           {/* 内容区域 */}
                           <div className="p-4">
                             {/* 标题 */}
-                            <h3 className="font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed">
+                            <h3 className="font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed mb-3">
                               {material.title}
                             </h3>
+
+                            {/* 操作按钮 */}
+                            <div className="flex gap-2">
+                              <a
+                                href={`/?id=${material.id}&mode=dictation`}
+                                className="flex-1 text-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                听写
+                              </a>
+                              <a
+                                href={`/?id=${material.id}&mode=shadowing`}
+                                className="flex-1 text-center px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                              >
+                                影子
+                              </a>
+                            </div>
                           </div>
                         </div>
                       )

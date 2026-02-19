@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useRef, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
 import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
@@ -12,14 +13,20 @@ import { useAuth } from "@/lib/hooks/useAuth"
 import { savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
 
-// Audio Title
-const AUDIO_TITLE = "First Snowfall"
+// 硬编码 Supabase 配置（GitHub Pages 静态构建无法使用环境变量）
+const supabase = createClient(
+  'https://cuxotlijjnxbsirpdkgr.supabase.co',
+  'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
+)
 
-// Audio file URL
-const AUDIO_SRC = "/dictation-shadowing-tool/learn-english-via-listening-1001.mp3"
+// 默认音频标题（First Snowfall）
+const DEFAULT_AUDIO_TITLE = "First Snowfall"
 
-// Sentence data with precise timestamps (auto-transcribed with Whisper)
-const sampleSentences = [
+// 默认音频文件 URL
+const DEFAULT_AUDIO_SRC = "/dictation-shadowing-tool/learn-english-via-listening-1001.mp3"
+
+// 默认句子数据（First Snowfall 的精确时间戳）
+const defaultSentences = [
   { id: 1, text: "First snowfall.", startTime: 0.0, endTime: 1.6 },
   { id: 2, text: "Today is November 26th.", startTime: 3.6, endTime: 5.6 },
   { id: 3, text: "It snowed all day today.", startTime: 6.3, endTime: 7.8 },
@@ -47,8 +54,19 @@ const sampleSentences = [
 type PracticeMode = "dictation" | "shadowing"
 type DictationMode = "word" | "whole"
 
-export default function Home() {
+// 内部组件：使用 useSearchParams
+function HomeContent() {
   const { user, loading: authLoading } = useAuth()
+  const searchParams = useSearchParams()
+  const materialId = searchParams.get('id')
+  const practiceMode = searchParams.get('mode') as PracticeMode | null
+
+  // 动态素材数据
+  const [audioTitle, setAudioTitle] = useState(DEFAULT_AUDIO_TITLE)
+  const [audioSrc, setAudioSrc] = useState(DEFAULT_AUDIO_SRC)
+  const [sampleSentences, setSampleSentences] = useState(defaultSentences)
+  const [isLoadingMaterial, setIsLoadingMaterial] = useState(false)
+  const [materialError, setMaterialError] = useState<string | null>(null)
 
   // Debug: Log user state
   useEffect(() => {
@@ -58,6 +76,93 @@ export default function Home() {
       isAuthenticated: !!user,
     })
   }, [authLoading, user])
+
+  // 从 URL 参数加载素材数据
+  useEffect(() => {
+    async function loadMaterial() {
+      if (!materialId) {
+        // 没有 materialId，使用默认素材
+        console.log('No material ID provided, using default material')
+        return
+      }
+
+      setIsLoadingMaterial(true)
+      setMaterialError(null)
+
+      try {
+        console.log('Loading material from Supabase:', materialId)
+
+        const { data: material, error } = await supabase
+          .from('materials')
+          .select('*')
+          .eq('id', materialId)
+          .single()
+
+        if (error) throw error
+
+        if (!material) {
+          throw new Error('Material not found')
+        }
+
+        console.log('Material loaded:', material)
+
+        // 更新音频标题
+        setAudioTitle(material.title)
+
+        // 构建音频 URL（从 Supabase Storage）
+        const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
+        setAudioSrc(supabaseAudioUrl)
+
+        // 由于数据库中没有存储句子级别的转录文本和时间戳，
+        // 我们创建一个简单的单句结构，使用整个音频作为一句
+        const duration = material.duration || 60
+        const simpleSentences = [
+          {
+            id: 1,
+            text: material.title,
+            startTime: 0.0,
+            endTime: duration
+          }
+        ]
+        setSampleSentences(simpleSentences)
+
+        console.log('Material loaded successfully:', {
+          title: material.title,
+          audioUrl: supabaseAudioUrl,
+          duration: material.duration
+        })
+
+      } catch (error: any) {
+        console.error('Failed to load material:', error)
+        setMaterialError(error.message || 'Failed to load material')
+        // 出错时使用默认素材
+        setAudioTitle(DEFAULT_AUDIO_TITLE)
+        setAudioSrc(DEFAULT_AUDIO_SRC)
+        setSampleSentences(defaultSentences)
+      } finally {
+        setIsLoadingMaterial(false)
+      }
+    }
+
+    loadMaterial()
+  }, [materialId])
+
+  // 根据 URL 参数设置练习模式
+  useEffect(() => {
+    if (practiceMode === 'dictation' || practiceMode === 'shadowing') {
+      console.log('Setting practice mode from URL:', practiceMode)
+      setMode(practiceMode)
+      // 重置练习状态
+      setCurrentSentenceIndex(0)
+      setCompletedSentences(new Set())
+      setCorrectSentences(new Set())
+      setIncorrectSentences(new Set())
+      setCorrectCount(0)
+      setShowTranscript(false)
+      setIsRevealed(false)
+    }
+  }, [practiceMode, materialId])
+
   const [mode, setMode] = useState<PracticeMode>("dictation")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
   const [correctCount, setCorrectCount] = useState(0)
@@ -226,7 +331,7 @@ export default function Home() {
           dictationMode: mode === 'dictation' ? dictationMode : undefined,
           isCorrect,
           usedShowWords,
-          audioTitle: AUDIO_TITLE,
+          audioTitle: audioTitle,
           // Dictation 和 Shadowing 都保存秒数
           durationSeconds: (mode === 'dictation' ? (duration || 0) : Math.round(audioPlaybackSecondsRef.current)) || undefined,
         })
@@ -295,13 +400,28 @@ export default function Home() {
               素材库
             </Link>
             <span className="text-gray-300">|</span>
-            <h1 className="text-xl font-bold text-gray-800">{AUDIO_TITLE}</h1>
+            <h1 className="text-xl font-bold text-gray-800">{audioTitle}</h1>
           </div>
           <AuthButton />
         </div>
       </nav>
 
       <div className="max-w-2xl mx-auto p-4">
+        {/* Loading state */}
+        {isLoadingMaterial && (
+          <div className="bg-white rounded-lg shadow-sm p-8 mb-4 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">加载素材中...</p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {materialError && !isLoadingMaterial && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <p className="text-red-700 text-sm">{materialError}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="text-sm text-gray-600">
@@ -404,7 +524,7 @@ export default function Home() {
                 </button>
 
                 <AudioPlayer
-                  audioSrc={AUDIO_SRC}
+                  audioSrc={audioSrc}
                   currentSentence={currentSentence}
                   playbackRate={playbackRate}
                   autoPlayTrigger={autoPlayTrigger}
@@ -653,5 +773,21 @@ export default function Home() {
         </div>
       )}
     </main>
+  )
+}
+
+// Export with Suspense boundary
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600">加载中...</p>
+        </div>
+      </main>
+    }>
+      <HomeContent />
+    </Suspense>
   )
 }
