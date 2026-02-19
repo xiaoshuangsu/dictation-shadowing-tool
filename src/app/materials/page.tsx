@@ -191,12 +191,12 @@ export default function MaterialsPage() {
                 <section key={category.id}>
                   {/* Section Header */}
                   <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">{category.label}</h2>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {categoryMaterials.length} 节课
-                      </p>
-                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {category.label}
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        ({categoryMaterials.length}节课)
+                      </span>
+                    </h2>
                     <button
                       onClick={() => {
                         const newExpanded = new Set(expandedCategories)
