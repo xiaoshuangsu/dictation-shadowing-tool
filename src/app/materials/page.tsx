@@ -44,6 +44,7 @@ export default function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     async function fetchMaterials() {
@@ -187,6 +188,11 @@ export default function MaterialsPage() {
 
               if (categoryMaterials.length === 0) return null
 
+              const isExpanded = expandedCategories.has(category.id)
+              const displayedMaterials = isExpanded
+                ? categoryMaterials
+                : categoryMaterials.slice(0, 4) // 默认只显示4个
+
               return (
                 <section key={category.id}>
                   {/* Section Header */}
@@ -199,18 +205,23 @@ export default function MaterialsPage() {
                     </div>
                     <button
                       onClick={() => {
-                        setSelectedDifficulty(null)
-                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                        const newExpanded = new Set(expandedCategories)
+                        if (newExpanded.has(category.id)) {
+                          newExpanded.delete(category.id)
+                        } else {
+                          newExpanded.add(category.id)
+                        }
+                        setExpandedCategories(newExpanded)
                       }}
                       className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                     >
-                      查看全部 →
+                      {isExpanded ? '收起 ↑' : `查看全部 →`}
                     </button>
                   </div>
 
                   {/* Card Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {categoryMaterials.map((material) => {
+                    {displayedMaterials.map((material) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
 
                       return (
@@ -272,6 +283,15 @@ export default function MaterialsPage() {
                       )
                     })}
                   </div>
+
+                  {/* 显示更多提示 */}
+                  {!isExpanded && categoryMaterials.length > 4 && (
+                    <div className="mt-4 text-center">
+                      <p className="text-sm text-gray-500">
+                        还有 {categoryMaterials.length - 4} 个素材，点击"查看全部"展开
+                      </p>
+                    </div>
+                  )}
                 </section>
               )
             })}
