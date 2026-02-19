@@ -14,11 +14,13 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export function MaterialCard({ material, onPlay }: MaterialCardProps) {
+  // 硬编码 Supabase URL（GitHub Pages 静态构建无法使用环境变量）
+  const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
+
   // 获取缩略图 URL
   const getThumbnailUrl = (path: string | null) => {
     if (!path) return null
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    return `${supabaseUrl}/storage/v1/object/public/engnovate-audio/${path}`
+    return `${SUPABASE_URL}/storage/v1/object/public/engnovate-audio/${path}`
   }
 
   // 格式化文件大小
