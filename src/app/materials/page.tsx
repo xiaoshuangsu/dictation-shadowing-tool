@@ -283,15 +283,6 @@ export default function MaterialsPage() {
                       )
                     })}
                   </div>
-
-                  {/* 显示更多提示 */}
-                  {!isExpanded && categoryMaterials.length > 4 && (
-                    <div className="mt-4 text-center">
-                      <p className="text-sm text-gray-500">
-                        还有 {categoryMaterials.length - 4} 个素材，点击"查看全部"展开
-                      </p>
-                    </div>
-                  )}
                 </section>
               )
             })}
