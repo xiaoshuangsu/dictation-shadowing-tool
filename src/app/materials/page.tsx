@@ -241,14 +241,14 @@ export default function MaterialsPage() {
 
                             {/* 左上角：难度标签 */}
                             <div className="absolute top-3 left-3">
-                              <span className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${DIFFICULTY_COLORS[material.difficulty]}`}>
+                              <span className={`px-3 py-1.5 rounded-lg text-sm font-bold border-2 ${DIFFICULTY_COLORS[material.difficulty]}`}>
                                 {material.difficulty}
                               </span>
                             </div>
 
-                            {/* 右上角：播放时长 */}
+                            {/* 右下角：播放时长 */}
                             {material.duration && (
-                              <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded text-xs font-medium">
+                              <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded text-xs font-medium">
                                 {formatDuration(material.duration)}
                               </div>
                             )}
