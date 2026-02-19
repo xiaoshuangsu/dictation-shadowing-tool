@@ -407,11 +407,6 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
         )}
       </button>
 
-      {/* Hint */}
-      <p className="text-xs text-gray-500 mt-2 text-center">
-        Press Enter to {showResult || isRevealed ? "continue" : "check"}
-      </p>
-
       {/* Confirm Modal */}
       <ConfirmModal
         isOpen={showConfirmModal}
