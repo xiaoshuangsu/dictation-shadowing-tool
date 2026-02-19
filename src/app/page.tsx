@@ -419,20 +419,16 @@ function HomeContent() {
       </nav>
 
       <div className="max-w-2xl mx-auto p-4">
-        {/* Loading state */}
-        {isLoadingMaterial && (
-          <div className="bg-white rounded-lg shadow-sm p-8 mb-4 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-600">加载素材中...</p>
-          </div>
-        )}
-
         {/* Error state */}
-        {materialError && !isLoadingMaterial && (
+        {materialError && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
             <p className="text-red-700 text-sm">{materialError}</p>
           </div>
         )}
+
+        {/* 加载中时不显示内容区域 */}
+        {!isLoadingMaterial && (
+          <>
 
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -721,6 +717,8 @@ function HomeContent() {
               🎉 Congratulations! You've completed all sentences! Accuracy: {Math.round((correctCount / sampleSentences.length) * 100)}%
             </p>
           </div>
+        )}
+        </>
         )}
       </div>
 
