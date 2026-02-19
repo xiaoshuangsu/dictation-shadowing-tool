@@ -577,13 +577,6 @@ function HomeContent() {
         {!isLoadingMaterial && (
           <>
 
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="text-sm text-gray-600">
-            Correct: {correctCount} / {sampleSentences.length}
-          </div>
-        </div>
-
         {/* Dictation Mode Sub-toggle (only show in Dictation mode) */}
         {mode === "dictation" && (
           <div className="flex justify-start mb-4 items-center gap-3">
@@ -703,6 +696,13 @@ function HomeContent() {
               isLastSentence={isLastSentence}
             />
           )}
+
+          {/* Correct Counter */}
+          <div className="text-center mt-4 mb-4">
+            <div className="text-sm text-gray-600 font-medium">
+              Correct: {correctCount} / {sampleSentences.length}
+            </div>
+          </div>
         </div>
 
         {/* Show Transcript Button */}
