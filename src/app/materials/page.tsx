@@ -97,12 +97,6 @@ export default function MaterialsPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // 格式化文件大小
-  const formatFileSize = (bytes: number) => {
-    const mb = bytes / 1024 / 1024
-    return mb.toFixed(1)
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -262,22 +256,10 @@ export default function MaterialsPage() {
 
                           {/* 内容区域 */}
                           <div className="p-4">
-                            {/* 分类标签 */}
-                            <div className="mb-2">
-                              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                                {material.category}
-                              </span>
-                            </div>
-
                             {/* 标题 */}
-                            <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed">
+                            <h3 className="font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed">
                               {material.title}
                             </h3>
-
-                            {/* 元信息 */}
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span>{formatFileSize(material.audio_size)} MB</span>
-                            </div>
                           </div>
                         </div>
                       )
