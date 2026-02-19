@@ -232,8 +232,9 @@ function HomeContent() {
             setCurrentSentenceIndex(progress.sentenceIndex)
           }
 
-          // 恢复模式
-          if (progress.mode) {
+          // 只有当 URL 没有 practiceMode 参数时，才恢复保存的模式
+          // 这样可以避免覆盖从素材库跳转时指定的模式
+          if (!practiceMode && progress.mode) {
             setMode(progress.mode)
           }
           if (progress.dictationMode) {
