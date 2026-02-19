@@ -114,17 +114,24 @@ function HomeContent() {
         setAudioSrc(supabaseAudioUrl)
 
         // 由于数据库中没有存储句子级别的转录文本和时间戳，
-        // 我们创建一个简单的单句结构，使用整个音频作为一句
+        // 我们根据音频时长自动分割成固定长度的句子（每句约 10-15 秒）
         const duration = material.duration || 60
-        const simpleSentences = [
-          {
-            id: 1,
-            text: material.title,
-            startTime: 0.0,
-            endTime: duration
-          }
-        ]
-        setSampleSentences(simpleSentences)
+        const sentenceDuration = 12 // 每句约 12 秒
+        const sentences = []
+
+        for (let i = 0; i < duration; i += sentenceDuration) {
+          const endTime = Math.min(i + sentenceDuration, duration)
+          sentences.push({
+            id: sentences.length + 1,
+            text: `Sentence ${sentences.length + 1}`, // 占位文本，用户可以听后自己输入
+            startTime: i,
+            endTime: endTime
+          })
+        }
+
+        setSampleSentences(sentences)
+
+        console.log(`Auto-segmented audio into ${sentences.length} sentences`)
 
         console.log('Material loaded successfully:', {
           title: material.title,
