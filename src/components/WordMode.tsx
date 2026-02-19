@@ -286,11 +286,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
           "Check Answer"
         )}
       </button>
-
-      {/* Hint */}
-      <p className="text-xs text-gray-500 mt-2 text-center">
-        Press Enter to {showResult ? "continue" : "check"}
-      </p>
     </div>
   )
 }
