@@ -94,7 +94,7 @@ function HomeContent() {
 
         const { data: material, error } = await supabase
           .from('materials')
-          .select('*')
+          .select('id, title, audio_path, duration, transcript')
           .eq('id', materialId)
           .single()
 
@@ -113,25 +113,30 @@ function HomeContent() {
         const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
         setAudioSrc(supabaseAudioUrl)
 
-        // 由于数据库中没有存储句子级别的转录文本和时间戳，
-        // 我们根据音频时长自动分割成固定长度的句子（每句约 10-15 秒）
-        const duration = material.duration || 60
-        const sentenceDuration = 12 // 每句约 12 秒
-        const sentences = []
+        // 优先使用数据库中的 transcript 数据
+        if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
+          console.log('Using transcript from database:', material.transcript.length, 'sentences')
+          setSampleSentences(material.transcript)
+        } else {
+          // 如果没有 transcript 数据，根据音频时长自动分割成固定长度的句子（每句约 10-15 秒）
+          console.log('No transcript data, using auto-segmentation')
+          const duration = material.duration || 60
+          const sentenceDuration = 12 // 每句约 12 秒
+          const sentences = []
 
-        for (let i = 0; i < duration; i += sentenceDuration) {
-          const endTime = Math.min(i + sentenceDuration, duration)
-          sentences.push({
-            id: sentences.length + 1,
-            text: `Sentence ${sentences.length + 1}`, // 占位文本，用户可以听后自己输入
-            startTime: i,
-            endTime: endTime
-          })
+          for (let i = 0; i < duration; i += sentenceDuration) {
+            const endTime = Math.min(i + sentenceDuration, duration)
+            sentences.push({
+              id: sentences.length + 1,
+              text: `Sentence ${sentences.length + 1}`, // 占位文本，用户可以听后自己输入
+              startTime: i,
+              endTime: endTime
+            })
+          }
+
+          setSampleSentences(sentences)
+          console.log(`Auto-segmented audio into ${sentences.length} sentences`)
         }
-
-        setSampleSentences(sentences)
-
-        console.log(`Auto-segmented audio into ${sentences.length} sentences`)
 
         console.log('Material loaded successfully:', {
           title: material.title,
