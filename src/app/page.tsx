@@ -207,6 +207,8 @@ function HomeContent() {
         sentenceIndex,
         mode,
         dictationMode,
+        materialId, // 保存素材 ID
+        audioTitle, // 保存素材标题
         timestamp: Date.now(),
       }
       localStorage.setItem(`practice_progress_${user.id}`, JSON.stringify(progress))
@@ -223,17 +225,27 @@ function HomeContent() {
         const saved = localStorage.getItem(`practice_progress_${user.id}`)
         if (saved) {
           const progress = JSON.parse(saved)
+          console.log('Found saved progress:', progress)
+
           // 恢复句子索引
           if (progress.sentenceIndex !== undefined && progress.sentenceIndex > 0) {
             setCurrentSentenceIndex(progress.sentenceIndex)
-            console.log('Restored practice progress:', progress)
           }
+
           // 恢复模式
           if (progress.mode) {
             setMode(progress.mode)
           }
           if (progress.dictationMode) {
             setDictationMode(progress.dictationMode)
+          }
+
+          // 如果 URL 没有 materialId 参数，但有保存的 materialId，则加载保存的素材
+          if (!materialId && progress.materialId && progress.audioTitle) {
+            console.log('Restoring material from saved progress:', progress.materialId)
+            setAudioTitle(progress.audioTitle)
+            // 从 Supabase 加载素材数据
+            loadMaterialById(progress.materialId)
           }
         }
         setProgressRestored(true)
@@ -245,7 +257,49 @@ function HomeContent() {
       // 用户登出时重置状态
       setProgressRestored(false)
     }
-  }, [user, authLoading, progressRestored])
+  }, [user, authLoading, progressRestored, materialId])
+
+  // 加载素材的辅助函数
+  const loadMaterialById = async (id: string) => {
+    try {
+      console.log('Loading material by ID:', id)
+      const { data: material, error } = await supabase
+        .from('materials')
+        .select('id, title, audio_path, duration, transcript')
+        .eq('id', id)
+        .single()
+
+      if (error) throw error
+      if (!material) throw new Error('Material not found')
+
+      // 构建音频 URL
+      const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
+      setAudioSrc(supabaseAudioUrl)
+
+      // 使用 transcript 或自动分割
+      if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
+        setSampleSentences(material.transcript)
+      } else {
+        const duration = material.duration || 60
+        const sentenceDuration = 12
+        const sentences = []
+        for (let i = 0; i < duration; i += sentenceDuration) {
+          const endTime = Math.min(i + sentenceDuration, duration)
+          sentences.push({
+            id: sentences.length + 1,
+            text: `Sentence ${sentences.length + 1}`,
+            startTime: i,
+            endTime: endTime
+          })
+        }
+        setSampleSentences(sentences)
+      }
+
+      console.log('Material loaded from saved progress:', material.title)
+    } catch (error) {
+      console.error('Failed to load material from saved progress:', error)
+    }
+  }
 
   // 当句子改变时重置播放时间
   useEffect(() => {
