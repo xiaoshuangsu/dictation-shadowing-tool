@@ -188,16 +188,20 @@ export default function MaterialsPage() {
         </div>
       </div>
 
-      {/* 筛选栏 */}
-      {!loading && (
-        <FilterBar
-          categories={uniqueCategories}
-          onFilterChange={setFilters}
-        />
-      )}
+      {/* 筛选栏 + 素材列表：共用同一个容器 */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* 筛选栏 */}
+        {!loading && (
+          <div className="mb-10">
+            <FilterBar
+              categories={uniqueCategories}
+              onFilterChange={setFilters}
+            />
+          </div>
+        )}
 
-      {/* 素材列表（按分类分组） */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 素材列表（按分类分组） */}
+        <div className="py-8">
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -326,6 +330,7 @@ export default function MaterialsPage() {
             })}
           </div>
         )}
+      </div>
       </div>
     </div>
   )
