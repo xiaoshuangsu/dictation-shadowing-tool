@@ -4,7 +4,7 @@
 
 ---
 
-## 2025-02-20 - v5.0.0 发布（Profile 页面重大重构 + 点击跳转功能）
+## 2025-02-20 - v5.0.0 发布（Profile 页面重大重构 + 点击跳转功能 + 安全修复）
 
 ### 原始需求
 1. 个人中心右侧布局纠正：移除模式重复Tab，统一使用"In Progress/Completed"
@@ -20,17 +20,58 @@
 - 改为"In Progress"(蓝色) / "Completed"(绿色)双Tab
 - 右侧内容由左侧侧边栏选中的模式（dictation/shadowing）过滤
 
+**设计原则**：
+- Tab 只显示完成状态，不显示练习模式
+- 练习模式由左侧侧边栏统一控制
+- 避免UI重复，提升用户体验
+
 #### 2. 完成度逻辑修复
 **修改文件**：`src/lib/supabase/client.ts`
+
+**问题**：
+- 用户截图显示"38/22句"判定为100%已完成
+- 原因：重复练习同一句会多次计数，导致完成数超过总数
+
+**解决方案**：
 - 使用 `Set<Number>` 对 `sentence_id` 进行去重
 - 完成判断：`uniqueSentences.size >= totalSentences`
 - 避免重复练习同一句导致的计数错误
 
+**代码变更**：
+```typescript
+// 修改前：直接计数
+const completedCount = records.length
+
+// 修改后：使用 Set 去重
+const uniqueSentences = new Set<number>()
+for (const record of records) {
+  uniqueSentences.add(record.sentence_id)
+}
+const completedCount = uniqueSentences.size
+```
+
 #### 3. 缩略图显示
 **修改文件**：`src/components/profile/MaterialProgress.tsx`
-- 从 Supabase Storage 加载真实缩略图
-- 使用正确 URL：`https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/thumbnails/{filename}`
-- 加载失败时回退到首字母占位符
+
+**实现步骤**：
+1. 从 Supabase Storage 加载真实缩略图
+2. 使用正确 URL 格式：`https://{project}.supabase.co/storage/v1/object/public/{bucket}/{path}`
+3. 加载失败时回退到首字母占位符
+
+**URL 构建逻辑**：
+```typescript
+const getThumbnailUrl = (thumbnailPath: string | null | undefined) => {
+  if (!thumbnailPath) return null
+  // 移除可能存在的 'thumbnails/' 前缀
+  const filename = thumbnailPath.replace(/^thumbnails\//, '')
+  return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/thumbnails/${filename}`
+}
+```
+
+**首字母占位符生成**：
+- 单词标题：取首字母大写
+- 多词标题：取首词和末词的首字母组合
+- 示例："First Snowfall" → "FS"
 
 #### 4. 点击跳转功能
 **修改文件**：
@@ -39,18 +80,131 @@
 - `src/app/page.tsx`：解析 URL `start` 参数
 
 **跳转逻辑**：
-- 目标索引 = `completed >= total ? 0 : completed`
-- URL 参数：`id={materialId}&mode={practiceMode}&start={targetIndex}`
-- 练习页面自动定位到指定句子
+- 目标索引计算：`completed >= total ? 0 : completed`
+- 已完成所有句子：回到第 1 句（索引 0）
+- 未完成：跳转到下一句（索引 = 已完成数）
+
+**URL 参数**：
+```
+/?id={materialId}&mode={practiceMode}&start={targetIndex}
+```
+
+**练习页面解析**：
+```typescript
+const startParam = searchParams.get('start')
+useEffect(() => {
+  if (startParam && sampleSentences && !progressRestored) {
+    const startIndex = parseInt(startParam, 10)
+    if (!isNaN(startIndex) && startIndex >= 0 && startIndex < sampleSentences.length) {
+      setCurrentSentenceIndex(startIndex)
+    }
+  }
+}, [startParam, sampleSentences, progressRestored])
+```
 
 ### 技术细节
-- 使用 `Array.from(map.entries())` 避免 TypeScript 迭代器错误
-- 缩略图文件名处理：移除可能的 `thumbnails/` 前缀
-- 图片加载状态管理：`onError` 回退到占位符
+
+#### TypeScript 迭代器问题
+**错误**：`Type 'MapIterator' can only be iterated through when using '--downlevelIteration'`
+
+**解决方案**：
+```typescript
+// 修改前（错误）
+for (const [key, value] of map.entries()) { }
+
+// 修改后（正确）
+Array.from(map.entries()).forEach(([key, value]) => { })
+```
+
+#### 图片加载状态管理
+- 使用 `useState(false)` 追踪图片加载状态
+- `onError` 回调设置 `setImageError(true)`
+- 失败时自动切换到首字母占位符
+
+#### 缩略图文件名处理
+- 移除可能的 `thumbnails/` 前缀
+- 确保文件名格式一致
+- 避免 Supabase Storage 404 错误
+
+### GitHub Secret Scanning 问题与解决
+
+#### 问题发现
+推送代码时 GitHub 拒绝，提示：
+```
+remote: error: GH013: Repository rule violations found for refs/heads/main
+remote: - Push cannot contain secrets
+remote: - Supabase Secret Key
+remote:   - commit: 30e1319e33ef90d3525c4f9137d3d1a851caec75
+remote:     path: scripts/translate.js:34
+```
+
+#### 根本原因
+`scripts/translate.js` 第 34 行包含硬编码的 service_role key：
+```javascript
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'sb_secret_xxxxxxxxxx'
+// ❌ 不要在代码中硬编码任何密钥！
+```
+
+#### 解决方案：Git Filter-Branch
+使用 `git filter-branch` 重写历史，移除所有提交中的硬编码密钥：
+
+```bash
+# 创建备份分支
+git branch backup-main
+
+# 使用 filter-branch 替换历史中的 secret
+git filter-branch --force --tree-filter '
+  if [ -f scripts/translate.js ]; then
+    sed -i.bak "s/ || '\''sb_secret_xxxxxxxxxx'\''//g" scripts/translate.js
+    rm -f scripts/translate.js.bak
+  fi
+' --tag-name-filter cat -- --all
+
+# 清理备份
+git for-each-ref --format="delete %(refname)" refs/original | git update-ref --stdin
+git reflog expire --expire=now --all
+git gc --prune=now --aggressive
+```
+
+#### 后续修复
+更新 `scripts/translate.js`，移除硬编码密钥并添加验证：
+
+```javascript
+// 使用 service_role key（必须从环境变量设置）
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!SUPABASE_KEY) {
+  console.error('❌ 错误: 未找到 SUPABASE_SERVICE_ROLE_KEY 环境变量')
+  console.error('\n请先设置 Supabase Service Role Key:')
+  console.error('  export SUPABASE_SERVICE_ROLE_KEY=your-key-here')
+  process.exit(1)
+}
+```
+
+#### 强制推送
+```bash
+git push origin main --force
+git push origin --tags --force
+```
+
+#### 经验总结
+1. **永远不要硬编码密钥** - 即使作为备用值也不行
+2. **环境变量优先** - 所有敏感信息必须从环境变量读取
+3. **提前验证** - 推送前使用 `git-secrets` 或类似工具扫描
+4. **历史重写** - 使用 `git filter-branch` 或 `BFG Repo-Cleaner` 清理历史
 
 ### 版本更新
 - 4.3.0 → 5.0.0
 - Git Tag: v5
+- Git 历史重写：139 个 commits 被重写
+
+### 修改文件清单
+1. `src/app/page.tsx` - 添加 start 参数解析
+2. `src/components/profile/MaterialProgress.tsx` - 重构布局、缩略图、点击跳转
+3. `src/lib/supabase/client.ts` - MaterialProgress 接口扩展、去重逻辑
+4. `scripts/translate.js` - 移除硬编码密钥
+5. `package.json` - 版本号 5.0.0
+6. `memory.md` - 更新开发记录
 
 ---
 
