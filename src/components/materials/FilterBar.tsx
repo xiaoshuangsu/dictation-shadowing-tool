@@ -44,19 +44,20 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
   }
 
   return (
-    <div>
-      {/* 桌面端：横向靠左排列，移动端：垂直堆叠 */}
-      <div className="flex flex-col md:flex-row md:justify-start gap-8">
-        {/* 难度筛选 - 固定宽度 */}
-        <div className="w-64">
+    // 控制面板样式：白色背景、圆角、边框、阴影
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+      {/* 纵向堆叠布局 */}
+      <div className="flex flex-col gap-4">
+        {/* 难度筛选 */}
+        <div className="w-full">
           <DifficultySelector
             value={filters.difficulty}
             onChange={(value) => updateFilter('difficulty', value)}
           />
         </div>
 
-        {/* 时长筛选 - 固定宽度 */}
-        <div className="w-64">
+        {/* 时长筛选 */}
+        <div className="w-full">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               {/* 时长图标 */}
@@ -85,8 +86,8 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
           </div>
         </div>
 
-        {/* 话题筛选 - 固定宽度 */}
-        <div className="w-64">
+        {/* 话题筛选 */}
+        <div className="w-full">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               {/* 话题图标 */}
