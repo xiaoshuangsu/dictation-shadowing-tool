@@ -267,10 +267,10 @@ export default function MaterialsPage() {
                           key={material.id}
                           className="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group"
                         >
-                          {/* 移动端：横向卡片布局 */}
-                          <div className="flex flex-row lg:flex-col">
+                          {/* 移动端：横向卡片布局，中屏及以上垂直布局 */}
+                          <div className="flex flex-row md:flex-col">
                             {/* 左侧：缩略图 */}
-                            <div className="w-32 lg:w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0 overflow-hidden">
+                            <div className="w-32 md:w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0 overflow-hidden">
                               {thumbnailUrl ? (
                                 <img
                                   src={thumbnailUrl}
@@ -286,24 +286,24 @@ export default function MaterialsPage() {
                               )}
 
                               {/* 左上角：难度标签 */}
-                              <div className="absolute top-2 left-2 lg:top-3 lg:left-3">
-                                <span className={`px-2 py-1 lg:px-3 lg:py-1.5 rounded text-xs lg:text-sm font-bold border-2 ${DIFFICULTY_COLORS[material.difficulty]}`}>
+                              <div className="absolute top-2 left-2 md:top-3 md:left-3">
+                                <span className={`px-2 py-1 md:px-3 md:py-1.5 rounded text-xs md:text-sm font-bold border-2 ${DIFFICULTY_COLORS[material.difficulty]}`}>
                                   {material.difficulty}
                                 </span>
                               </div>
 
                               {/* 右下角：播放时长 */}
                               {material.duration && (
-                                <div className="absolute bottom-2 right-2 lg:bottom-3 lg:right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 lg:px-2.5 lg:py-1 rounded text-xs font-medium">
+                                <div className="absolute bottom-2 right-2 md:bottom-3 md:right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 md:px-2.5 md:py-1 rounded text-xs font-medium">
                                   {formatDuration(material.duration)}
                                 </div>
                               )}
                             </div>
 
                             {/* 右侧：内容区域 */}
-                            <div className="flex-1 p-3 lg:p-4 flex flex-col justify-between">
+                            <div className="flex-1 p-3 md:p-4 flex flex-col justify-between">
                               {/* 标题 */}
-                              <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-2 lg:mb-3 line-clamp-2">
+                              <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-2 md:mb-3 line-clamp-2">
                                 {material.title}
                               </h3>
 
@@ -311,13 +311,13 @@ export default function MaterialsPage() {
                               <div className="flex gap-2">
                                 <Link
                                   href={`/?id=${material.id}&mode=dictation`}
-                                  className="flex-1 text-center px-3 py-1.5 lg:px-3 lg:py-1.5 bg-blue-600 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                  className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-blue-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                                 >
                                   听写
                                 </Link>
                                 <Link
                                   href={`/?id=${material.id}&mode=shadowing`}
-                                  className="flex-1 text-center px-3 py-1.5 lg:px-3 lg:py-1.5 bg-gray-600 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                                  className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-gray-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                                 >
                                   影子
                                 </Link>
