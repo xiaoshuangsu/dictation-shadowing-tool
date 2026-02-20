@@ -35,6 +35,92 @@
 
 ---
 
+## 2025-02-19 - 创建自动翻译脚本（智谱 GLM）
+
+### 背景
+用户选择方案 A：为数据库中所有素材添加翻译功能。
+
+### 实现方案
+创建了完整的自动翻译解决方案：
+
+**核心功能**：
+- 遍历数据库中所有素材
+- 自动识别未翻译的句子
+- 调用智谱 GLM-4-Flash API 批量翻译
+- 将翻译结果写回 Supabase 数据库
+
+**技术选型**：
+- 使用智谱 GLM-4-Flash（性价比高）
+- 新用户每天 100 万 tokens 免费额度
+- 足够翻译数万个句子
+
+**创建文件**：
+1. `scripts/translate.js` - 核心翻译脚本（Node.js）
+2. `.env.local.example` - 环境变量模板
+3. `docs/TRANSLATE_GUIDE.md` - 完整使用文档
+4. `scripts/README.md` - 快速开始指南
+
+**新增 npm 命令**：
+```bash
+npm run translate     # 翻译所有未翻译的句子
+npm run translate-all # 同上
+npm run translate-new # 仅翻译新素材
+```
+
+### 使用流程
+1. 注册智谱 AI 账号：https://open.bigmodel.cn
+2. 获取 API Key
+3. 设置环境变量：`export GLM_API_KEY=your-key`
+4. 运行翻译：`npm run translate-new`
+
+### 优势
+- 完全自动化，无需手动复制粘贴
+- 批量处理，效率高
+- 幂等性设计，可重复运行
+- 支持增量和全量两种模式
+
+### 技术细节
+- API 端点：`https://open.bigmodel.cn/api/paas/v4`
+- 模型：`glm-4-flash`（可切换为 `glm-4`）
+- 批次大小：10 个句子/次
+- 批次间隔：1 秒（避免速率限制）
+
+### 版本更新
+- 4.2.0（待提交）
+
+---
+
+## 2025-02-19 - Word 模式添加中文释义功能
+
+### 原始需求
+在 dictation 模式的 word 模式下，在原文显示区域（带横线和括号的区域）右上角增加"显示释义"按钮。点击按钮后，在原文句子正下方显示中文翻译。切换句子时翻译同步更新。默认收起状态。
+
+### 实现方案
+**遵循原则**：极简优先，选择最简单、最稳妥的实现方式
+
+**修改文件**：
+1. `src/app/page.tsx`
+   - 添加 `Sentence` 接口定义，`translation` 为可选字段
+   - 为 `defaultSentences` 添加中文翻译
+   - 自动生成的句子设置 `translation: undefined`
+
+2. `src/components/WordMode.tsx`
+   - 添加 `showTranslation` 状态
+   - 在原文区域右上角添加"显示释义"/"隐藏释义"按钮
+   - 在原文下方显示翻译内容
+   - 切换句子时重置翻译状态
+
+### 技术细节
+- 只有当 `sentence.translation` 存在时才显示按钮
+- 使用 React 状态管理翻译显示/隐藏
+- 默认素材（First Snowfall）包含 22 个句子的完整中文翻译
+- 自动分割的句子不包含翻译（避免误导用户）
+
+### 版本更新
+- 4.1.0 → 4.2.0
+
+---
+
 ## 2025-02-19 - 音频播放错误修复
 
 ### 问题描述

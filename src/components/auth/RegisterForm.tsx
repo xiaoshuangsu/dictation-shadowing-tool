@@ -80,7 +80,11 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         console.log('Registration successful, redirecting to home...')
         setLoading(false)
         // Redirect to home page with full URL
-        const baseUrl = window.location.origin + '/dictation-shadowing-tool/'
+        // Note: This code shouldn't execute if onSuccess callback is provided
+        const isDev = process.env.NODE_ENV === 'development'
+        const baseUrl = isDev
+          ? window.location.origin + '/'
+          : window.location.origin + '/dictation-shadowing-tool/'
         window.location.href = baseUrl
       }
     } catch (err: any) {

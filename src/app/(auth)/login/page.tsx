@@ -54,7 +54,11 @@ export default function LoginPage() {
           <LoginForm
             onSuccess={() => {
               // Redirect to home and reload to establish session
-              const baseUrl = window.location.origin + '/dictation-shadowing-tool/'
+              // Check if in development or production
+              const isDev = process.env.NODE_ENV === 'development'
+              const baseUrl = isDev
+                ? window.location.origin + '/'
+                : window.location.origin + '/dictation-shadowing-tool/'
               window.location.href = baseUrl
             }}
           />
