@@ -57,7 +57,10 @@ export default function RegisterPage() {
           <RegisterForm
             onSuccess={() => {
               // Redirect to home
-              const baseUrl = window.location.origin + '/dictation-shadowing-tool/'
+              const isDev = process.env.NODE_ENV === 'development'
+              const baseUrl = isDev
+                ? window.location.origin + '/'
+                : window.location.origin + '/dictation-shadowing-tool/'
               window.location.href = baseUrl
             }}
           />

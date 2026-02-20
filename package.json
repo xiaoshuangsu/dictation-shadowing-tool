@@ -7,7 +7,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "translate": "node scripts/translate.js",
+    "translate-all": "node scripts/translate.js",
+    "translate-new": "node scripts/translate.js --new"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
