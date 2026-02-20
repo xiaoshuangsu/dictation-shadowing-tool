@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2025-02-19
+
+### Changed
+- **Materials Page Responsive Layout**
+  - Changed grid breakpoint from `lg:grid-cols-2` to `md:grid-cols-2` for tablet displays
+  - Tablet screens (768px+) now show 2 columns per row instead of single column
+  - Large screens (1024px+) show 3 columns per row
+  - Extra large screens show 4 columns per row
+
+- **Card Layout Breakpoints**
+  - Changed card layout breakpoint from `lg:flex-col` to `md:flex-col`
+  - Cards now use vertical layout (thumbnail top, content below) at medium screens (768px+)
+  - Mobile screens (< 768px) continue to use horizontal layout (thumbnail left, content right)
+
+- **Container Padding**
+  - Increased horizontal padding from `px-4 sm:px-6 lg:px-8` to `px-6 md:px-12 lg:px-20`
+  - Better breathing room for cards on smaller screens
+
+- **Card Styling Enhancements**
+  - Added `shadow-sm` to cards for better depth
+  - Changed border radius from `rounded-xl` to `rounded-2xl` for softer appearance
+  - Added `overflow-hidden` to image containers for cleaner edges
+  - Added `object-cover` to images for proper scaling without distortion
+
+- **Responsive Component Updates**
+  - All responsive breakpoints changed from `lg` to `md` for consistency:
+    - Thumbnail width: `w-32 md:w-full`
+    - Content padding: `p-3 md:p-4`
+    - Badge positions and sizes
+    - Button sizes
+    - Title margins
+
+- **Filter Bar Layout**
+  - Changed to horizontal layout on desktop: `flex-col md:flex-row md:items-end`
+  - Each filter now uses `flex-1 min-w-[200px]` for equal width distribution
+  - Better use of horizontal space on desktop screens
+
+### Fixed
+- Filter bar now aligns properly with material cards
+- Filter spacing from top improved with `mt-12` class
+- Cards no longer touch screen edges on smaller devices
+
+---
+
 ## [3.1.0] - 2025-02-17
 
 ### Added
