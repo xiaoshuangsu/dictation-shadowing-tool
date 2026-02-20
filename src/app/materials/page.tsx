@@ -189,7 +189,7 @@ export default function MaterialsPage() {
       </div>
 
       {/* 筛选栏 + 素材列表：共用同一个容器 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20">
         {/* 筛选栏 */}
         {!loading && (
           <div className="mt-12 mb-10">
@@ -258,19 +258,19 @@ export default function MaterialsPage() {
                   </div>
 
                   {/* Card Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
 
                       return (
                         <div
                           key={material.id}
-                          className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 group"
+                          className="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group"
                         >
                           {/* 移动端：横向卡片布局 */}
                           <div className="flex flex-row lg:flex-col">
                             {/* 左侧：缩略图 */}
-                            <div className="w-32 lg:w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0">
+                            <div className="w-32 lg:w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0 overflow-hidden">
                               {thumbnailUrl ? (
                                 <img
                                   src={thumbnailUrl}
