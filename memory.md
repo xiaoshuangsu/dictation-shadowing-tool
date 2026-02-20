@@ -4,6 +4,56 @@
 
 ---
 
+## 2025-02-20 - v5.0.0 发布（Profile 页面重大重构 + 点击跳转功能）
+
+### 原始需求
+1. 个人中心右侧布局纠正：移除模式重复Tab，统一使用"In Progress/Completed"
+2. 修正素材完成度计算逻辑（修复38/22句显示为100%的bug）
+3. 替换占位符为真实缩略图
+4. 实现素材卡片点击跳转，自动定位到上次练习的下一句
+
+### 实现方案
+
+#### 1. Profile 页面重构
+**修改文件**：`src/components/profile/MaterialProgress.tsx`
+- 移除右侧顶部的"听写练习"/"影子跟读"Tab
+- 改为"In Progress"(蓝色) / "Completed"(绿色)双Tab
+- 右侧内容由左侧侧边栏选中的模式（dictation/shadowing）过滤
+
+#### 2. 完成度逻辑修复
+**修改文件**：`src/lib/supabase/client.ts`
+- 使用 `Set<Number>` 对 `sentence_id` 进行去重
+- 完成判断：`uniqueSentences.size >= totalSentences`
+- 避免重复练习同一句导致的计数错误
+
+#### 3. 缩略图显示
+**修改文件**：`src/components/profile/MaterialProgress.tsx`
+- 从 Supabase Storage 加载真实缩略图
+- 使用正确 URL：`https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/thumbnails/{filename}`
+- 加载失败时回退到首字母占位符
+
+#### 4. 点击跳转功能
+**修改文件**：
+- `src/lib/supabase/client.ts`：添加 `materialId` 和 `lastPracticedSentenceIndex` 字段
+- `src/components/profile/MaterialProgress.tsx`：实现点击跳转逻辑
+- `src/app/page.tsx`：解析 URL `start` 参数
+
+**跳转逻辑**：
+- 目标索引 = `completed >= total ? 0 : completed`
+- URL 参数：`id={materialId}&mode={practiceMode}&start={targetIndex}`
+- 练习页面自动定位到指定句子
+
+### 技术细节
+- 使用 `Array.from(map.entries())` 避免 TypeScript 迭代器错误
+- 缩略图文件名处理：移除可能的 `thumbnails/` 前缀
+- 图片加载状态管理：`onError` 回退到占位符
+
+### 版本更新
+- 4.3.0 → 5.0.0
+- Git Tag: v5
+
+---
+
 ## 2025-02-19 - Word 模式添加中文释义功能
 
 ### 原始需求

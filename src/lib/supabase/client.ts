@@ -237,6 +237,8 @@ export interface MaterialProgress {
   lastPracticedAt: string
   practiceMode: 'dictation' | 'shadowing'
   thumbnail?: string | null
+  lastPracticedSentenceIndex?: number  // 最后练习的句子索引（0-based）
+  materialId?: string  // 素材 ID
 }
 
 /**
@@ -268,7 +270,7 @@ export async function getMaterialProgressFallback(
   userId: string,
   practiceMode: 'dictation' | 'shadowing'
 ): Promise<MaterialProgress[]> {
-  // 1. 获取用户的所有练习记录（包含sentence_id用于去重）
+  // 1. 获取用户的所有练习记录（包含sentence_id和索引用于去重）
   const { data: records, error } = await supabase
     .from('practice_records')
     .select('audio_title, sentence_id, completed_at')
@@ -286,7 +288,11 @@ export async function getMaterialProgressFallback(
   }
 
   // 2. 客户端聚合（按素材分组，使用Set去重句子ID）
-  const materialMap = new Map<string, { uniqueSentences: Set<number>; lastAt: string }>()
+  const materialMap = new Map<string, {
+    uniqueSentences: Set<number>
+    lastAt: string
+    lastSentenceIndex: number  // 最后练习的句子索引（0-based）
+  }>()
 
   for (const record of records) {
     const title = record.audio_title
@@ -296,6 +302,10 @@ export async function getMaterialProgressFallback(
     if (current) {
       // 使用Set自动去重句子ID
       current.uniqueSentences.add(sentenceId)
+      // 更新最后练习的句子索引（sentenceId - 1 转换为 0-based 索引）
+      if (sentenceId - 1 > current.lastSentenceIndex) {
+        current.lastSentenceIndex = sentenceId - 1
+      }
       // 保持最新的时间
       if (record.completed_at > current.lastAt) {
         current.lastAt = record.completed_at
@@ -305,7 +315,8 @@ export async function getMaterialProgressFallback(
       uniqueSentences.add(sentenceId)
       materialMap.set(title, {
         uniqueSentences,
-        lastAt: record.completed_at
+        lastAt: record.completed_at,
+        lastSentenceIndex: sentenceId - 1  // sentence_id 从 1 开始，索引从 0 开始
       })
     }
   }
@@ -313,30 +324,36 @@ export async function getMaterialProgressFallback(
   // 3. 获取所有素材的总句子数和缩略图
   const { data: materials } = await supabase
     .from('materials')
-    .select('title, transcript, thumbnail_path')
+    .select('id, title, transcript, thumbnail_path')
 
   if (!materials) {
     return []
   }
 
   // 创建素材标题 -> 详细信息的映射
-  const materialInfo = new Map<string, { sentenceCount: number; thumbnail: string | null }>()
+  const materialInfo = new Map<string, {
+    sentenceCount: number
+    thumbnail: string | null
+    materialId: string
+  }>()
   for (const material of materials) {
     const sentenceCount = material.transcript?.length || 0
     materialInfo.set(material.title, {
       sentenceCount,
-      thumbnail: material.thumbnail_path
+      thumbnail: material.thumbnail_path,
+      materialId: material.id
     })
   }
 
   // 4. 组合数据
   const result: MaterialProgress[] = []
 
-  Array.from(materialMap.entries()).forEach(([audioTitle, { uniqueSentences, lastAt }]) => {
+  Array.from(materialMap.entries()).forEach(([audioTitle, { uniqueSentences, lastAt, lastSentenceIndex }]) => {
     const info = materialInfo.get(audioTitle)
     const totalSentences = info?.sentenceCount || 0
     const completedSentences = uniqueSentences.size // 使用Set的大小，自动去重
     const thumbnail = info?.thumbnail
+    const materialId = info?.materialId || ''
 
     result.push({
       audioTitle,
@@ -344,7 +361,9 @@ export async function getMaterialProgressFallback(
       completedSentences,
       lastPracticedAt: lastAt,
       practiceMode,
-      thumbnail
+      thumbnail,
+      lastPracticedSentenceIndex: lastSentenceIndex,
+      materialId
     })
   })
 

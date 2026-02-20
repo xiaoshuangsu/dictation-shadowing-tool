@@ -69,6 +69,7 @@ function HomeContent() {
   const searchParams = useSearchParams()
   const materialId = searchParams.get('id')
   const practiceMode = searchParams.get('mode') as PracticeMode | null
+  const startParam = searchParams.get('start') // 获取起始句子索引参数
 
   // 动态素材数据 - 初始值为 null，避免闪现旧标题
   const [audioTitle, setAudioTitle] = useState<string | null>(null)
@@ -331,6 +332,22 @@ function HomeContent() {
     audioPlaybackSecondsRef.current = 0
     console.log('Reset audio playback time for new sentence')
   }, [currentSentenceIndex])
+
+  // 处理从个人中心跳转的 start 参数
+  useEffect(() => {
+    // 只有当有 start 参数、句子数据已加载、且不是从 localStorage 恢复进度时才生效
+    if (startParam && sampleSentences && sampleSentences.length > 0 && !progressRestored) {
+      const startIndex = parseInt(startParam, 10)
+
+      // 验证索引有效性
+      if (!isNaN(startIndex) && startIndex >= 0 && startIndex < sampleSentences.length) {
+        console.log(`Setting start index from URL: ${startIndex} (total: ${sampleSentences.length} sentences)`)
+        setCurrentSentenceIndex(startIndex)
+      } else {
+        console.warn(`Invalid start index: ${startParam}, using default 0`)
+      }
+    }
+  }, [startParam, sampleSentences, progressRestored])
 
   const currentSentence = sampleSentences?.[currentSentenceIndex]
 
