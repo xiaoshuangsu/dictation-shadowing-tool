@@ -192,7 +192,7 @@ export default function MaterialsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* 筛选栏 */}
         {!loading && (
-          <div className="mb-10">
+          <div className="mt-12 mb-10">
             <FilterBar
               categories={uniqueCategories}
               onFilterChange={setFilters}
