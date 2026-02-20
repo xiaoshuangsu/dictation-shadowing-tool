@@ -50,7 +50,7 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
   }
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 w-full">
       <div className="flex items-center gap-1.5">
         {/* 难度图标 */}
         <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,19 +59,19 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
         <span className="text-xs font-medium text-gray-700">视频难度</span>
       </div>
 
-      <div ref={containerRef} className="relative min-w-max">
+      <div ref={containerRef} className="relative min-w-[200px] w-full">
         {/* 触发按钮 */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="px-4 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors flex items-center justify-between"
+          className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors flex items-center justify-between"
         >
           <span className="flex items-center gap-2 whitespace-nowrap">
-            <span className="text-base">{selectedOption.icon}</span>
+            <span className="text-base flex-shrink-0">{selectedOption.icon}</span>
             <span className={selectedOption.color}>{selectedOption.label}</span>
           </span>
           <svg
-            className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''} flex-shrink-0`}
+            className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -82,22 +82,22 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
 
         {/* 下拉菜单 */}
         {isOpen && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto">
+          <div className="absolute z-[100] w-full min-w-[200px] mt-1 bg-white border border-gray-200 rounded-lg shadow-xl">
             {DIFFICULTY_OPTIONS.map((option) => (
               <button
                 key={option.value || 'all'}
                 type="button"
                 onClick={() => handleSelect(option)}
-                className={`w-full px-4 py-2 text-sm flex items-center gap-2 transition-colors ${
+                className={`w-full px-4 py-2.5 text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
                   value === option.value
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-700 hover:bg-blue-50'
                 }`}
               >
                 <span className="text-base flex-shrink-0">{option.icon}</span>
-                <span className={`${option.color} whitespace-nowrap`}>{option.label}</span>
+                <span className={value === option.value ? 'text-white' : option.color}>{option.label}</span>
                 {value === option.value && (
-                  <svg className="w-4 h-4 ml-auto text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 ml-auto text-white flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path
                       fillRule="evenodd"
                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"

@@ -189,14 +189,12 @@ export default function MaterialsPage() {
       </div>
 
       {/* 筛选栏 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        {!loading && (
-          <FilterBar
-            categories={uniqueCategories}
-            onFilterChange={setFilters}
-          />
-        )}
-      </div>
+      {!loading && (
+        <FilterBar
+          categories={uniqueCategories}
+          onFilterChange={setFilters}
+        />
+      )}
 
       {/* 素材列表（按分类分组） */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
