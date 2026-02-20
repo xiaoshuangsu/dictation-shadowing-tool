@@ -11,13 +11,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { getUserStats, getRecentPracticeRecords } from '@/lib/supabase/client'
+import { getUserStats } from '@/lib/supabase/client'
+import { getMaterialProgressFallback, type MaterialProgress } from '@/lib/supabase/client'
 import { getUserCompleteProfile } from '@/lib/supabase/streak'
 import { supabase } from '@/lib/supabase/client'
 import AuthButton from '@/components/auth/AuthButton'
-import PracticeHistory from '@/components/profile/PracticeHistory'
+import MaterialProgressList from '@/components/profile/MaterialProgress'
 import UnlockedPrompt from '@/components/profile/UnlockedPrompt'
-import type { PracticeRecord } from '@/components/profile/PracticeHistory'
 
 export default function ProfilePage() {
   const { user, loading, isAuthenticated } = useAuth()
@@ -43,8 +43,16 @@ export default function ProfilePage() {
     completed: false,
   })
 
-  // 历史记录
-  const [recentRecords, setRecentRecords] = useState<PracticeRecord[]>([])
+  // 素材进度数据
+  const [materialProgress, setMaterialProgress] = useState<MaterialProgress[]>([])
+  const [progressLoading, setProgressLoading] = useState(true)
+
+  // 当切换练习模式Tab时，重新加载素材进度
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchMaterialProgress(selectedStatsTab)
+    }
+  }, [selectedStatsTab, user, isAuthenticated])
 
   // Fetch user statistics
   useEffect(() => {
@@ -106,23 +114,25 @@ export default function ProfilePage() {
           completed: completeProfile.todayRecord.completed || false,
         })
       }
-
-      // 获取历史记录
-      const records = await getRecentPracticeRecords(user.id, 10)
-      const transformedRecords = records.map((r) => ({
-        id: r.id,
-        sentenceText: r.sentence_text,
-        practiceMode: r.practice_mode,
-        dictationMode: r.dictation_mode || undefined,
-        isCorrect: r.is_correct,
-        usedShowWords: r.used_show_words,
-        completedAt: new Date(r.completed_at),
-      }))
-      setRecentRecords(transformedRecords)
     } catch (error) {
       console.error('Failed to fetch user data:', error)
     } finally {
       setStatsLoading(false)
+    }
+  }
+
+  const fetchMaterialProgress = async (mode: 'dictation' | 'shadowing') => {
+    if (!user) return
+
+    setProgressLoading(true)
+    try {
+      const progress = await getMaterialProgressFallback(user.id, mode)
+      setMaterialProgress(progress)
+    } catch (error) {
+      console.error('Failed to fetch material progress:', error)
+      setMaterialProgress([])
+    } finally {
+      setProgressLoading(false)
     }
   }
 
@@ -318,10 +328,18 @@ export default function ProfilePage() {
 
             {/* Right Column - Practice History (2/3 width) */}
             <div className="lg:col-span-2">
-              <PracticeHistory records={recentRecords} />
+              {/* 素材进度列表 */}
+              {progressLoading ? (
+                <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">加载练习记录中...</p>
+                </div>
+              ) : (
+                <MaterialProgressList materials={materialProgress} practiceMode={selectedStatsTab} />
+              )}
 
               {/* Empty State */}
-              {totalPractices === 0 && (
+              {!progressLoading && materialProgress.length === 0 && (
                 <div className="bg-white rounded-lg shadow-sm p-8 text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg

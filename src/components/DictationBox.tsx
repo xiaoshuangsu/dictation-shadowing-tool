@@ -8,6 +8,7 @@ interface Sentence {
   text: string
   startTime: number
   endTime: number
+  translation?: string  // 可选的中文翻译字段
 }
 
 interface DictationBoxProps {
@@ -26,6 +27,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [isRevealed, setIsRevealed] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
+  const [showTranslation, setShowTranslation] = useState(false)  // 控制翻译显示状态
 
   // V3.1 有效作答时间跟踪
   const [timingStarted, setTimingStarted] = useState(false)
@@ -141,6 +143,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     setShowConfirmModal(false)
     setIsRevealed(false)
     setIsLocked(false)
+    setShowTranslation(false)  // 重置翻译显示状态
     setWordStatuses(new Map())
 
     // 重置计时状态
@@ -290,6 +293,28 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
   return (
     <div>
+      {/* 原文显示框（空白）+ 翻译按钮 */}
+      {sentence.translation && (
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg relative min-h-[60px]">
+          {/* 右上角：显示释义按钮 */}
+          <button
+            onClick={() => setShowTranslation(!showTranslation)}
+            className="absolute top-2 right-2 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+          >
+            {showTranslation ? '隐藏释义' : '显示释义'}
+          </button>
+
+          {/* 中文翻译显示 */}
+          {showTranslation && (
+            <div className="pt-3">
+              <p className="text-sm text-gray-600 italic">
+                {sentence.translation}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Label */}
       <label className="block text-sm font-medium text-gray-700 mb-2">
         Type what you hear:

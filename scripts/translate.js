@@ -30,7 +30,13 @@ const GLM_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 
 // Supabase 配置
 const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
+// 使用 service_role key 以获得写入权限
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!SUPABASE_KEY) {
+  console.error('❌ 错误: 未找到 SUPABASE_SERVICE_ROLE_KEY 环境变量')
+  process.exit(1)
+}
 
 // 命令行参数
 const args = process.argv.slice(2)

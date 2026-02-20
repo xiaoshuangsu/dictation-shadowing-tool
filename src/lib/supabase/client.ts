@@ -226,3 +226,132 @@ export async function getUserProfile(userId: string) {
 
   return data
 }
+
+/**
+ * 素材进度统计接口
+ */
+export interface MaterialProgress {
+  audioTitle: string
+  totalSentences: number
+  completedSentences: number
+  lastPracticedAt: string
+  practiceMode: 'dictation' | 'shadowing'
+  thumbnail?: string | null
+}
+
+/**
+ * 获取用户的素材进度（按素材聚合，使用高效的SQL查询）
+ */
+export async function getMaterialProgress(
+  userId: string,
+  practiceMode: 'dictation' | 'shadowing'
+): Promise<MaterialProgress[]> {
+  // 使用 Supabase RPC 调用自定义 SQL 函数（最高效）
+  const { data, error } = await supabase
+    .rpc('get_material_progress', {
+      p_user_id: userId,
+      p_practice_mode: practiceMode
+    })
+
+  if (error) {
+    console.error('Failed to fetch material progress:', error)
+    return []
+  }
+
+  return data || []
+}
+
+/**
+ * 备用方案：使用客户端聚合（如果没有SQL函数）
+ */
+export async function getMaterialProgressFallback(
+  userId: string,
+  practiceMode: 'dictation' | 'shadowing'
+): Promise<MaterialProgress[]> {
+  // 1. 获取用户的所有练习记录（包含sentence_id用于去重）
+  const { data: records, error } = await supabase
+    .from('practice_records')
+    .select('audio_title, sentence_id, completed_at')
+    .eq('user_id', userId)
+    .eq('practice_mode', practiceMode)
+    .order('completed_at', { ascending: false })
+
+  if (error) {
+    console.error('Failed to fetch practice records:', error)
+    return []
+  }
+
+  if (!records || records.length === 0) {
+    return []
+  }
+
+  // 2. 客户端聚合（按素材分组，使用Set去重句子ID）
+  const materialMap = new Map<string, { uniqueSentences: Set<number>; lastAt: string }>()
+
+  for (const record of records) {
+    const title = record.audio_title
+    const sentenceId = record.sentence_id
+    const current = materialMap.get(title)
+
+    if (current) {
+      // 使用Set自动去重句子ID
+      current.uniqueSentences.add(sentenceId)
+      // 保持最新的时间
+      if (record.completed_at > current.lastAt) {
+        current.lastAt = record.completed_at
+      }
+    } else {
+      const uniqueSentences = new Set<number>()
+      uniqueSentences.add(sentenceId)
+      materialMap.set(title, {
+        uniqueSentences,
+        lastAt: record.completed_at
+      })
+    }
+  }
+
+  // 3. 获取所有素材的总句子数和缩略图
+  const { data: materials } = await supabase
+    .from('materials')
+    .select('title, transcript, thumbnail_path')
+
+  if (!materials) {
+    return []
+  }
+
+  // 创建素材标题 -> 详细信息的映射
+  const materialInfo = new Map<string, { sentenceCount: number; thumbnail: string | null }>()
+  for (const material of materials) {
+    const sentenceCount = material.transcript?.length || 0
+    materialInfo.set(material.title, {
+      sentenceCount,
+      thumbnail: material.thumbnail_path
+    })
+  }
+
+  // 4. 组合数据
+  const result: MaterialProgress[] = []
+
+  Array.from(materialMap.entries()).forEach(([audioTitle, { uniqueSentences, lastAt }]) => {
+    const info = materialInfo.get(audioTitle)
+    const totalSentences = info?.sentenceCount || 0
+    const completedSentences = uniqueSentences.size // 使用Set的大小，自动去重
+    const thumbnail = info?.thumbnail
+
+    result.push({
+      audioTitle,
+      totalSentences,
+      completedSentences,
+      lastPracticedAt: lastAt,
+      practiceMode,
+      thumbnail
+    })
+  })
+
+  // 按最后练习时间排序
+  result.sort((a, b) =>
+    new Date(b.lastPracticedAt).getTime() - new Date(a.lastPracticedAt).getTime()
+  )
+
+  return result
+}

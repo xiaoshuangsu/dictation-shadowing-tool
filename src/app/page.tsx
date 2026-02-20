@@ -826,6 +826,13 @@ function HomeContent() {
                             )
                           })}
                         </p>
+
+                        {/* 中文翻译 */}
+                        {sentence.translation && (
+                          <p className="text-xs text-gray-600 italic mt-1">
+                            {sentence.translation}
+                          </p>
+                        )}
                       </div>
 
                       {/* Status Icon */}
