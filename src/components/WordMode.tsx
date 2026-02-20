@@ -7,6 +7,7 @@ interface Sentence {
   text: string
   startTime: number
   endTime: number
+  translation?: string  // 可选的中文翻译字段
 }
 
 interface WordModeProps {
@@ -23,6 +24,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [showWord, setShowWord] = useState(false)
+  const [showTranslation, setShowTranslation] = useState(false)  // 控制翻译显示状态
 
   // V3.1 有效作答时间跟踪
   const [timingStarted, setTimingStarted] = useState(false)
@@ -132,6 +134,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setShowResult(false)
     setIsCorrect(null)
     setShowWord(false)
+    setShowTranslation(false)  // 重置翻译显示状态
 
     // 重置计时状态
     setTimingStarted(false)
@@ -208,13 +211,32 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   return (
     <div>
       {/* Display Text with One Hidden Word */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg relative">
+        {/* 右上角：显示释义按钮 */}
+        {sentence.translation && (
+          <button
+            onClick={() => setShowTranslation(!showTranslation)}
+            className="absolute top-2 right-2 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+          >
+            {showTranslation ? '隐藏释义' : '显示释义'}
+          </button>
+        )}
+
         <p className="text-lg leading-relaxed">
           {visibleWords.map((word, index) => (
             <span key={index} className="text-gray-800">{word} </span>
           ))}
           <span className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[     ]</span>
         </p>
+
+        {/* 中文翻译显示 */}
+        {showTranslation && sentence.translation && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-sm text-gray-600 italic">
+              {sentence.translation}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Label */}
