@@ -44,7 +44,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
   }
 
   return (
-    <div className="flex flex-wrap gap-4 items-end bg-white rounded-lg p-4 mb-6">
+    <div className="flex flex-wrap gap-8 items-end bg-white rounded-lg p-4 mb-10">
       {/* 难度筛选 - 使用自定义图标化选择器 */}
       <DifficultySelector
         value={filters.difficulty}
@@ -63,7 +63,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
         <select
           value={filters.duration || ''}
           onChange={(e) => updateFilter('duration', e.target.value || null)}
-          className="min-w-[120px] px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
+          className="px-4 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
             backgroundRepeat: 'no-repeat',
@@ -91,7 +91,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
         <select
           value={filters.category || ''}
           onChange={(e) => updateFilter('category', e.target.value || null)}
-          className="min-w-[120px] px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
+          className="px-4 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
             backgroundRepeat: 'no-repeat',
