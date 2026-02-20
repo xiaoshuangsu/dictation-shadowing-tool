@@ -22,8 +22,8 @@ const supabase = createClient(
 // 默认音频标题（First Snowfall）
 const DEFAULT_AUDIO_TITLE = "First Snowfall"
 
-// 默认音频文件 URL
-const DEFAULT_AUDIO_SRC = "/dictation-shadowing-tool/learn-english-via-listening-1001.mp3"
+// 默认音频文件 URL（注意：不需要包含 basePath，Next.js 会自动处理）
+const DEFAULT_AUDIO_SRC = "/learn-english-via-listening-1001.mp3"
 
 // 默认句子数据（First Snowfall 的精确时间戳）
 const defaultSentences = [
