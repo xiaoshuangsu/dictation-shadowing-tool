@@ -59,19 +59,19 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
         <span className="text-xs font-medium text-gray-700">视频难度</span>
       </div>
 
-      <div ref={containerRef} className="relative min-w-[140px]">
+      <div ref={containerRef} className="relative min-w-max">
         {/* 触发按钮 */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors flex items-center justify-between"
+          className="px-4 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors flex items-center justify-between"
         >
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-base">{selectedOption.icon}</span>
             <span className={selectedOption.color}>{selectedOption.label}</span>
           </span>
           <svg
-            className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''} flex-shrink-0`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -88,16 +88,16 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
                 key={option.value || 'all'}
                 type="button"
                 onClick={() => handleSelect(option)}
-                className={`w-full px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
+                className={`w-full px-4 py-2 text-sm flex items-center gap-2 transition-colors ${
                   value === option.value
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >
-                <span className="text-base">{option.icon}</span>
-                <span className={option.color}>{option.label}</span>
+                <span className="text-base flex-shrink-0">{option.icon}</span>
+                <span className={`${option.color} whitespace-nowrap`}>{option.label}</span>
                 {value === option.value && (
-                  <svg className="w-4 h-4 ml-auto text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-4 h-4 ml-auto text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path
                       fillRule="evenodd"
                       d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
