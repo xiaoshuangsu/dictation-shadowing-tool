@@ -44,20 +44,20 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-10">
-      {/* 桌面端：横向排列，移动端：垂直堆叠 */}
-      <div className="flex flex-col md:flex-row md:items-end gap-6">
-        {/* 难度筛选 - 使用自定义图标化选择器 */}
-        <div className="flex-1 min-w-[180px]">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+      {/* 桌面端：横向靠左排列，移动端：垂直堆叠 */}
+      <div className="flex flex-col md:flex-row md:justify-start gap-8">
+        {/* 难度筛选 - 固定宽度 */}
+        <div className="w-64">
           <DifficultySelector
             value={filters.difficulty}
             onChange={(value) => updateFilter('difficulty', value)}
           />
         </div>
 
-        {/* 时长筛选 */}
-        <div className="flex-1 min-w-[180px]">
-          <div className="flex flex-col gap-1 w-full">
+        {/* 时长筛选 - 固定宽度 */}
+        <div className="w-64">
+          <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               {/* 时长图标 */}
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
             <select
               value={filters.duration || ''}
               onChange={(e) => updateFilter('duration', e.target.value || null)}
-              className="w-full min-w-[180px] px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
+              className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
                 backgroundRepeat: 'no-repeat',
@@ -85,9 +85,9 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
           </div>
         </div>
 
-        {/* 话题筛选 */}
-        <div className="flex-1 min-w-[180px]">
-          <div className="flex flex-col gap-1 w-full">
+        {/* 话题筛选 - 固定宽度 */}
+        <div className="w-64">
+          <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               {/* 话题图标 */}
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
             <select
               value={filters.category || ''}
               onChange={(e) => updateFilter('category', e.target.value || null)}
-              className="w-full min-w-[180px] px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
+              className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
               style={{
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
                 backgroundRepeat: 'no-repeat',

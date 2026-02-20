@@ -50,7 +50,7 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
   }
 
   return (
-    <div className="flex flex-col gap-1 w-full">
+    <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         {/* 难度图标 */}
         <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
         <span className="text-xs font-medium text-gray-700">视频难度</span>
       </div>
 
-      <div ref={containerRef} className="relative min-w-[200px] w-full">
+      <div ref={containerRef} className="relative min-w-[200px]">
         {/* 触发按钮 */}
         <button
           type="button"
