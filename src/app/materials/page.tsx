@@ -258,67 +258,70 @@ export default function MaterialsPage() {
                   </div>
 
                   {/* Card Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
 
                       return (
                         <div
                           key={material.id}
-                          className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer group"
+                          className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300 group"
                         >
-                          {/* 图片区域 */}
-                          <div className="relative aspect-[3/2] bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
-                            {thumbnailUrl ? (
-                              <img
-                                src={thumbnailUrl}
-                                alt={material.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <svg className="w-12 h-12 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                                </svg>
-                              </div>
-                            )}
+                          {/* 移动端：横向卡片布局 */}
+                          <div className="flex flex-row lg:flex-col">
+                            {/* 左侧：缩略图 */}
+                            <div className="w-32 lg:w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0">
+                              {thumbnailUrl ? (
+                                <img
+                                  src={thumbnailUrl}
+                                  alt={material.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <svg className="w-12 h-12 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                  </svg>
+                                </div>
+                              )}
 
-                            {/* 左上角：难度标签 */}
-                            <div className="absolute top-3 left-3">
-                              <span className={`px-3 py-1.5 rounded-lg text-sm font-bold border-2 ${DIFFICULTY_COLORS[material.difficulty]}`}>
-                                {material.difficulty}
-                              </span>
+                              {/* 左上角：难度标签 */}
+                              <div className="absolute top-2 left-2 lg:top-3 lg:left-3">
+                                <span className={`px-2 py-1 lg:px-3 lg:py-1.5 rounded text-xs lg:text-sm font-bold border-2 ${DIFFICULTY_COLORS[material.difficulty]}`}>
+                                  {material.difficulty}
+                                </span>
+                              </div>
+
+                              {/* 右下角：播放时长 */}
+                              {material.duration && (
+                                <div className="absolute bottom-2 right-2 lg:bottom-3 lg:right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 lg:px-2.5 lg:py-1 rounded text-xs font-medium">
+                                  {formatDuration(material.duration)}
+                                </div>
+                              )}
                             </div>
 
-                            {/* 右下角：播放时长 */}
-                            {material.duration && (
-                              <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2.5 py-1 rounded text-xs font-medium">
-                                {formatDuration(material.duration)}
+                            {/* 右侧：内容区域 */}
+                            <div className="flex-1 p-3 lg:p-4 flex flex-col justify-between">
+                              {/* 标题 */}
+                              <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-2 lg:mb-3 line-clamp-2">
+                                {material.title}
+                              </h3>
+
+                              {/* 操作按钮 */}
+                              <div className="flex gap-2">
+                                <Link
+                                  href={`/?id=${material.id}&mode=dictation`}
+                                  className="flex-1 text-center px-3 py-1.5 lg:px-3 lg:py-1.5 bg-blue-600 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                >
+                                  听写
+                                </Link>
+                                <Link
+                                  href={`/?id=${material.id}&mode=shadowing`}
+                                  className="flex-1 text-center px-3 py-1.5 lg:px-3 lg:py-1.5 bg-gray-600 text-white text-xs lg:text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                                >
+                                  影子
+                                </Link>
                               </div>
-                            )}
-                          </div>
-
-                          {/* 内容区域 */}
-                          <div className="p-4">
-                            {/* 标题 */}
-                            <h3 className="font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] text-sm leading-relaxed mb-3">
-                              {material.title}
-                            </h3>
-
-                            {/* 操作按钮 */}
-                            <div className="flex gap-2">
-                              <Link
-                                href={`/?id=${material.id}&mode=dictation`}
-                                className="flex-1 text-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                              >
-                                听写
-                              </Link>
-                              <Link
-                                href={`/?id=${material.id}&mode=shadowing`}
-                                className="flex-1 text-center px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
-                              >
-                                影子
-                              </Link>
                             </div>
                           </div>
                         </div>
