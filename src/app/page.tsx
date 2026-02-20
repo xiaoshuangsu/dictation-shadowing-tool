@@ -13,6 +13,15 @@ import { useAuth } from "@/lib/hooks/useAuth"
 import { savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
 
+// 句子数据类型（translation 字段可选）
+interface Sentence {
+  id: number
+  text: string
+  startTime: number
+  endTime: number
+  translation?: string  // 可选的中文翻译
+}
+
 // 硬编码 Supabase 配置（GitHub Pages 静态构建无法使用环境变量）
 const supabase = createClient(
   'https://cuxotlijjnxbsirpdkgr.supabase.co',
@@ -27,28 +36,28 @@ const DEFAULT_AUDIO_SRC = "/learn-english-via-listening-1001.mp3"
 
 // 默认句子数据（First Snowfall 的精确时间戳）
 const defaultSentences = [
-  { id: 1, text: "First snowfall.", startTime: 0.0, endTime: 1.6 },
-  { id: 2, text: "Today is November 26th.", startTime: 3.6, endTime: 5.6 },
-  { id: 3, text: "It snowed all day today.", startTime: 6.3, endTime: 7.8 },
-  { id: 4, text: "The snow is beautiful.", startTime: 8.8, endTime: 10.4 },
-  { id: 5, text: "The snow finally stopped.", startTime: 11.5, endTime: 13.2 },
-  { id: 6, text: "My sister and I are excited.", startTime: 14.9, endTime: 16.6 },
-  { id: 7, text: "My mom doesn't like the snow.", startTime: 17.6, endTime: 19.5 },
-  { id: 8, text: "My mom has to shovel the driveway.", startTime: 20.5, endTime: 22.6 },
-  { id: 9, text: "My sister and I get to play.", startTime: 23.7, endTime: 25.6 },
-  { id: 10, text: "I put on my hat and mittens.", startTime: 26.7, endTime: 28.9 },
-  { id: 11, text: "My mom puts on my scarf.", startTime: 29.7, endTime: 31.3 },
-  { id: 12, text: "My mom zippers my jacket.", startTime: 32.4, endTime: 34.2 },
-  { id: 13, text: "My sister puts on her hat and mittens.", startTime: 35.1, endTime: 37.7 },
-  { id: 14, text: "My mom puts on her scarf.", startTime: 38.6, endTime: 40.5 },
-  { id: 15, text: "My mom zippers her jacket.", startTime: 41.7, endTime: 43.5 },
-  { id: 16, text: "My sister and I go outside.", startTime: 44.7, endTime: 46.6 },
-  { id: 17, text: "We begin to make a snowman.", startTime: 47.3, endTime: 49.5 },
-  { id: 18, text: "My mom starts to shovel the snow.", startTime: 50.4, endTime: 52.6 },
-  { id: 19, text: "My sister and I make snow angels.", startTime: 53.7, endTime: 55.7 },
-  { id: 20, text: "My sister and I throw snowballs.", startTime: 56.7, endTime: 58.7 },
-  { id: 21, text: "It starts to snow again.", startTime: 59.4, endTime: 61.4 },
-  { id: 22, text: "We go inside for hot chocolate.", startTime: 62.2, endTime: 64.5 },
+  { id: 1, text: "First snowfall.", startTime: 0.0, endTime: 1.6, translation: "第一场雪。" },
+  { id: 2, text: "Today is November 26th.", startTime: 3.6, endTime: 5.6, translation: "今天是11月26日。" },
+  { id: 3, text: "It snowed all day today.", startTime: 6.3, endTime: 7.8, translation: "今天下了一整天的雪。" },
+  { id: 4, text: "The snow is beautiful.", startTime: 8.8, endTime: 10.4, translation: "雪很美。" },
+  { id: 5, text: "The snow finally stopped.", startTime: 11.5, endTime: 13.2, translation: "雪终于停了。" },
+  { id: 6, text: "My sister and I are excited.", startTime: 14.9, endTime: 16.6, translation: "我和姐姐很兴奋。" },
+  { id: 7, text: "My mom doesn't like the snow.", startTime: 17.6, endTime: 19.5, translation: "我妈妈不喜欢雪。" },
+  { id: 8, text: "My mom has to shovel the driveway.", startTime: 20.5, endTime: 22.6, translation: "我妈妈得铲车道上的雪。" },
+  { id: 9, text: "My sister and I get to play.", startTime: 23.7, endTime: 25.6, translation: "我和姐姐可以玩耍了。" },
+  { id: 10, text: "I put on my hat and mittens.", startTime: 26.7, endTime: 28.9, translation: "我戴上帽子和手套。" },
+  { id: 11, text: "My mom puts on my scarf.", startTime: 29.7, endTime: 31.3, translation: "妈妈给我围上围巾。" },
+  { id: 12, text: "My mom zippers my jacket.", startTime: 32.4, endTime: 34.2, translation: "妈妈拉上我夹克的拉链。" },
+  { id: 13, text: "My sister puts on her hat and mittens.", startTime: 35.1, endTime: 37.7, translation: "姐姐戴上她的帽子和手套。" },
+  { id: 14, text: "My mom puts on her scarf.", startTime: 38.6, endTime: 40.5, translation: "妈妈给她围上围巾。" },
+  { id: 15, text: "My mom zippers her jacket.", startTime: 41.7, endTime: 43.5, translation: "妈妈拉上她夹克的拉链。" },
+  { id: 16, text: "My sister and I go outside.", startTime: 44.7, endTime: 46.6, translation: "我和姐姐走到外面。" },
+  { id: 17, text: "We begin to make a snowman.", startTime: 47.3, endTime: 49.5, translation: "我们开始堆雪人。" },
+  { id: 18, text: "My mom starts to shovel the snow.", startTime: 50.4, endTime: 52.6, translation: "妈妈开始铲雪。" },
+  { id: 19, text: "My sister and I make snow angels.", startTime: 53.7, endTime: 55.7, translation: "我和姐姐做雪天使。" },
+  { id: 20, text: "My sister and I throw snowballs.", startTime: 56.7, endTime: 58.7, translation: "我和姐姐扔雪球。" },
+  { id: 21, text: "It starts to snow again.", startTime: 59.4, endTime: 61.4, translation: "又开始下雪了。" },
+  { id: 22, text: "We go inside for hot chocolate.", startTime: 62.2, endTime: 64.5, translation: "我们进屋喝热巧克力。" },
 ]
 
 type PracticeMode = "dictation" | "shadowing"
@@ -64,7 +73,7 @@ function HomeContent() {
   // 动态素材数据 - 初始值为 null，避免闪现旧标题
   const [audioTitle, setAudioTitle] = useState<string | null>(null)
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
-  const [sampleSentences, setSampleSentences] = useState<typeof defaultSentences | null>(null)
+  const [sampleSentences, setSampleSentences] = useState<Sentence[] | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true) // 初始加载状态
   const [materialError, setMaterialError] = useState<string | null>(null)
   const [materialCategory, setMaterialCategory] = useState<string | null>(null)
@@ -138,7 +147,8 @@ function HomeContent() {
               id: sentences.length + 1,
               text: `Sentence ${sentences.length + 1}`, // 占位文本，用户可以听后自己输入
               startTime: i,
-              endTime: endTime
+              endTime: endTime,
+              translation: undefined  // 自动生成的句子没有翻译
             })
           }
 

@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2025-02-19
+
+### Added
+- **Word 模式中文释义功能**
+  - 在原文显示区域右上角添加"显示释义"按钮
+  - 点击按钮在原文句子正下方显示中文翻译
+  - 默认收起状态，用户主动点击才显示
+  - 切换句子时释义自动同步更新
+  - 为默认素材（First Snowfall）添加完整中文翻译
+
+### Changed
+- 更新句子数据类型，添加可选的 `translation` 字段
+- WordMode 组件支持翻译显示/隐藏功能
+
+### Technical Details
+- 新增 `Sentence` 接口定义，`translation` 为可选字段
+- 自动生成的句子不包含翻译（`translation: undefined`）
+- 使用 React 状态管理翻译显示状态
+
+---
+
 ## [4.1.0] - 2025-02-19
 
 ### Changed
