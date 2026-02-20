@@ -7,6 +7,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { MaterialProgress } from '@/lib/supabase/client'
 import { formatDate } from '@/utils/analytics'
 
@@ -80,6 +81,7 @@ export default function MaterialProgressList({ materials, practiceMode }: Materi
                 key={material.audioTitle}
                 material={material}
                 isCompleted={selectedTab === 'completed'}
+                practiceMode={practiceMode}
               />
             ))}
           </div>
@@ -92,26 +94,82 @@ export default function MaterialProgressList({ materials, practiceMode }: Materi
 interface MaterialCardProps {
   material: MaterialProgress
   isCompleted: boolean
+  practiceMode: 'dictation' | 'shadowing'
 }
 
-function MaterialCard({ material, isCompleted }: MaterialCardProps) {
+function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps) {
+  const router = useRouter()
+
   const total = material.totalSentences
   const completed = material.completedSentences
   const percentage = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0
 
-  // 使用真实的缩略图，如果没有则使用 placeholder
-  const coverImage = material.thumbnail || `https://placehold.co/80x80/e0e7ff/4f46e5?text=${encodeURIComponent(material.audioTitle.slice(0, 2))}`
+  // 计算跳转目标：下一句 = 已完成句子数
+  // 如果已完成所有句子，回到第 1 句（索引 0）
+  const targetIndex = completed >= total ? 0 : completed
+
+  // 图片加载状态
+  const [imageError, setImageError] = useState(false)
+
+  // 处理卡片点击
+  const handleClick = () => {
+    if (!material.materialId) return
+
+    // 构建跳转 URL
+    const params = new URLSearchParams({
+      id: material.materialId,
+      mode: practiceMode,
+      start: targetIndex.toString()
+    })
+
+    router.push(`/?${params.toString()}`)
+  }
+
+  // 构建 Supabase Storage 公开 URL
+  const getThumbnailUrl = (thumbnailPath: string | null | undefined) => {
+    if (!thumbnailPath) return null
+
+    // 移除可能存在的 'thumbnails/' 前缀
+    const filename = thumbnailPath.replace(/^thumbnails\//, '')
+
+    // 构建完整的公开 URL
+    return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/thumbnails/${filename}`
+  }
+
+  const thumbnailUrl = getThumbnailUrl(material.thumbnail)
+
+  // 生成素材的首字母缩写（备用方案）
+  const getInitials = (title: string) => {
+    const words = title.split(' ').filter(w => w.length > 0)
+    if (words.length === 0) return 'M'
+    if (words.length === 1) return words[0].charAt(0).toUpperCase()
+    return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase()
+  }
+
+  const initials = getInitials(material.audioTitle)
+  const bgColor = isCompleted ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
 
   return (
-    <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+    <div
+      className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors cursor-pointer"
+      onClick={handleClick}
+    >
       <div className="flex gap-4">
         {/* 封面图 */}
-        <div className="flex-shrink-0">
-          <img
-            src={coverImage}
-            alt={material.audioTitle}
-            className="w-16 h-16 rounded-lg object-cover"
-          />
+        <div className="flex-shrink-0 w-16 h-16">
+          {thumbnailUrl && !imageError ? (
+            <img
+              src={thumbnailUrl}
+              alt={material.audioTitle}
+              className="w-16 h-16 rounded-lg object-cover"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            // 备用：首字母占位符
+            <div className={`w-16 h-16 rounded-lg ${bgColor} flex items-center justify-center text-lg font-bold`}>
+              {initials}
+            </div>
+          )}
         </div>
 
         {/* 内容区域 */}
