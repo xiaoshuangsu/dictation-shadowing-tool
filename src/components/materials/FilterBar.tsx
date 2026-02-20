@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import DifficultySelector from './DifficultySelector'
 
 // 筛选选项类型
 export type FilterOptions = {
@@ -8,19 +9,6 @@ export type FilterOptions = {
   duration: string | null
   category: string | null
 }
-
-// 难度选项
-const DIFFICULTY_OPTIONS = [
-  { value: null, label: '全部' },
-  { value: 'A0', label: 'A0' },
-  { value: 'A1', label: 'A1' },
-  { value: 'A2', label: 'A2' },
-  { value: 'B1', label: 'B1' },
-  { value: 'B2', label: 'B2' },
-  { value: 'C1', label: 'C1' },
-  { value: 'C2', label: 'C2' },
-  { value: 'ADV', label: 'ADV' },
-]
 
 // 时长选项
 const DURATION_OPTIONS = [
@@ -57,33 +45,11 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
 
   return (
     <div className="flex flex-wrap gap-4 items-end bg-white rounded-lg p-4 mb-6">
-      {/* 难度筛选 */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-1.5">
-          {/* 难度图标 */}
-          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-          <span className="text-xs font-medium text-gray-700">视频难度</span>
-        </div>
-        <select
-          value={filters.difficulty || ''}
-          onChange={(e) => updateFilter('difficulty', e.target.value || null)}
-          className="min-w-[120px] px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'right 0.5rem center',
-            backgroundSize: '1rem',
-          }}
-        >
-          {DIFFICULTY_OPTIONS.map(option => (
-            <option key={option.value || 'all'} value={option.value || ''}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {/* 难度筛选 - 使用自定义图标化选择器 */}
+      <DifficultySelector
+        value={filters.difficulty}
+        onChange={(value) => updateFilter('difficulty', value)}
+      />
 
       {/* 时长筛选 */}
       <div className="flex flex-col gap-1">
