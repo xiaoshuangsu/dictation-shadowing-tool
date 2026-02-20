@@ -61,11 +61,11 @@ function HomeContent() {
   const materialId = searchParams.get('id')
   const practiceMode = searchParams.get('mode') as PracticeMode | null
 
-  // 动态素材数据
-  const [audioTitle, setAudioTitle] = useState(DEFAULT_AUDIO_TITLE)
-  const [audioSrc, setAudioSrc] = useState(DEFAULT_AUDIO_SRC)
-  const [sampleSentences, setSampleSentences] = useState(defaultSentences)
-  const [isLoadingMaterial, setIsLoadingMaterial] = useState(false)
+  // 动态素材数据 - 初始值为 null，避免闪现旧标题
+  const [audioTitle, setAudioTitle] = useState<string | null>(null)
+  const [audioSrc, setAudioSrc] = useState<string | null>(null)
+  const [sampleSentences, setSampleSentences] = useState<typeof defaultSentences | null>(null)
+  const [isInitialLoading, setIsInitialLoading] = useState(true) // 初始加载状态
   const [materialError, setMaterialError] = useState<string | null>(null)
   const [materialCategory, setMaterialCategory] = useState<string | null>(null)
 
@@ -87,10 +87,13 @@ function HomeContent() {
       if (!materialId) {
         // 没有 materialId，使用默认素材
         console.log('No material ID provided, using default material')
+        setAudioTitle(DEFAULT_AUDIO_TITLE)
+        setAudioSrc(DEFAULT_AUDIO_SRC)
+        setSampleSentences(defaultSentences)
+        setIsInitialLoading(false)
         return
       }
 
-      setIsLoadingMaterial(true)
       setMaterialError(null)
 
       try {
@@ -149,6 +152,8 @@ function HomeContent() {
           duration: material.duration
         })
 
+        setIsInitialLoading(false) // 数据加载完成，关闭初始加载状态
+
       } catch (error: any) {
         console.error('Failed to load material:', error)
         setMaterialError(error.message || 'Failed to load material')
@@ -156,8 +161,7 @@ function HomeContent() {
         setAudioTitle(DEFAULT_AUDIO_TITLE)
         setAudioSrc(DEFAULT_AUDIO_SRC)
         setSampleSentences(defaultSentences)
-      } finally {
-        setIsLoadingMaterial(false)
+        setIsInitialLoading(false)
       }
     }
 
@@ -318,7 +322,7 @@ function HomeContent() {
     console.log('Reset audio playback time for new sentence')
   }, [currentSentenceIndex])
 
-  const currentSentence = sampleSentences[currentSentenceIndex]
+  const currentSentence = sampleSentences?.[currentSentenceIndex]
 
   // Show signup prompt for non-logged in users
   useEffect(() => {
@@ -349,7 +353,7 @@ function HomeContent() {
   }, [currentSentenceIndex])
 
   const handleNext = () => {
-    if (currentSentenceIndex < sampleSentences.length - 1) {
+    if (sampleSentences && currentSentenceIndex < sampleSentences.length - 1) {
       const newIndex = currentSentenceIndex + 1
       setCurrentSentenceIndex(newIndex)
       savePracticeProgress(newIndex)
@@ -398,7 +402,7 @@ function HomeContent() {
     }
 
     // Save to Supabase if user is logged in
-    if (user) {
+    if (user && currentSentence) {
       try {
         // V3.1 数据留存：保存到 practice_records（数据库存秒）
         await savePracticeRecord({
@@ -409,7 +413,7 @@ function HomeContent() {
           dictationMode: mode === 'dictation' ? dictationMode : undefined,
           isCorrect,
           usedShowWords,
-          audioTitle: audioTitle,
+          audioTitle: audioTitle || DEFAULT_AUDIO_TITLE, // 如果为 null，使用默认标题
           // Dictation 和 Shadowing 都保存秒数
           durationSeconds: (mode === 'dictation' ? (duration || 0) : Math.round(audioPlaybackSecondsRef.current)) || undefined,
         })
@@ -454,7 +458,7 @@ function HomeContent() {
   }
 
   // Calculate which words should be highlighted based on current playback time
-  const getHighlightedWordIndex = (sentence: typeof sampleSentences[0]) => {
+  const getHighlightedWordIndex = (sentence: NonNullable<typeof sampleSentences>[0]) => {
     if (currentTime < sentence.startTime || currentTime > sentence.endTime) {
       return -1 // Not playing this sentence
     }
@@ -465,7 +469,7 @@ function HomeContent() {
     return Math.min(highlightedIndex, words.length - 1)
   }
 
-  const isLastSentence = currentSentenceIndex === sampleSentences.length - 1
+  const isLastSentence = sampleSentences ? currentSentenceIndex === sampleSentences.length - 1 : false
   const isFirstSentence = currentSentenceIndex === 0
 
   return (
@@ -573,8 +577,33 @@ function HomeContent() {
           </div>
         )}
 
-        {/* 加载中时不显示内容区域 */}
-        {!isLoadingMaterial && (
+        {/* 初始加载骨架屏 */}
+        {isInitialLoading ? (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
+            <div className="animate-pulse space-y-4">
+              {/* 标题骨架 */}
+              <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+
+              {/* 进度骨架 */}
+              <div className="h-3 bg-gray-200 rounded w-1/4 mx-auto"></div>
+
+              {/* 控制栏骨架 */}
+              <div className="bg-gray-100 rounded-lg p-4">
+                <div className="flex justify-between items-center">
+                  <div className="h-8 w-8 bg-gray-300 rounded"></div>
+                  <div className="h-10 flex-1 mx-4 bg-gray-300 rounded"></div>
+                  <div className="h-8 w-8 bg-gray-300 rounded"></div>
+                </div>
+              </div>
+
+              {/* 输入框骨架 */}
+              <div className="space-y-3">
+                <div className="h-24 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        ) : (
           <>
 
         {/* Dictation Mode Sub-toggle (only show in Dictation mode) */}
@@ -609,7 +638,7 @@ function HomeContent() {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
           {/* Progress */}
           <div className="text-center mb-4 text-sm text-gray-600">
-            {currentSentenceIndex + 1} / {sampleSentences.length}
+            {sampleSentences && `${currentSentenceIndex + 1} / ${sampleSentences.length}`}
           </div>
 
           {/* Top Control Bar */}
@@ -627,15 +656,17 @@ function HomeContent() {
                   </svg>
                 </button>
 
-                <AudioPlayer
-                  audioSrc={audioSrc}
-                  currentSentence={currentSentence}
-                  playbackRate={playbackRate}
-                  autoPlayTrigger={autoPlayTrigger}
-                  onPlayEnd={() => {}}
-                  onTimeUpdate={handleTimeUpdate}
-                  onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
-                />
+                {audioSrc && currentSentence && (
+                  <AudioPlayer
+                    audioSrc={audioSrc}
+                    currentSentence={currentSentence}
+                    playbackRate={playbackRate}
+                    autoPlayTrigger={autoPlayTrigger}
+                    onPlayEnd={() => {}}
+                    onTimeUpdate={handleTimeUpdate}
+                    onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
+                  />
+                )}
 
                 <button
                   onClick={handleNext}
@@ -670,39 +701,43 @@ function HomeContent() {
           </div>
 
           {/* Practice Area */}
-          {mode === "dictation" ? (
-            dictationMode === "word" ? (
-              <WordMode
-                sentence={currentSentence}
-                onComplete={(isCorrect, usedShowWords, durationSeconds) => handleComplete(currentSentence.id, isCorrect, usedShowWords, durationSeconds)}
-                currentIndex={currentSentenceIndex}
-                totalSentences={sampleSentences.length}
-                onNext={handleNext}
-                isLastSentence={isLastSentence}
-              />
+          {sampleSentences && currentSentence && (
+            mode === "dictation" ? (
+              dictationMode === "word" ? (
+                <WordMode
+                  sentence={currentSentence}
+                  onComplete={(isCorrect, usedShowWords, durationSeconds) => handleComplete(currentSentence.id, isCorrect, usedShowWords, durationSeconds)}
+                  currentIndex={currentSentenceIndex}
+                  totalSentences={sampleSentences.length}
+                  onNext={handleNext}
+                  isLastSentence={isLastSentence}
+                />
+              ) : (
+                <DictationBox
+                  sentence={currentSentence}
+                  onComplete={(isCorrect, usedShowWords, durationSeconds) => handleComplete(currentSentence.id, isCorrect, usedShowWords, durationSeconds)}
+                  onNext={handleNext}
+                  isLastSentence={isLastSentence}
+                />
+              )
             ) : (
-              <DictationBox
+              <ShadowingPanel
                 sentence={currentSentence}
-                onComplete={(isCorrect, usedShowWords, durationSeconds) => handleComplete(currentSentence.id, isCorrect, usedShowWords, durationSeconds)}
+                onComplete={(isCorrect, durationSeconds) => handleComplete(currentSentence.id, isCorrect, false, durationSeconds)}
                 onNext={handleNext}
                 isLastSentence={isLastSentence}
               />
             )
-          ) : (
-            <ShadowingPanel
-              sentence={currentSentence}
-              onComplete={(isCorrect, durationSeconds) => handleComplete(currentSentence.id, isCorrect, false, durationSeconds)}
-              onNext={handleNext}
-              isLastSentence={isLastSentence}
-            />
           )}
 
           {/* Correct Counter */}
-          <div className="text-center mt-4 mb-4">
-            <div className="text-sm text-gray-600 font-medium">
-              Correct: {correctCount} / {sampleSentences.length}
+          {sampleSentences && (
+            <div className="text-center mt-4 mb-4">
+              <div className="text-sm text-gray-600 font-medium">
+                Correct: {correctCount} / {sampleSentences.length}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Show Transcript Button */}
@@ -716,7 +751,7 @@ function HomeContent() {
         </div>
 
         {/* Transcript Section */}
-        {showTranscript && (
+        {showTranscript && sampleSentences && (
           <div className="mt-4 bg-white rounded-lg shadow-sm p-4 max-h-96 overflow-y-auto">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Transcript</h3>
             <div className="space-y-3">
@@ -814,7 +849,7 @@ function HomeContent() {
         )}
 
         {/* Completion Message */}
-        {completedSentences.size === sampleSentences.length && (
+        {sampleSentences && completedSentences.size === sampleSentences.length && (
           <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4 text-center">
             <p className="text-green-700 font-medium">
               🎉 Congratulations! You've completed all sentences! Accuracy: {Math.round((correctCount / sampleSentences.length) * 100)}%
