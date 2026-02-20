@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
+import FilterBar, { FilterOptions } from '@/components/materials/FilterBar'
 
 // 硬编码 Supabase 配置
 const supabase = createClient(
@@ -43,8 +44,18 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export default function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [filters, setFilters] = useState<FilterOptions>({
+    difficulty: null,
+    duration: null,
+    category: null,
+  })
+
+  // 动态获取所有不重复的分类
+  const uniqueCategories = useMemo(() => {
+    const categories = new Set(materials.map(m => m.category))
+    return Array.from(categories).sort()
+  }, [materials])
 
   useEffect(() => {
     async function fetchMaterials() {
@@ -67,21 +78,56 @@ export default function MaterialsPage() {
     fetchMaterials()
   }, [])
 
-  // 过滤素材
-  const filteredMaterials = materials.filter(material => {
-    if (selectedDifficulty && material.difficulty !== selectedDifficulty) {
-      return false
-    }
-    return true
-  })
+  // 多维度过滤素材
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(material => {
+      // 难度筛选
+      if (filters.difficulty && material.difficulty !== filters.difficulty) {
+        return false
+      }
 
-  // 按分类分组
-  const materialsByCategory: Record<string, Material[]> = {}
-  for (const category of CATEGORIES) {
-    materialsByCategory[category.id] = filteredMaterials.filter(
-      m => m.category === category.id
-    )
-  }
+      // 时长筛选
+      if (filters.duration && material.duration) {
+        const durationMinutes = material.duration / 60
+        if (filters.duration === 'short' && durationMinutes >= 1) {
+          return false
+        }
+        if (filters.duration === 'medium' && (durationMinutes < 1 || durationMinutes > 3)) {
+          return false
+        }
+        if (filters.duration === 'long' && durationMinutes <= 3) {
+          return false
+        }
+      } else if (filters.duration && !material.duration) {
+        // 如果选择了时长筛选但素材没有时长数据，则过滤掉
+        return false
+      }
+
+      // 话题筛选
+      if (filters.category && material.category !== filters.category) {
+        return false
+      }
+
+      return true
+    })
+  }, [materials, filters])
+
+  // 按分类分组（根据筛选结果动态调整）
+  const materialsByCategory = useMemo(() => {
+    const grouped: Record<string, Material[]> = {}
+
+    // 如果选择了特定话题，只显示该分类
+    if (filters.category) {
+      grouped[filters.category] = filteredMaterials.filter(m => m.category === filters.category)
+    } else {
+      // 否则显示所有分类
+      for (const category of CATEGORIES) {
+        grouped[category.id] = filteredMaterials.filter(m => m.category === category.id)
+      }
+    }
+
+    return grouped
+  }, [filteredMaterials, filters.category])
 
   // 获取缩略图 URL
   const getThumbnailUrl = (path: string | null) => {
@@ -96,6 +142,12 @@ export default function MaterialsPage() {
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
+
+  // 计算总素材数（过滤后）
+  const totalFilteredCount = filteredMaterials.length
+  const totalCategories = Object.keys(materialsByCategory).filter(
+    key => materialsByCategory[key].length > 0
+  ).length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -113,7 +165,7 @@ export default function MaterialsPage() {
             返回练习
           </Link>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             English Dictation & Shadowing
           </h1>
@@ -123,49 +175,27 @@ export default function MaterialsPage() {
           </p>
 
           {/* 统计信息 */}
-          <div className="mt-8 flex flex-wrap gap-6 text-sm text-gray-600">
+          <div className="mt-6 flex flex-wrap gap-6 text-sm text-gray-600">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{materials.length}</span>
+              <span className="font-semibold text-gray-900">{totalFilteredCount}</span>
               <span>个素材</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{CATEGORIES.length}</span>
+              <span className="font-semibold text-gray-900">{totalCategories}</span>
               <span>个分类</span>
             </div>
           </div>
-
-          {/* 难度过滤 */}
-          <div className="mt-8 flex items-center gap-4">
-            <span className="text-sm text-gray-600">难度筛选：</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setSelectedDifficulty(null)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                  !selectedDifficulty
-                    ? 'bg-gray-800 text-white border-gray-800'
-                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                全部
-              </button>
-              {(['A1', 'A2', 'B1', 'B2'] as const).map(difficulty => (
-                <button
-                  key={difficulty}
-                  onClick={() => setSelectedDifficulty(
-                    selectedDifficulty === difficulty ? null : difficulty
-                  )}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                    selectedDifficulty === difficulty
-                      ? DIFFICULTY_COLORS[difficulty]
-                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {difficulty}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
+      </div>
+
+      {/* 筛选栏 */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        {!loading && (
+          <FilterBar
+            categories={uniqueCategories}
+            onFilterChange={setFilters}
+          />
+        )}
       </div>
 
       {/* 素材列表（按分类分组） */}
@@ -175,42 +205,54 @@ export default function MaterialsPage() {
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             <p className="mt-4 text-gray-600">加载中...</p>
           </div>
+        ) : totalFilteredCount === 0 ? (
+          /* 无结果提示 */
+          <div className="text-center py-16">
+            <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">未找到符合条件的素材</h3>
+            <p className="text-gray-500">请尝试更改筛选条件</p>
+          </div>
         ) : (
           <div className="space-y-12">
-            {CATEGORIES.map((category) => {
-              const categoryMaterials = materialsByCategory[category.id] || []
-
+            {Object.entries(materialsByCategory).map(([categoryId, categoryMaterials]) => {
               if (categoryMaterials.length === 0) return null
 
-              const isExpanded = expandedCategories.has(category.id)
+              const categoryConfig = CATEGORIES.find(c => c.id === categoryId)
+              const categoryLabel = categoryConfig?.label || categoryId
+
+              const isExpanded = expandedCategories.has(categoryId)
               const displayedMaterials = isExpanded
                 ? categoryMaterials
                 : categoryMaterials.slice(0, 4) // 默认只显示4个
 
               return (
-                <section key={category.id} id={category.id}>
+                <section key={categoryId} id={categoryId}>
                   {/* Section Header */}
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {category.label}
+                      {categoryLabel}
                       <span className="ml-2 text-sm font-normal text-gray-500">
                         ({categoryMaterials.length}节课)
                       </span>
                     </h2>
-                    <button
-                      onClick={() => {
-                        const newExpanded = new Set(expandedCategories)
-                        if (newExpanded.has(category.id)) {
-                          newExpanded.delete(category.id)
-                        } else {
-                          newExpanded.add(category.id)
-                        }
-                        setExpandedCategories(newExpanded)
-                      }}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      {isExpanded ? '收起 ↑' : `查看全部 →`}
-                    </button>
+                    {categoryMaterials.length > 4 && (
+                      <button
+                        onClick={() => {
+                          const newExpanded = new Set(expandedCategories)
+                          if (newExpanded.has(categoryId)) {
+                            newExpanded.delete(categoryId)
+                          } else {
+                            newExpanded.add(categoryId)
+                          }
+                          setExpandedCategories(newExpanded)
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        {isExpanded ? '收起 ↑' : `查看全部 →`}
+                      </button>
+                    )}
                   </div>
 
                   {/* Card Grid */}
@@ -284,13 +326,6 @@ export default function MaterialsPage() {
                 </section>
               )
             })}
-          </div>
-        )}
-
-        {/* 空状态 */}
-        {!loading && Object.values(materialsByCategory).every(arr => arr.length === 0) && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">没有找到匹配的素材</p>
           </div>
         )}
       </div>
