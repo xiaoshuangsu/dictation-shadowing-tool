@@ -7,6 +7,7 @@ interface Sentence {
   text: string
   startTime: number
   endTime: number
+  translation?: string  // 可选的中文翻译字段
 }
 
 interface ShadowingPanelProps {
@@ -385,7 +386,15 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
       {/* 参考文本 */}
       <div className="bg-gray-50 rounded-lg p-4 mb-4">
         <p className="text-sm text-gray-500 mb-1">原句：</p>
-        <p className="text-base text-gray-800">{sentence.text}</p>
+        <p className="text-base text-gray-800 mb-2">{sentence.text}</p>
+
+        {/* 中文翻译 */}
+        {sentence.translation && (
+          <>
+            <p className="text-sm text-gray-500 mb-1">释义：</p>
+            <p className="text-base text-gray-600 italic">{sentence.translation}</p>
+          </>
+        )}
       </div>
 
       {/* 错误提示 */}
