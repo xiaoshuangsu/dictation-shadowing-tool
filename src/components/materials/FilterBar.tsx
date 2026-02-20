@@ -44,7 +44,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <div>
       {/* 桌面端：横向靠左排列，移动端：垂直堆叠 */}
       <div className="flex flex-col md:flex-row md:justify-start gap-8">
         {/* 难度筛选 - 固定宽度 */}
