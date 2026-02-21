@@ -12,12 +12,13 @@ interface Sentence {
 
 interface ShadowingPanelProps {
   sentence: Sentence
+  audioSrc: string  // 新增：音频源
   onComplete?: (isCorrect: boolean, durationSeconds: number) => void
   onNext?: () => void
   isLastSentence?: boolean
 }
 
-export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
+export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
   const [userTranscript, setUserTranscript] = useState("")
@@ -70,6 +71,16 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
     setTotalPlayedSeconds(0)
     totalPlayedSecondsRef.current = 0
     setIsPlaying(false)
+
+    // 清理之前的音频事件监听器
+    if (cleanupRef.current) {
+      cleanupRef.current()
+      cleanupRef.current = null
+    }
+    // 停止音频播放
+    if (originalAudioRef.current) {
+      originalAudioRef.current.pause()
+    }
 
     // 记录页面开始时间（兜底逻辑）
     setPageStartTime(Date.now())
@@ -233,6 +244,15 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
       if (recognitionRef.current) {
         recognitionRef.current.stop()
       }
+      // 清理音频事件监听器
+      if (cleanupRef.current) {
+        cleanupRef.current()
+        cleanupRef.current = null
+      }
+      // 停止音频播放
+      if (originalAudioRef.current) {
+        originalAudioRef.current.pause()
+      }
     }
   }, [])
 
@@ -288,79 +308,110 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
     }
   }
 
+  // 存储清理函数的 ref
+  const cleanupRef = useRef<(() => void) | null>(null)
+
   // 播放原音
   const playOriginal = () => {
     if (originalAudioRef.current) {
       const audio = originalAudioRef.current
-      audio.currentTime = sentence.startTime
 
-      console.log('playOriginal - Starting playback at', sentence.startTime)
+      console.log('playOriginal - Starting playback at', sentence.startTime, 'to', sentence.endTime)
 
-      // 使用 useRef 存储事件处理器，确保可以正确移除
-      const handlePlay = () => {
-        if (!isPlaying) {
-          setIsPlaying(true)
-          lastUpdateTimeRef.current = Date.now()
-          console.log('Audio play event fired')
-        }
+      // 清理之前的定时器和事件监听器
+      if (cleanupRef.current) {
+        cleanupRef.current()
+        cleanupRef.current = null
       }
 
-      const handlePause = () => {
-        if (isPlaying) {
-          const now = Date.now()
-          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
-          totalPlayedSecondsRef.current += elapsedSeconds
-          setTotalPlayedSeconds(totalPlayedSecondsRef.current)
-          setIsPlaying(false)
-
-          console.log(`Audio paused. Elapsed: ${elapsedSeconds.toFixed(2)}s, Total: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
-        }
-      }
-
-      const handleTimeUpdate = () => {
-        if (isPlaying) {
-          const now = Date.now()
-          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
-          lastUpdateTimeRef.current = now
-
-          // 累计播放时间
-          totalPlayedSecondsRef.current += elapsedSeconds
-          setTotalPlayedSeconds(totalPlayedSecondsRef.current)
-        }
-      }
-
-      const handleEnded = () => {
-        if (isPlaying) {
-          const now = Date.now()
-          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
-          totalPlayedSecondsRef.current += elapsedSeconds
-          setTotalPlayedSeconds(totalPlayedSecondsRef.current)
-          setIsPlaying(false)
-
-          console.log(`Audio ended. Elapsed: ${elapsedSeconds.toFixed(2)}s, Total: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
-        }
-      }
-
-      // 添加事件监听器
-      audio.addEventListener('play', handlePlay, { once: false })
-      audio.addEventListener('pause', handlePause, { once: false })
-      audio.addEventListener('timeupdate', handleTimeUpdate, { once: false })
-      audio.addEventListener('ended', handleEnded, { once: false })
-
-      audio.play().catch(err => {
-        console.error('Failed to play audio:', err)
-      })
-
-      // 在句子的结束时间停止播放
-      const durationToPlay = (sentence.endTime - sentence.startTime) * 1000
+      // 先暂停音频，重置状态
+      audio.pause()
+      // 给音频一点时间来暂停
       setTimeout(() => {
-        audio.pause()
-        // 清理事件监听器
-        audio.removeEventListener('play', handlePlay)
-        audio.removeEventListener('pause', handlePause)
-        audio.removeEventListener('timeupdate', handleTimeUpdate)
-        audio.removeEventListener('ended', handleEnded)
-      }, durationToPlay + 100)
+        // 设置播放位置
+        audio.currentTime = sentence.startTime
+        setIsPlaying(false)
+        lastUpdateTimeRef.current = Date.now()
+
+        // 使用 useRef 存储事件处理器，确保可以正确移除
+        const handlePlay = () => {
+          if (!isPlaying) {
+            setIsPlaying(true)
+            lastUpdateTimeRef.current = Date.now()
+            console.log('Audio play event fired at', audio.currentTime)
+          }
+        }
+
+        const handlePause = () => {
+          if (isPlaying) {
+            const now = Date.now()
+            const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+            totalPlayedSecondsRef.current += elapsedSeconds
+            setTotalPlayedSeconds(totalPlayedSecondsRef.current)
+            setIsPlaying(false)
+
+            console.log(`Audio paused. Elapsed: ${elapsedSeconds.toFixed(2)}s, Total: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
+          }
+        }
+
+        const handleTimeUpdate = () => {
+          if (isPlaying) {
+            const now = Date.now()
+            const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+            lastUpdateTimeRef.current = now
+
+            // 累计播放时间
+            totalPlayedSecondsRef.current += elapsedSeconds
+            setTotalPlayedSeconds(totalPlayedSecondsRef.current)
+
+            // 检查是否到达结束时间
+            if (audio.currentTime >= sentence.endTime) {
+              audio.pause()
+            }
+          }
+        }
+
+        const handleEnded = () => {
+          if (isPlaying) {
+            const now = Date.now()
+            const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
+            totalPlayedSecondsRef.current += elapsedSeconds
+            setTotalPlayedSeconds(totalPlayedSecondsRef.current)
+            setIsPlaying(false)
+
+            console.log(`Audio ended. Elapsed: ${elapsedSeconds.toFixed(2)}s, Total: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
+          }
+        }
+
+        // 添加事件监听器
+        audio.addEventListener('play', handlePlay, { once: false })
+        audio.addEventListener('pause', handlePause, { once: false })
+        audio.addEventListener('timeupdate', handleTimeUpdate, { once: false })
+        audio.addEventListener('ended', handleEnded, { once: false })
+
+        // 保存清理函数
+        cleanupRef.current = () => {
+          audio.removeEventListener('play', handlePlay)
+          audio.removeEventListener('pause', handlePause)
+          audio.removeEventListener('timeupdate', handleTimeUpdate)
+          audio.removeEventListener('ended', handleEnded)
+        }
+
+        audio.play().catch(err => {
+          console.error('Failed to play audio:', err)
+        })
+
+        // 在句子的结束时间停止播放
+        const durationToPlay = (sentence.endTime - sentence.startTime) * 1000
+        setTimeout(() => {
+          audio.pause()
+          // 清理事件监听器
+          if (cleanupRef.current) {
+            cleanupRef.current()
+            cleanupRef.current = null
+          }
+        }, durationToPlay + 200) // 增加一些缓冲时间
+      }, 50) // 给音频一点时间来暂停
     }
   }
 
@@ -376,7 +427,7 @@ export default function ShadowingPanel({ sentence, onComplete, onNext, isLastSen
       {/* 原音播放器（隐藏） */}
       <audio
         ref={originalAudioRef}
-        src="/dictation-shadowing-tool/learn-english-via-listening-1001.mp3"
+        src={audioSrc}
       />
 
       <p className="text-sm text-gray-500 mb-4">

@@ -10,7 +10,8 @@
     "lint": "next lint",
     "translate": "node scripts/translate.js",
     "translate-all": "node scripts/translate.js",
-    "translate-new": "node scripts/translate.js --new"
+    "translate-new": "node scripts/translate.js --new",
+    "refine-translations": "node scripts/refine_translations.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
