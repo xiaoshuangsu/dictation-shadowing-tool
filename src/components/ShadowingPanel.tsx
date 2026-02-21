@@ -213,6 +213,10 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
   const [micError, setMicError] = useState<string | null>(null)
   const [wordDiffs, setWordDiffs] = useState<WordDiff[]>([])  // 单词对比结果
 
+  // 显示控制模式
+  type DisplayMode = 'full' | 'translation-only' | 'blind'
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('full')  // full: 显示原句+释义, translation-only: 只显示释义, blind: 完全隐藏
+
   // 兜底时间跟踪：页面停留时间
   const [pageStartTime, setPageStartTime] = useState<number | null>(null)
 
@@ -254,6 +258,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
     setRecordedAudioUrl(null)
     setMicError(null)
     setWordDiffs([])  // 重置单词对比结果
+    // 不重置 displayMode，保持用户选择
     recordedChunksRef.current = []
 
     // 重置播放时间跟踪
@@ -896,17 +901,70 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
         💡 影子跟读：播放音频后，点击麦克风跟读
       </p>
 
+      {/* 显示模式切换按钮 */}
+      <div className="mb-3 flex gap-2">
+        <button
+          onClick={() => setDisplayMode('full')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+            displayMode === 'full'
+              ? 'bg-blue-500 text-white shadow-md'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          显示全部
+        </button>
+        <button
+          onClick={() => setDisplayMode('translation-only')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+            displayMode === 'translation-only'
+              ? 'bg-orange-500 text-white shadow-md'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          只看释义
+        </button>
+        <button
+          onClick={() => setDisplayMode('blind')}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+            displayMode === 'blind'
+              ? 'bg-purple-500 text-white shadow-md'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          完全隐藏
+        </button>
+      </div>
+
       {/* 参考文本 */}
       <div className="bg-gray-50 rounded-lg p-4 mb-4">
-        <p className="text-sm text-gray-500 mb-1">原句：</p>
-        <p className="text-base text-gray-800 mb-2">{sentence.text}</p>
-
-        {/* 中文翻译 */}
-        {sentence.translation && (
+        {/* 原句 - 根据模式显示或隐藏 */}
+        {displayMode !== 'translation-only' && displayMode !== 'blind' && (
           <>
-            <p className="text-sm text-gray-500 mb-1">释义：</p>
-            <p className="text-base text-gray-600 italic">{sentence.translation}</p>
+            <p className="text-sm text-gray-500 mb-1">原句：</p>
+            <p className="text-base text-gray-800 mb-2">{sentence.text}</p>
           </>
+        )}
+
+        {/* 中文翻译 - 根据模式显示或隐藏 */}
+        {displayMode !== 'blind' && sentence.translation && (
+          <>
+            <p className="text-sm text-gray-500 mb-1">
+              {displayMode === 'translation-only' ? '释义：' : '释义：'}
+            </p>
+            <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'}`}>
+              {sentence.translation}
+            </p>
+          </>
+        )}
+
+        {/* 盲模式提示 */}
+        {displayMode === 'blind' && (
+          <div className="text-center py-2">
+            <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
+              <span className="text-lg">🙈</span>
+              <span>盲听模式 - 纯听音频跟读</span>
+            </p>
+          </div>
         )}
       </div>
 
