@@ -94,25 +94,41 @@ function HomeContent() {
   // 从 URL 参数加载素材数据
   useEffect(() => {
     async function loadMaterial() {
+      let targetMaterialId = materialId
+
+      // 如果 URL 没有 materialId，尝试从 localStorage 恢复
       if (!materialId) {
+        const savedMaterialId = localStorage.getItem('currentMaterialId')
+        if (savedMaterialId) {
+          console.log('🔄 Restoring material ID from localStorage:', savedMaterialId)
+          targetMaterialId = savedMaterialId
+        }
+      }
+
+      if (!targetMaterialId) {
         // 没有 materialId，使用默认素材
-        console.log('No material ID provided, using default material')
+        console.log('⚠️ No material ID provided, using default material:', DEFAULT_AUDIO_TITLE)
         setAudioTitle(DEFAULT_AUDIO_TITLE)
         setAudioSrc(DEFAULT_AUDIO_SRC)
         setSampleSentences(defaultSentences)
         setIsInitialLoading(false)
+        localStorage.removeItem('currentMaterialId') // 清除保存的 ID
         return
       }
+
+      // 保存 materialId 到 localStorage（用于刷新后恢复）
+      localStorage.setItem('currentMaterialId', targetMaterialId)
+      console.log('💾 Saved material ID to localStorage:', targetMaterialId)
 
       setMaterialError(null)
 
       try {
-        console.log('Loading material from Supabase:', materialId)
+        console.log('Loading material from Supabase:', targetMaterialId)
 
         const { data: material, error } = await supabase
           .from('materials')
           .select('id, title, category, audio_path, duration, transcript')
-          .eq('id', materialId)
+          .eq('id', targetMaterialId)
           .single()
 
         if (error) throw error
@@ -206,6 +222,7 @@ function HomeContent() {
   const [currentTime, setCurrentTime] = useState(0)
   const [isRevealed, setIsRevealed] = useState(false) // Track if user used "Show Words"
   const [showSignupPrompt, setShowSignupPrompt] = useState(false) // 注册提醒弹窗
+  const shouldSkipAutoPlayRef = useRef(false) // 使用 ref 来标记是否跳过自动播放
 
   // 跟踪主播放器的累计播放时间（Shadowing 使用）
   const [audioPlaybackSeconds, setAudioPlaybackSeconds] = useState(0)
@@ -245,9 +262,13 @@ function HomeContent() {
           const progress = JSON.parse(saved)
           console.log('Found saved progress:', progress)
 
-          // 恢复句子索引
-          if (progress.sentenceIndex !== undefined && progress.sentenceIndex > 0) {
+          // 只有当 URL 没有 start 参数时，才恢复保存的句子索引
+          // URL 参数优先级高于 localStorage
+          if (startParam === null && progress.sentenceIndex !== undefined && progress.sentenceIndex > 0) {
             setCurrentSentenceIndex(progress.sentenceIndex)
+            console.log('Restored sentence index from localStorage:', progress.sentenceIndex)
+          } else if (startParam !== null) {
+            console.log('Using start param from URL:', startParam, '(ignoring localStorage)')
           }
 
           // 只有当 URL 没有 practiceMode 参数时，才恢复保存的模式
@@ -279,7 +300,7 @@ function HomeContent() {
       // 用户登出时重置状态
       setProgressRestored(false)
     }
-  }, [user, authLoading, progressRestored, materialId])
+  }, [user, authLoading, progressRestored, materialId, startParam])
 
   // 加载素材的辅助函数
   const loadMaterialById = async (id: string, category?: string | null) => {
@@ -333,21 +354,32 @@ function HomeContent() {
     console.log('Reset audio playback time for new sentence')
   }, [currentSentenceIndex])
 
-  // 处理从个人中心跳转的 start 参数
+  // 处理从个人中心跳转的 start 参数，或从素材页面跳转的 id 参数
   useEffect(() => {
-    // 只有当有 start 参数、句子数据已加载、且不是从 localStorage 恢复进度时才生效
-    if (startParam && sampleSentences && sampleSentences.length > 0 && !progressRestored) {
+    if (!sampleSentences || sampleSentences.length === 0) return
+
+    // 处理 start 参数（指定句子索引）
+    if (startParam) {
       const startIndex = parseInt(startParam, 10)
 
       // 验证索引有效性
       if (!isNaN(startIndex) && startIndex >= 0 && startIndex < sampleSentences.length) {
-        console.log(`Setting start index from URL: ${startIndex} (total: ${sampleSentences.length} sentences)`)
+        console.log(`📍 [URL Param] Setting start index from URL: ${startIndex} (total: ${sampleSentences.length} sentences)`)
+        // 标记为从外部链接跳转，禁用自动播放
+        shouldSkipAutoPlayRef.current = true
         setCurrentSentenceIndex(startIndex)
       } else {
         console.warn(`Invalid start index: ${startParam}, using default 0`)
       }
     }
-  }, [startParam, sampleSentences, progressRestored])
+    // 处理 materialId 参数（从素材页面跳转）
+    else if (materialId) {
+      console.log(`📚 [From Topics] Navigated from topics page with material: ${materialId}`)
+      // 标记为从外部链接跳转，禁用自动播放
+      shouldSkipAutoPlayRef.current = true
+      // 索引保持为 0（从第一句开始）
+    }
+  }, [startParam, materialId, sampleSentences])
 
   const currentSentence = sampleSentences?.[currentSentenceIndex]
 
@@ -370,10 +402,18 @@ function HomeContent() {
     }
   }, [authLoading, user])
 
-  // Auto-play when sentence index changes
+  // Auto-play when sentence index changes（但不包括从外部链接跳转）
   useEffect(() => {
+    // 如果是从外部链接跳转的，不自动播放
+    if (shouldSkipAutoPlayRef.current) {
+      console.log('🔗 [External Link] Skipped auto-play for external link')
+      shouldSkipAutoPlayRef.current = false // 重置标记
+      return
+    }
+
     if (currentSentenceIndex > 0) {
       setAutoPlayTrigger(prev => prev + 1)
+      console.log('▶️ [Auto-play] Triggered for sentence index:', currentSentenceIndex)
     }
     // 保存进度
     savePracticeProgress(currentSentenceIndex)
@@ -431,6 +471,8 @@ function HomeContent() {
     // Save to Supabase if user is logged in
     if (user && currentSentence) {
       try {
+        console.log(`💾 [Save] Saving sentence ${sentenceId} (${currentSentence.text?.substring(0, 30)}...) for ${audioTitle}`)
+
         // V3.1 数据留存：保存到 practice_records（数据库存秒）
         await savePracticeRecord({
           userId: user.id,
@@ -444,6 +486,8 @@ function HomeContent() {
           // Dictation 和 Shadowing 都保存秒数
           durationSeconds: (mode === 'dictation' ? (duration || 0) : Math.round(audioPlaybackSecondsRef.current)) || undefined,
         })
+
+        console.log(`✅ [Save] Successfully saved sentence ${sentenceId}`)
 
         // V3 数据留存：更新连胜和统计数据（统计表存分钟）
         if (mode === 'dictation') {
@@ -460,7 +504,7 @@ function HomeContent() {
           await onShadowingComplete(user.id, minutes)
         }
 
-        console.log(`Practice data saved (${mode})`)
+        console.log(`✅ [Save] Practice data saved (${mode})`)
 
         // 保存下一句的进度（如果不是最后一句）
         if (!isLastSentence) {
@@ -469,9 +513,11 @@ function HomeContent() {
           console.log('Saved next sentence progress:', nextIndex)
         }
       } catch (error) {
-        console.error('Failed to save practice data:', error)
+        console.error(`❌ [Save] Failed to save sentence ${sentenceId}:`, error)
         // Don't show error to user - practice continues normally
       }
+    } else {
+      console.warn(`⚠️ [Save] Skipped saving: user=${!!user}, currentSentence=${!!currentSentence}`)
     }
 
     // Reset the revealed state for next sentence
@@ -504,7 +550,7 @@ function HomeContent() {
       {/* Navigation Bar */}
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <Link href="/materials" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">
+          <Link href="/topics" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">
             素材库
           </Link>
           <AuthButton />
@@ -519,14 +565,14 @@ function HomeContent() {
               Home
             </Link>
             <span className="mx-2 text-gray-400">»</span>
-            <Link href="/materials" className="text-gray-500 hover:text-blue-600 transition-colors">
-              Materials
+            <Link href="/topics" className="text-gray-500 hover:text-blue-600 transition-colors">
+              Topics
             </Link>
             {materialCategory && (
               <>
                 <span className="mx-2 text-gray-400">»</span>
                 <Link
-                  href={`/materials#${materialCategory}`}
+                  href={`/topics#${materialCategory}`}
                   className="text-gray-500 hover:text-blue-600 transition-colors"
                 >
                   {materialCategory}
