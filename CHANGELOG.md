@@ -5,7 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.2.0] - 2025-02-19
+## [5.3.0] - 2025-02-21
+
+### Added
+- **Shadowing Practice Display Modes**
+  - Three display modes for progressive difficulty:
+    * Full Mode (Blue): Show original text + translation
+    * Translation Only Mode (Orange): Show Chinese translation only
+    * Blind Mode (Purple): Hide all text, pure audio practice
+  - User preference persistence: Selected mode maintained when switching sentences
+  - Color-coded buttons for easy mode identification
+  - Visual indicator for blind mode with 🙈 emoji
+
+### Benefits
+- Translation Only Mode: Improve listening comprehension skills
+- Blind Mode: Challenge pure audio shadowing without text support
+- Progressive difficulty: Users can choose their preferred difficulty level
+
+---
+
+## [5.2.0] - 2025-02-21
+
+### Added
+- **Word-Level Comparison & Error Highlighting**
+  - Display detailed word-by-word comparison for shadowing practice
+  - Highlight wrong words (red bold underline)
+  - Show missed words (red dashed brackets [word])
+  - Color-coded feedback for easy identification
+
+- **Intelligent Linking Detection**
+  - Auto-detect linking opportunities in sentences (e.g., "looked at", "taken a")
+  - Display IPA pronunciation for linked phrases
+  - Only show tips when errors involve linking words
+
+- **Linking Weak Sound Recognition**
+  - Identify weak words in linking contexts (e.g., "taken a" → "taken")
+  - Mark weak link as gray parenthesis instead of error
+  - Don't penalize for natural linking reduction
+
+- **Similar-Sounding Words Detection**
+  - Recognize confused words (he/she, there/their, it's/its)
+  - Treat similar-sounding words as correct
+  - Prevent false errors from speech recognition issues
+
+- **External Link Navigation**
+  - Material selection persistence (localStorage)
+  - Disable auto-play when navigating from profile/topics
+  - Direct jump to specific sentences from profile page
+  - Detailed progress display: show completed/missing sentence IDs
+
+- **UI/UX Improvements**
+  - Rename `/materials` → `/topics` for better clarity
+  - Update breadcrumb navigation
+  - Add expandable material progress cards
+  - Show missing sentence IDs in profile
+
+### Fixed
+- Fix shadowing audio playback with dynamic audio sources
+- Fix wrong sentence playing in shadowing mode
+- Fix audio path issues with basePath
+- Correct word comparison algorithm with dual-pointer traversal
+
+---
+
+## [5.1.0] - 2025-02-19
+
+### Added
+- **Translation Refinement Script**
+  - Batch optimize 1,157 sentence translations using GLM-4-Flash API
+  - Focus on colloquial, natural Chinese expressions
+  - Remove "translationese" patterns
+  - Context-aware translation based on material titles
+
+### Fixed
+- Fix shadowing audio playback issue (basePath problem)
+- Fix audio source not updating for different materials
+
+---
+
+## [5.0.0] - 2025-02-17
+
+### Added
+- **Material-Level Progress Display**
+  - Show progress for each completed material
+  - Display material thumbnails and categories
+  - Track last practiced date
+  - Progress bars with percentage completion
+
+- **Navigation Improvements**
+  - Click material card to resume practice
+  - Jump to specific sentence when resuming
+  - Auto-save last practiced sentence index
+
+### Changed
+- Redesign progress display from sentence-level to material-level
+- Improve visual hierarchy with card-based layout
+
+---
 
 ### Added
 - **Word 模式中文释义功能**
