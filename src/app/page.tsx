@@ -750,6 +750,7 @@ function HomeContent() {
             ) : (
               <ShadowingPanel
                 sentence={currentSentence}
+                audioSrc={audioSrc || DEFAULT_AUDIO_SRC}
                 onComplete={(isCorrect, durationSeconds) => handleComplete(currentSentence.id, isCorrect, false, durationSeconds)}
                 onNext={handleNext}
                 isLastSentence={isLastSentence}
