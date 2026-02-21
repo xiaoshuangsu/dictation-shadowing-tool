@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
-import FilterBar, { FilterOptions } from '@/components/materials/FilterBar'
+import FilterBar, { FilterOptions } from '@/components/topics/FilterBar'
 
 // 硬编码 Supabase 配置
 const supabase = createClient(

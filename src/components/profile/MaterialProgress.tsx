@@ -104,6 +104,9 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
   const completed = material.completedSentences
   const percentage = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0
 
+  // 展开状态
+  const [isExpanded, setIsExpanded] = useState(false)
+
   // 计算跳转目标：下一句 = 已完成句子数
   // 如果已完成所有句子，回到第 1 句（索引 0）
   const targetIndex = completed >= total ? 0 : completed
@@ -149,64 +152,148 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
   const initials = getInitials(material.audioTitle)
   const bgColor = isCompleted ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
 
+  // 计算缺失的句子ID
+  const missingIds = material.sentenceIds
+    ? Array.from({ length: total }, (_, i) => i + 1).filter(id => !material.sentenceIds!.includes(id))
+    : []
+
   return (
-    <div
-      className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors cursor-pointer"
-      onClick={handleClick}
-    >
-      <div className="flex gap-4">
-        {/* 封面图 */}
-        <div className="flex-shrink-0 w-16 h-16">
-          {thumbnailUrl && !imageError ? (
-            <img
-              src={thumbnailUrl}
-              alt={material.audioTitle}
-              className="w-16 h-16 rounded-lg object-cover"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            // 备用：首字母占位符
-            <div className={`w-16 h-16 rounded-lg ${bgColor} flex items-center justify-center text-lg font-bold`}>
-              {initials}
-            </div>
-          )}
-        </div>
-
-        {/* 内容区域 */}
-        <div className="flex-1 min-w-0">
-          {/* 标题 */}
-          <h4 className="font-medium text-gray-900 mb-2 truncate">
-            {material.audioTitle}
-          </h4>
-
-          {/* 进度条 */}
-          <div className="mb-2">
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs text-gray-600">
-                {completed}/{total} 句
-              </span>
-              <span className={`text-xs font-medium ${
-                isCompleted ? 'text-green-600' : 'text-blue-600'
-              }`}>
-                {percentage}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all ${
-                  isCompleted ? 'bg-green-500' : 'bg-blue-500'
-                }`}
-                style={{ width: `${percentage}%` }}
+    <div className="bg-gray-50 rounded-lg overflow-hidden">
+      {/* 主卡片区域 */}
+      <div
+        className="p-4 hover:bg-gray-100 transition-colors cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex gap-4">
+          {/* 封面图 */}
+          <div className="flex-shrink-0 w-16 h-16">
+            {thumbnailUrl && !imageError ? (
+              <img
+                src={thumbnailUrl}
+                alt={material.audioTitle}
+                className="w-16 h-16 rounded-lg object-cover"
+                onError={() => setImageError(true)}
               />
+            ) : (
+              // 备用：首字母占位符
+              <div className={`w-16 h-16 rounded-lg ${bgColor} flex items-center justify-center text-lg font-bold`}>
+                {initials}
+              </div>
+            )}
+          </div>
+
+          {/* 内容区域 */}
+          <div className="flex-1 min-w-0">
+            {/* 标题 */}
+            <h4 className="font-medium text-gray-900 mb-2 truncate">
+              {material.audioTitle}
+            </h4>
+
+            {/* 进度条 */}
+            <div className="mb-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-gray-600">
+                  {completed}/{total} 句
+                </span>
+                <span className={`text-xs font-medium ${
+                  isCompleted ? 'text-green-600' : 'text-blue-600'
+                }`}>
+                  {percentage}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all ${
+                    isCompleted ? 'bg-green-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+            </div>
+
+            {/* 最后练习时间 */}
+            <p className="text-xs text-gray-500">
+              最后练习：{formatDate(new Date(material.lastPracticedAt))}
+            </p>
+          </div>
+
+          {/* 展开/收起图标 */}
+          <div className="flex items-center">
+            <svg
+              className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* 展开详情 */}
+      {isExpanded && (
+        <div className="px-4 pb-4 border-t border-gray-200">
+          {/* 已完成的句子ID */}
+          <div className="mt-3">
+            <h5 className="text-sm font-medium text-gray-700 mb-2">已完成句子：</h5>
+            <div className="flex flex-wrap gap-1">
+              {material.sentenceIds?.map(id => (
+                <span
+                  key={id}
+                  className="inline-flex items-center px-2 py-1 bg-green-100 text-green-700 text-xs rounded"
+                >
+                  {id}
+                </span>
+              )) || <span className="text-xs text-gray-500">无数据</span>}
             </div>
           </div>
 
-          {/* 最后练习时间 */}
-          <p className="text-xs text-gray-500">
-            最后练习：{formatDate(new Date(material.lastPracticedAt))}
-          </p>
+          {/* 缺失的句子ID */}
+          {missingIds.length > 0 && (
+            <div className="mt-3">
+              <h5 className="text-sm font-medium text-red-700 mb-2">
+                未完成句子（点击跳转）：
+              </h5>
+              <div className="flex flex-wrap gap-1">
+                {missingIds.map(id => (
+                  <button
+                    key={id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      // 跳转到指定句子（索引 = id - 1）
+                      if (!material.materialId) return
+                      const params = new URLSearchParams({
+                        id: material.materialId,
+                        mode: practiceMode,
+                        start: (id - 1).toString()
+                      })
+                      router.push(`/?${params.toString()}`)
+                    }}
+                    className="inline-flex items-center px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors cursor-pointer"
+                  >
+                    第{id}句
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-red-600 mt-2">
+                💡 点击句子号直接跳转练习
+              </p>
+            </div>
+          )}
+
+          {/* 跳转按钮 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleClick()
+            }}
+            className="mt-3 w-full py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+          >
+            继续练习
+          </button>
         </div>
-      </div>
+      )}
     </div>
   )
 }

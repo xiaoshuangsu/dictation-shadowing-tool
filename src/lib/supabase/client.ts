@@ -239,6 +239,7 @@ export interface MaterialProgress {
   thumbnail?: string | null
   lastPracticedSentenceIndex?: number  // 最后练习的句子索引（0-based）
   materialId?: string  // 素材 ID
+  sentenceIds?: number[]  // 已完成的句子ID列表（排序后）
 }
 
 /**
@@ -270,6 +271,8 @@ export async function getMaterialProgressFallback(
   userId: string,
   practiceMode: 'dictation' | 'shadowing'
 ): Promise<MaterialProgress[]> {
+  console.log(`📊 [Progress] Fetching progress for user ${userId}, mode ${practiceMode}`)
+
   // 1. 获取用户的所有练习记录（包含sentence_id和索引用于去重）
   const { data: records, error } = await supabase
     .from('practice_records')
@@ -284,8 +287,11 @@ export async function getMaterialProgressFallback(
   }
 
   if (!records || records.length === 0) {
+    console.log(`⚠️ [Progress] No records found for ${practiceMode}`)
     return []
   }
+
+  console.log(`📈 [Progress] Found ${records.length} total records for ${practiceMode}`)
 
   // 2. 客户端聚合（按素材分组，使用Set去重句子ID）
   const materialMap = new Map<string, {
@@ -321,6 +327,13 @@ export async function getMaterialProgressFallback(
     }
   }
 
+  // 打印每个素材的句子ID集合（调试用）
+  console.log(`🔍 [Progress] Material sentence counts:`)
+  materialMap.forEach((data, title) => {
+    const sentenceIds = Array.from(data.uniqueSentences).sort((a, b) => a - b)
+    console.log(`  - ${title}: ${data.uniqueSentences.size} unique sentences (IDs: ${sentenceIds.slice(0, 5).join(', ')}${sentenceIds.length > 5 ? '...' : ''})`)
+  })
+
   // 3. 获取所有素材的总句子数和缩略图
   const { data: materials } = await supabase
     .from('materials')
@@ -354,6 +367,7 @@ export async function getMaterialProgressFallback(
     const completedSentences = uniqueSentences.size // 使用Set的大小，自动去重
     const thumbnail = info?.thumbnail
     const materialId = info?.materialId || ''
+    const sentenceIds = Array.from(uniqueSentences).sort((a, b) => a - b) // 排序
 
     result.push({
       audioTitle,
@@ -363,8 +377,12 @@ export async function getMaterialProgressFallback(
       practiceMode,
       thumbnail,
       lastPracticedSentenceIndex: lastSentenceIndex,
-      materialId
+      materialId,
+      sentenceIds // 添加句子ID列表
     })
+
+    console.log(`✅ [Progress] ${audioTitle}: ${completedSentences}/${totalSentences} (${Math.round(completedSentences/totalSentences*100)}%)`)
+    console.log(`   Sentence IDs: [${sentenceIds.join(', ')}]`)
   })
 
   // 按最后练习时间排序

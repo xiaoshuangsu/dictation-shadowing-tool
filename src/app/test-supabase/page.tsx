@@ -110,7 +110,7 @@ export default function TestSupabasePage() {
         )}
 
         <div className="mt-8 space-y-2">
-          <a href="/materials" className="text-blue-600 hover:underline block">
+          <a href="/topics" className="text-blue-600 hover:underline block">
             ← 返回素材页面
           </a>
           <a href="/" className="text-blue-600 hover:underline block">
