@@ -32,7 +32,7 @@ export default function HeroVisual() {
       >
         <img
           src="/hero-banner.png"
-          alt="English learning parrot with AI dictation and shadowing practice"
+          alt="Improve English listening and speaking skills with ShadowHub"
           className="relative w-full h-auto"
           style={{ maxHeight: '400px', objectFit: 'contain' }}
         />

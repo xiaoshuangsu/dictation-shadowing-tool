@@ -1,8 +1,8 @@
-import { Suspense } from 'react'
 import { MATERIAL_SLUGS } from '@/lib/data/materialSlugs'
-import DictationRedirect from './DictationRedirect'
+import { Suspense } from 'react'
+import DictationPracticeClient from './DictationPracticeClient'
 
-// Generate static params for all materials at build time
+// Generate static params for build time
 export function generateStaticParams() {
   return MATERIAL_SLUGS
 }
@@ -21,7 +21,7 @@ export default function DictationPracticePage({
         </div>
       </div>
     }>
-      <DictationRedirect slug={params.slug} mode="dictation" />
+      <DictationPracticeClient slug={params.slug} />
     </Suspense>
   )
 }

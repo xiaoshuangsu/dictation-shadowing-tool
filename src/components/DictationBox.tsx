@@ -293,24 +293,24 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
   return (
     <div>
-      {/* 原文显示框（空白）+ 翻译按钮 */}
+      {/* Translation display */}
       {sentence.translation && (
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg relative min-h-[60px]">
-          {/* 右上角：显示释义按钮 */}
-          <button
-            onClick={() => setShowTranslation(!showTranslation)}
-            className="absolute top-2 right-2 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
-          >
-            {showTranslation ? '隐藏释义' : '显示释义'}
-          </button>
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          {/* First row: Show translation button */}
+          <div className="flex justify-end mb-3">
+            <button
+              onClick={() => setShowTranslation(!showTranslation)}
+              className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+            >
+              {showTranslation ? 'Hide Translation' : 'Show Translation'}
+            </button>
+          </div>
 
-          {/* 中文翻译显示 */}
+          {/* Second row: Translation text */}
           {showTranslation && (
-            <div className="pt-3">
-              <p className="text-sm text-gray-600 italic">
-                {sentence.translation}
-              </p>
-            </div>
+            <p className="text-sm text-gray-600 italic">
+              {sentence.translation}
+            </p>
           )}
         </div>
       )}

@@ -13,7 +13,7 @@ export default function CTA() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-overlay filter blur-3xl opacity-10"></div>
       </div>
 
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12 relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -36,7 +36,7 @@ export default function CTA() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-xl text-blue-100 mb-12 max-w-3xl mx-auto whitespace-nowrap"
+            className="text-lg md:text-xl text-blue-100 mb-12 max-w-3xl mx-auto"
           >
             10 minutes of Dictation + Shadowing daily, transform English from an "exam tool" into a language you can truly use.
           </motion.p>

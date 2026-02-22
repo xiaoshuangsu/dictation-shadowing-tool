@@ -911,7 +911,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          显示全部
+          Show All
         </button>
         <button
           onClick={() => setDisplayMode('translation-only')}
@@ -921,7 +921,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          只看释义
+          Translation Only
         </button>
         <button
           onClick={() => setDisplayMode('blind')}
@@ -931,7 +931,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          完全隐藏
+          Hide All
         </button>
       </div>
 

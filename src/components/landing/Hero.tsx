@@ -8,7 +8,7 @@ import HeroVisual from "./HeroVisual"
 export default function Hero() {
   return (
     <section className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 py-20 md:py-28 overflow-hidden">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12 relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

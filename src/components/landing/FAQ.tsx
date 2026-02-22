@@ -64,7 +64,7 @@ export default function FAQ() {
 
   return (
     <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

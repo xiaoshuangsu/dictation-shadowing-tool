@@ -211,17 +211,20 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   return (
     <div>
       {/* Display Text with One Hidden Word */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg relative">
-        {/* 右上角：显示释义按钮 */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        {/* First row: Show translation button */}
         {sentence.translation && (
-          <button
-            onClick={() => setShowTranslation(!showTranslation)}
-            className="absolute top-2 right-2 px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
-          >
-            {showTranslation ? '隐藏释义' : '显示释义'}
-          </button>
+          <div className="flex justify-end mb-3">
+            <button
+              onClick={() => setShowTranslation(!showTranslation)}
+              className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+            >
+              {showTranslation ? 'Hide Translation' : 'Show Translation'}
+            </button>
+          </div>
         )}
 
+        {/* 第二行：原文 */}
         <p className="text-lg leading-relaxed">
           {visibleWords.map((word, index) => (
             <span key={index} className="text-gray-800">{word} </span>

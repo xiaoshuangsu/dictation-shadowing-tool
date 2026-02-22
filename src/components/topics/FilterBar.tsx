@@ -12,10 +12,10 @@ export type FilterOptions = {
 
 // 时长选项
 const DURATION_OPTIONS = [
-  { value: null, label: '全部' },
-  { value: 'short', label: '< 1分钟' },
-  { value: 'medium', label: '1-3分钟' },
-  { value: 'long', label: '> 3分钟' },
+  { value: null, label: 'All durations' },
+  { value: 'short', label: '< 1 min' },
+  { value: 'medium', label: '1-3 min' },
+  { value: 'long', label: '> 3 min' },
 ]
 
 interface FilterBarProps {
@@ -30,9 +30,14 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
     category: null,
   })
 
+  // Duration 下拉状态
+  const [isDurationOpen, setIsDurationOpen] = useState(false)
+  // Category 下拉状态
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false)
+
   // 构建话题选项（动态）
   const categoryOptions = [
-    { value: null, label: '全部' },
+    { value: null, label: 'All topics' },
     ...categories.map(cat => ({ value: cat, label: cat })),
   ]
 
@@ -66,23 +71,49 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
               </svg>
               <span className="text-xs font-medium text-gray-700">Duration</span>
             </div>
-            <select
-              value={filters.duration || ''}
-              onChange={(e) => updateFilter('duration', e.target.value || null)}
-              className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 0.5rem center',
-                backgroundSize: '1rem',
-              }}
-            >
-              {DURATION_OPTIONS.map(option => (
-                <option key={option.value || 'all'} value={option.value || ''}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative min-w-[200px]">
+              {/* 触发按钮 */}
+              <button
+                type="button"
+                onClick={() => setIsDurationOpen(!isDurationOpen)}
+                className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors flex items-center justify-between"
+              >
+                <span className="whitespace-nowrap">
+                  {DURATION_OPTIONS.find(opt => opt.value === filters.duration)?.label || 'All durations'}
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isDurationOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* 下拉菜单 */}
+              {isDurationOpen && (
+                <div className="absolute z-[100] w-full min-w-[200px] mt-1 bg-white border border-gray-200 rounded-lg shadow-xl">
+                  {DURATION_OPTIONS.map((option) => (
+                    <button
+                      key={option.value || 'all'}
+                      type="button"
+                      onClick={() => {
+                        updateFilter('duration', option.value)
+                        setIsDurationOpen(false)
+                      }}
+                      className={`w-full px-4 py-2.5 text-sm text-left transition-colors whitespace-nowrap ${
+                        filters.duration === option.value
+                          ? 'bg-blue-500 text-white'
+                          : 'text-gray-700 hover:bg-blue-50'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -96,23 +127,49 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
               </svg>
               <span className="text-xs font-medium text-gray-700">Topic</span>
             </div>
-            <select
-              value={filters.category || ''}
-              onChange={(e) => updateFilter('category', e.target.value || null)}
-              className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer pr-8"
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 0.5rem center',
-                backgroundSize: '1rem',
-              }}
-            >
-              {categoryOptions.map(option => (
-                <option key={option.value || 'all'} value={option.value || ''}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative min-w-[200px]">
+              {/* 触发按钮 */}
+              <button
+                type="button"
+                onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors flex items-center justify-between"
+              >
+                <span className="whitespace-nowrap">
+                  {categoryOptions.find(opt => opt.value === filters.category)?.label || 'All topics'}
+                </span>
+                <svg
+                  className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isCategoryOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* 下拉菜单 */}
+              {isCategoryOpen && (
+                <div className="absolute z-[100] w-full min-w-[200px] mt-1 bg-white border border-gray-200 rounded-lg shadow-xl">
+                  {categoryOptions.map((option) => (
+                    <button
+                      key={option.value || 'all'}
+                      type="button"
+                      onClick={() => {
+                        updateFilter('category', option.value)
+                        setIsCategoryOpen(false)
+                      }}
+                      className={`w-full px-4 py-2.5 text-sm text-left transition-colors whitespace-nowrap ${
+                        filters.category === option.value
+                          ? 'bg-blue-500 text-white'
+                          : 'text-gray-700 hover:bg-blue-50'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
