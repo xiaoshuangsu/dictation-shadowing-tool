@@ -1,8 +1,8 @@
-import { Suspense } from 'react'
 import { MATERIAL_SLUGS } from '@/lib/data/materialSlugs'
-import ShadowingRedirect from './ShadowingRedirect'
+import { Suspense } from 'react'
+import ShadowingPracticeClient from './ShadowingPracticeClient'
 
-// Generate static params for all materials at build time
+// Generate static params for build time
 export function generateStaticParams() {
   return MATERIAL_SLUGS
 }
@@ -21,7 +21,7 @@ export default function ShadowingPracticePage({
         </div>
       </div>
     }>
-      <ShadowingRedirect slug={params.slug} mode="shadowing" />
+      <ShadowingPracticeClient slug={params.slug} />
     </Suspense>
   )
 }

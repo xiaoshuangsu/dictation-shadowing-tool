@@ -5,7 +5,7 @@ import { motion } from "framer-motion"
 export default function FeaturesTitle() {
   return (
     <section className="py-16 bg-white">
-      <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12 text-center">
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
