@@ -1,0 +1,230 @@
+[
+  {
+    "id": 1,
+    "text": "Canada, provinces and territories. Canada is one of the largest countries in the world.",
+    "startTime": 0.0,
+    "endTime": 5.5
+  },
+  {
+    "id": 2,
+    "text": "It is located in the northern half of the continent of North America, above the United States.",
+    "startTime": 5.0,
+    "endTime": 10.0
+  },
+  {
+    "id": 3,
+    "text": "Canada is divided into 10 provinces and three territories, each of which is different from the others.",
+    "startTime": 9.0,
+    "endTime": 14.5
+  },
+  {
+    "id": 4,
+    "text": "The Province of British Columbia is located at the far western end of Canada.",
+    "startTime": 14.5,
+    "endTime": 19.0
+  },
+  {
+    "id": 5,
+    "text": "British Columbia stretches from the Pacific Ocean at the West to the Rocky Mountains at the east.",
+    "startTime": 19.0,
+    "endTime": 24.5
+  },
+  {
+    "id": 6,
+    "text": "British Columbia contains the City of Vancouver, where 2 million people live.",
+    "startTime": 24.5,
+    "endTime": 29.0
+  },
+  {
+    "id": 7,
+    "text": "Most of the land of British Columbia is very mountainous, with vast forests covering the mountains in British Columbia.",
+    "startTime": 29.0,
+    "endTime": 35.5
+  },
+  {
+    "id": 8,
+    "text": "Forestry is an important industry providing wood for people around the world.",
+    "startTime": 35.5,
+    "endTime": 40.0
+  },
+  {
+    "id": 9,
+    "text": "Moving east from British Columbia, the next provinces are Alberta, Saskatchewan and Manitoba.",
+    "startTime": 40.0,
+    "endTime": 45.5
+  },
+  {
+    "id": 10,
+    "text": "These are known as the Prairie provinces because they are mostly made of flat, grassy land called Prairie.",
+    "startTime": 45.5,
+    "endTime": 51.5
+  },
+  {
+    "id": 11,
+    "text": "Alberta is the province where the flat Prairie meets the tall, beautiful Rocky Mountains.",
+    "startTime": 51.5,
+    "endTime": 56.5
+  },
+  {
+    "id": 12,
+    "text": "In Alberta, there are many fields where oil and gas are found, and there are also many farms where cattle are raised.",
+    "startTime": 56.5,
+    "endTime": 63.5
+  },
+  {
+    "id": 13,
+    "text": "Saskatchewan is the province that grows the most wheat.",
+    "startTime": 63.5,
+    "endTime": 67.5
+  },
+  {
+    "id": 14,
+    "text": "Wheat from Saskatchewan is sent around the world to make bread and pasta for many people.",
+    "startTime": 67.5,
+    "endTime": 73.0
+  },
+  {
+    "id": 15,
+    "text": "Manitoba is the other Prairie province, its largest city.",
+    "startTime": 73.0,
+    "endTime": 77.0
+  },
+  {
+    "id": 16,
+    "text": "Winnipeg is about halfway between the Pacific and Atlantic oceans.",
+    "startTime": 77.0,
+    "endTime": 81.5
+  },
+  {
+    "id": 17,
+    "text": "Winnipeg has the coldest winters of any large city in the world, with temperatures sometimes reaching -40 degrees Celsius.",
+    "startTime": 81.5,
+    "endTime": 88.5
+  },
+  {
+    "id": 18,
+    "text": "Moving east, the next province is Ontario.",
+    "startTime": 88.5,
+    "endTime": 92.0
+  },
+  {
+    "id": 19,
+    "text": "The land in the northern part of Ontario is very rocky and contains many thousands and thousands of lakes.",
+    "startTime": 92.0,
+    "endTime": 98.5
+  },
+  {
+    "id": 20,
+    "text": "Many mines are found in northern Ontario.",
+    "startTime": 98.5,
+    "endTime": 102.0
+  },
+  {
+    "id": 21,
+    "text": "In the southern part of Ontario, there is good farmland and there are also many cities where factories produce cars and steel.",
+    "startTime": 102.0,
+    "endTime": 109.5
+  },
+  {
+    "id": 22,
+    "text": "Ontario contains Canada's largest city, Toronto, as well as the capital city of Canada, Ottawa.",
+    "startTime": 109.5,
+    "endTime": 115.5
+  },
+  {
+    "id": 23,
+    "text": "In the southern part of Ontario are four of the largest lakes in the world, known as the Great Lakes.",
+    "startTime": 115.5,
+    "endTime": 121.0
+  },
+  {
+    "id": 24,
+    "text": "Next to Ontario is the province of Quebec.",
+    "startTime": 121.0,
+    "endTime": 124.5
+  },
+  {
+    "id": 25,
+    "text": "Unlike the other provinces where most people speak English, most of the people in Quebec speak French.",
+    "startTime": 124.5,
+    "endTime": 131.0
+  },
+  {
+    "id": 26,
+    "text": "The capital of Quebec is called Quebec City, and this is one of the oldest cities in North America.",
+    "startTime": 131.0,
+    "endTime": 137.0
+  },
+  {
+    "id": 27,
+    "text": "Quebec City contains many buildings that are hundreds of years old.",
+    "startTime": 137.0,
+    "endTime": 141.5
+  },
+  {
+    "id": 28,
+    "text": "Also in the province of Quebec is the city of Montreal.",
+    "startTime": 141.5,
+    "endTime": 145.5
+  },
+  {
+    "id": 29,
+    "text": "Of all the French speaking cities in the world, only Paris is larger than Montreal.",
+    "startTime": 145.5,
+    "endTime": 150.5
+  },
+  {
+    "id": 30,
+    "text": "In the eastern part of Canada are the Atlantic provinces, which are next to the Atlantic Ocean.",
+    "startTime": 150.5,
+    "endTime": 156.0
+  },
+  {
+    "id": 31,
+    "text": "These provinces are New Brunswick, Nova Scotia, Prince Edward Island and Newfoundland.",
+    "startTime": 156.0,
+    "endTime": 162.0
+  },
+  {
+    "id": 32,
+    "text": "In the Atlantic provinces, fishing is an important industry.",
+    "startTime": 162.0,
+    "endTime": 166.5
+  },
+  {
+    "id": 33,
+    "text": "Tourism is also important as many people come to see the beauty of these provinces.",
+    "startTime": 166.5,
+    "endTime": 171.5
+  },
+  {
+    "id": 34,
+    "text": "The people in these provinces are said to be the friendliest in Canada.",
+    "startTime": 171.5,
+    "endTime": 176.0
+  },
+  {
+    "id": 35,
+    "text": "In the far north of Canada are the three territories that lie beside the Arctic Ocean, Yukon, Northwest Territories, and Nunavut.",
+    "startTime": 176.0,
+    "endTime": 183.0
+  },
+  {
+    "id": 36,
+    "text": "Many of the people in these territories are the native people of Canada, known as the Indians and the Inuit.",
+    "startTime": 183.0,
+    "endTime": 189.5
+  },
+  {
+    "id": 37,
+    "text": "The northern areas have very cold, dark winters.",
+    "startTime": 189.5,
+    "endTime": 193.5
+  },
+  {
+    "id": 38,
+    "text": "The summer is short, but the days are very long and bright.",
+    "startTime": 193.5,
+    "endTime": 198.0
+  }
+]

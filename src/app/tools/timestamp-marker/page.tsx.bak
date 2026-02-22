@@ -1,0 +1,239 @@
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(
+  'https://cuxotlijjnxbsirpdkgr.supabase.co',
+  'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
+)
+
+interface Sentence {
+  id: number
+  text: string
+  startTime: number
+  endTime: number
+}
+
+export default function TimestampMarker() {
+  const [materialId, setMaterialId] = useState<string>("")
+  const [sentences, setSentences] = useState<Sentence[]>([])
+  const [audioSrc, setAudioSrc] = useState<string>("")
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [saveStatus, setSaveStatus] = useState("")
+
+  // Load material
+  const loadMaterial = async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('*')
+        .eq('title', materialId)
+        .single()
+
+      if (error) throw error
+      if (!data) throw new Error('Material not found')
+
+      setSentences(data.transcript || [])
+      setAudioSrc(`https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${data.audio_path}`)
+      setCurrentIndex(0)
+    } catch (error: any) {
+      console.error('Error loading material:', error)
+      alert(`Error: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Mark current time as end time for current sentence
+  const markEndTime = () => {
+    if (!audioRef.current) return
+
+    const newSentences = [...sentences]
+    newSentences[currentIndex].endTime = audioRef.current.currentTime
+
+    // Set next sentence's start time
+    if (currentIndex < sentences.length - 1) {
+      newSentences[currentIndex + 1].startTime = audioRef.current.currentTime
+    }
+
+    setSentences(newSentences)
+
+    // Auto-advance to next sentence
+    if (currentIndex < sentences.length - 1) {
+      setCurrentIndex(currentIndex + 1)
+      audioRef.current.currentTime = sentences[currentIndex + 1].startTime
+    }
+  }
+
+  // Save to database
+  const saveToDatabase = async () => {
+    setSaveStatus("Saving...")
+    try {
+      // Use service_role key for write access
+      const response = await fetch('/api/update-transcript', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          materialId,
+          transcript: sentences
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to save')
+
+      setSaveStatus("✅ Saved successfully!")
+      setTimeout(() => setSaveStatus(""), 3000)
+    } catch (error: any) {
+      setSaveStatus(`❌ Error: ${error.message}`)
+    }
+  }
+
+  // Update current time
+  useEffect(() => {
+    if (!audioRef.current) return
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audioRef.current!.currentTime)
+    }
+
+    audioRef.current.addEventListener('timeupdate', handleTimeUpdate)
+    return () => {
+      audioRef.current?.removeEventListener('timeupdate', handleTimeUpdate)
+    }
+  }, [])
+
+  const currentSentence = sentences[currentIndex]
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">🎯 Audio Timestamp Marker</h1>
+
+        {/* Load Material */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-xl font-semibold mb-4">Load Material</h2>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={materialId}
+              onChange={(e) => setMaterialId(e.target.value)}
+              placeholder="Enter exact material title (e.g., 'Canada: Provinces and Territories')"
+              className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+            <button
+              onClick={loadMaterial}
+              disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            >
+              {loading ? 'Loading...' : 'Load'}
+            </button>
+          </div>
+        </div>
+
+        {sentences.length > 0 && (
+          <>
+            {/* Audio Player */}
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4">Audio Player</h2>
+              <audio
+                ref={audioRef}
+                src={audioSrc}
+                controls
+                className="w-full"
+              />
+              <div className="mt-2 text-sm text-gray-600">
+                Current time: {currentTime.toFixed(2)}s
+              </div>
+            </div>
+
+            {/* Current Sentence */}
+            {currentSentence && (
+              <div className="bg-blue-50 border-2 border-blue-500 rounded-lg p-6 mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <h2 className="text-xl font-semibold">
+                    Sentence {currentIndex + 1} / {sentences.length}
+                  </h2>
+                  <div className="text-sm text-blue-700">
+                    {currentSentence.startTime.toFixed(2)}s - {currentSentence.endTime.toFixed(2)}s
+                  </div>
+                </div>
+                <p className="text-lg mb-4">{currentSentence.text}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={markEndTime}
+                    className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                  >
+                    ✓ Mark End Time ({currentTime.toFixed(2)}s)
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (currentIndex > 0) setCurrentIndex(currentIndex - 1)
+                    }}
+                    disabled={currentIndex === 0}
+                    className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (currentIndex < sentences.length - 1) setCurrentIndex(currentIndex + 1)
+                    }}
+                    disabled={currentIndex === sentences.length - 1}
+                    className="px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* All Sentences List */}
+            <div className="bg-white rounded-lg shadow p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4">All Sentences</h2>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {sentences.map((sentence, index) => (
+                  <div
+                    key={sentence.id}
+                    onClick={() => setCurrentIndex(index)}
+                    className={`p-3 rounded cursor-pointer transition-colors ${
+                      index === currentIndex
+                        ? 'bg-blue-100 border-2 border-blue-500'
+                        : 'bg-gray-50 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Sentence {index + 1}</span>
+                      <span className="text-sm text-gray-600">
+                        {sentence.startTime.toFixed(2)}s - {sentence.endTime.toFixed(2)}s
+                      </span>
+                    </div>
+                    <p className="text-sm mt-1">{sentence.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="bg-white rounded-lg shadow p-6">
+              <button
+                onClick={saveToDatabase}
+                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-lg"
+              >
+                💾 Save to Database
+              </button>
+              {saveStatus && (
+                <p className="mt-2 text-center text-sm">{saveStatus}</p>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
