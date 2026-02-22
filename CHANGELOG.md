@@ -5,6 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.1.0] - 2025-02-21
+
+### Added
+- **营销首页**
+  - 新增完整的营销首页，展示产品价值
+  - Hero 区域：品牌形象 + CTA 按钮 + 浮动动画
+  - How It Works：4 步骤核心流程（Choose Materials → Listen & Dictate → Shadow & Record → Track Progress）
+  - 功能展示：Dictation（听写）、Shadowing（影子跟读）、AI 智能纠错、Growth Tracking（成长追踪）
+  - FAQ 折叠面板：13 个常见问题解答
+  - CTA 行动号召区域
+  - 响应式设计（移动端/桌面端适配）
+  - 滚动触发动画（Framer Motion）
+
+- **固定导航栏**
+  - 全站统一的顶部导航栏
+  - ShadowHub 品牌 + Topics 入口
+  - 用户认证：未登录显示 Login/Sign Up，已登录显示用户名和头像
+  - 移动端汉堡菜单
+  - 滚动时添加阴影效果
+
+- **面包屑导航**
+  - Practice 页面添加面包屑导航：Topics › Category › Audio Title
+  - 便于用户了解当前位置
+
+- **完整英文本地化**
+  - 将所有中文 UI 文本翻译为英文
+  - 导航栏、按钮、标签、错误消息、表单验证等
+  - 首页、素材页、个人中心、登录/注册页面
+  - 练习页面所有提示文本
+
+- **路由结构调整**
+  - 练习页面从 `/` 移动到 `/practice`
+  - 营销首页占据根路径 `/`
+  - 更新所有内部链接指向新路径
+
+### Changed
+- 依赖新增：framer-motion、lucide-react（图标库）
+- 移除所有页面中的重复导航栏
+- 统一页面最大宽度为 1280px (max-w-screen-xl)
+
+### Technical Details
+- 使用 `"use client"` 指令创建客户端组件
+- 使用 Framer Motion 的 `whileInView` 实现滚动动画
+- Lucide React 图标库提供现代化图标
+- Navigation 组件使用 useAuth hook 管理认证状态
+
+---
+
 ## [6.0.0] - 2025-02-21
 
 ### Added
