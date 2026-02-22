@@ -142,7 +142,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">加载中...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     )
@@ -157,26 +157,13 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          <button
-            onClick={() => router.push('/')}
-            className="text-xl font-bold text-gray-800 hover:text-gray-600"
-          >
-            ← 返回
-          </button>
-          <AuthButton />
-        </div>
-      </nav>
-
       {/* Main Content - Left-Right Split Layout */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">个人中心</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Profile</h1>
           <p className="text-gray-600 mt-1">
-            欢迎回来，{user?.username || '用户'}！
+            Welcome back, {user?.username || 'User'}!
           </p>
         </div>
 
@@ -184,7 +171,7 @@ export default function ProfilePage() {
         {statsLoading ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">加载统计数据中...</p>
+            <p className="mt-4 text-gray-600">Loading statistics...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -197,7 +184,7 @@ export default function ProfilePage() {
                     {user?.username?.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">{user?.username || '用户'}</h2>
+                    <h2 className="text-xl font-bold text-gray-900">{user?.username || 'User'}</h2>
                     <p className="text-sm text-gray-600">{user?.email || ''}</p>
                   </div>
                 </div>
@@ -207,19 +194,19 @@ export default function ProfilePage() {
               <div className="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg shadow-sm p-6 border border-orange-200">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                   <span className="text-2xl">🔥</span>
-                  连胜记录
+                  Streak
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-700">当前连胜</span>
+                    <span className="text-sm text-gray-700">Current Streak</span>
                     <span className="text-2xl font-bold text-orange-600">
-                      {streakData.current_streak} 天
+                      {streakData.current_streak} days
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-700">历史最高</span>
+                    <span className="text-sm text-gray-700">Best Streak</span>
                     <span className="text-2xl font-bold text-red-600">
-                      {streakData.max_streak} 天
+                      {streakData.max_streak} days
                     </span>
                   </div>
                 </div>
@@ -237,7 +224,7 @@ export default function ProfilePage() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    听写练习
+                    Dictation
                   </button>
                   <button
                     onClick={() => setSelectedStatsTab('shadowing')}
@@ -247,7 +234,7 @@ export default function ProfilePage() {
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    影子跟读
+                    Shadowing
                   </button>
                 </div>
 
@@ -258,13 +245,13 @@ export default function ProfilePage() {
                       <p className="text-3xl font-bold text-blue-600 mb-1">
                         {cumulativeStats.total_dictation_sentences}
                       </p>
-                      <p className="text-sm text-gray-600">总句数</p>
+                      <p className="text-sm text-gray-600">Total Sentences</p>
                     </div>
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <p className="text-3xl font-bold text-blue-600 mb-1">
                         {cumulativeStats.total_dictation_minutes}
                       </p>
-                      <p className="text-sm text-gray-600">总时间（分钟）</p>
+                      <p className="text-sm text-gray-600">Total Minutes</p>
                     </div>
                   </div>
                 )}
@@ -275,13 +262,13 @@ export default function ProfilePage() {
                       <p className="text-3xl font-bold text-purple-600 mb-1">
                         {cumulativeStats.total_shadowing_sessions}
                       </p>
-                      <p className="text-sm text-gray-600">总句数</p>
+                      <p className="text-sm text-gray-600">Total Sentences</p>
                     </div>
                     <div className="text-center p-4 bg-purple-50 rounded-lg">
                       <p className="text-3xl font-bold text-purple-600 mb-1">
                         {cumulativeStats.total_shadowing_minutes}
                       </p>
-                      <p className="text-sm text-gray-600">总时间（分钟）</p>
+                      <p className="text-sm text-gray-600">Total Minutes</p>
                     </div>
                   </div>
                 )}
@@ -294,7 +281,7 @@ export default function ProfilePage() {
                 }`}
               >
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  今日进度 {todayRecord.completed && '✅'}
+                  Today's Progress {todayRecord.completed && '✅'}
                 </h3>
 
                 {/* 单一进度条 */}
@@ -332,7 +319,7 @@ export default function ProfilePage() {
               {progressLoading ? (
                 <div className="bg-white rounded-lg shadow-sm p-8 text-center">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">加载练习记录中...</p>
+                  <p className="mt-4 text-gray-600">Loading practice records...</p>
                 </div>
               ) : (
                 <MaterialProgressList materials={materialProgress} practiceMode={selectedStatsTab} />
@@ -356,13 +343,13 @@ export default function ProfilePage() {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">开始您的第一次练习</h3>
-                  <p className="text-gray-600 mb-4">完成后，您的统计数据将显示在这里</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Start your first practice</h3>
+                  <p className="text-gray-600 mb-4">Your statistics will appear here after completion</p>
                   <button
                     onClick={() => router.push('/')}
                     className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
                   >
-                    开始练习
+                    Start Practice
                     <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                     </svg>

@@ -33,7 +33,7 @@ export default function RegisterPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">加载中...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     )
@@ -45,10 +45,10 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">
-            听力练习工具
+            ShadowHub
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            注册后需要登录账号以保存练习记录
+            Sign up to save your practice records
           </p>
         </div>
 
@@ -67,24 +67,14 @@ export default function RegisterPage() {
 
           {/* Login Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
-            已有账号？
+            Already have an account?
             <Link
               href="/login"
               className="ml-1 text-blue-600 hover:text-blue-700 font-medium"
             >
-              立即登录
+              Sign in
             </Link>
           </p>
-        </div>
-
-        {/* Back to Home */}
-        <div className="text-center">
-          <Link
-            href="/"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            ← 返回首页
-          </Link>
         </div>
       </div>
     </div>

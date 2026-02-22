@@ -93,12 +93,12 @@ export default function StatsCards({
       <div>
         <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <span className="text-2xl">✍️</span>
-          听写练习
+          Dictation Practice
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {renderStatCard('总练习数', dictation.totalPractices, '次', 'blue', '📝')}
-          {renderStatCard('平均正确率', dictation.averageAccuracy, '%', 'green', '🎯')}
-          {renderStatCard('今日练习', dictation.todayPractices, '次', 'purple', '📅')}
+          {renderStatCard('Total Practices', dictation.totalPractices, 'times', 'blue', '📝')}
+          {renderStatCard('Avg Accuracy', dictation.averageAccuracy, '%', 'green', '🎯')}
+          {renderStatCard('Today\'s Practices', dictation.todayPractices, 'times', 'purple', '📅')}
         </div>
       </div>
 
@@ -106,12 +106,12 @@ export default function StatsCards({
       <div>
         <h2 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <span className="text-2xl">🎤</span>
-          跟读练习
+          Shadowing Practice
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {renderStatCard('总练习数', shadowing.totalPractices, '次', 'blue', '📝')}
-          {renderStatCard('平均正确率', shadowing.averageAccuracy, '%', 'green', '🎯')}
-          {renderStatCard('今日练习', shadowing.todayPractices, '次', 'purple', '📅')}
+          {renderStatCard('Total Practices', shadowing.totalPractices, 'times', 'blue', '📝')}
+          {renderStatCard('Avg Accuracy', shadowing.averageAccuracy, '%', 'green', '🎯')}
+          {renderStatCard('Today\'s Practices', shadowing.todayPractices, 'times', 'purple', '📅')}
         </div>
       </div>
     </div>

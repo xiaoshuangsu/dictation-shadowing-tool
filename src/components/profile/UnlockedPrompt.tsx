@@ -26,12 +26,12 @@ export default function UnlockedPrompt() {
 
           {/* Title */}
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            解锁个人统计功能
+            Unlock Personal Statistics
           </h2>
 
           {/* Description */}
           <p className="text-gray-600 mb-6">
-            注册或登录即可查看您的练习统计、历史记录和进度追踪
+            Sign up or log in to view your practice statistics, history, and progress tracking
           </p>
 
           {/* Features List */}
@@ -42,7 +42,7 @@ export default function UnlockedPrompt() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-700">自动保存练习记录</p>
+              <p className="text-sm text-gray-700">Auto-save practice records</p>
             </div>
 
             <div className="flex items-start gap-3">
@@ -51,7 +51,7 @@ export default function UnlockedPrompt() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-700">查看详细统计数据</p>
+              <p className="text-sm text-gray-700">View detailed statistics</p>
             </div>
 
             <div className="flex items-start gap-3">
@@ -60,7 +60,7 @@ export default function UnlockedPrompt() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-700">追踪学习进度</p>
+              <p className="text-sm text-gray-700">Track learning progress</p>
             </div>
 
             <div className="flex items-start gap-3">
@@ -69,7 +69,7 @@ export default function UnlockedPrompt() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-700">跨设备同步数据</p>
+              <p className="text-sm text-gray-700">Sync data across devices</p>
             </div>
           </div>
 
@@ -79,14 +79,14 @@ export default function UnlockedPrompt() {
               onClick={() => router.push('/register')}
               className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all shadow-md"
             >
-              免费注册
+              Sign Up Free
             </button>
 
             <button
               onClick={() => router.push('/login')}
               className="w-full py-3 px-4 bg-white text-gray-700 border-2 border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors"
             >
-              已有账号？登录
+              Have an account? Log In
             </button>
           </div>
         </div>
@@ -97,7 +97,7 @@ export default function UnlockedPrompt() {
             onClick={() => router.push('/')}
             className="text-sm text-gray-600 hover:text-gray-900"
           >
-            ← 返回首页继续练习
+            ← Back to home to continue practicing
           </button>
         </div>
       </div>

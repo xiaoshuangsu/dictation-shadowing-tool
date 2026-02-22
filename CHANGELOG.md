@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 2025-02-21
+
+### Added
+- **营销首页（Marketing Landing Page）**
+  - 新增营销首页展示产品价值
+  - Hero 区域：鹦鹉图片 + 浮动动画 + CTA 按钮
+  - How It Works：4 步骤核心流程展示
+  - 功能展示：Dictation、Shadowing、AI 纠错、成长追踪
+  - FAQ 折叠面板
+  - 底部 CTA 区域
+  - 响应式设计（移动端/桌面端适配）
+  - 滚动触发动画（Framer Motion）
+
+- **路由结构调整**
+  - 练习页面从 `/` 移动到 `/practice`
+  - 营销首页占据根路径 `/`
+
+### Changed
+- 依赖新增：framer-motion、lucide-react、clsx、tailwind-merge
+
+### Technical Details
+- 使用 `"use client"` 指令创建客户端组件
+- 使用 Framer Motion 的 `whileInView` 实现滚动动画
+- Lucide React 图标库提供现代化图标
+
+---
+
 ## [5.3.0] - 2025-02-21
 
 ### Added
