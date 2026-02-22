@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import FilterBar, { FilterOptions } from '@/components/topics/FilterBar'
+import { titleToSlug } from '@/lib/utils/slug'
 
 // 使用环境变量的 Supabase 配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co'
@@ -344,13 +345,13 @@ export default function MaterialsPage() {
                               {/* 操作按钮 */}
                               <div className="flex gap-2">
                                 <Link
-                                  href={`/practice/?id=${material.id}&mode=dictation`}
+                                  href={`/topics/dictation/${titleToSlug(material.title)}`}
                                   className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-blue-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                                 >
                                   Dictation
                                 </Link>
                                 <Link
-                                  href={`/practice/?id=${material.id}&mode=shadowing`}
+                                  href={`/topics/shadowing/${titleToSlug(material.title)}`}
                                   className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-gray-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                                 >
                                   Shadowing
