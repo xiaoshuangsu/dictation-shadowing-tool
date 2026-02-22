@@ -121,6 +121,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
 
           // Use transcript from material (like the original practice page)
           if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
+            console.log(`Loaded transcript with ${material.transcript.length} sentences`)
             setSampleSentences(material.transcript)
           } else {
             setSampleSentences(defaultSentences)
@@ -479,6 +480,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
             <ShadowingPanel
               sentence={currentSentence}
               audioSrc={audioSrc}
+              currentTime={currentTime}
               onComplete={handleComplete}
               onNext={handleNext}
               isLastSentence={isLastSentence}

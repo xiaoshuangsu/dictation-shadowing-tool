@@ -13,6 +13,7 @@ interface Sentence {
 interface ShadowingPanelProps {
   sentence: Sentence
   audioSrc: string  // 新增：音频源
+  currentTime?: number  // 当前播放时间（用于确定显示哪个子句）
   onComplete?: (isCorrect: boolean, durationSeconds: number) => void
   onNext?: () => void
   isLastSentence?: boolean
@@ -205,7 +206,7 @@ const generateLinkingIPA = (first: string, second: string): string => {
   return `/${firstSound}${secondSound}/`
 }
 
-export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
+export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
   const [userTranscript, setUserTranscript] = useState("")
@@ -940,18 +941,20 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
         {/* 原句 - 根据模式显示或隐藏 */}
         {displayMode !== 'translation-only' && displayMode !== 'blind' && (
           <>
-            <p className="text-sm text-gray-500 mb-1">Original:</p>
-            <p className="text-base text-gray-800 mb-2">{sentence.text}</p>
+            <p className="text-sm text-gray-500 mb-2">Original:</p>
+            <p className="text-base text-gray-800 leading-relaxed">
+              {sentence.text}
+            </p>
           </>
         )}
 
         {/* 中文翻译 - 根据模式显示或隐藏 */}
         {displayMode !== 'blind' && sentence.translation && (
           <>
-            <p className="text-sm text-gray-500 mb-1">
+            <p className="text-sm text-gray-500 mb-2 mt-4">
               {displayMode === 'translation-only' ? 'Translation:' : 'Translation:'}
             </p>
-            <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'}`}>
+            <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed`}>
               {sentence.translation}
             </p>
           </>
