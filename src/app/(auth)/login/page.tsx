@@ -30,7 +30,7 @@ export default function LoginPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">加载中...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     )
@@ -42,10 +42,10 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">
-            听力练习工具
+            ShadowHub
           </h1>
           <p className="mt-2 text-sm text-gray-600">
-            登录以保存您的练习记录
+            Sign in to save your practice records
           </p>
         </div>
 
@@ -65,24 +65,14 @@ export default function LoginPage() {
 
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-gray-600">
-            还没有账号？
+            Don't have an account?
             <Link
               href="/register"
               className="ml-1 text-blue-600 hover:text-blue-700 font-medium"
             >
-              立即注册
+              Sign up now
             </Link>
           </p>
-        </div>
-
-        {/* Back to Home */}
-        <div className="text-center">
-          <Link
-            href="/"
-            className="text-sm text-gray-600 hover:text-gray-900"
-          >
-            ← 返回首页
-          </Link>
         </div>
       </div>
     </div>

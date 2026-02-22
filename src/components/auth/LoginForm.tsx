@@ -29,12 +29,12 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
     // Basic validation
     if (!email || !password) {
-      setError('请填写邮箱和密码')
+      setError('Please enter email and password')
       return
     }
 
     if (!email.includes('@')) {
-      setError('请输入有效的邮箱地址')
+      setError('Please enter a valid email address')
       return
     }
 
@@ -48,7 +48,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
 
       if (!result.success) {
         console.error('Login failed:', result.error)
-        setError(result.error || '登录失败')
+        setError(result.error || 'Login failed')
         setLoading(false)
       } else {
         console.log('Login successful! Redirecting to home...')
@@ -57,7 +57,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
       }
     } catch (err) {
       console.error('Login exception:', err)
-      setError('登录失败，请稍后重试')
+      setError('Login failed, please try again later')
       setLoading(false)
     }
   }
@@ -68,7 +68,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         {/* Email Input */}
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            邮箱
+            Email
           </label>
           <input
             id="email"
@@ -86,7 +86,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         {/* Password Input */}
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            密码
+            Password
           </label>
           <input
             id="password"
@@ -114,7 +114,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
           disabled={loading}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
         >
-          {loading ? '登录中...' : '登录'}
+          {loading ? 'Signing in...' : 'Sign In'}
         </button>
       </form>
     </div>

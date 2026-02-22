@@ -5,11 +5,10 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import FilterBar, { FilterOptions } from '@/components/topics/FilterBar'
 
-// 硬编码 Supabase 配置
-const supabase = createClient(
-  'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
-)
+// 使用环境变量的 Supabase 配置
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co'
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 type Material = {
   id: string
@@ -27,10 +26,10 @@ type Material = {
 
 // 分类顺序和配置
 const CATEGORIES = [
-  { id: '日常生活', label: '日常生活' },
-  { id: '历史演讲', label: '历史演讲' },
-  { id: '文化历史', label: '文化历史' },
-  { id: '艺术文化', label: '艺术文化' },
+  { id: '日常生活', label: 'Daily Life' },
+  { id: '历史演讲', label: 'Historical Speeches' },
+  { id: '文化历史', label: 'Culture & History' },
+  { id: '艺术文化', label: 'Arts & Culture' },
 ]
 
 // 难度颜色映射
@@ -44,6 +43,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export default function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [filters, setFilters] = useState<FilterOptions>({
     difficulty: null,
@@ -60,16 +60,43 @@ export default function MaterialsPage() {
   useEffect(() => {
     async function fetchMaterials() {
       try {
-        const { data, error } = await supabase
+        console.log('=== 开始获取素材 ===')
+        console.log('Supabase URL:', supabaseUrl)
+        console.log('完整请求 URL:', `${supabaseUrl}/rest/v1/materials`)
+
+        const { data, error, status, statusText } = await supabase
           .from('materials')
           .select('*')
           .order('category')
           .order('title')
 
-        if (error) throw error
+        console.log('=== API 响应 ===')
+        console.log('状态码:', status)
+        console.log('状态文本:', statusText)
+        console.log('错误:', error)
+        console.log('数据:', data)
+        console.log('数据数量:', data?.length || 0)
+
+        if (error) {
+          console.error('Supabase 错误详情:', {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code,
+          })
+          setError(`错误: ${error.message} (代码: ${error.code})`)
+          throw error
+        }
+
+        console.log('获取到素材数量:', data?.length || 0)
         setMaterials(data || [])
-      } catch (error) {
-        console.error('获取素材失败:', error)
+        setError(null)
+      } catch (err) {
+        console.error('获取素材失败:', err)
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        if (!errorMsg.includes('错误:')) {
+          setError(`加载失败: ${errorMsg}`)
+        }
       } finally {
         setLoading(false)
       }
@@ -153,36 +180,24 @@ export default function MaterialsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* 返回主页链接 */}
-          <Link
-            href="/"
-            className="inline-flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors mb-4"
-          >
-            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            返回练习
-          </Link>
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             English Dictation & Shadowing
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl">
-            精选英语学习素材，涵盖日常生活、文化历史、历史演讲等多个主题。
-            选择适合你难度的内容，开始练习吧！
+            Curated English learning materials covering daily life, culture & history, historical speeches, and more.
+            Choose content that matches your level and start practicing!
           </p>
 
           {/* 统计信息 */}
           <div className="mt-6 flex flex-wrap gap-6 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900">{totalFilteredCount}</span>
-              <span>个素材</span>
+              <span>materials</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900">{totalCategories}</span>
-              <span>个分类</span>
+              <span>categories</span>
             </div>
           </div>
         </div>
@@ -205,7 +220,19 @@ export default function MaterialsPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">加载中...</p>
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        ) : error ? (
+          /* 错误提示 */
+          <div className="text-center py-16">
+            <svg className="mx-auto h-16 w-16 text-red-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">Failed to load materials</h3>
+            <p className="text-gray-500 mb-4">{error}</p>
+            <p className="text-sm text-gray-400 max-w-md mx-auto">
+              Check the browser console for detailed error information. Possible causes: Supabase connection failed, CORS restrictions, or RLS policy blocking access.
+            </p>
           </div>
         ) : totalFilteredCount === 0 ? (
           /* 无结果提示 */
@@ -213,8 +240,8 @@ export default function MaterialsPage() {
             <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">未找到符合条件的素材</h3>
-            <p className="text-gray-500">请尝试更改筛选条件</p>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">No materials found</h3>
+            <p className="text-gray-500">Try changing the filter conditions</p>
           </div>
         ) : (
           <div className="space-y-12">
@@ -236,7 +263,7 @@ export default function MaterialsPage() {
                     <h2 className="text-2xl font-bold text-gray-900">
                       {categoryLabel}
                       <span className="ml-2 text-sm font-normal text-gray-500">
-                        ({categoryMaterials.length}节课)
+                        ({categoryMaterials.length} lessons)
                       </span>
                     </h2>
                     {categoryMaterials.length > 4 && (
@@ -252,7 +279,7 @@ export default function MaterialsPage() {
                         }}
                         className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                       >
-                        {isExpanded ? '收起 ↑' : `查看全部 →`}
+                        {isExpanded ? 'Collapse ↑' : `View All →`}
                       </button>
                     )}
                   </div>
@@ -261,6 +288,12 @@ export default function MaterialsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
+
+                      const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+                        console.warn('缩略图加载失败:', thumbnailUrl)
+                        console.warn('素材 ID:', material.id, '缩略图路径:', material.thumbnail_path)
+                        e.currentTarget.style.display = 'none'
+                      }
 
                       return (
                         <div
@@ -276,6 +309,7 @@ export default function MaterialsPage() {
                                   src={thumbnailUrl}
                                   alt={material.title}
                                   className="w-full h-full object-cover"
+                                  onError={handleImageError}
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
@@ -310,16 +344,16 @@ export default function MaterialsPage() {
                               {/* 操作按钮 */}
                               <div className="flex gap-2">
                                 <Link
-                                  href={`/?id=${material.id}&mode=dictation`}
+                                  href={`/practice/?id=${material.id}&mode=dictation`}
                                   className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-blue-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                                 >
-                                  听写
+                                  Dictation
                                 </Link>
                                 <Link
-                                  href={`/?id=${material.id}&mode=shadowing`}
+                                  href={`/practice/?id=${material.id}&mode=shadowing`}
                                   className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-gray-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                                 >
-                                  影子
+                                  Shadowing
                                 </Link>
                               </div>
                             </div>

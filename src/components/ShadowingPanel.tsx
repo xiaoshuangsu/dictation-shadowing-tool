@@ -940,7 +940,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
         {/* 原句 - 根据模式显示或隐藏 */}
         {displayMode !== 'translation-only' && displayMode !== 'blind' && (
           <>
-            <p className="text-sm text-gray-500 mb-1">原句：</p>
+            <p className="text-sm text-gray-500 mb-1">Original:</p>
             <p className="text-base text-gray-800 mb-2">{sentence.text}</p>
           </>
         )}
@@ -949,7 +949,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
         {displayMode !== 'blind' && sentence.translation && (
           <>
             <p className="text-sm text-gray-500 mb-1">
-              {displayMode === 'translation-only' ? '释义：' : '释义：'}
+              {displayMode === 'translation-only' ? 'Translation:' : 'Translation:'}
             </p>
             <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'}`}>
               {sentence.translation}
@@ -962,7 +962,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
           <div className="text-center py-2">
             <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
               <span className="text-lg">🙈</span>
-              <span>盲听模式 - 纯听音频跟读</span>
+              <span>Blind Mode - Listen and shadow without text</span>
             </p>
           </div>
         )}
@@ -982,7 +982,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
             ? "bg-green-50 border-green-300"
             : "bg-orange-50 border-orange-300"
         }`}>
-          <p className="text-xs text-gray-500 mb-2">我的发音：</p>
+          <p className="text-xs text-gray-500 mb-2">My pronunciation:</p>
 
           {/* 单词对比结果 */}
           <div className="mb-3 text-base leading-relaxed">
@@ -990,7 +990,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
               renderWordDiffs()
             ) : (
               <div className="text-gray-600">
-                {userTranscript || "未能识别到语音，请重试"}
+                {userTranscript || "Could not recognize speech, please try again"}
               </div>
             )}
           </div>
@@ -1005,11 +1005,11 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
                 <p className="text-xs text-blue-700 flex items-start gap-2">
                   <span className="text-lg">💡</span>
                   <span>
-                    <strong>连读小贴士：</strong>
+                    <strong>Linking Tips:</strong>
                     <span className="block mt-1">
                       {pairs.map((pair, index) => (
                         <span key={index}>
-                          <strong>{pair.first} {pair.second}</strong> 可以连读{pair.ipa && `，读作 ${pair.ipa}`}
+                          <strong>{pair.first} {pair.second}</strong> can be linked{pair.ipa && `, pronounced as ${pair.ipa}`}
                         </span>
                       ))}
                     </span>
@@ -1026,14 +1026,14 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span className="font-medium">发音准确！</span>
+                <span className="font-medium">Perfect pronunciation!</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 text-orange-600">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
-                <span className="font-medium">继续加油！</span>
+                <span className="font-medium">Keep practicing!</span>
               </div>
             )}
           </div>
@@ -1043,7 +1043,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
       {/* 音频对比区域 */}
       {recordedAudioUrl && (
         <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm font-medium text-gray-700 mb-3">🎵 音频对比</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">🎵 Audio Comparison</p>
 
           <div className="flex gap-3">
             {/* 播放原音 */}
@@ -1054,7 +1054,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
               <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
               </svg>
-              <span className="text-sm font-medium text-gray-700">原音</span>
+              <span className="text-sm font-medium text-gray-700">Original</span>
             </button>
 
             {/* 播放我的录音 */}
@@ -1066,7 +1066,7 @@ export default function ShadowingPanel({ sentence, audioSrc, onComplete, onNext,
                 <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3s-3 1.34-3 3v6c0 1.66 1.34 3 3 3z"/>
                 <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
               </svg>
-              <span className="text-sm font-medium text-gray-700">我的录音</span>
+              <span className="text-sm font-medium text-gray-700">My Recording</span>
             </button>
           </div>
 

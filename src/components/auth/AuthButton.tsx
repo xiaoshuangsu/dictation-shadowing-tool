@@ -49,13 +49,13 @@ export default function AuthButton() {
           onClick={() => router.push('/login')}
           className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
         >
-          登录
+          Login
         </button>
         <button
           onClick={() => router.push('/register')}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
         >
-          注册
+          Sign Up
         </button>
       </div>
     )
@@ -72,7 +72,7 @@ export default function AuthButton() {
           {user?.username?.[0]?.toUpperCase() || 'U'}
         </div>
         <span className="text-sm font-medium text-gray-700">
-          {user?.username || '用户'}
+          {user?.username || 'User'}
         </span>
       </button>
 
@@ -91,7 +91,7 @@ export default function AuthButton() {
               onClick={navigateToProfile}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              个人中心
+              Profile
             </button>
 
             <hr className="my-1" />
@@ -100,7 +100,7 @@ export default function AuthButton() {
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 transition-colors"
             >
-              退出登录
+              Logout
             </button>
           </div>
         </>

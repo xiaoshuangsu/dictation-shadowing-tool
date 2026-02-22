@@ -30,9 +30,9 @@ export default function MaterialProgressList({ materials, practiceMode }: Materi
   if (materials.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-        <p className="text-gray-500">还没有练习记录</p>
+        <p className="text-gray-500">No practice records yet</p>
         <p className="text-sm text-gray-400 mt-1">
-          {practiceMode === 'dictation' ? '完成听写练习' : '完成影子跟读'}后会在这里显示
+          {practiceMode === 'dictation' ? 'Complete dictation exercises' : 'Complete shadowing exercises'} to see them here
         </p>
       </div>
     )
@@ -71,7 +71,7 @@ export default function MaterialProgressList({ materials, practiceMode }: Materi
         {displayMaterials.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-gray-500">
-              {selectedTab === 'in-progress' ? '没有进行中的素材' : '没有已完成的素材'}
+              {selectedTab === 'in-progress' ? 'No materials in progress' : 'No completed materials'}
             </p>
           </div>
         ) : (
@@ -193,7 +193,7 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
             <div className="mb-2">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-xs text-gray-600">
-                  {completed}/{total} 句
+                  {completed}/{total} sentences
                 </span>
                 <span className={`text-xs font-medium ${
                   isCompleted ? 'text-green-600' : 'text-blue-600'
@@ -211,9 +211,9 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
               </div>
             </div>
 
-            {/* 最后练习时间 */}
+            {/* Last Practice Time */}
             <p className="text-xs text-gray-500">
-              最后练习：{formatDate(new Date(material.lastPracticedAt))}
+              Last practiced: {formatDate(new Date(material.lastPracticedAt))}
             </p>
           </div>
 
@@ -234,9 +234,9 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
       {/* 展开详情 */}
       {isExpanded && (
         <div className="px-4 pb-4 border-t border-gray-200">
-          {/* 已完成的句子ID */}
+          {/* Completed Sentence IDs */}
           <div className="mt-3">
-            <h5 className="text-sm font-medium text-gray-700 mb-2">已完成句子：</h5>
+            <h5 className="text-sm font-medium text-gray-700 mb-2">Completed sentences:</h5>
             <div className="flex flex-wrap gap-1">
               {material.sentenceIds?.map(id => (
                 <span
@@ -245,15 +245,15 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
                 >
                   {id}
                 </span>
-              )) || <span className="text-xs text-gray-500">无数据</span>}
+              )) || <span className="text-xs text-gray-500">No data</span>}
             </div>
           </div>
 
-          {/* 缺失的句子ID */}
+          {/* Missing Sentence IDs */}
           {missingIds.length > 0 && (
             <div className="mt-3">
               <h5 className="text-sm font-medium text-red-700 mb-2">
-                未完成句子（点击跳转）：
+                Incomplete sentences (click to jump):
               </h5>
               <div className="flex flex-wrap gap-1">
                 {missingIds.map(id => (
@@ -261,7 +261,7 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
                     key={id}
                     onClick={(e) => {
                       e.stopPropagation()
-                      // 跳转到指定句子（索引 = id - 1）
+                      // Jump to specific sentence (index = id - 1)
                       if (!material.materialId) return
                       const params = new URLSearchParams({
                         id: material.materialId,
@@ -272,17 +272,17 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
                     }}
                     className="inline-flex items-center px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors cursor-pointer"
                   >
-                    第{id}句
+                    Sentence {id}
                   </button>
                 ))}
               </div>
               <p className="text-xs text-red-600 mt-2">
-                💡 点击句子号直接跳转练习
+                💡 Click a sentence number to jump directly to practice
               </p>
             </div>
           )}
 
-          {/* 跳转按钮 */}
+          {/* Continue Button */}
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -290,7 +290,7 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
             }}
             className="mt-3 w-full py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
           >
-            继续练习
+            Continue Practice
           </button>
         </div>
       )}

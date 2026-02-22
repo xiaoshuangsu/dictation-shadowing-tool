@@ -26,8 +26,8 @@ export default function PracticeHistory({ records }: PracticeHistoryProps) {
   if (records.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-        <p className="text-gray-500">还没有练习记录</p>
-        <p className="text-sm text-gray-400 mt-1">完成练习后会在这里显示</p>
+        <p className="text-gray-500">No practice records yet</p>
+        <p className="text-sm text-gray-400 mt-1">Completed exercises will appear here</p>
       </div>
     )
   }
@@ -35,7 +35,7 @@ export default function PracticeHistory({ records }: PracticeHistoryProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800">最近练习记录</h3>
+        <h3 className="text-lg font-semibold text-gray-800">Recent Practice Records</h3>
       </div>
 
       <div className="divide-y divide-gray-200">
@@ -82,7 +82,7 @@ export default function PracticeHistory({ records }: PracticeHistoryProps) {
                       {modeStyle}
                       {isDictation && record.dictationMode && (
                         <span className="ml-1">
-                          ({record.dictationMode === 'word' ? '逐词' : '整句'})
+                          ({record.dictationMode === 'word' ? 'word-by-word' : 'whole sentence'})
                         </span>
                       )}
                     </span>
@@ -90,7 +90,7 @@ export default function PracticeHistory({ records }: PracticeHistoryProps) {
                     {/* Show Words Badge */}
                     {record.usedShowWords && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded bg-yellow-100 text-yellow-700">
-                        提示
+                        Hint Used
                       </span>
                     )}
 

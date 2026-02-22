@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import Navigation from "@/components/Navigation"
 
 export const metadata: Metadata = {
-  title: "英语听写 & 影子跟读工具",
-  description: "英语听写与影子跟读练习工具 V0",
+  title: "ShadowHub - English Dictation & Shadowing Practice",
+  description: "Practice English listening and speaking with dictation and shadowing exercises",
 }
 
 export default function RootLayout({
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <Navigation />
+        <main className="pt-16">{children}</main>
+      </body>
     </html>
   )
 }

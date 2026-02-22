@@ -31,27 +31,27 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
     // Basic validation
     if (!email || !username || !password || !confirmPassword) {
-      setError('请填写所有字段')
+      setError('Please fill in all fields')
       return
     }
 
     if (!email.includes('@')) {
-      setError('请输入有效的邮箱地址')
+      setError('Please enter a valid email address')
       return
     }
 
     if (username.length < 3) {
-      setError('用户名至少需要 3 个字符')
+      setError('Username must be at least 3 characters')
       return
     }
 
     if (password.length < 6) {
-      setError('密码至少需要 6 个字符')
+      setError('Password must be at least 6 characters')
       return
     }
 
     if (password !== confirmPassword) {
-      setError('两次输入的密码不一致')
+      setError('Passwords do not match')
       return
     }
 
@@ -74,7 +74,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
       if (!result || !result.success) {
         console.error('Registration failed:', result?.error)
-        setError(result?.error || '注册失败')
+        setError(result?.error || 'Registration failed')
         setLoading(false)
       } else {
         console.log('Registration successful, redirecting to home...')
@@ -89,7 +89,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       }
     } catch (err: any) {
       console.error('Register exception:', err)
-      setError(err?.message || '注册失败，请稍后重试')
+      setError(err?.message || 'Registration failed, please try again later')
       setLoading(false)
     }
   }
@@ -100,7 +100,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         {/* Email Input */}
         <div>
           <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-1">
-            邮箱
+            Email
           </label>
           <input
             id="register-email"
@@ -118,7 +118,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         {/* Username Input */}
         <div>
           <label htmlFor="register-username" className="block text-sm font-medium text-gray-700 mb-1">
-            用户名
+            Username
           </label>
           <input
             id="register-username"
@@ -126,7 +126,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={loading}
-            placeholder="请输入用户名"
+            placeholder="Enter username"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             autoComplete="username"
             required
@@ -136,7 +136,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         {/* Password Input */}
         <div>
           <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-1">
-            密码
+            Password
           </label>
           <input
             id="register-password"
@@ -144,7 +144,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
-            placeholder="至少 6 个字符"
+            placeholder="At least 6 characters"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             autoComplete="new-password"
             required
@@ -154,7 +154,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         {/* Confirm Password Input */}
         <div>
           <label htmlFor="register-confirm-password" className="block text-sm font-medium text-gray-700 mb-1">
-            确认密码
+            Confirm Password
           </label>
           <input
             id="register-confirm-password"
@@ -162,7 +162,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={loading}
-            placeholder="再次输入密码"
+            placeholder="Re-enter password"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             autoComplete="new-password"
             required
@@ -182,7 +182,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           disabled={loading}
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
         >
-          {loading ? '注册中...' : '注册'}
+          {loading ? 'Signing up...' : 'Sign Up'}
         </button>
       </form>
     </div>
