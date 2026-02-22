@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.0] - 2025-02-22
+
+### Added
+- **Clean URL Routing Structure**
+  - Implement SEO-friendly URLs for practice pages
+  - Change from `/practice/?id=xxx&mode=dictation` to `/topics/dictation/{slug}`
+  - Change from `/practice/?id=xxx&mode=shadowing` to `/topics/shadowing/{slug}`
+  - URL slugs generated from material titles (e.g., "first-snowfall")
+  - Clean URLs redirect to practice page with correct query parameters
+
+### Technical Details
+- Added `src/lib/utils/slug.ts` - Title-to-slug conversion utilities
+- Added `src/lib/data/materialSlugs.ts` - Static slug data for build-time generation
+- Created dynamic routes with `generateStaticParams()` for static export
+- 78 static pages generated (39 dictation + 39 shadowing routes)
+- Routes use Suspense boundaries for `useSearchParams()` compatibility
+
+---
+
 ## [6.1.0] - 2025-02-21
 
 ### Added
