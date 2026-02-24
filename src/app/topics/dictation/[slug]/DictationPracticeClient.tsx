@@ -115,7 +115,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
           .from('materials')
           .select('*')
 
-        const material = materials?.find(m => titleToSlug(m.title) === slug)
+        const material = materials?.find(m => m.id === slug || titleToSlug(m.title) === slug)
 
         if (material) {
           setMaterialId(material.id)
