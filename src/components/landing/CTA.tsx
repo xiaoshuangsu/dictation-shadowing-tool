@@ -1,9 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Link from "next/link"
 import { ArrowRight, Mail, Github } from "lucide-react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import LocalizedLink from "@/components/LocalizedLink"
 
 export default function CTA() {
   const { t } = useLanguage()
@@ -51,13 +51,13 @@ export default function CTA() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex justify-center"
           >
-            <Link
+            <LocalizedLink
               href="/topics"
               className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 group"
             >
               {t("cta.button")}
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            </LocalizedLink>
           </motion.div>
 
           {/* Social links */}

@@ -1,3 +1,9 @@
+scripts/__pycache__/
+scripts/tmp/
+scripts/*.json
+scripts/processing-report-*.json
+!scripts/.env.example
+!scripts/materials-to-process.json.example
 # dependencies
 /node_modules
 /.pnp
@@ -58,3 +64,12 @@ transcribe*.py
 check_*.py
 run_migration.py
 temp_audio/
+.env.local
+
+# Temp and cache files
+scripts/__pycache__/
+scripts/tmp/
+scripts/*.json
+!scripts/.env.example
+!scripts/materials-to-process.json.example
+scripts/processing-report-*.json

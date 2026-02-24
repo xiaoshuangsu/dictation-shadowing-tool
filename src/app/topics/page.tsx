@@ -5,6 +5,16 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import FilterBar, { FilterOptions } from '@/components/topics/FilterBar'
 import { titleToSlug } from '@/lib/utils/slug'
+import { useLanguage } from '@/contexts/LanguageContext'
+import LocalizedLink from '@/components/LocalizedLink'
+
+// 分类映射
+const CATEGORY_MAP = {
+  '日常生活': { en: 'Daily Life', zh: '日常生活' },
+  '历史演讲': { en: 'Historical Speeches', zh: '历史演讲' },
+  '文化历史': { en: 'Culture & History', zh: '文化历史' },
+  '艺术文化': { en: 'Arts & Culture', zh: '艺术文化' },
+} as const
 
 // 使用环境变量的 Supabase 配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co'
@@ -42,6 +52,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export default function MaterialsPage() {
+  const { t, language } = useLanguage()
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,6 +62,11 @@ export default function MaterialsPage() {
     duration: null,
     category: null,
   })
+
+  // 获取本地化的分类名称
+  const getLocalizedCategory = (categoryId: string) => {
+    return CATEGORY_MAP[categoryId as keyof typeof CATEGORY_MAP]?.[language] || categoryId
+  }
 
   // 动态获取所有不重复的分类
   const uniqueCategories = useMemo(() => {
@@ -183,22 +199,21 @@ export default function MaterialsPage() {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            English Dictation & Shadowing
+            {t("topics.title")}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl">
-            Curated English learning materials covering daily life, culture & history, historical speeches, and more.
-            Choose content that matches your level and start practicing!
+            {t("topics.subtitle")}
           </p>
 
           {/* 统计信息 */}
           <div className="mt-6 flex flex-wrap gap-6 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900">{totalFilteredCount}</span>
-              <span>materials</span>
+              <span>{t("topics.materials")}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900">{totalCategories}</span>
-              <span>categories</span>
+              <span>{t("topics.categories")}</span>
             </div>
           </div>
         </div>
@@ -221,7 +236,7 @@ export default function MaterialsPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Loading...</p>
+            <p className="mt-4 text-gray-600">{t("topics.loading")}</p>
           </div>
         ) : error ? (
           /* 错误提示 */
@@ -229,10 +244,10 @@ export default function MaterialsPage() {
             <svg className="mx-auto h-16 w-16 text-red-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">Failed to load materials</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">{t("topics.error")}</h3>
             <p className="text-gray-500 mb-4">{error}</p>
             <p className="text-sm text-gray-400 max-w-md mx-auto">
-              Check the browser console for detailed error information. Possible causes: Supabase connection failed, CORS restrictions, or RLS policy blocking access.
+              {t("topics.errorDetails")}
             </p>
           </div>
         ) : totalFilteredCount === 0 ? (
@@ -241,8 +256,8 @@ export default function MaterialsPage() {
             <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">No materials found</h3>
-            <p className="text-gray-500">Try changing the filter conditions</p>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">{t("topics.noResults")}</h3>
+            <p className="text-gray-500">{t("topics.tryChangingFilters")}</p>
           </div>
         ) : (
           <div className="space-y-12">
@@ -262,9 +277,9 @@ export default function MaterialsPage() {
                   {/* Section Header */}
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">
-                      {categoryLabel}
+                      {getLocalizedCategory(categoryId)}
                       <span className="ml-2 text-sm font-normal text-gray-500">
-                        ({categoryMaterials.length} lessons)
+                        ({categoryMaterials.length} {t("topics.lessons")})
                       </span>
                     </h2>
                     {categoryMaterials.length > 4 && (
@@ -280,7 +295,7 @@ export default function MaterialsPage() {
                         }}
                         className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                       >
-                        {isExpanded ? 'Collapse ↑' : `View All →`}
+                        {isExpanded ? t("topics.collapse") : t("topics.viewAll")}
                       </button>
                     )}
                   </div>
@@ -344,18 +359,18 @@ export default function MaterialsPage() {
 
                               {/* 操作按钮 */}
                               <div className="flex gap-2">
-                                <Link
+                                <LocalizedLink
                                   href={`/topics/dictation/${titleToSlug(material.title)}`}
                                   className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-blue-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                                 >
-                                  Dictation
-                                </Link>
-                                <Link
+                                  {t("topics.dictation")}
+                                </LocalizedLink>
+                                <LocalizedLink
                                   href={`/topics/shadowing/${titleToSlug(material.title)}`}
                                   className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-gray-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                                 >
-                                  Shadowing
-                                </Link>
+                                  {t("topics.shadowing")}
+                                </LocalizedLink>
                               </div>
                             </div>
                           </div>

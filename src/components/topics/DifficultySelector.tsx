@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface DifficultyOption {
   value: string | null
@@ -14,20 +15,21 @@ interface DifficultySelectorProps {
   onChange: (value: string | null) => void
 }
 
-// 难度选项配置
-const DIFFICULTY_OPTIONS: DifficultyOption[] = [
-  { value: null, label: 'All difficulties', icon: '🎓', color: 'text-gray-700' },
-  { value: 'A1', label: 'A1 - Beginner', icon: '⭐', color: 'text-green-600' },
-  { value: 'A2', label: 'A2 - Elementary', icon: '👑', color: 'text-blue-600' },
-  { value: 'B1', label: 'B1 - Intermediate', icon: '🏆', color: 'text-yellow-600' },
-  { value: 'B2', label: 'B2 - Upper Intermediate', icon: '🏅', color: 'text-orange-600' },
-  { value: 'C1', label: 'C1 - Advanced', icon: '🔮', color: 'text-purple-600' },
-  { value: 'C2', label: 'C2 - Proficient', icon: '💎', color: 'text-cyan-600' },
-]
-
 export default function DifficultySelector({ value, onChange }: DifficultySelectorProps) {
+  const { t } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // 难度选项配置（使用翻译）
+  const DIFFICULTY_OPTIONS: DifficultyOption[] = [
+    { value: null, label: t("topics.filter.all"), icon: '🎓', color: 'text-gray-700' },
+    { value: 'A1', label: t("topics.difficulty.a1"), icon: '⭐', color: 'text-green-600' },
+    { value: 'A2', label: t("topics.difficulty.a2"), icon: '👑', color: 'text-blue-600' },
+    { value: 'B1', label: t("topics.difficulty.b1"), icon: '🏆', color: 'text-yellow-600' },
+    { value: 'B2', label: t("topics.difficulty.b2"), icon: '🏅', color: 'text-orange-600' },
+    { value: 'C1', label: t("topics.difficulty.c1"), icon: '🔮', color: 'text-purple-600' },
+    { value: 'C2', label: t("topics.difficulty.c2"), icon: '💎', color: 'text-cyan-600' },
+  ]
 
   // 获取当前选中的选项
   const selectedOption = DIFFICULTY_OPTIONS.find(opt => opt.value === value) || DIFFICULTY_OPTIONS[0]
@@ -56,7 +58,7 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
         <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
         </svg>
-        <span className="text-xs font-medium text-gray-700">Difficulty</span>
+        <span className="text-xs font-medium text-gray-700">{t("topics.filter.difficulty")}</span>
       </div>
 
       <div ref={containerRef} className="relative min-w-[200px]">

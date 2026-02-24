@@ -1,10 +1,10 @@
 "use client"
 
 import { motion } from "framer-motion"
-import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import HeroVisual from "./HeroVisual"
 import { useLanguage } from "@/contexts/LanguageContext"
+import LocalizedLink from "@/components/LocalizedLink"
 
 export default function Hero() {
   const { t } = useLanguage()
@@ -19,8 +19,9 @@ export default function Hero() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="text-center lg:text-left"
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6">
-              {t("hero.title")}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 flex flex-col">
+              <span>{t("hero.title.line1")}</span>
+              <span>{t("hero.title.line2")}</span>
             </h1>
 
             <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed">
@@ -28,13 +29,13 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Link
+              <LocalizedLink
                 href="/topics"
                 className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-full font-semibold hover:from-slate-900 hover:to-black transition-all shadow-lg"
               >
                 {t("hero.cta")}
                 <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
+              </LocalizedLink>
             </div>
           </motion.div>
 

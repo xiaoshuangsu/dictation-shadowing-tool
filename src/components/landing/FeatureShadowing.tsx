@@ -2,9 +2,12 @@
 
 import { motion } from "framer-motion"
 import { Mic, Volume2, Waves, ArrowRight } from "lucide-react"
-import Link from "next/link"
+import { useLanguage } from "@/contexts/LanguageContext"
+import LocalizedLink from "@/components/LocalizedLink"
 
 export default function FeatureShadowing() {
+  const { t } = useLanguage()
+
   return (
     <section className="py-20 bg-white">
       <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -32,8 +35,8 @@ export default function FeatureShadowing() {
                       <Mic className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900">Shadowing Practice</h3>
-                      <p className="text-sm text-gray-500">Sentence 5/22</p>
+                      <h3 className="font-semibold text-slate-900">{t("feature.shadowing.title")}</h3>
+                      <p className="text-sm text-gray-500">{t("feature.shadowing.progress")}</p>
                     </div>
                   </div>
                   <div className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
@@ -64,7 +67,7 @@ export default function FeatureShadowing() {
                   </div>
                   <p className="text-xs text-purple-600 flex items-center gap-1">
                     <Waves className="w-3 h-3" />
-                    Linking Tip: sister_and links to /sɪstərənd/
+                    {t("feature.shadowing.linkingTipExample")}
                   </p>
                 </div>
 
@@ -78,7 +81,7 @@ export default function FeatureShadowing() {
                     >
                       <Mic className="w-8 h-8 text-white" />
                     </motion.button>
-                    <p className="text-sm text-gray-600 mt-3">Click to start recording</p>
+                    <p className="text-sm text-gray-600 mt-3">{t("feature.shadowing.clickToRecord")}</p>
                   </div>
 
                   {/* Audio player for original */}
@@ -102,7 +105,7 @@ export default function FeatureShadowing() {
                 transition={{ duration: 2, repeat: Infinity }}
                 className="absolute -right-2 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-blue-500 text-white px-4 py-2 rounded-full shadow-lg z-10"
               >
-                <span className="text-sm font-semibold">🎤 Mimic Intonation</span>
+                <span className="text-sm font-semibold">🎤 {t("feature.shadowing.mimicIntonation")}</span>
               </motion.div>
             </motion.div>
           </div>
@@ -117,15 +120,15 @@ export default function FeatureShadowing() {
             >
               <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <Mic className="w-4 h-4" />
-                Shadowing Practice
+                {t("footer.shadowing")}
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
-                Mimic Native Speakers, Master Authentic Pronunciation
+                {t("feature.shadowing.title2")}
               </h2>
 
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                Shadowing is the golden method for language learning. Through synchronized repetition, train oral muscle memory and master authentic intonation and linking techniques.
+                {t("feature.shadowing.desc2")}
               </p>
 
               <ul className="space-y-4 mb-8">
@@ -136,8 +139,8 @@ export default function FeatureShadowing() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Synchronized Repetition</h4>
-                    <p className="text-gray-600 text-sm">Sync with the original audio, train instant reaction ability</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.shadowing.sync")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.shadowing.syncDesc")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -147,8 +150,8 @@ export default function FeatureShadowing() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Linking Tips</h4>
-                    <p className="text-gray-600 text-sm">Intelligently mark linking positions, master natural fluency</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.shadowing.linking")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.shadowing.linkingDesc")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -158,32 +161,32 @@ export default function FeatureShadowing() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Intonation Mimicry</h4>
-                    <p className="text-gray-600 text-sm">Learn stress, pauses, and intonation changes</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.shadowing.intonation")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.shadowing.intonationDesc")}</p>
                   </div>
                 </li>
               </ul>
 
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="bg-purple-50 px-4 py-2 rounded-lg border border-purple-200 text-sm text-purple-700">
-                  🎯 Improve Speaking Fluency
+                  🎯 {t("feature.shadowing.fluency")}
                 </div>
                 <div className="bg-purple-50 px-4 py-2 rounded-lg border border-purple-200 text-sm text-purple-700">
-                  🗣️ Correct Pronunciation Issues
+                  🗣️ {t("feature.shadowing.pronunciation")}
                 </div>
                 <div className="bg-purple-50 px-4 py-2 rounded-lg border border-purple-200 text-sm text-purple-700">
-                  📊 AI Scoring Feedback
+                  📊 {t("feature.shadowing.scoring")}
                 </div>
               </div>
 
               {/* Try now button */}
-              <Link
+              <LocalizedLink
                 href="/topics"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl"
               >
-                Try now
+                {t("feature.shadowing.try")}
                 <ArrowRight className="w-5 h-5" />
-              </Link>
+              </LocalizedLink>
             </motion.div>
           </div>
         </motion.div>

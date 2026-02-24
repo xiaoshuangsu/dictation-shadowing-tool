@@ -2,9 +2,11 @@
 
 import { motion } from "framer-motion"
 import { Sparkles, AlertCircle, Lightbulb, CheckCircle2, ArrowRight } from "lucide-react"
-import Link from "next/link"
+import { useLanguage } from "@/contexts/LanguageContext"
+import LocalizedLink from "@/components/LocalizedLink"
 
 export default function FeatureAI() {
+  const { t } = useLanguage()
   return (
     <section className="py-20 bg-gradient-to-br from-green-50 to-white">
       <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -25,15 +27,15 @@ export default function FeatureAI() {
             >
               <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <Sparkles className="w-4 h-4" />
-                AI Smart Correction
+                {t("feature.ai.smart")}
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
-                Precise Diagnosis, Targeted Improvement
+                {t("feature.ai.title2")}
               </h2>
 
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                Say goodbye to blind practice. AI intelligently analyzes your input, precisely locates error types, and provides personalized improvement suggestions, making every practice session clearly rewarding.
+                {t("feature.ai.desc2")}
               </p>
 
               <ul className="space-y-4 mb-8">
@@ -42,8 +44,8 @@ export default function FeatureAI() {
                     <CheckCircle2 className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Spell Check</h4>
-                    <p className="text-gray-600 text-sm">Automatically identify spelling errors and capitalization issues</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.ai.spell")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.ai.spellDesc")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -51,8 +53,8 @@ export default function FeatureAI() {
                     <CheckCircle2 className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Linking Suggestions</h4>
-                    <p className="text-gray-600 text-sm">Suggest natural linking methods, improve speaking fluency</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.ai.linking")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.ai.linkingDesc")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -60,32 +62,32 @@ export default function FeatureAI() {
                     <CheckCircle2 className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Error Analysis</h4>
-                    <p className="text-gray-600 text-sm">Categorize and count error types, discover weak areas</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.ai.analysis")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.ai.analysisDesc")}</p>
                   </div>
                 </li>
               </ul>
 
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  📈 Error Trend Tracking
+                  📈 {t("feature.ai.trend")}
                 </div>
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  🎯 Personalized Suggestions
+                  🎯 {t("feature.ai.personalized")}
                 </div>
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  ⚡ Real-time Feedback
+                  ⚡ {t("feature.ai.realtime")}
                 </div>
               </div>
 
               {/* Try now button */}
-              <Link
+              <LocalizedLink
                 href="/topics"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
               >
-                Try now
+                {t("feature.ai.try")}
                 <ArrowRight className="w-5 h-5" />
-              </Link>
+              </LocalizedLink>
             </motion.div>
           </div>
 
@@ -106,7 +108,7 @@ export default function FeatureAI() {
                       <Sparkles className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900">AI Diagnostic Report</h3>
+                      <h3 className="font-semibold text-slate-900">{t("feature.ai.diagnostic")}</h3>
                       <p className="text-sm text-gray-500">Sentence 3</p>
                     </div>
                   </div>
@@ -121,7 +123,7 @@ export default function FeatureAI() {
                   <div className="bg-gray-50 rounded-xl p-4">
                     <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3" />
-                      Original Text
+                      {t("feature.ai.original")}
                     </p>
                     <p className="text-slate-900">The snow is beautiful.</p>
                   </div>
@@ -130,7 +132,7 @@ export default function FeatureAI() {
                   <div className="bg-red-50 rounded-xl p-4 border-2 border-red-200">
                     <p className="text-xs text-red-600 mb-2 flex items-center gap-1">
                       <AlertCircle className="w-3 h-3" />
-                      Your Input
+                      {t("feature.ai.input")}
                     </p>
                     <p className="text-lg">
                       <span className="text-green-600 font-medium">The</span>{" "}
@@ -149,7 +151,7 @@ export default function FeatureAI() {
                     <div className="flex items-start gap-3">
                       <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <h4 className="font-semibold text-slate-900 mb-1">Subject-Verb Agreement Error</h4>
+                        <h4 className="font-semibold text-slate-900 mb-1">{t("feature.ai.subjectVerb")}</h4>
                         <p className="text-sm text-gray-600 mb-2">
                           <span className="line-through text-red-600">are</span> →{" "}
                           <span className="text-green-600 font-medium">is</span>
@@ -166,7 +168,7 @@ export default function FeatureAI() {
                     <div className="flex items-start gap-3">
                       <Lightbulb className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <h4 className="font-semibold text-slate-900 mb-1">Improvement Suggestion</h4>
+                        <h4 className="font-semibold text-slate-900 mb-1">{t("feature.ai.improvement")}</h4>
                         <p className="text-sm text-gray-600">
                           Pay attention to singular subjects matching singular verbs. Recommend reviewing third-person singular usage.
                         </p>
@@ -180,15 +182,15 @@ export default function FeatureAI() {
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <p className="text-2xl font-bold text-green-600">85%</p>
-                      <p className="text-xs text-gray-500">Accuracy</p>
+                      <p className="text-xs text-gray-500">{t("feature.ai.accuracy")}</p>
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-orange-500">1</p>
-                      <p className="text-xs text-gray-500">Errors</p>
+                      <p className="text-xs text-gray-500">{t("feature.ai.errors")}</p>
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-blue-600">A</p>
-                      <p className="text-xs text-gray-500">Grade</p>
+                      <p className="text-xs text-gray-500">{t("feature.ai.grade")}</p>
                     </div>
                   </div>
                 </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import ConfirmModal from "./ConfirmModal"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface Sentence {
   id: number
@@ -21,6 +22,7 @@ interface DictationBoxProps {
 type WordStatus = "correct" | "incorrect" | "pending"
 
 export default function DictationBox({ sentence, onComplete, onNext, isLastSentence }: DictationBoxProps) {
+  const { t } = useLanguage()
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [showAllWords, setShowAllWords] = useState(false)
@@ -302,7 +304,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
               onClick={() => setShowTranslation(!showTranslation)}
               className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
             >
-              {showTranslation ? 'Hide Translation' : 'Show Translation'}
+              {showTranslation ? t('practice.dictation.hideTranslation') : t('practice.dictation.showTranslation')}
             </button>
           </div>
 
@@ -317,7 +319,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
       {/* Label */}
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Type what you hear:
+        {t('practice.dictation.typeWhatYouHear')}:
       </label>
 
       {/* Input Area */}
@@ -329,7 +331,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
           onFocus={updateActivity}
           disabled={isLocked}
           className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
-          placeholder="Type your answer here..."
+          placeholder={t('practice.dictation.typeYourAnswer')}
         />
       </div>
 
@@ -341,7 +343,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
             onClick={showAllWords ? handleHideAllWords : handleShowAllWords}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
-            {showAllWords ? "Hide Words" : "Show Words"}
+            {showAllWords ? t('practice.hideWords') : t('practice.showWords')}
           </button>
         </div>
 
@@ -401,7 +403,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       {showResult && !isCorrect && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
           <p className="text-sm text-red-700">
-            Not correct. Please try again.
+            {t('practice.dictation.incorrect')}
           </p>
         </div>
       )}
@@ -409,7 +411,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       {showResult && isCorrect && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200">
           <p className="text-sm text-green-700">
-            ✓ Correct!
+            {t('practice.dictation.correct')}
           </p>
         </div>
       )}
@@ -422,13 +424,13 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       >
         {showResult || isRevealed ? (
           <>
-            Next
+            {t('practice.next')}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </>
         ) : (
-          "Check Answer"
+          t('practice.checkAnswer')
         )}
       </button>
 
@@ -437,9 +439,9 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
         isOpen={showConfirmModal}
         onClose={handleCancelShowWords}
         onConfirm={handleConfirmShowWords}
-        message={`Are you sure you want to show all words and submit your answer?
+        message={`${t('practice.dictation.showWordsConfirm1')}
 
-The score for this sentence will be reduced according to the number of words you have not shown (${missingWordsCount} words).`}
+${t('practice.dictation.showWordsConfirm2').replace('{count}', String(missingWordsCount))}`}
       />
     </div>
   )
