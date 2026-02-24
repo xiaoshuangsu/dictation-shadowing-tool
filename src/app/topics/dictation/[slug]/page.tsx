@@ -1,10 +1,12 @@
-import { MATERIAL_SLUGS } from '@/lib/data/materialSlugs'
 import { Suspense } from 'react'
 import DictationPracticeClient from './DictationPracticeClient'
 
+// Tell Next.js that all slug params should be treated as dynamic
+export const dynamicParams = true
+
 // Generate static params for build time
 export function generateStaticParams() {
-  return MATERIAL_SLUGS
+  return []
 }
 
 export default function DictationPracticePage({

@@ -5,7 +5,8 @@ const nextConfig = {
   // Only use basePath in production for GitHub Pages
   basePath: isProd ? '/dictation-shadowing-tool' : '',
   assetPrefix: isProd ? '/dictation-shadowing-tool' : '',
-  output: 'export',
+  // Only use static export in production
+  output: isProd ? 'export' : undefined,
   images: {
     unoptimized: true,
   },
