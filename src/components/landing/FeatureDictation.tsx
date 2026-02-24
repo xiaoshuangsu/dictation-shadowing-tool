@@ -2,8 +2,8 @@
 
 import { motion } from "framer-motion"
 import { FileText, Headphones, CheckCircle, ArrowRight } from "lucide-react"
-import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
+import LocalizedLink from "@/components/LocalizedLink"
 
 export default function FeatureDictation() {
   const { t } = useLanguage()
@@ -28,7 +28,7 @@ export default function FeatureDictation() {
             >
               <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <FileText className="w-4 h-4" />
-                <span>Dictation Practice</span>
+                <span>{t("footer.dictation")}</span>
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
@@ -82,13 +82,13 @@ export default function FeatureDictation() {
               </div>
 
               {/* Try now button */}
-              <Link
+              <LocalizedLink
                 href="/topics"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
               >
                 {t("feature.dictation.try")}
                 <ArrowRight className="w-5 h-5" />
-              </Link>
+              </LocalizedLink>
             </motion.div>
           </div>
 
@@ -109,12 +109,12 @@ export default function FeatureDictation() {
                       <Headphones className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-slate-900">Dictation Practice</h3>
-                      <p className="text-sm text-gray-500">Sentence 1/22</p>
+                      <h3 className="font-semibold text-slate-900">{t("footer.dictation")}</h3>
+                      <p className="text-sm text-gray-500">{t("feature.shadowing.sentenceN")} 1/22</p>
                     </div>
                   </div>
                   <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
-                    Word Mode
+                    {t("feature.dictation.wordMode")}
                   </div>
                 </div>
 
@@ -139,31 +139,31 @@ export default function FeatureDictation() {
                 <div className="space-y-3 mb-6">
                   <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-green-600 font-medium">✓ Correct</span>
-                      <span className="text-xs text-gray-500">Word 1</span>
+                      <span className="text-xs text-green-600 font-medium">✓ {t("feature.dictation.correct")}</span>
+                      <span className="text-xs text-gray-500">{t("feature.dictation.wordN")} 1</span>
                     </div>
                     <p className="text-slate-900 font-medium">First</p>
                   </div>
                   <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-green-600 font-medium">✓ Correct</span>
-                      <span className="text-xs text-gray-500">Word 2</span>
+                      <span className="text-xs text-green-600 font-medium">✓ {t("feature.dictation.correct")}</span>
+                      <span className="text-xs text-gray-500">{t("feature.dictation.wordN")} 2</span>
                     </div>
                     <p className="text-slate-900 font-medium">snowfall</p>
                   </div>
                   <div className="bg-white border-2 border-dashed border-blue-300 rounded-xl p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-blue-600 font-medium">⏸️ Playing...</span>
-                      <span className="text-xs text-gray-500">Word 3</span>
+                      <span className="text-xs text-blue-600 font-medium">⏸️ {t("feature.dictation.playing")}</span>
+                      <span className="text-xs text-gray-500">{t("feature.dictation.wordN")} 3</span>
                     </div>
-                    <p className="text-gray-400">Type what you hear...</p>
+                    <p className="text-gray-400">{t("feature.dictation.typeWhatYouHear")}</p>
                   </div>
                 </div>
 
                 {/* Action buttons */}
                 <div className="flex gap-3">
                   <button className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors">
-                    Check Answer
+                    {t("feature.dictation.checkAnswer")}
                   </button>
                   <button className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">
                     <Headphones className="w-5 h-5" />

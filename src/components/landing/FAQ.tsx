@@ -26,6 +26,42 @@ export default function FAQ() {
       question: t("faq.q4.title"),
       answer: t("faq.q4.answer"),
     },
+    {
+      question: t("faq.q5.title"),
+      answer: t("faq.q5.answer"),
+    },
+    {
+      question: t("faq.q6.title"),
+      answer: t("faq.q6.answer"),
+    },
+    {
+      question: t("faq.q7.title"),
+      answer: t("faq.q7.answer"),
+    },
+    {
+      question: t("faq.q8.title"),
+      answer: t("faq.q8.answer"),
+    },
+    {
+      question: t("faq.q9.title"),
+      answer: t("faq.q9.answer"),
+    },
+    {
+      question: t("faq.q10.title"),
+      answer: t("faq.q10.answer"),
+    },
+    {
+      question: t("faq.q11.title"),
+      answer: t("faq.q11.answer"),
+    },
+    {
+      question: t("faq.q12.title"),
+      answer: t("faq.q12.answer"),
+    },
+    {
+      question: t("faq.q13.title"),
+      answer: t("faq.q13.answer"),
+    },
   ]
 
   return (
@@ -57,7 +93,7 @@ export default function FAQ() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.5, delay: index * 0.05 }}
+              transition={{ duration: 0.5, delay: index * 0.03 }}
               className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
             >
               <button

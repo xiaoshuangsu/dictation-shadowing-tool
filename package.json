@@ -1,6 +1,6 @@
 {
   "name": "dictation-shadowing-tool",
-  "version": "6.5.0",
+  "version": "7.0.0",
   "homepage": "https://xiaoshuangsu.github.io/dictation-shadowing-tool/",
   "private": true,
   "scripts": {
@@ -16,6 +16,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
     "clsx": "^2.1.1",
+    "dotenv": "^17.3.1",
     "framer-motion": "^12.34.3",
     "leancloud-realtime": "^5.0.0-rc.8",
     "leancloud-storage": "^4.15.2",

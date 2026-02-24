@@ -2,9 +2,12 @@
 
 import { motion } from "framer-motion"
 import { TrendingUp, Trophy, Flame, Calendar, ArrowRight } from "lucide-react"
-import Link from "next/link"
+import { useLanguage } from "@/contexts/LanguageContext"
+import LocalizedLink from "@/components/LocalizedLink"
 
 export default function FeatureGrowth() {
+  const { t } = useLanguage()
+
   // Mock data for the chart
   const weekData = [
     { day: "Mon", value: 30 },
@@ -41,12 +44,12 @@ export default function FeatureGrowth() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="font-semibold text-slate-900 text-lg">Learning Statistics</h3>
-                    <p className="text-sm text-gray-500">Past 7 days</p>
+                    <h3 className="font-semibold text-slate-900 text-lg">{t("feature.growth.statistics")}</h3>
+                    <p className="text-sm text-gray-500">{t("feature.growth.pastDays")}</p>
                   </div>
                   <div className="flex items-center gap-2 text-orange-600">
                     <Flame className="w-5 h-5" />
-                    <span className="font-bold">7 Day Streak</span>
+                    <span className="font-bold">7 {t("feature.growth.dayStreak")}</span>
                   </div>
                 </div>
 
@@ -80,41 +83,41 @@ export default function FeatureGrowth() {
                       <Trophy className="w-6 h-6 text-orange-600" />
                     </div>
                     <p className="text-2xl font-bold text-slate-900">156</p>
-                    <p className="text-xs text-gray-500">Total Practices</p>
+                    <p className="text-xs text-gray-500">{t("feature.growth.totalPractices")}</p>
                   </div>
                   <div className="bg-white rounded-xl p-4 text-center">
                     <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-2">
                       <TrendingUp className="w-6 h-6 text-green-600" />
                     </div>
                     <p className="text-2xl font-bold text-slate-900">89%</p>
-                    <p className="text-xs text-gray-500">Avg. Accuracy</p>
+                    <p className="text-xs text-gray-500">{t("feature.growth.avgAccuracy")}</p>
                   </div>
                 </div>
 
                 {/* Recent activity */}
                 <div className="bg-white rounded-xl p-4">
-                  <h4 className="font-semibold text-slate-900 mb-3 text-sm">Today's Activity</h4>
+                  <h4 className="font-semibold text-slate-900 mb-3 text-sm">{t("feature.growth.todayActivity")}</h4>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-gray-700">Completed 12 sentences</span>
+                        <span className="text-gray-700">{t("feature.growth.completed")} 12 {t("feature.growth.sentences")}</span>
                       </div>
                       <span className="text-green-600 font-medium">+24 pts</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-gray-700">Practice Time</span>
+                        <span className="text-gray-700">{t("feature.growth.practiceTime")}</span>
                       </div>
                       <span className="text-blue-600 font-medium">18 min</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        <span className="text-gray-700">Dictation Practice</span>
+                        <span className="text-gray-700">{t("feature.growth.dictationPractice")}</span>
                       </div>
-                      <span className="text-purple-600 font-medium">8 sentences</span>
+                      <span className="text-purple-600 font-medium">8 {t("feature.growth.sentences")}</span>
                     </div>
                   </div>
                 </div>
@@ -132,15 +135,15 @@ export default function FeatureGrowth() {
             >
               <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <TrendingUp className="w-4 h-4" />
-                Growth Tracking
+                {t("feature.growth.tracking")}
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
-                Visualize Progress, Stay Motivated
+                {t("feature.growth.title2")}
               </h2>
 
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                Every step of learning is recorded. Through detailed statistics and visualization charts, clearly see your growth trajectory, making persistence more meaningful.
+                {t("feature.growth.desc2")}
               </p>
 
               <ul className="space-y-4 mb-8">
@@ -151,8 +154,8 @@ export default function FeatureGrowth() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Practice Statistics</h4>
-                    <p className="text-gray-600 text-sm">Track daily practice count, duration, and accuracy</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.growth.practice")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.growth.practiceDesc")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -162,8 +165,8 @@ export default function FeatureGrowth() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Streak Records</h4>
-                    <p className="text-gray-600 text-sm">Track consecutive learning days, maintain study habits</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.growth.streakRecord")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.growth.streakRecordDesc")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -173,8 +176,8 @@ export default function FeatureGrowth() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Progress Charts</h4>
-                    <p className="text-gray-600 text-sm">Visual charts display learning trends</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.growth.charts")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.growth.chartsDesc")}</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -184,32 +187,32 @@ export default function FeatureGrowth() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">Achievement System</h4>
-                    <p className="text-gray-600 text-sm">Unlock badges and milestones, motivate continuous learning</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.growth.achievement")}</h4>
+                    <p className="text-gray-600 text-sm">{t("feature.growth.achievementDesc")}</p>
                   </div>
                 </li>
               </ul>
 
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 text-sm text-orange-700">
-                  📊 Detailed Data
+                  📊 {t("feature.growth.detailedData")}
                 </div>
                 <div className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 text-sm text-orange-700">
-                  🏆 Achievement Badges
+                  🏆 {t("feature.growth.achievementBadges")}
                 </div>
                 <div className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 text-sm text-orange-700">
-                  🔥 Study Habits
+                  🔥 {t("feature.growth.studyHabits")}
                 </div>
               </div>
 
               {/* Try now button */}
-              <Link
+              <LocalizedLink
                 href="/topics"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-orange-800 transition-all shadow-lg hover:shadow-xl"
               >
-                Try now
+                {t("feature.growth.try")}
                 <ArrowRight className="w-5 h-5" />
-              </Link>
+              </LocalizedLink>
             </motion.div>
           </div>
         </motion.div>

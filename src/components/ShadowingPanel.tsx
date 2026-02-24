@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface Sentence {
   id: number
@@ -207,6 +208,7 @@ const generateLinkingIPA = (first: string, second: string): string => {
 }
 
 export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
+  const { t } = useLanguage()
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
   const [userTranscript, setUserTranscript] = useState("")
@@ -239,6 +241,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
   const userTranscriptRef = useRef(userTranscript)
   const recordedChunksRef = useRef<Blob[]>([])
   const recordedMimeTypeRef = useRef<string>('')
+  const resultProcessedRef = useRef(false)  // Track if we've already processed the result
 
   // 更新 refs 当值变化时
   useEffect(() => {
@@ -253,14 +256,22 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
     userTranscriptRef.current = userTranscript
   }, [userTranscript])
 
+  // Track showResult changes for debugging
   useEffect(() => {
+    console.log("showResult changed to:", showResult)
+  }, [showResult])
+
+  useEffect(() => {
+    console.log("useEffect fired for sentence.id:", sentence.id)
     setUserTranscript("")
     setShowResult(false)
+    console.log("Reset showResult to false")
     setRecordedAudioUrl(null)
     setMicError(null)
     setWordDiffs([])  // 重置单词对比结果
     // 不重置 displayMode，保持用户选择
     recordedChunksRef.current = []
+    resultProcessedRef.current = false  // Reset result processed flag
 
     // 重置播放时间跟踪
     setTotalPlayedSeconds(0)
@@ -278,7 +289,9 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
     }
 
     // 记录页面开始时间（兜底逻辑）
-    setPageStartTime(Date.now())
+    const now = Date.now()
+    setPageStartTime(now)
+    console.log("Set pageStartTime to:", now)
   }, [sentence.id])
 
   /**
@@ -533,18 +546,27 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               for (let i = event.resultIndex; i < event.results.length; i++) {
                 const result = event.results[i]
                 console.log("Result:", result, "isFinal:", result.isFinal)
+
+                // Store the transcript (both interim and final)
+                interimTranscript = result[0].transcript
+                userTranscriptRef.current = interimTranscript
+
                 if (result.isFinal) {
-                  interimTranscript = result[0].transcript
                   console.log("Final transcript:", interimTranscript)
                   console.log("Expected text:", sentenceRef.current.text)
                   setUserTranscript(interimTranscript)
+                  console.log("Setting showResult to true...")
                   setShowResult(true)
+                  resultProcessedRef.current = true  // Mark result as processed
+                  console.log("showResult state set (async, will take effect on next render)")
 
                   // 执行单词级对比
                   const diffs = compareWords(sentenceRef.current.text, interimTranscript)
                   console.log("Word diffs result:", diffs)
                   console.log("Word diffs length:", diffs.length)
+                  console.log("Diffs JSON:", JSON.stringify(diffs, null, 2))
                   setWordDiffs(diffs)
+                  console.log("setWordDiffs called")
 
                   // 计算整体正确性
                   const hasErrors = diffs.some(d => d.status !== 'match')
@@ -598,11 +620,66 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
             }
 
             recog.onend = () => {
+              console.log("Speech recognition ended. resultProcessedRef =", resultProcessedRef.current)
               // 语音识别结束时，同时停止音频录制
               if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
                 mediaRecorderRef.current.stop()
               }
               setIsRecording(false)
+
+              // Only process if we haven't already processed a final result
+              if (!resultProcessedRef.current) {
+                const interimTranscript = userTranscriptRef.current
+                if (interimTranscript) {
+                  console.log("Processing interim result:", interimTranscript)
+                  console.log("Expected text:", sentenceRef.current.text)
+
+                  setUserTranscript(interimTranscript)
+                  console.log("Setting showResult to true (from onend)...")
+                  setShowResult(true)
+
+                  // 执行单词级对比
+                  const diffs = compareWords(sentenceRef.current.text, interimTranscript)
+                  console.log("Word diffs result:", diffs)
+                  setWordDiffs(diffs)
+
+                  // 计算整体正确性
+                  const hasErrors = diffs.some(d => d.status !== 'match')
+                  const isCorrect = !hasErrors
+
+                  console.log("Pronunciation correct:", isCorrect)
+
+                  // 延迟调用 onComplete
+                  setTimeout(() => {
+                    if (onCompleteRef.current) {
+                      let durationSeconds = 0
+
+                      if (totalPlayedSecondsRef.current > 0) {
+                        durationSeconds = Math.round(totalPlayedSecondsRef.current)
+                      } else if (pageStartTime) {
+                        durationSeconds = Math.max(1, Math.round((Date.now() - pageStartTime) / 1000))
+                      } else {
+                        durationSeconds = 1
+                      }
+
+                      console.log('ShadowingPanel - Calling onComplete (from onend):', {
+                        isCorrect,
+                        durationSeconds,
+                        totalPlayedSeconds: totalPlayedSecondsRef.current,
+                        pageStartTime,
+                        sentenceId: sentence.id,
+                        sentenceText: sentence.text
+                      })
+                      onCompleteRef.current(isCorrect, durationSeconds)
+                    }
+                  }, 100)
+                } else {
+                  console.warn("No transcript received from speech recognition")
+                  setMicError("未能识别到语音，请重试")
+                }
+              } else {
+                console.log("Result already processed, skipping onend processing")
+              }
             }
 
             setRecognition(recog)
@@ -655,6 +732,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       setWordDiffs([])  // 重置单词对比
       setRecordedAudioUrl(null)
       recordedChunksRef.current = []
+      resultProcessedRef.current = false  // Reset result processed flag
+      userTranscriptRef.current = ""  // Clear transcript ref
 
       // 开始语音识别
       recognitionRef.current.start()
@@ -899,7 +978,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       />
 
       <p className="text-sm text-gray-500 mb-4">
-        💡 影子跟读：播放音频后，点击麦克风跟读
+        💡 {t('practice.shadowing.tip')}
       </p>
 
       {/* 显示模式切换按钮 */}
@@ -912,7 +991,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          Show All
+          {t('practice.shadowing.showAll')}
         </button>
         <button
           onClick={() => setDisplayMode('translation-only')}
@@ -922,7 +1001,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          Translation Only
+          {t('practice.shadowing.translationOnly')}
         </button>
         <button
           onClick={() => setDisplayMode('blind')}
@@ -932,7 +1011,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          Hide All
+          {t('practice.shadowing.hideAll')}
         </button>
       </div>
 
@@ -941,7 +1020,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         {/* 原句 - 根据模式显示或隐藏 */}
         {displayMode !== 'translation-only' && displayMode !== 'blind' && (
           <>
-            <p className="text-sm text-gray-500 mb-2">Original:</p>
+            <p className="text-sm text-gray-500 mb-2">{t('practice.shadowing.original')}:</p>
             <p className="text-base text-gray-800 leading-relaxed">
               {sentence.text}
             </p>
@@ -952,7 +1031,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         {displayMode !== 'blind' && sentence.translation && (
           <>
             <p className="text-sm text-gray-500 mb-2 mt-4">
-              {displayMode === 'translation-only' ? 'Translation:' : 'Translation:'}
+              {t('practice.shadowing.translation')}:
             </p>
             <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed`}>
               {sentence.translation}
@@ -965,7 +1044,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           <div className="text-center py-2">
             <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
               <span className="text-lg">🙈</span>
-              <span>Blind Mode - Listen and shadow without text</span>
+              <span>{t('practice.shadowing.blindMode')}</span>
             </p>
           </div>
         )}
@@ -979,13 +1058,17 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       )}
 
       {/* 用户读音结果 - 单词级对比 */}
+      {(() => {
+        console.log("Rendering result section: showResult =", showResult, "wordDiffs.length =", wordDiffs.length, "isCorrect =", isCorrect)
+        return null
+      })()}
       {showResult && (
         <div className={`mb-4 p-4 rounded-lg border-2 ${
           isCorrect
             ? "bg-green-50 border-green-300"
             : "bg-orange-50 border-orange-300"
         }`}>
-          <p className="text-xs text-gray-500 mb-2">My pronunciation:</p>
+          <p className="text-xs text-gray-500 mb-2">{t('practice.shadowing.myPronunciation')}:</p>
 
           {/* 单词对比结果 */}
           <div className="mb-3 text-base leading-relaxed">
@@ -993,7 +1076,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               renderWordDiffs()
             ) : (
               <div className="text-gray-600">
-                {userTranscript || "Could not recognize speech, please try again"}
+                {userTranscript || t('practice.shadowing.noRecognition')}
               </div>
             )}
           </div>
@@ -1008,11 +1091,11 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 <p className="text-xs text-blue-700 flex items-start gap-2">
                   <span className="text-lg">💡</span>
                   <span>
-                    <strong>Linking Tips:</strong>
+                    <strong>{t('practice.shadowing.linkingTips')}:</strong>
                     <span className="block mt-1">
                       {pairs.map((pair, index) => (
                         <span key={index}>
-                          <strong>{pair.first} {pair.second}</strong> can be linked{pair.ipa && `, pronounced as ${pair.ipa}`}
+                          <strong>{pair.first} {pair.second}</strong> {t('practice.shadowing.canBeLinked')}{pair.ipa && `, ${t('practice.shadowing.pronouncedAs')} ${pair.ipa}`}
                         </span>
                       ))}
                     </span>
@@ -1029,14 +1112,14 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span className="font-medium">Perfect pronunciation!</span>
+                <span className="font-medium">{t('practice.shadowing.perfectPronunciation')}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 text-orange-600">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
-                <span className="font-medium">Keep practicing!</span>
+                <span className="font-medium">{t('practice.shadowing.keepPracticing')}</span>
               </div>
             )}
           </div>
@@ -1046,7 +1129,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       {/* 音频对比区域 */}
       {recordedAudioUrl && (
         <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm font-medium text-gray-700 mb-3">🎵 Audio Comparison</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">🎵 {t('practice.shadowing.audioComparison')}</p>
 
           <div className="flex gap-3">
             {/* 播放原音 */}
@@ -1057,7 +1140,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
               </svg>
-              <span className="text-sm font-medium text-gray-700">Original</span>
+              <span className="text-sm font-medium text-gray-700">{t('practice.shadowing.original')}</span>
             </button>
 
             {/* 播放我的录音 */}
@@ -1069,7 +1152,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3s-3 1.34-3 3v6c0 1.66 1.34 3 3 3z"/>
                 <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
               </svg>
-              <span className="text-sm font-medium text-gray-700">My Recording</span>
+              <span className="text-sm font-medium text-gray-700">{t('practice.shadowing.myRecording')}</span>
             </button>
           </div>
 
@@ -1114,7 +1197,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
             disabled={isLastSentence}
             className="px-6 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
-            Next
+            {t('practice.next')}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -1125,7 +1208,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       {/* 录音状态提示 */}
       {isRecording && (
         <div className="text-center mb-4">
-          <p className="text-sm text-red-500 animate-pulse">🎤 正在录音...</p>
+          <p className="text-sm text-red-500 animate-pulse">{t('practice.shadowing.recording')}</p>
         </div>
       )}
     </div>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useMemo } from "react"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 interface Sentence {
   id: number
@@ -20,6 +21,7 @@ interface WordModeProps {
 }
 
 export default function WordMode({ sentence, onComplete, currentIndex, totalSentences, onNext, isLastSentence }: WordModeProps) {
+  const { t } = useLanguage()
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
@@ -234,7 +236,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
               onClick={() => setShowTranslation(!showTranslation)}
               className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
             >
-              {showTranslation ? 'Hide Translation' : 'Show Translation'}
+              {showTranslation ? t('practice.dictation.hideTranslation') : t('practice.dictation.showTranslation')}
             </button>
           </div>
         )}
@@ -262,7 +264,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
       {/* Label */}
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Type the missing word:
+        {t('practice.wordMode.typeMissingWord')}:
       </label>
 
       {/* Input Area */}
@@ -285,7 +287,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
           onKeyDown={handleKeyDown}
           disabled={showWord}
           className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
-          placeholder={showWord ? "Correct answer shown (editable)" : "Type your answer here..."}
+          placeholder={showWord ? t('practice.wordMode.correctShown') : t('practice.dictation.typeYourAnswer')}
         />
       </div>
 
@@ -293,13 +295,13 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       {showResult && isCorrect === false && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
           <p className="text-sm text-red-700 mb-2">
-            Not correct. Please listen again and try!
+            {t('practice.wordMode.incorrect')}
           </p>
           <button
             onClick={handleShowWord}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium underline"
           >
-            Show Word
+            {t('practice.wordMode.showWord')}
           </button>
         </div>
       )}
@@ -307,7 +309,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       {showResult && isCorrect === true && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200">
           <p className="text-sm text-green-700">
-            Correct!
+            {t('practice.dictation.correct')}
           </p>
         </div>
       )}
@@ -320,13 +322,13 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       >
         {showResult ? (
           <>
-            Next
+            {t('practice.next')}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </>
         ) : (
-          "Check Answer"
+          t('practice.checkAnswer')
         )}
       </button>
     </div>

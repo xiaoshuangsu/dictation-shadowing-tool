@@ -350,7 +350,9 @@ export async function getMaterialProgressFallback(
     let resolvedMaterialId = materialId
     if (!materialId) {
       resolvedMaterialId = titleToMaterialId.get(audioTitle) || audioTitle
-      console.log(`🔍 [Progress] Old record found: "${audioTitle}" -> matched to material_id: ${resolvedMaterialId}`)
+      console.log(`🔍 [Progress] Old record: "${audioTitle}" (sentence ${sentenceId}) -> matched to material_id: ${resolvedMaterialId}`)
+    } else {
+      console.log(`✅ [Progress] New record: material_id=${materialId}, audio_title="${audioTitle}" (sentence ${sentenceId})`)
     }
 
     const current = materialMap.get(resolvedMaterialId)

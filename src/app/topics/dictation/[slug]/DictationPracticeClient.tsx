@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import Link from "next/link"
 import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
 import DictationBox from "@/components/DictationBox"
@@ -11,22 +10,24 @@ import WordMode from "@/components/WordMode"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
+import { useLanguage } from "@/contexts/LanguageContext"
+import LocalizedLink from "@/components/LocalizedLink"
 
 const supabase = createClient(
   'https://cuxotlijjnxbsirpdkgr.supabase.co',
   'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
 )
 
-// Category mapping for English labels
-const CATEGORY_LABELS: Record<string, string> = {
-  '日常生活': 'Daily Life',
-  '历史演讲': 'Historical Speeches',
-  '文化历史': 'Culture & History',
-  '艺术文化': 'Arts & Culture',
+// Category mapping for bilingual labels
+const CATEGORY_LABELS: Record<string, { en: string; zh: string }> = {
+  '日常生活': { en: 'Daily Life', zh: '日常生活' },
+  '历史演讲': { en: 'Historical Speeches', zh: '历史演讲' },
+  '文化历史': { en: 'Culture & History', zh: '文化历史' },
+  '艺术文化': { en: 'Arts & Culture', zh: '艺术文化' },
 }
 
-const getCategoryLabel = (category: string) => {
-  return CATEGORY_LABELS[category] || category
+const getCategoryLabel = (category: string, language: 'en' | 'zh') => {
+  return CATEGORY_LABELS[category]?.[language] || category
 }
 
 const DEFAULT_AUDIO_TITLE = "First Snowfall"
@@ -70,6 +71,7 @@ type DictationMode = "word" | "whole"
 
 export function DictationPracticeClientContent({ slug }: { slug: string }) {
   const { user } = useAuth()
+  const { t, language } = useLanguage()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -260,7 +262,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
       <main className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">{t("practice.loading")}</p>
         </div>
       </main>
     )
@@ -270,7 +272,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
     return (
       <main className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600">{materialError || 'Failed to load content'}</p>
+          <p className="text-red-600">{materialError || t("practice.fetchError")}</p>
         </div>
       </main>
     )
@@ -281,11 +283,11 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-2">
           <nav className="flex items-center text-sm">
-            <Link href="/topics" className="text-gray-500 hover:text-blue-600">Topics</Link>
+            <LocalizedLink href="/topics" className="text-gray-500 hover:text-blue-600">{t("practice.breadcrumb.topics")}</LocalizedLink>
             {materialCategory && (
               <>
                 <span className="mx-2 text-gray-400">›</span>
-                <Link href={`/topics#${materialCategory}`} className="text-gray-500 hover:text-blue-600">{getCategoryLabel(materialCategory)}</Link>
+                <LocalizedLink href={`/topics#${materialCategory}`} className="text-gray-500 hover:text-blue-600">{getCategoryLabel(materialCategory, language)}</LocalizedLink>
               </>
             )}
             {audioTitle && (
@@ -324,7 +326,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
-              Dictation
+              {t("practice.mode.dictation")}
             </button>
             <button
               onClick={() => {
@@ -343,7 +345,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
-              Shadowing
+              {t("practice.mode.shadowing")}
             </button>
           </div>
         </div>
@@ -352,7 +354,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
       <div className="max-w-2xl mx-auto p-4">
         {mode === "dictation" && (
           <div className="flex justify-start mb-4 items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">Dictation mode:</span>
+            <span className="text-sm font-medium text-gray-700">{t("practice.dictationMode.label")}:</span>
             <div className="relative min-w-[200px]">
               {/* 触发按钮 */}
               <button
@@ -361,7 +363,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                 className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors flex items-center justify-between"
               >
                 <span className="whitespace-nowrap">
-                  {dictationMode === 'word' ? 'Word' : 'Whole Caption'}
+                  {dictationMode === 'word' ? t("practice.dictationMode.word") : t("practice.dictationMode.whole")}
                 </span>
                 <svg
                   className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isDictationModeOpen ? 'rotate-180' : ''}`}
@@ -394,7 +396,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                         : 'text-gray-700 hover:bg-blue-50'
                     }`}
                   >
-                    Word
+                    {t("practice.dictationMode.word")}
                   </button>
                   <button
                     type="button"
@@ -414,7 +416,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                         : 'text-gray-700 hover:bg-blue-50'
                     }`}
                   >
-                    Whole Caption
+                    {t("practice.dictationMode.whole")}
                   </button>
                 </div>
               )}
@@ -466,7 +468,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
 
               {/* Speed Control */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Speed:</span>
+                <span className="text-sm text-gray-600">{t("practice.speed")}:</span>
                 <select
                   value={playbackRate}
                   onChange={(e) => setPlaybackRate(Number(e.target.value))}
@@ -519,13 +521,13 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
             onClick={() => setShowTranscript(!showTranscript)}
             className="text-blue-600 hover:text-blue-700 text-sm font-medium"
           >
-            {showTranscript ? "Hide Transcript" : "Show Transcript"}
+            {showTranscript ? t("practice.transcript.hide") : t("practice.transcript.show")}
           </button>
         </div>
 
         {showTranscript && (
           <div className="mt-4 bg-white rounded-lg shadow-sm p-4 max-h-96 overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Transcript</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("practice.transcript.title")}</h3>
             <div className="space-y-3">
               {sampleSentences.map((sentence, index) => {
                 const isCompleted = completedSentences.has(index)

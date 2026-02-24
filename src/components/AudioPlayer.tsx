@@ -29,7 +29,30 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   const lastUpdateTimeRef = useRef<number>(0)
   const totalPlayedSecondsRef = useRef<number>(0)
 
+  // 存储当前播放的 timeout 和清理函数
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const cleanupRef = useRef<(() => void) | null>(null)
+
+  // 清理之前的播放状态
+  const cleanupPreviousPlayback = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+    if (cleanupRef.current) {
+      cleanupRef.current()
+      cleanupRef.current = null
+    }
+    if (audioRef.current) {
+      audioRef.current.pause()
+    }
+    setIsPlaying(false)
+    setIsAudioPlaying(false)
+  }
+
   const playSentence = () => {
+    cleanupPreviousPlayback()
+
     if (audioRef.current) {
       const audio = audioRef.current
       audio.currentTime = currentSentence.startTime
@@ -97,25 +120,38 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       }
 
       // 添加事件监听器
-      audio.addEventListener('play', handlePlay, { once: false })
-      audio.addEventListener('pause', handlePause, { once: false })
-      audio.addEventListener('timeupdate', handleTimeUpdate, { once: false })
-      audio.addEventListener('ended', handleEnded, { once: false })
+      audio.addEventListener('play', handlePlay)
+      audio.addEventListener('pause', handlePause)
+      audio.addEventListener('timeupdate', handleTimeUpdate)
+      audio.addEventListener('ended', handleEnded)
 
-      audio.play()
-      setIsPlaying(true)
+      // 保存清理函数
+      cleanupRef.current = () => {
+        audio.removeEventListener('play', handlePlay)
+        audio.removeEventListener('pause', handlePause)
+        audio.removeEventListener('timeupdate', handleTimeUpdate)
+        audio.removeEventListener('ended', handleEnded)
+      }
+
+      // 播放音频
+      audio.play().then(() => {
+        setIsPlaying(true)
+      }).catch(err => {
+        console.error('AudioPlayer - Play error:', err)
+        setIsPlaying(false)
+      })
 
       const durationToPlay = currentSentence.endTime - currentSentence.startTime
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
         if (audioRef.current) {
           audio.pause()
           setIsPlaying(false)
 
           // 清理事件监听器
-          audio.removeEventListener('play', handlePlay)
-          audio.removeEventListener('pause', handlePause)
-          audio.removeEventListener('timeupdate', handleTimeUpdate)
-          audio.removeEventListener('ended', handleEnded)
+          if (cleanupRef.current) {
+            cleanupRef.current()
+            cleanupRef.current = null
+          }
         }
       }, (durationToPlay / playbackRate) * 1000 + 200)
     }
@@ -148,6 +184,13 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       }, 100)
     }
   }, [autoPlayTrigger, currentSentence.id, playbackRate])
+
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => {
+      cleanupPreviousPlayback()
+    }
+  }, [])
 
   return (
     <div className="flex items-center gap-2">

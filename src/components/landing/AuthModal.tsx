@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { X, Mail, Lock, User, ArrowRight } from "lucide-react"
-import Link from "next/link"
 import { useLanguage } from "@/contexts/LanguageContext"
+import LocalizedLink from "@/components/LocalizedLink"
 
 interface AuthModalProps {
   isOpen: boolean
@@ -107,7 +107,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </div>
 
           <div className="space-y-3">
-            <Link
+            <LocalizedLink
               href="/register"
               onClick={handleClose}
               className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
@@ -115,16 +115,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <Mail className="w-5 h-5" />
               <span>{t("auth.signup")}</span>
               <ArrowRight className="w-5 h-5" />
-            </Link>
+            </LocalizedLink>
 
-            <Link
+            <LocalizedLink
               href="/login"
               onClick={handleClose}
               className="flex items-center justify-center gap-2 w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
             >
               <Lock className="w-5 h-5" />
               <span>{t("auth.login")}</span>
-            </Link>
+            </LocalizedLink>
           </div>
 
           <p className="text-center text-xs text-gray-500 mt-4">
