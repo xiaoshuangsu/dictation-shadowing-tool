@@ -59,7 +59,7 @@ export function fixTranscriptSentences(transcript: any[]): any[] {
 
       if (isLowercaseStart) {
         // Merge with previous sentence
-        const prevSentence = fixed[fixed.length - 1]
+        const prevSentence: any = fixed[fixed.length - 1]
         const combinedText = prevSentence.text + ' ' + trimmedText
         // Support both naming conventions: start_time/startTime, end_time/endTime
         const combinedEndTime = current.end_time || current.endTime || prevSentence.end_time || prevSentence.endTime

@@ -167,7 +167,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
     }
   }
 
-  const handleComplete = async (isCorrect: boolean, usedShowWords: boolean = false, duration?: number) => {
+  const handleComplete = (isCorrect: boolean, usedShowWords: boolean = false, duration?: number) => {
     const newCompleted = new Set(completedSentences)
     newCompleted.add(currentSentenceIndex)
     setCompletedSentences(newCompleted)
@@ -178,8 +178,9 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
       setCorrectSentences(newCorrectSet)
     }
 
+    // Fire-and-forget async operations
     if (user && materialId) {
-      await savePracticeRecord({
+      savePracticeRecord({
         userId: user.id,
         sentenceId: currentSentenceIndex,
         sentenceText: sampleSentences?.[currentSentenceIndex]?.text || '',
@@ -189,21 +190,37 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
         usedShowWords,
         audioTitle: audioTitle || DEFAULT_AUDIO_TITLE,
         durationSeconds: (mode === 'dictation' ? (duration || 0) : Math.round(audioPlaybackSecondsRef.current)) || undefined,
-      })
+      }).catch(err => console.error('Failed to save practice record:', err))
 
       if (mode === 'dictation') {
         const seconds = duration || 0
         const minutes = seconds / 60
-        await onDictationComplete(user.id, minutes)
+        onDictationComplete(user.id, minutes).catch(err => console.error('Failed to update dictation streak:', err))
       } else {
         const seconds = Math.round(audioPlaybackSecondsRef.current)
         const minutes = seconds / 60
-        await onShadowingComplete(user.id, minutes)
+        onShadowingComplete(user.id, minutes).catch(err => console.error('Failed to update shadowing streak:', err))
       }
     }
 
     setIsRevealed(false)
     // Don't auto-advance - let user click Next button
+  }
+
+  // Adapter for DictationBox (matches expected signature)
+  const handleDictationComplete = (isCorrect: boolean, usedShowWords?: boolean, practiceMinutes?: number) => {
+    const durationSeconds = practiceMinutes ? practiceMinutes * 60 : undefined
+    handleComplete(isCorrect, usedShowWords || false, durationSeconds)
+  }
+
+  // Adapter for WordMode (matches expected signature)
+  const handleWordModeComplete = (isCorrect: boolean, usedShowWords?: boolean, durationSeconds?: number) => {
+    handleComplete(isCorrect, usedShowWords || false, durationSeconds)
+  }
+
+  // Adapter for ShadowingPanel (matches expected signature)
+  const handleShadowingComplete = (isCorrect: boolean, durationSeconds: number) => {
+    handleComplete(isCorrect, false, durationSeconds)
   }
 
   const handleSentenceClick = (index: number) => {
@@ -464,12 +481,12 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                 totalSentences={sampleSentences.length}
                 onNext={handleNext}
                 isLastSentence={isLastSentence}
-                onComplete={handleComplete}
+                onComplete={handleWordModeComplete}
               />
             ) : (
               <DictationBox
                 sentence={currentSentence}
-                onComplete={handleComplete}
+                onComplete={handleDictationComplete}
                 onNext={handleNext}
                 isLastSentence={isLastSentence}
               />
@@ -478,7 +495,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
             <ShadowingPanel
               sentence={currentSentence}
               audioSrc={audioSrc}
-              onComplete={handleComplete}
+              onComplete={handleShadowingComplete}
               onNext={handleNext}
               isLastSentence={isLastSentence}
             />
