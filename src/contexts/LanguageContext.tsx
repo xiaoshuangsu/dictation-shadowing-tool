@@ -44,6 +44,7 @@ const translations = {
 
     // How It Works
     "how.title": "How It Works",
+    "how.subtitle": "Only 4 steps, making English practice easier and more enjoyable",
     "how.step1.title": "Choose Material",
     "how.step1.desc": "Select from our curated collection of English audio materials",
     "how.step2.title": "Select Mode",
@@ -152,6 +153,7 @@ const translations = {
 
     // How It Works
     "how.title": "如何使用",
+    "how.subtitle": "只需 4 个步骤，让英语练习更简单、更有趣",
     "how.step1.title": "选择素材",
     "how.step1.desc": "从我们精心策划的英语音频素材库中选择",
     "how.step2.title": "选择模式",
