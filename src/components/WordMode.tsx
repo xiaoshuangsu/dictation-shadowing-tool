@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 
 interface Sentence {
   id: number
@@ -36,10 +36,19 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
   const sentenceWords = sentence.text.split(" ")
 
-  // Hide the last word
-  const hiddenWordIndex = sentenceWords.length - 1
-  const hiddenWord = sentenceWords[hiddenWordIndex]
-  const visibleWords = sentenceWords.slice(0, hiddenWordIndex)
+  // Randomly select a word to hide (using seeded random based on sentence.id for consistency)
+  const { hiddenWordIndex, hiddenWord, visibleWordsBefore, visibleWordsAfter } = useMemo(() => {
+    // Use sentence.id as a seed for consistent random selection
+    const seed = sentence.id
+    const randomIndex = seed % sentenceWords.length
+
+    return {
+      hiddenWordIndex: randomIndex,
+      hiddenWord: sentenceWords[randomIndex],
+      visibleWordsBefore: sentenceWords.slice(0, randomIndex),
+      visibleWordsAfter: sentenceWords.slice(randomIndex + 1)
+    }
+  }, [sentence.id, sentenceWords])
 
   // V3.1: 启动计时
   const startTiming = () => {
@@ -130,6 +139,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
   // Reset when sentence changes
   useEffect(() => {
+    console.log('WordMode - useEffect triggered for sentence.id:', sentence.id)
     setUserInput("")
     setShowResult(false)
     setIsCorrect(null)
@@ -146,7 +156,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       clearTimeout(inactivityTimerRef.current)
       inactivityTimerRef.current = null
     }
-    console.log('WordMode - Reset for new sentence')
+    console.log('WordMode - Reset complete for sentence.id:', sentence.id)
   }, [sentence.id])
 
   // Check if word is correct
@@ -159,19 +169,24 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   }
 
   const handleSubmitWord = () => {
+    console.log('WordMode - handleSubmitWord called')
     const correct = checkWordCorrect()
+    console.log('WordMode - Correct:', correct, 'Setting showResult to true')
     setShowResult(true)
     setIsCorrect(correct)
 
     // V3.1: 计算有效作答时间（秒）
     const durationSeconds = calculateEffectiveTime()
+    console.log('WordMode - Duration:', durationSeconds, 'seconds')
 
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current)
     }
 
     if (onComplete) {
+      console.log('WordMode - Calling onComplete with:', { correct, durationSeconds })
       onComplete(correct, false, durationSeconds)
+      console.log('WordMode - onComplete callback completed')
     }
   }
 
@@ -226,10 +241,13 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
         {/* 第二行：原文 */}
         <p className="text-lg leading-relaxed">
-          {visibleWords.map((word, index) => (
+          {visibleWordsBefore.map((word, index) => (
             <span key={index} className="text-gray-800">{word} </span>
           ))}
           <span className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[     ]</span>
+          {visibleWordsAfter.map((word, index) => (
+            <span key={index} className="text-gray-800"> {word}</span>
+          ))}
         </p>
 
         {/* 中文翻译显示 */}
