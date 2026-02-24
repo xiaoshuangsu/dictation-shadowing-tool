@@ -277,13 +277,13 @@ export async function getMaterialProgressFallback(
   console.log(`📊 [Progress] Fetching progress for user ${userId}, mode ${practiceMode}`)
 
   // 1. 获取用户的所有练习记录（包含material_id, sentence_id和completed_at）
+  // 注意：不过滤 material_id 为 null 的记录，以支持旧数据
   const { data: records, error } = await supabase
     .from('practice_records')
     .select('material_id, audio_title, sentence_id, completed_at')
     .eq('user_id', userId)
     .eq('practice_mode', practiceMode)
     .order('completed_at', { ascending: false })
-    .not('material_id', 'is', null)  // 只查询有 material_id 的记录
 
   console.log(`📊 [Progress] Query result:`, { error, recordsCount: records?.length || 0, recordsSample: records?.slice(0, 3) })
 
@@ -299,41 +299,7 @@ export async function getMaterialProgressFallback(
 
   console.log(`📈 [Progress] Found ${records.length} total records for ${practiceMode}`)
 
-  // 2. 客户端聚合（按 material_id 分组，使用Set去重句子ID）
-  const materialMap = new Map<string, {
-    uniqueSentences: Set<number>
-    lastAt: string
-    lastSentenceIndex: number
-    audioTitle: string  // 记录audio_title用于显示
-  }>()
-
-  for (const record of records) {
-    const materialId = record.material_id
-    const sentenceId = record.sentence_id
-    const audioTitle = record.audio_title || 'Unknown'
-    const current = materialMap.get(materialId)
-
-    if (current) {
-      current.uniqueSentences.add(sentenceId)
-      if (sentenceId - 1 > current.lastSentenceIndex) {
-        current.lastSentenceIndex = sentenceId - 1
-      }
-      if (record.completed_at > current.lastAt) {
-        current.lastAt = record.completed_at
-      }
-    } else {
-      const uniqueSentences = new Set<number>()
-      uniqueSentences.add(sentenceId)
-      materialMap.set(materialId, {
-        uniqueSentences,
-        lastAt: record.completed_at,
-        lastSentenceIndex: sentenceId - 1,
-        audioTitle
-      })
-    }
-  }
-
-  // 3. 获取所有素材的信息（按material_id查询）
+  // 2. 获取所有素材的信息（用于后续匹配）
   const { data: materials } = await supabase
     .from('materials')
     .select('id, title, transcript, thumbnail_path')
@@ -360,18 +326,67 @@ export async function getMaterialProgressFallback(
     })
   }
 
+  // 创建 title -> material_id 的映射（用于旧记录匹配）
+  const titleToMaterialId = new Map<string, string>()
+  for (const material of materials) {
+    titleToMaterialId.set(material.title, material.id)
+  }
+
+  // 3. 客户端聚合（按 material_id 分组，使用Set去重句子ID）
+  // 对于 material_id 为 null 的旧记录，通过 audio_title 匹配找到对应的 material_id
+  const materialMap = new Map<string, {
+    uniqueSentences: Set<number>
+    lastAt: string
+    lastSentenceIndex: number
+    audioTitle: string
+  }>()
+
+  for (const record of records) {
+    const materialId = record.material_id
+    const sentenceId = record.sentence_id
+    const audioTitle = record.audio_title || 'Unknown'
+
+    // 如果 material_id 为 null，尝试通过 audio_title 匹配
+    let resolvedMaterialId = materialId
+    if (!materialId) {
+      resolvedMaterialId = titleToMaterialId.get(audioTitle) || audioTitle
+      console.log(`🔍 [Progress] Old record found: "${audioTitle}" -> matched to material_id: ${resolvedMaterialId}`)
+    }
+
+    const current = materialMap.get(resolvedMaterialId)
+
+    if (current) {
+      current.uniqueSentences.add(sentenceId)
+      if (sentenceId - 1 > current.lastSentenceIndex) {
+        current.lastSentenceIndex = sentenceId - 1
+      }
+      if (record.completed_at > current.lastAt) {
+        current.lastAt = record.completed_at
+      }
+    } else {
+      const uniqueSentences = new Set<number>()
+      uniqueSentences.add(sentenceId)
+      materialMap.set(resolvedMaterialId, {
+        uniqueSentences,
+        lastAt: record.completed_at,
+        lastSentenceIndex: sentenceId - 1,
+        audioTitle
+      })
+    }
+  }
+
   // 4. 组合数据
   const result: MaterialProgress[] = []
 
-  Array.from(materialMap.entries()).forEach(([materialId, { uniqueSentences, lastAt, lastSentenceIndex, audioTitle }]) => {
-    const info = materialInfo.get(materialId)
+  Array.from(materialMap.entries()).forEach(([resolvedMaterialId, { uniqueSentences, lastAt, lastSentenceIndex, audioTitle }]) => {
+    const info = materialInfo.get(resolvedMaterialId)
     const totalSentences = info?.sentenceCount || 0
     const completedSentences = uniqueSentences.size
     const thumbnail = info?.thumbnail
     const title = info?.title || audioTitle  // 优先使用 materials.title，回退到 audio_title
 
     console.log(`📊 [Progress] Processing material:`, {
-      materialId,
+      resolvedMaterialId,
       title,
       audioTitle,
       totalSentences,
@@ -386,13 +401,13 @@ export async function getMaterialProgressFallback(
       practiceMode,
       thumbnail,
       lastPracticedSentenceIndex: lastSentenceIndex,
-      materialId,
-      slug: materialId,  // 使用 materialId 作为 slug
+      materialId: resolvedMaterialId,
+      slug: resolvedMaterialId,  // 使用 resolvedMaterialId 作为 slug
       sentenceIds: Array.from(uniqueSentences).sort((a, b) => a - b)
     })
 
-    console.log(`✅ [Progress] ${title}: ${completedSentences}/${totalSentences} (${Math.round(completedSentences/totalSentences*100)}%)`)
-    console.log(`   Material ID: ${materialId}`)
+    console.log(`✅ [Progress] ${title}: ${completedSentences}/${totalSentences} (${totalSentences > 0 ? Math.round(completedSentences/totalSentences*100) : 0}%)`)
+    console.log(`   Material ID: ${resolvedMaterialId}`)
     console.log(`   Sentence IDs: [${Array.from(uniqueSentences).sort((a, b) => a - b).join(', ')}]`)
   })
 
