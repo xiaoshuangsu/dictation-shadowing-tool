@@ -11,9 +11,30 @@ const supabase = createClient(
 interface Sentence {
   id: number
   text: string
-  startTime: number
-  endTime: number
+  startTime: number | string
+  endTime: number | string
   translation?: string
+}
+
+// 辅助函数：安全地格式化时间戳
+function formatTime(time: number | string): string {
+  if (typeof time === 'number') {
+    return time.toFixed(2)
+  }
+  // 如果是字符串，去掉可能的 's' 后缀，然后验证格式
+  const str = String(time).replace('s', '')
+  const num = parseFloat(str)
+  return isNaN(num) ? '0.00' : num.toFixed(2)
+}
+
+// 辅助函数：获取时间戳的数字值（用于比较和计算）
+function getTimeValue(time: number | string): number {
+  if (typeof time === 'number') {
+    return time
+  }
+  const str = String(time).replace('s', '')
+  const num = parseFloat(str)
+  return isNaN(num) ? 0 : num
 }
 
 export default function TimestampMarker() {
@@ -58,10 +79,10 @@ export default function TimestampMarker() {
       const s = sentences[i]
       // If this is the last sentence, use its endTime as upper bound
       if (i === sentences.length - 1) {
-        if (time >= s.startTime) return i
+        if (time >= getTimeValue(s.startTime)) return i
       } else {
         // For non-last sentences, check if time is within [startTime, endTime)
-        if (time >= s.startTime && time < s.endTime) return i
+        if (time >= getTimeValue(s.startTime) && time < getTimeValue(s.endTime)) return i
       }
     }
     return sentences.length - 1
@@ -241,7 +262,7 @@ export default function TimestampMarker() {
                       Sentence {activeSentenceIndex + 1}
                     </span>
                     <span className="text-sm text-gray-600">
-                      {sentences[activeSentenceIndex].startTime.toFixed(2)}s - {sentences[activeSentenceIndex].endTime.toFixed(2)}s
+                      {formatTime(sentences[activeSentenceIndex].startTime)}s - {formatTime(sentences[activeSentenceIndex].endTime)}s
                     </span>
                   </div>
                   <p className="text-lg">
@@ -269,7 +290,7 @@ export default function TimestampMarker() {
                     Editing Sentence {currentIndex + 1} / {sentences.length}
                   </h2>
                   <div className="text-sm text-blue-700">
-                    {currentSentence.startTime.toFixed(2)}s - {currentSentence.endTime.toFixed(2)}s
+                    {formatTime(currentSentence.startTime)}s - {formatTime(currentSentence.endTime)}s
                   </div>
                 </div>
 
@@ -326,12 +347,12 @@ export default function TimestampMarker() {
                   <button
                     onClick={() => {
                       if (audioRef.current) {
-                        audioRef.current.currentTime = currentSentence.startTime
+                        audioRef.current.currentTime = getTimeValue(currentSentence.startTime)
                       }
                     }}
                     className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                   >
-                    ▶️ Jump to Start ({currentSentence.startTime.toFixed(2)}s)
+                    ▶️ Jump to Start ({formatTime(currentSentence.startTime)}s)
                   </button>
                   <button
                     onClick={() => {
@@ -381,7 +402,7 @@ export default function TimestampMarker() {
                           {isActive && <span className="text-xs bg-purple-600 text-white px-2 py-1 rounded">🎵 Playing</span>}
                         </span>
                         <span className="text-sm text-gray-600 font-mono">
-                          {sentence.startTime.toFixed(2)}s - {sentence.endTime.toFixed(2)}s
+                          {formatTime(sentence.startTime)}s - {formatTime(sentence.endTime)}s
                         </span>
                       </div>
 

@@ -476,7 +476,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
                 onComplete={handleComplete}
               />
             )
-          ) : (
+          ) : audioSrc ? (
             <ShadowingPanel
               sentence={currentSentence}
               audioSrc={audioSrc}
@@ -485,7 +485,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
               onNext={handleNext}
               isLastSentence={isLastSentence}
             />
-          )}
+          ) : null}
         </div>
 
         {/* Show Transcript Button */}
