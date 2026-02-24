@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.1.0] - 2025-02-24
+
+### Fixed
+- **GitHub Pages 静态导出问题**
+  - 修复 `generateStaticParams()` 返回空数组导致构建失败
+  - 恢复返回 `MATERIAL_SLUGS`（42 个素材）
+  - 移除 `layout.tsx` 中的 `cookies()` 调用（静态导出不支持）
+  - 所有页面现在可以成功静态导出
+
+### Technical Details
+- 问题原因：`generateStaticParams` 被改成返回 `[]`，导致 Next.js 认为不需要生成任何页面
+- 问题原因：`generateMetadata()` 使用 `cookies()` 读取语言设置，但静态导出在构建时无法访问 cookies
+- 解决方案：使用固定的 metadata（英文），语言切换仍可在客户端正常工作
+- 成功生成 90 个静态页面（42 dictation + 42 shadowing + 6 其他）
+
+---
+
+## [7.0.0] - 2025-02-23
+
+### Added
+- **完整的中英文双语支持系统**
+  - URL 基础的语言路由：`/` (英文) 和 `/zh-CN` (中文)
+  - 导航栏语言切换按钮（下拉菜单）
+  - 全站 UI 文本完整翻译（100+ 翻译键）
+  - 自动语言检测和 cookie 持久化
+
+- **多语言架构**
+  - `LanguageContext` - 语言状态管理和翻译系统
+  - `LocalizedLink` - 自动添加语言前缀的链接组件
+  - `middleware.ts` - URL 重写和语言 cookie 设置
+  - 翻译字典模式：点符号访问 (`practice.dictation.correct`)
+
+- **翻译覆盖范围**
+  - 导航栏：品牌名、菜单、语言切换器
+  - 首页：Hero、How It Works、功能介绍、FAQ、CTA
+  - 素材页面：标题、分类、难度筛选
+  - 练习页面：DictationBox、WordMode、ShadowingPanel
+  - 认证页面：登录/注册表单
+  - 个人中心：统计卡片、历史记录
+
+### Changed
+- 所有硬编码的英文 UI 文本改为使用翻译函数
+- Link 组件替换为 LocalizedLink（自动语言路由）
+- 添加语言切换图标和下拉菜单
+
+### Technical Details
+- 使用 React Context API 管理语言状态
+- 使用 Next.js middleware 实现 URL 重写
+- 翻译文件：`src/contexts/LanguageContext.tsx`
+- 语言检测优先级：URL path > cookie > 默认值 (en)
+
+---
+
 ## [6.2.0] - 2025-02-22
 
 ### Added
