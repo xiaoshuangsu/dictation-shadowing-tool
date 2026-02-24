@@ -5,11 +5,13 @@ import { usePathname, useRouter } from "next/navigation"
 import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/hooks/useAuth"
+import { useLanguage } from "@/contexts/LanguageContext"
 import LanguageSwitcher from "@/components/LanguageSwitcher"
 
 export default function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
+  const { t } = useLanguage()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -42,7 +44,7 @@ export default function Navigation() {
   }
 
   const navItems = [
-    { href: "/topics", label: "Topics", icon: BookOpen },
+    { href: "/topics", label: t("nav.topics"), icon: BookOpen },
   ]
 
   const isActive = (href: string) => {
@@ -112,14 +114,14 @@ export default function Navigation() {
                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
                   >
                     <LogIn className="w-4 h-4" />
-                    <span>Login</span>
+                    <span>{t("nav.login")}</span>
                   </Link>
                   <Link
                     href="/register"
                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg transition-all"
                   >
                     <UserPlus className="w-4 h-4" />
-                    <span>Sign Up</span>
+                    <span>{t("nav.signup")}</span>
                   </Link>
                 </div>
               ) : (
@@ -144,14 +146,14 @@ export default function Navigation() {
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       >
                         <User className="w-4 h-4" />
-                        <span>Profile</span>
+                        <span>{t("nav.profile")}</span>
                       </Link>
                       <button
                         onClick={handleLogout}
                         className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span>Logout</span>
+                        <span>{t("nav.logout")}</span>
                       </button>
                     </div>
                   )}
@@ -219,7 +221,7 @@ export default function Navigation() {
                       className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
                     >
                       <LogIn className="w-5 h-5" />
-                      <span>Login</span>
+                      <span>{t("nav.login")}</span>
                     </Link>
                     <Link
                       href="/register"
@@ -227,7 +229,7 @@ export default function Navigation() {
                       className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                     >
                       <UserPlus className="w-5 h-5" />
-                      <span>Sign Up</span>
+                      <span>{t("nav.signup")}</span>
                     </Link>
                   </>
                 ) : (
@@ -251,7 +253,7 @@ export default function Navigation() {
                       className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-red-600 hover:bg-red-50 transition-all"
                     >
                       <LogOut className="w-5 h-5" />
-                      <span>Logout</span>
+                      <span>{t("nav.logout")}</span>
                     </button>
                   </>
                 )}
