@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/hooks/useAuth"
+import LanguageSwitcher from "@/components/LanguageSwitcher"
 
 export default function Navigation() {
   const pathname = usePathname()
@@ -97,6 +98,11 @@ export default function Navigation() {
 
           {/* Auth Section */}
           <div className="flex items-center gap-2">
+            {/* Language Switcher */}
+            <div className="hidden md:block">
+              <LanguageSwitcher />
+            </div>
+
             {/* Desktop Auth */}
             <div className="hidden md:block">
               {!user ? (
@@ -195,6 +201,13 @@ export default function Navigation() {
                   </Link>
                 )
               })}
+
+              {/* Mobile Language Switcher */}
+              <div className="border-t border-gray-200 mt-2 pt-2">
+                <div className="px-4 py-3">
+                  <LanguageSwitcher />
+                </div>
+              </div>
 
               {/* Mobile Auth Section */}
               <div className="border-t border-gray-200 mt-2 pt-2">
