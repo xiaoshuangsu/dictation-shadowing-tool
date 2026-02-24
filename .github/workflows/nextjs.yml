@@ -55,6 +55,17 @@ jobs:
           cache: ${{ steps.detect-package-manager.outputs.manager }}
       - name: Install dependencies
         run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+      - name: Verify files before build
+        run: |
+          echo "=== Checking if page files exist ==="
+          ls -la src/app/topics/dictation/
+          ls -la src/app/topics/shadowing/
+          echo ""
+          echo "=== Content of dictation page.tsx ==="
+          cat src/app/topics/dictation/[slug]/page.tsx
+          echo ""
+          echo "=== Content of shadowing page.tsx ==="
+          cat src/app/topics/shadowing/[slug]/page.tsx
       - name: Build with Next.js
         run: |
           rm -rf .next out
