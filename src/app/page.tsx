@@ -1,3 +1,5 @@
+"use client"
+
 import Hero from "@/components/landing/Hero"
 import HowItWorks from "@/components/landing/HowItWorks"
 import FeaturesTitle from "@/components/landing/FeaturesTitle"
@@ -7,11 +9,39 @@ import FeatureAI from "@/components/landing/FeatureAI"
 import FeatureGrowth from "@/components/landing/FeatureGrowth"
 import FAQ from "@/components/landing/FAQ"
 import CTA from "@/components/landing/CTA"
+import AuthModal from "@/components/landing/AuthModal"
+import { useAuth } from "@/lib/hooks/useAuth"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 
 export default function Home() {
+  const { user, isAuthenticated } = useAuth()
+  const [showAuthModal, setShowAuthModal] = useState(false)
+
+  useEffect(() => {
+    // Only show modal for non-logged-in users on first visit
+    if (!isAuthenticated) {
+      const hasVisited = localStorage.getItem('hasVisitedBefore')
+      if (!hasVisited) {
+        // Show modal after a short delay for better UX
+        const timer = setTimeout(() => {
+          setShowAuthModal(true)
+        }, 2000)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [isAuthenticated])
+
+  const handleModalClose = () => {
+    setShowAuthModal(false)
+    // Mark that user has visited
+    localStorage.setItem('hasVisitedBefore', 'true')
+  }
   return (
     <main>
+      {/* Auth Modal for first-time visitors */}
+      <AuthModal isOpen={showAuthModal} onClose={handleModalClose} />
+
       {/* Hero Section */}
       <Hero />
 
