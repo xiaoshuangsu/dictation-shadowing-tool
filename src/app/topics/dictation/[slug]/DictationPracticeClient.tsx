@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
@@ -70,6 +70,12 @@ type DictationMode = "word" | "whole"
 
 export function DictationPracticeClientContent({ slug }: { slug: string }) {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // 从 URL 参数读取起始句子索引
+  const startIndexParam = searchParams.get('start')
+  const startIndex = startIndexParam ? parseInt(startIndexParam, 10) : 0
 
   const [materialId, setMaterialId] = useState<string | null>(null)
   const [audioTitle, setAudioTitle] = useState<string | null>(null)
@@ -82,7 +88,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
   const [mode, setMode] = useState<PracticeMode>("dictation")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
   const [isDictationModeOpen, setIsDictationModeOpen] = useState(false)
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
+  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(startIndex)
   const [completedSentences, setCompletedSentences] = useState<Set<number>>(new Set())
   const [correctSentences, setCorrectSentences] = useState<Set<number>>(new Set())
   const [incorrectSentences, setIncorrectSentences] = useState<Set<number>>(new Set())
@@ -161,9 +167,14 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
   }
 
   const handleNext = () => {
+    console.log('DictationPracticeClient - handleNext called, currentSentenceIndex:', currentSentenceIndex)
     if (sampleSentences && currentSentenceIndex < sampleSentences.length - 1) {
-      setCurrentSentenceIndex(currentSentenceIndex + 1)
+      const nextIndex = currentSentenceIndex + 1
+      console.log('DictationPracticeClient - Advancing to sentence', nextIndex, ':', sampleSentences[nextIndex]?.text)
+      setCurrentSentenceIndex(nextIndex)
       setAutoPlayTrigger(prev => prev + 1)
+    } else {
+      console.log('DictationPracticeClient - Already at last sentence, not advancing')
     }
   }
 
@@ -189,6 +200,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
         isCorrect,
         usedShowWords,
         audioTitle: audioTitle || DEFAULT_AUDIO_TITLE,
+        materialId: materialId,  // 添加 materialId
         durationSeconds: (mode === 'dictation' ? (duration || 0) : Math.round(audioPlaybackSecondsRef.current)) || undefined,
       }).catch(err => console.error('Failed to save practice record:', err))
 
@@ -215,7 +227,10 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
 
   // Adapter for WordMode (matches expected signature)
   const handleWordModeComplete = (isCorrect: boolean, usedShowWords?: boolean, durationSeconds?: number) => {
+    console.log('DictationPracticeClient - handleWordModeComplete called:', { isCorrect, usedShowWords, durationSeconds, currentSentenceIndex })
+    console.log('DictationPracticeClient - Current sentence:', sampleSentences?.[currentSentenceIndex]?.text)
     handleComplete(isCorrect, usedShowWords || false, durationSeconds)
+    console.log('DictationPracticeClient - handleComplete completed, currentSentenceIndex:', currentSentenceIndex)
   }
 
   // Adapter for ShadowingPanel (matches expected signature)

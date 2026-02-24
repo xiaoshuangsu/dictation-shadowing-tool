@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
@@ -70,6 +70,12 @@ type DictationMode = "word" | "whole"
 
 export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // 从 URL 参数读取起始句子索引
+  const startIndexParam = searchParams.get('start')
+  const startIndex = startIndexParam ? parseInt(startIndexParam, 10) : 0
 
   const [materialId, setMaterialId] = useState<string | null>(null)
   const [audioTitle, setAudioTitle] = useState<string | null>(null)
@@ -82,7 +88,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
   const [mode, setMode] = useState<PracticeMode>("shadowing")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
   const [isDictationModeOpen, setIsDictationModeOpen] = useState(false)
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
+  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(startIndex)
   const [completedSentences, setCompletedSentences] = useState<Set<number>>(new Set())
   const [correctSentences, setCorrectSentences] = useState<Set<number>>(new Set())
   const [incorrectSentences, setIncorrectSentences] = useState<Set<number>>(new Set())
@@ -190,6 +196,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
         isCorrect,
         usedShowWords,
         audioTitle: audioTitle || DEFAULT_AUDIO_TITLE,
+        materialId: materialId,
         durationSeconds: (mode === 'dictation' ? (duration || 0) : Math.round(audioPlaybackSecondsRef.current)) || undefined,
       }).catch(err => console.error('Failed to save practice record:', err))
 
@@ -205,26 +212,121 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
     }
 
     setIsRevealed(false)
-
-    if (sampleSentences && currentSentenceIndex < sampleSentences.length - 1) {
-      setCurrentSentenceIndex(currentSentenceIndex + 1)
-    }
+    // 不自动跳转，让用户手动点击"下一句"按钮
+    console.log("handleComplete: Not auto-advancing. User must click Next button.")
   }
 
   // Adapter for DictationBox (matches expected signature)
+  // Dictation 模式不自动跳转，让用户手动点击"下一句"按钮
   const handleDictationComplete = (isCorrect: boolean, usedShowWords?: boolean, practiceMinutes?: number) => {
     const durationSeconds = practiceMinutes ? practiceMinutes * 60 : undefined
-    handleComplete(isCorrect, usedShowWords || false, durationSeconds)
+
+    const newCompleted = new Set(completedSentences)
+    newCompleted.add(currentSentenceIndex)
+    setCompletedSentences(newCompleted)
+    if (isCorrect) {
+      setCorrectCount(correctCount + 1)
+      const newCorrectSet = new Set(correctSentences)
+      newCorrectSet.add(currentSentenceIndex)
+      setCorrectSentences(newCorrectSet)
+    }
+
+    // Fire-and-forget async operations
+    if (user && materialId) {
+      savePracticeRecord({
+        userId: user.id,
+        sentenceId: currentSentenceIndex,
+        sentenceText: sampleSentences?.[currentSentenceIndex]?.text || '',
+        practiceMode: 'dictation',
+        dictationMode: dictationMode,
+        isCorrect,
+        usedShowWords: usedShowWords || false,
+        audioTitle: audioTitle || DEFAULT_AUDIO_TITLE,
+        materialId: materialId,
+        durationSeconds: durationSeconds || undefined,
+      }).catch(err => console.error('Failed to save practice record:', err))
+
+      const minutes = (durationSeconds || 0) / 60
+      onDictationComplete(user.id, minutes).catch(err => console.error('Failed to update dictation streak:', err))
+    }
+
+    setIsRevealed(false)
+    // 不自动跳转，让用户手动点击"下一句"按钮
+    console.log("Dictation complete, not auto-advancing. User must click Next button.")
   }
 
   // Adapter for WordMode (matches expected signature)
+  // Word 模式不自动跳转，让用户手动点击"下一句"按钮
   const handleWordModeComplete = (isCorrect: boolean, usedShowWords?: boolean, durationSeconds?: number) => {
-    handleComplete(isCorrect, usedShowWords || false, durationSeconds)
+    const newCompleted = new Set(completedSentences)
+    newCompleted.add(currentSentenceIndex)
+    setCompletedSentences(newCompleted)
+    if (isCorrect) {
+      setCorrectCount(correctCount + 1)
+      const newCorrectSet = new Set(correctSentences)
+      newCorrectSet.add(currentSentenceIndex)
+      setCorrectSentences(newCorrectSet)
+    }
+
+    // Fire-and-forget async operations
+    if (user && materialId) {
+      savePracticeRecord({
+        userId: user.id,
+        sentenceId: currentSentenceIndex,
+        sentenceText: sampleSentences?.[currentSentenceIndex]?.text || '',
+        practiceMode: 'dictation',
+        dictationMode: 'word',
+        isCorrect,
+        usedShowWords: usedShowWords || false,
+        audioTitle: audioTitle || DEFAULT_AUDIO_TITLE,
+        materialId: materialId,
+        durationSeconds: durationSeconds || undefined,
+      }).catch(err => console.error('Failed to save practice record:', err))
+
+      const minutes = (durationSeconds || 0) / 60
+      onDictationComplete(user.id, minutes).catch(err => console.error('Failed to update dictation streak:', err))
+    }
+
+    setIsRevealed(false)
+    // 不自动跳转，让用户手动点击"下一句"按钮
+    console.log("Word mode complete, not auto-advancing. User must click Next button.")
   }
 
   // Adapter for ShadowingPanel (matches expected signature)
+  // Shadowing 模式不自动跳转，让用户手动点击"下一句"按钮
   const handleShadowingComplete = (isCorrect: boolean, durationSeconds: number) => {
-    handleComplete(isCorrect, false, durationSeconds)
+    const newCompleted = new Set(completedSentences)
+    newCompleted.add(currentSentenceIndex)
+    setCompletedSentences(newCompleted)
+    if (isCorrect) {
+      setCorrectCount(correctCount + 1)
+      const newCorrectSet = new Set(correctSentences)
+      newCorrectSet.add(currentSentenceIndex)
+      setCorrectSentences(newCorrectSet)
+    }
+
+    // Fire-and-forget async operations
+    if (user && materialId) {
+      savePracticeRecord({
+        userId: user.id,
+        sentenceId: currentSentenceIndex,
+        sentenceText: sampleSentences?.[currentSentenceIndex]?.text || '',
+        practiceMode: 'shadowing',
+        dictationMode: undefined,
+        isCorrect,
+        usedShowWords: false,
+        audioTitle: audioTitle || DEFAULT_AUDIO_TITLE,
+        materialId: materialId,
+        durationSeconds: durationSeconds,
+      }).catch(err => console.error('Failed to save practice record:', err))
+
+      const minutes = durationSeconds / 60
+      onShadowingComplete(user.id, minutes).catch(err => console.error('Failed to update shadowing streak:', err))
+    }
+
+    setIsRevealed(false)
+    // 不自动跳转，让用户手动点击"下一句"按钮
+    console.log("Shadowing complete, not auto-advancing. User must click Next button.")
   }
 
   const handleSentenceClick = (index: number) => {

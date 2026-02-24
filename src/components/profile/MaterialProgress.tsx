@@ -116,16 +116,25 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
 
   // 处理卡片点击
   const handleClick = () => {
-    if (!material.materialId) return
+    // 使用 materialId 作为路由参数（因为数据库中没有 slug 字段）
+    const slug = material.materialId
+    if (!slug) return
 
-    // 构建跳转 URL
-    const params = new URLSearchParams({
-      id: material.materialId,
-      mode: practiceMode,
-      start: targetIndex.toString()
-    })
+    // 根据练习模式构建正确的路由
+    const basePath = practiceMode === 'dictation'
+      ? `/topics/dictation/${slug}`
+      : `/topics/shadowing/${slug}`
 
-    router.push(`/?${params.toString()}`)
+    // 如果需要从特定句子开始，添加 URL 参数
+    const url = targetIndex > 0
+      ? `${basePath}?start=${targetIndex}`
+      : basePath
+
+    console.log('MaterialCard - Navigating to:', url)
+    console.log('  - audioTitle:', material.audioTitle)
+    console.log('  - materialId:', material.materialId)
+    console.log('  - targetIndex:', targetIndex)
+    router.push(url)
   }
 
   // 构建 Supabase Storage 公开 URL
@@ -262,13 +271,16 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
                     onClick={(e) => {
                       e.stopPropagation()
                       // Jump to specific sentence (index = id - 1)
-                      if (!material.materialId) return
-                      const params = new URLSearchParams({
-                        id: material.materialId,
-                        mode: practiceMode,
-                        start: (id - 1).toString()
-                      })
-                      router.push(`/?${params.toString()}`)
+                      const slug = material.materialId
+                      if (!slug) return
+
+                      const basePath = practiceMode === 'dictation'
+                        ? `/topics/dictation/${slug}`
+                        : `/topics/shadowing/${slug}`
+
+                      const url = `${basePath}?start=${id - 1}`
+                      console.log('Missing sentence - Navigating to:', url)
+                      router.push(url)
                     }}
                     className="inline-flex items-center px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors cursor-pointer"
                   >
