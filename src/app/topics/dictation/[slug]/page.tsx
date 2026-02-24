@@ -4,8 +4,7 @@ import DictationPracticeClient from './DictationPracticeClient'
 export const dynamicParams = true
 
 // Generate static params for build time
-// Return a sample slug to satisfy static export requirements
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return [{ slug: 'first-snowfall' }]
 }
 
