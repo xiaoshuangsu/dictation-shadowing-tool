@@ -99,6 +99,7 @@ const translations = {
 
     // FAQ
     "faq.title": "Frequently Asked Questions",
+    "faq.subtitle": "Quickly find answers to common questions about this tool",
     "faq.q1.title": "Is ShadowHub free?",
     "faq.q1.answer": "Yes! ShadowHub is completely free to use. No credit card required.",
     "faq.q2.title": "Do I need to create an account?",
@@ -109,9 +110,11 @@ const translations = {
     "faq.q4.answer": "Our AI compares your input with the correct answer, analyzing spelling accuracy, pronunciation quality, and fluency to provide detailed feedback.",
 
     // CTA
-    "cta.title": "Ready to Start Your English Learning Journey?",
-    "cta.subtitle": "Join thousands of learners improving their English with ShadowHub",
-    "cta.button": "Start Learning Free",
+    "cta.title": "Stop 'Not Understanding, Not Speaking Out'",
+    "cta.subtitle": "10 minutes of Dictation + Shadowing daily, transform English from an 'exam tool' into a language you can truly use.",
+    "cta.button": "Start Learning",
+    "cta.contact": "Contact Us",
+    "cta.github": "GitHub",
 
     // Footer
     "footer.about": "About",
@@ -208,6 +211,7 @@ const translations = {
 
     // FAQ
     "faq.title": "常见问题",
+    "faq.subtitle": "快速找到关于此工具的常见问题答案",
     "faq.q1.title": "ShadowHub 是免费的吗？",
     "faq.q1.answer": "是的！ShadowHub 完全免费使用，无需信用卡。",
     "faq.q2.title": "需要创建账号吗？",
@@ -218,9 +222,11 @@ const translations = {
     "faq.q4.answer": "我们的 AI 将您的输入与正确答案进行比较，分析拼写准确性、发音质量和流利度，提供详细反馈。",
 
     // CTA
-    "cta.title": "准备好开始您的英语学习之旅了吗？",
-    "cta.subtitle": "加入数千名使用 ShadowHub 提升英语的学习者",
-    "cta.button": "免费开始学习",
+    "cta.title": "告别"听不懂、说不出"",
+    "cta.subtitle": "每天 10 分钟听写+跟读，把英语从"考试工具"变成真正能用的语言。",
+    "cta.button": "开始学习",
+    "cta.contact": "联系我们",
+    "cta.github": "GitHub",
 
     // Footer
     "footer.about": "关于",
