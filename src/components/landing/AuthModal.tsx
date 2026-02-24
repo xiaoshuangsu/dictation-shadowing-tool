@@ -56,10 +56,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <User className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              Welcome to ShadowHub
+              Unlock Your Learning Progress
             </h2>
             <p className="text-white/90">
-              Join thousands of learners improving their English
+              Register to save practice records, track your progress, and view detailed statistics
             </p>
           </div>
         </div>
@@ -74,8 +74,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">Track Your Progress</h3>
-                <p className="text-sm text-gray-600">Save your practice history and statistics</p>
+                <h3 className="font-semibold text-slate-900">Auto-save Practice Records</h3>
+                <p className="text-sm text-gray-600">Never lose your practice history</p>
               </div>
             </div>
 
@@ -86,8 +86,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">Access Premium Content</h3>
-                <p className="text-sm text-gray-600">Unlock all materials and features</p>
+                <h3 className="font-semibold text-slate-900">View Detailed Statistics</h3>
+                <p className="text-sm text-gray-600">Track accuracy, completion, and streaks</p>
               </div>
             </div>
 
@@ -98,8 +98,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">Sync Across Devices</h3>
-                <p className="text-sm text-gray-600">Continue learning anywhere, anytime</p>
+                <h3 className="font-semibold text-slate-900">Track Learning Progress</h3>
+                <p className="text-sm text-gray-600">Monitor your improvement over time</p>
               </div>
             </div>
           </div>
