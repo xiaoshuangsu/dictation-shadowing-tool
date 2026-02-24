@@ -222,8 +222,8 @@ const translations = {
     "faq.q4.answer": "我们的 AI 将您的输入与正确答案进行比较，分析拼写准确性、发音质量和流利度，提供详细反馈。",
 
     // CTA
-    "cta.title": "告别"听不懂、说不出"",
-    "cta.subtitle": "每天 10 分钟听写+跟读，把英语从"考试工具"变成真正能用的语言。",
+    "cta.title": "告别听不懂、说不出",
+    "cta.subtitle": "每天 10 分钟听写+跟读，把英语从考试工具变成真正能用的语言。",
     "cta.button": "开始学习",
     "cta.contact": "联系我们",
     "cta.github": "GitHub",
