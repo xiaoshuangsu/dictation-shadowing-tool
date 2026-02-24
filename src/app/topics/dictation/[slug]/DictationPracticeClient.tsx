@@ -474,7 +474,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                 isLastSentence={isLastSentence}
               />
             )
-          ) : (
+          ) : audioSrc ? (
             <ShadowingPanel
               sentence={currentSentence}
               audioSrc={audioSrc}
@@ -482,7 +482,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
               onNext={handleNext}
               isLastSentence={isLastSentence}
             />
-          )}
+          ) : null}
         </div>
 
         {/* Show Transcript Button */}
