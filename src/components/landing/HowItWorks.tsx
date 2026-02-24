@@ -2,35 +2,39 @@
 
 import { motion } from "framer-motion"
 import { Play, PenTool, Target, TrendingUp } from "lucide-react"
-
-const steps = [
-  {
-    icon: Play,
-    title: "Choose Materials",
-    description: "Select English listening content that suits you from a rich library, covering various themes like daily conversations, news, and stories.",
-    color: "bg-blue-500",
-  },
-  {
-    icon: PenTool,
-    title: "Listen and Dictate",
-    description: "Listen carefully and type exactly what you hear. Two modes are available: Word Mode and Whole Caption Mode. AI automatically checks answers and provides feedback.",
-    color: "bg-purple-500",
-  },
-  {
-    icon: Target,
-    title: "Shadow and Record",
-    description: "Repeat the audio immediately after the speaker, and get detailed feedback on your pronunciation. Turn mistakes into improvement.",
-    color: "bg-green-500",
-  },
-  {
-    icon: TrendingUp,
-    title: "Track Progress",
-    description: "View detailed statistics, track learning progress, and witness your continuous improvement.",
-    color: "bg-orange-500",
-  },
-]
+import { useLanguage } from "@/contexts/LanguageContext"
+import { useMemo } from "react"
 
 export default function HowItWorks() {
+  const { t } = useLanguage()
+
+  const steps = useMemo(() => [
+    {
+      icon: Play,
+      title: t("how.step1.title"),
+      description: t("how.step1.desc"),
+      color: "bg-blue-500",
+    },
+    {
+      icon: PenTool,
+      title: t("how.step2.title"),
+      description: t("how.step2.desc"),
+      color: "bg-purple-500",
+    },
+    {
+      icon: Target,
+      title: t("how.step3.title"),
+      description: t("how.step3.desc"),
+      color: "bg-green-500",
+    },
+    {
+      icon: TrendingUp,
+      title: t("how.step4.title"),
+      description: t("how.step4.desc"),
+      color: "bg-orange-500",
+    },
+  ], [t])
+
   return (
     <section className="py-20 bg-white">
       <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -42,7 +46,7 @@ export default function HowItWorks() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            How It Works
+            {t("how.title")}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Only 4 steps, making English practice easier and more enjoyable
