@@ -49,7 +49,7 @@ export default function HowItWorks() {
             {t("how.title")}
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Only 4 steps, making English practice easier and more enjoyable
+            {t("how.subtitle")}
           </p>
         </motion.div>
 
