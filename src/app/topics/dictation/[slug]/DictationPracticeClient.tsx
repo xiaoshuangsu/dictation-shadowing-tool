@@ -133,16 +133,12 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
           }
         } else {
           setMaterialError('Material not found')
-          setAudioTitle(DEFAULT_AUDIO_TITLE)
-          setAudioSrc(DEFAULT_AUDIO_SRC)
-          setSampleSentences(defaultSentences)
+          // 不设置默认值，避免闪烁
         }
       } catch (error) {
         console.error('Error loading material:', error)
         setMaterialError('Failed to load material')
-        setAudioTitle(DEFAULT_AUDIO_TITLE)
-        setAudioSrc(DEFAULT_AUDIO_SRC)
-        setSampleSentences(defaultSentences)
+        // 不设置默认值，避免闪烁
       } finally {
         setIsInitialLoading(false)
       }
