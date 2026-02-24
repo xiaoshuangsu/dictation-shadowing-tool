@@ -1,16 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { BookOpen, LogIn, UserPlus, User } from "lucide-react"
-import { useState, useEffect } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
 export default function Navigation() {
   const pathname = usePathname()
+  const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +22,23 @@ export default function Navigation() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const handleLogout = async () => {
+    await logout()
+    setIsUserMenuOpen(false)
+    router.push("/")
+  }
 
   const navItems = [
     { href: "/topics", label: "Topics", icon: BookOpen },
@@ -97,15 +117,39 @@ export default function Navigation() {
                   </Link>
                 </div>
               ) : (
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
-                >
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="hidden sm:block">{user?.username || user?.email?.split('@')[0] || 'User'}</span>
-                </Link>
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
+                  >
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                      <User className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="hidden sm:block">{user?.username || user?.email?.split('@')[0] || 'User'}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* User Dropdown Menu */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <Link
+                        href="/profile"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>个人中心</span>
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>退出登录</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
@@ -174,16 +218,29 @@ export default function Navigation() {
                     </Link>
                   </>
                 ) : (
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-white" />
-                    </div>
-                    <span>{user?.username || user?.email?.split('@')[0] || '用户'}</span>
-                  </Link>
+                  <>
+                    <Link
+                      href="/profile"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
+                    >
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-white" />
+                      </div>
+                      <span>{user?.username || user?.email?.split('@')[0] || '用户'}</span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        logout()
+                        setIsMenuOpen(false)
+                        router.push("/")
+                      }}
+                      className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-red-600 hover:bg-red-50 transition-all"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span>退出登录</span>
+                    </button>
+                  </>
                 )}
               </div>
             </div>
