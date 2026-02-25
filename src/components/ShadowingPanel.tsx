@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
+import { intelligentMatch } from "@/lib/audio-checker"
 
 interface Sentence {
   id: number
@@ -337,71 +338,86 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           originalIndex: i
         })
         i++
-      } else if (originalWords[i] === recognizedWords[j] || areSimilarSounding(originalWords[i], recognizedWords[j])) {
-        // 匹配成功（包括发音相似的词）
-        diffs.push({
-          word: originalWords[i],
-          status: 'match',
-          originalIndex: i
-        })
-        i++
-        j++
       } else {
-        // 不匹配 - 尝试对齐
-        // 策略：双向查找，找到最佳匹配点
-        let foundMatch = false
-        let lookAhead = 1
-        const maxLookAhead = 3
+        // 使用智能匹配算法（Metaphone + 上下文感知）
+        const context = originalWords.slice(Math.max(0, i - 1), i + 2)
+        const matchResult = intelligentMatch(originalWords[i], recognizedWords[j], context)
 
-        // 先在原句中向前查找（用户可能漏读了原句的词）
-        while (lookAhead <= maxLookAhead && i + lookAhead < originalWords.length) {
-          if (originalWords[i + lookAhead] === recognizedWords[j] ||
-              areSimilarSounding(originalWords[i + lookAhead], recognizedWords[j])) {
-            // 找到匹配：原句漏了 i 到 i+lookAhead-1 的词
-            for (let k = 0; k < lookAhead; k++) {
-              const missedWord = originalWords[i + k]
-              const isWeakWord = LINKING_WORDS.has(missedWord.toLowerCase())
-
-              // 检查是否是连读弱读情况
-              let isWeakLink = false
-              if (isWeakWord && k === 0) {
-                // 检查前一个词（如果存在）
-                const prevWord = i > 0 ? originalWords[i - 1] : null
-                // 检查下一个词
-                const nextWord = i + lookAhead < originalWords.length ? originalWords[i + lookAhead] : null
-
-                // 如果是辅音结尾 + 弱读词 + 元音开头，可能是连读弱读
-                if (prevWord && nextWord && isConsonantEnd(prevWord) && isVowelStart(nextWord)) {
-                  isWeakLink = true
-                }
-              }
-
-              diffs.push({
-                word: missedWord,
-                status: isWeakLink ? 'weak_link' : 'deletion',
-                originalIndex: i + k
-              })
-            }
-            // 匹配当前词
+        if (matchResult.isMatch && matchResult.confidence >= 0.75) {
+          // 匹配成功（包括近音词、STT误判修正）
+          if (matchResult.confidence >= 0.85) {
+            // 高置信度：完全匹配（绿色）
             diffs.push({
-              word: recognizedWords[j],
+              word: originalWords[i],
               status: 'match',
-              originalIndex: i + lookAhead
+              originalIndex: i
             })
-            i += lookAhead + 1
-            j++
-            foundMatch = true
-            break
+          } else {
+            // 中等置信度：接近匹配（黄色/weak_link）
+            diffs.push({
+              word: originalWords[i],
+              status: 'weak_link',
+              originalIndex: i
+            })
           }
-          lookAhead++
-        }
+          i++
+          j++
+        } else {
+          // 不匹配 - 尝试对齐
+          // 策略：双向查找，找到最佳匹配点
+          let foundMatch = false
+          let lookAhead = 1
+          const maxLookAhead = 3
 
-        // 如果原句中没找到，尝试在识别文本中向前查找（用户可能多读了词）
-        if (!foundMatch) {
-          lookAhead = 1
-          while (lookAhead <= maxLookAhead && j + lookAhead < recognizedWords.length) {
-            if (originalWords[i] === recognizedWords[j + lookAhead] ||
-                areSimilarSounding(originalWords[i], recognizedWords[j + lookAhead])) {
+          // 先在原句中向前查找（用户可能漏读了原句的词）
+          while (lookAhead <= maxLookAhead && i + lookAhead < originalWords.length) {
+            if (originalWords[i + lookAhead] === recognizedWords[j] ||
+                areSimilarSounding(originalWords[i + lookAhead], recognizedWords[j])) {
+              // 找到匹配：原句漏了 i 到 i+lookAhead-1 的词
+              for (let k = 0; k < lookAhead; k++) {
+                const missedWord = originalWords[i + k]
+                const isWeakWord = LINKING_WORDS.has(missedWord.toLowerCase())
+
+                // 检查是否是连读弱读情况
+                let isWeakLink = false
+                if (isWeakWord && k === 0) {
+                  // 检查前一个词（如果存在）
+                  const prevWord = i > 0 ? originalWords[i - 1] : null
+                  // 检查下一个词
+                  const nextWord = i + lookAhead < originalWords.length ? originalWords[i + lookAhead] : null
+
+                  // 如果是辅音结尾 + 弱读词 + 元音开头，可能是连读弱读
+                  if (prevWord && nextWord && isConsonantEnd(prevWord) && isVowelStart(nextWord)) {
+                    isWeakLink = true
+                  }
+                }
+
+                diffs.push({
+                  word: missedWord,
+                  status: isWeakLink ? 'weak_link' : 'deletion',
+                  originalIndex: i + k
+                })
+              }
+              // 匹配当前词
+              diffs.push({
+                word: recognizedWords[j],
+                status: 'match',
+                originalIndex: i + lookAhead
+              })
+              i += lookAhead + 1
+              j++
+              foundMatch = true
+              break
+            }
+            lookAhead++
+          }
+
+          // 如果原句中没找到，尝试在识别文本中向前查找（用户可能多读了词）
+          if (!foundMatch) {
+            lookAhead = 1
+            while (lookAhead <= maxLookAhead && j + lookAhead < recognizedWords.length) {
+              if (originalWords[i] === recognizedWords[j + lookAhead] ||
+                  areSimilarSounding(originalWords[i], recognizedWords[j + lookAhead])) {
               // 找到匹配：识别文本多了 j 到 j+lookAhead-1 的词
               for (let k = 0; k < lookAhead; k++) {
                 diffs.push({
@@ -471,6 +487,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           i++
           j++
         }
+      }
       }
     }
 
