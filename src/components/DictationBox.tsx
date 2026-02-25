@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
+import { Eye } from "lucide-react"
 import ConfirmModal from "./ConfirmModal"
 import { useLanguage } from "@/contexts/LanguageContext"
 
@@ -42,6 +43,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   // Word-level state
   const sentenceWords = sentence.text.split(" ")
   const [wordStatuses, setWordStatuses] = useState<Map<number, WordStatus>>(new Map())
+  const [peekedWords, setPeekedWords] = useState<Set<number>>(new Set()) // Track peeked words
 
   // V3.1: 启动计时（只触发一次）
   const startTiming = () => {
@@ -147,6 +149,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     setIsLocked(false)
     setShowTranslation(false)  // 重置翻译显示状态
     setWordStatuses(new Map())
+    setPeekedWords(new Set()) // Reset peeked words
 
     // 重置计时状态
     setTimingStarted(false)
@@ -214,6 +217,9 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     setShowAllWords(true)
     setIsRevealed(true)
     setIsLocked(true)
+
+    // Peek all words when Show All Words is clicked
+    setPeekedWords(new Set(sentenceWords.map((_, index) => index)))
 
     // Fill input with correct answer
     setUserInput(sentence.text)
@@ -293,6 +299,15 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   })
   const missingWordsCount = sentenceWords.length - correctCount
 
+  // Handle peek word click
+  const handlePeekWord = (index: number) => {
+    setPeekedWords(prev => {
+      const newSet = new Set(prev)
+      newSet.add(index)
+      return newSet
+    })
+  }
+
   return (
     <div>
       {/* Translation display */}
@@ -343,7 +358,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
             onClick={showAllWords ? handleHideAllWords : handleShowAllWords}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
-            {showAllWords ? t('practice.hideWords') : t('practice.showWords')}
+            {showAllWords ? t('practice.hideWords') : t('practice.showAllWords')}
           </button>
         </div>
 
@@ -354,10 +369,12 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
               const status = wordStatuses.get(index) || "pending"
               const userWords = userInput.trim().split(/\s+/)
               const userWord = userWords[index] || ""
+              const isPeeked = peekedWords.has(index)
 
               // Determine display text and color based on status and showAllWords
               let displayText: string
               let bgClass: string
+              let showEyeIcon = false
 
               if (showAllWords || isRevealed) {
                 // Show Words clicked or revealed - reveal all original words
@@ -367,6 +384,10 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
                   : status === "incorrect"
                   ? "bg-red-100 border-red-400"
                   : "bg-gray-100 border-gray-300"
+              } else if (isPeeked) {
+                // Word is peeked - show original word
+                displayText = word
+                bgClass = "bg-red-50 border-red-300" // Light red background for peeked words
               } else {
                 // Default - show word-by-word status
                 if (status === "correct") {
@@ -377,21 +398,39 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
                   // Show user input + * in red
                   displayText = `${userWord}*`
                   bgClass = "bg-red-100 border-red-400"
+                  showEyeIcon = true
                 } else {
                   // pending/missing - show asterisks matching word length in gray
                   displayText = "*".repeat(word.split("").length)
                   bgClass = "bg-gray-100 border-gray-300"
+                  showEyeIcon = true
                 }
               }
 
               return (
                 <div
                   key={index}
-                  className={`px-3 py-2 rounded-lg border-2 ${bgClass}`}
+                  className="relative"
                 >
-                  <span className="text-sm font-medium">
-                    {displayText}
-                  </span>
+                  {/* Eye Icon - Show above pending/incorrect words */}
+                  {showEyeIcon && !isPeeked && !showAllWords && !isRevealed && (
+                    <button
+                      onClick={() => handlePeekWord(index)}
+                      className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-white rounded-full p-1 shadow-sm hover:shadow-md transition-shadow"
+                      title="Peek this word"
+                    >
+                      <Eye className="w-4 h-4 text-blue-500" />
+                    </button>
+                  )}
+
+                  {/* Word Card */}
+                  <div
+                    className={`px-3 py-2 rounded-lg border-2 ${bgClass}`}
+                  >
+                    <span className="text-sm font-medium">
+                      {displayText}
+                    </span>
+                  </div>
                 </div>
               )
             })}
