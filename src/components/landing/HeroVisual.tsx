@@ -35,11 +35,6 @@ export default function HeroVisual() {
           alt="Improve English listening and speaking skills with ShadowHub"
           className="relative w-full h-auto"
           style={{ maxHeight: '400px', objectFit: 'contain' }}
-          onError={(e) => {
-            console.error("Image load error:", e)
-            // 隐藏图片，显示背景
-            e.currentTarget.style.display = 'none'
-          }}
         />
       </motion.div>
     </motion.div>
