@@ -18,7 +18,7 @@ export default function HeroVisual() {
         <img
           src="hero-banner.png"
           alt="Improve English listening and speaking skills with ShadowHub"
-          width={1088}
+          width={960}
           height={960}
           className="relative w-full h-auto"
           style={{ maxHeight: '400px', objectFit: 'contain' }}

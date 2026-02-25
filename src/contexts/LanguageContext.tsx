@@ -162,7 +162,7 @@ const translations = {
     // Features
     "features.title": "Powerful Features for Effective Learning",
     "feature.dictation.title": "Word-by-Word Dictation, Precise Improvement",
-    "feature.dictation.desc": "Train your ear with our intelligent dictation method. Listen word-by-word like a native speaker in real-life context materials. 90% of learners improved their listening comprehension within one month.",
+    "feature.dictation.desc": "Train your ear with our intelligent dictation method. Listen like a native speaker in real-life context materials. 90% of learners improved their listening comprehension within one month.",
     "feature.dictation.word": "Word Mode",
     "feature.dictation.wordDesc": "Dictate word by word, enter each word independently, suitable for beginners",
     "feature.dictation.sentence": "Sentence Mode",
@@ -190,7 +190,7 @@ const translations = {
     "feature.shadowing.progressDesc": "Monitor your improvement in pronunciation and fluency over time",
     "feature.shadowing.try": "Try now",
     "feature.shadowing.title2": "Mimic Native Speakers, Master Authentic Pronunciation",
-    "feature.shadowing.desc2": "Shadowing is the golden method for language learning. Through synchronized repetition, train oral muscle memory and master authentic intonation and linking techniques.",
+    "feature.shadowing.desc2": "Shadowing is the golden method for language learning. Through synchronized repetition, train oral muscle memory to help you master pronunciation, intonation, and fluency. 95% of learners reported that in just 3 months, they can speak English with native-like rhythm and confidence.",
     "feature.shadowing.sync": "Synchronized Repetition",
     "feature.shadowing.syncDesc": "Sync with the original audio, train instant reaction ability",
     "feature.shadowing.linking": "Linking Tips",
@@ -298,6 +298,8 @@ const translations = {
     "faq.q12.answer": "Fully supported! Our tool uses responsive design and works smoothly on computers, tablets, and mobile phones. Practice anytime, anywhere.",
     "faq.q13.title": "How do I get started?",
     "faq.q13.answer": "It's easy! Sign up for a free account, pick a topic that interests you, and start your journey toward fluency today.",
+    "faq.q14.title": "How much time should I spend practicing English each day?",
+    "faq.q14.answer": "For best results, we recommend practicing 15-30 minutes daily. Regular short practice sessions are more effective than occasional long sessions.",
 
     // CTA
     "cta.title": "Stop 'Not Understanding, Not Speaking Out'",
@@ -465,7 +467,7 @@ const translations = {
     // Features
     "features.title": "强大的功能，高效的学习",
     "feature.dictation.title": "逐词听写，精准提升",
-    "feature.dictation.desc": "通过我们智能的听写方法训练您的耳朵，在真实生活语境材料里逐词像母语者一样听，90%的学习者在一个月内提高了听力理解能力。",
+    "feature.dictation.desc": "通过我们智能的听写方法训练您的耳朵，在真实生活语境材料里像母语者一样听，90%的学习者在一个月内提高了听力理解能力。",
     "feature.dictation.word": "单词模式",
     "feature.dictation.wordDesc": "逐词听写，独立输入每个单词，适合初学者",
     "feature.dictation.sentence": "整句模式",
@@ -493,7 +495,7 @@ const translations = {
     "feature.shadowing.progressDesc": "监控发音和流利度的提升",
     "feature.shadowing.try": "立即尝试",
     "feature.shadowing.title2": "模仿母语者，掌握地道发音",
-    "feature.shadowing.desc2": "跟读是语言学习的黄金方法。通过同步重复，训练口腔肌肉记忆，掌握地道语调和连读技巧。",
+    "feature.shadowing.desc2": "跟读是语言学习的黄金方法。通过同步重复，训练口腔肌肉记忆，可帮助您掌握发音、语调和流利度。95%的学习者反馈，仅仅3个月，让你以母语般的节奏和自信开口说英语。",
     "feature.shadowing.sync": "同步重复",
     "feature.shadowing.syncDesc": "与原声同步，训练即时反应能力",
     "feature.shadowing.linking": "连读技巧",
@@ -601,6 +603,8 @@ const translations = {
     "faq.q12.answer": "完全支持！我们的工具采用响应式设计，在电脑、平板和手机上都能流畅运行。随时随地练习。",
     "faq.q13.title": "如何开始？",
     "faq.q13.answer": "很简单！注册免费账号，选择您感兴趣的主题，今天就开启您的流利之旅。",
+    "faq.q14.title": "我每天应该花多少时间练习英语？",
+    "faq.q14.answer": "为了获得最佳效果，我们建议每天练习15～30分钟。定期的短时练习比偶尔的长时练习更有效。",
 
     // CTA
     "cta.title": "告别听不懂、说不出",

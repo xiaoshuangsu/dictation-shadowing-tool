@@ -62,6 +62,10 @@ export default function FAQ() {
       question: t("faq.q13.title"),
       answer: t("faq.q13.answer"),
     },
+    {
+      question: t("faq.q14.title"),
+      answer: t("faq.q14.answer"),
+    },
   ]
 
   return (
