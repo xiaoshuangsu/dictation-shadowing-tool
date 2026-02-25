@@ -162,7 +162,7 @@ const translations = {
     // Features
     "features.title": "Powerful Features for Effective Learning",
     "feature.dictation.title": "Word-by-Word Dictation, Precise Improvement",
-    "feature.dictation.desc": "Strengthen English listening comprehension through word-by-word dictation training.",
+    "feature.dictation.desc": "Train your ear with our intelligent dictation method. Listen word-by-word like a native speaker in real-life context materials. 90% of learners improved their listening comprehension within one month.",
     "feature.dictation.word": "Word Mode",
     "feature.dictation.wordDesc": "Dictate word by word, enter each word independently, suitable for beginners",
     "feature.dictation.sentence": "Sentence Mode",
@@ -465,7 +465,7 @@ const translations = {
     // Features
     "features.title": "强大的功能，高效的学习",
     "feature.dictation.title": "逐词听写，精准提升",
-    "feature.dictation.desc": "通过逐词听写训练加强英语听力理解能力。",
+    "feature.dictation.desc": "通过我们智能的听写方法训练您的耳朵，在真实生活语境材料里逐词像母语者一样听，90%的学习者在一个月内提高了听力理解能力。",
     "feature.dictation.word": "单词模式",
     "feature.dictation.wordDesc": "逐词听写，独立输入每个单词，适合初学者",
     "feature.dictation.sentence": "整句模式",
