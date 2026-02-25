@@ -1,15 +1,9 @@
-"use client"
-
-import { motion } from "framer-motion"
 import Image from "next/image"
 
 export default function HeroVisual() {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
-      className="relative w-full max-w-xl mx-auto flex items-center justify-center"
+    <div
+      className="relative w-full max-w-xl mx-auto flex items-center justify-center animate-fade-in"
       style={{ maxHeight: '450px' }}
     >
       {/* 浅蓝渐变背景 */}
@@ -21,16 +15,8 @@ export default function HeroVisual() {
         }}
       />
 
-      {/* 浮动动画容器 */}
-      <motion.div
-        animate={{ y: [0, -15, 0] }}
-        transition={{
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-        className="relative"
-      >
+      {/* 浮动动画容器 - 使用 CSS 动画代替 Framer Motion */}
+      <div className="relative animate-float">
         <Image
           src="/hero-banner.png"
           alt="Improve English listening and speaking skills with ShadowHub"
@@ -40,7 +26,7 @@ export default function HeroVisual() {
           className="relative w-full h-auto"
           style={{ maxHeight: '400px', objectFit: 'contain' }}
         />
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   )
 }
