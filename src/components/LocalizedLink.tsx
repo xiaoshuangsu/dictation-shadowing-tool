@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { useLanguage } from "@/contexts/LanguageContext"
 import { ReactNode } from "react"
 
 interface LocalizedLinkProps {
@@ -10,13 +9,8 @@ interface LocalizedLinkProps {
 }
 
 export default function LocalizedLink({ href, children, className, ...props }: LocalizedLinkProps) {
-  const { language } = useLanguage()
-
-  const localizedHref =
-    language === "zh" ? `/zh-CN${href === "/" ? "" : href}` : href
-
   return (
-    <Link href={localizedHref} className={className} {...props}>
+    <Link href={href} className={className} {...props}>
       {children}
     </Link>
   )
