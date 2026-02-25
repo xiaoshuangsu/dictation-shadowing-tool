@@ -628,37 +628,19 @@ interface LanguageProviderProps {
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const router = useRouter()
-  const pathname = usePathname()
   const [language, setLanguage] = useState<Language>("en")
 
   useEffect(() => {
-    // Detect language from URL path
-    const isZhPath = pathname.startsWith("/zh-CN")
-    if (isZhPath) {
-      setLanguage("zh")
-    } else {
-      setLanguage("en")
+    // Detect language from localStorage or cookie
+    const savedLang = localStorage.getItem("language") as Language
+    if (savedLang && (savedLang === "en" || savedLang === "zh")) {
+      setLanguage(savedLang)
     }
-  }, [pathname])
+  }, [])
 
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang)
     localStorage.setItem("language", lang)
-
-    // Navigate to the correct URL based on language
-    if (lang === "zh") {
-      // Navigate to /zh-CN version of current page
-      if (!pathname.startsWith("/zh-CN")) {
-        router.push(`/zh-CN${pathname === "/" ? "" : pathname}`)
-      }
-    } else {
-      // Navigate to English version
-      if (pathname.startsWith("/zh-CN")) {
-        const newPath = pathname.replace("/zh-CN", "") || "/"
-        router.push(newPath)
-      }
-    }
   }
 
   const t = (key: string): string => {
