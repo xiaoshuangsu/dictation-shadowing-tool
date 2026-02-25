@@ -158,9 +158,6 @@ const HIGH_FREQUENCY_MISHEARS: Record<string, string[]> = {
   'write': ['right', 'write', 'rit'],
   'which': ['witch', 'which', 'wich'],
   'witch': ['which', 'witch', 'wich'],
-  'where': ['were', 'wear', 'where'],
-  'wear': ['were', 'where', 'wear'],
-  'were': ['where', 'wear', 'were'],
 }
 
 // 上下文感知的高频词对（基于 N-gram 概率）
