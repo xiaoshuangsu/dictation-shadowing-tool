@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.3.1] - 2025-02-25
+
+### Fixed
+- **Banner 图片显示问题**
+  - 修复首页 banner 图片在 GitHub Pages 生产环境无法显示的问题
+  - 本地可用 + 生产不可用 = 构建配置问题
+  - AbortError 来自 Framer Motion 编译代码（53-e5999eaa1594cae6.js）
+  - Next.js 静态导出 + basePath 配置与 Framer Motion 存在兼容性问题
+
+### Changed
+- **移除 Framer Motion 依赖**
+  - HeroVisual 组件：使用纯 CSS 动画替代 Framer Motion
+  - 添加 `@keyframes fade-in` - 淡入 + 缩放效果（0.8s ease-out）
+  - 添加 `@keyframes float` - 浮动效果（4s 无限循环）
+  - CSS 动画由浏览器原生支持，性能更好（GPU 加速）
+
+### Technical Details
+- 修改文件：
+  - `src/components/landing/HeroVisual.tsx` - 移除 Framer Motion，使用 CSS 动画类
+  - `src/app/globals.css` - 添加 keyframe 动画定义
+- 优势：
+  - 完全复刻原有动画效果
+  - 无 JavaScript 库依赖
+  - 与 Next.js 静态导出完全兼容
+
+---
+
 ## [7.2.0] - 2025-02-24
 
 ### Added

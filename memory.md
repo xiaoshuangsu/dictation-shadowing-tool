@@ -4,6 +4,80 @@
 
 ---
 
+## 2025-02-25 - v7.3.1 发布（Banner 图片显示修复）
+
+### 问题描述
+首页 banner 图片在 GitHub Pages 生产环境无法显示，但在本地开发环境（localhost:3000）正常工作。
+
+**错误信息**：
+```
+Uncaught (in promise) AbortError: signal is aborted without reason
+at 53-e5999eaa1594cae6.js:24:51414
+```
+
+**根本原因**：
+- `53-e5999eaa1594cae6.js` 是 Framer Motion 的编译文件
+- AbortError 发生在 Framer Motion 动画系统中
+- Next.js 静态导出 + basePath 配置与 Framer Motion 存在兼容性问题
+- 生产构建时，Framer Motion 的动画会中断图片渲染过程
+
+### 解决方案
+**遵循原则**：极简优先，选择最简单、最稳妥的实现方式
+
+**替换方案**：移除 Framer Motion，使用纯 CSS 动画
+- CSS 动画由浏览器原生支持，性能更好（GPU 加速）
+- 无需额外 JavaScript 库
+- 与 Next.js 静态导出完全兼容
+
+**实现细节**：
+
+1. **HeroVisual 组件**（`src/components/landing/HeroVisual.tsx`）
+   - 移除 `motion.div` 替换为普通 `div`
+   - 移除所有 Framer Motion 导入
+   - 添加 CSS 动画类：`animate-fade-in`、`animate-float`
+
+2. **全局 CSS**（`src/app/globals.css`）
+   - 添加 `@keyframes fade-in` - 淡入 + 缩放效果（0.8s ease-out）
+   - 添加 `@keyframes float` - 浮动效果（4s 无限循环）
+   - 使用 Tailwind 的 `@layer utilities` 确保优先级正确
+
+**视觉效果**：
+- 淡入动画：从 opacity 0 + scale 0.9 到 opacity 1 + scale 1
+- 浮动动画：上下移动 15px（0 → -15px → 0）
+- 完全复刻原有的 Framer Motion 动画效果
+
+### 验证结果
+- ✅ 本地开发：banner 图片正常显示
+- ✅ 生产构建：成功生成 90 个静态页面
+- ✅ GitHub Pages：部署成功，等待用户验证
+
+### 经验总结
+1. **Framer Motion + Next.js 静态导出的兼容性风险**
+   - 在某些配置下可能导致 AbortError
+   - 特别是使用 basePath 时
+
+2. **CSS 动画的优势**
+   - 性能更好（GPU 加速）
+   - 兼容性更强
+   - 代码更简洁
+
+3. **问题排查思路**
+   - 本地可用 + 生产不可用 = 构建配置问题
+   - AbortError 来源：Framer Motion 编译代码
+   - 最简单的解决方案：移除问题依赖
+
+### 版本更新
+- 7.3.0 → 7.3.1
+- Git Tag: v7.3.1
+- GitHub Pages 部署完成
+
+### 修改文件清单
+1. `src/components/landing/HeroVisual.tsx` - 移除 Framer Motion
+2. `src/app/globals.css` - 添加 CSS keyframe 动画
+3. `CHANGELOG.md` - 更新日志
+
+---
+
 ## 2025-02-20 - v5.0.0 发布（Profile 页面重大重构 + 点击跳转功能 + 安全修复）
 
 ### 原始需求

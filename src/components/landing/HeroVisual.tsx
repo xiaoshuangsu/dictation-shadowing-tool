@@ -1,5 +1,3 @@
-import Image from "next/image"
-
 export default function HeroVisual() {
   return (
     <div
@@ -17,12 +15,11 @@ export default function HeroVisual() {
 
       {/* 浮动动画容器 - 使用 CSS 动画代替 Framer Motion */}
       <div className="relative animate-float">
-        <Image
-          src="/hero-banner.png"
+        <img
+          src="hero-banner.png"
           alt="Improve English listening and speaking skills with ShadowHub"
           width={1088}
           height={960}
-          priority
           className="relative w-full h-auto"
           style={{ maxHeight: '400px', objectFit: 'contain' }}
         />
