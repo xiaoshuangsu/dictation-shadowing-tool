@@ -102,7 +102,7 @@ export default function FeatureDictation() {
               className="relative"
             >
               <img
-                src="/english-dictation-practice.png"
+                src="english-dictation-practice.png"
                 alt="英语听写练习"
                 className="w-full h-auto rounded-3xl shadow-2xl"
               />

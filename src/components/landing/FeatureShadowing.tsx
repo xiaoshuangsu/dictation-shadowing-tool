@@ -28,7 +28,7 @@ export default function FeatureShadowing() {
               className="relative"
             >
               <img
-                src="/english-shadowing-practice.png"
+                src="english-shadowing-practice.png"
                 alt="English shadowing practice"
                 className="w-full h-auto rounded-3xl shadow-2xl"
               />

@@ -41,7 +41,7 @@ export default function FeatureGrowth() {
               className="relative"
             >
               <img
-                src="/growth-tracking.png"
+                src="growth-tracking.png"
                 alt="growth tracking"
                 className="w-full h-auto rounded-3xl shadow-2xl"
               />
