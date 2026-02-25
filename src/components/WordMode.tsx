@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useSuccessSound } from "@/hooks/useSuccessSound"
 
 interface Sentence {
   id: number
@@ -22,6 +23,7 @@ interface WordModeProps {
 
 export default function WordMode({ sentence, onComplete, currentIndex, totalSentences, onNext, isLastSentence }: WordModeProps) {
   const { t } = useLanguage()
+  const { playSuccessSound } = useSuccessSound(0.5) // 音量 0.5
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
@@ -176,6 +178,11 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     console.log('WordMode - Correct:', correct, 'Setting showResult to true')
     setShowResult(true)
     setIsCorrect(correct)
+
+    // 如果完全正确，播放成功音效
+    if (correct) {
+      playSuccessSound()
+    }
 
     // V3.1: 计算有效作答时间（秒）
     const durationSeconds = calculateEffectiveTime()

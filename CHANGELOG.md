@@ -5,6 +5,61 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.2.0] - 2025-02-24
+
+### Added
+- **逐词窥视功能（Dictation Whole Caption 模式）**
+  - 每个单词上方添加眼睛图标，点击可单独显示该单词
+  - 新增 "Show All Words" 按钮，一键显示整句答案
+  - 使用 Set 状态跟踪已窥视的单词
+  - 翻译支持：`practice.showAllWords`、`practice.hideWords`
+
+- **成功音效反馈（所有练习模式）**
+  - Dictation Word 模式：完全正确时播放成功音效
+  - Dictation Whole Caption 模式：完全正确时播放成功音效
+  - Shadowing 模式：完全正确时播放成功音效
+  - 创建 `useSuccessSound` Hook，自动预加载音频文件
+  - 音频文件：`success-notification.wav`（518KB）
+  - 音量设置为 0.5，避免过于响亮
+  - 支持快速连续点击，会中断前一个声音并重新播放
+
+### Fixed
+- **音频播放一半自动停止问题**
+  - 移除 `setTimeout` 方式（网络延迟导致计算不准确）
+  - 改用 `timeupdate` 事件监听，实时检查播放位置
+  - 当 `audio.currentTime >= endTime` 时自动暂停
+  - 修复连续点击播放按钮导致的 AbortError
+
+- **速度下拉框溢出问题**
+  - 移除 "Speed:" 文本标签
+  - 减小所有 gap（从 `gap-3` 改为 `gap-2`）
+  - 移除父容器的 `flex-wrap`，防止换行
+  - 下拉框宽度从 70px 减小到 60px
+  - 响应式字体大小：`text-xs sm:text-sm`
+  - 影响文件：DictationPracticeClient、ShadowingPracticeClient、practice 页面
+
+### Improved
+- **连读提示优化（Shadowing 模式）**
+  - 只在错误率 < 30% 时显示连读建议
+  - 根据原声音频时长判断语速，慢速（>0.5s/词）不提示
+  - 将 "Linking Tips" 改为 "Suggestion"（更友好的语气）
+  - 不在 "Keep practicing!" 警告上方显示，避免误解
+  - 只在用户有连读潜力时才提示
+
+### Technical Details
+- 新增文件：`src/hooks/useSuccessSound.ts`
+- 新增文件：`public/success-notification.wav`
+- 修改文件：
+  - `src/components/AudioPlayer.tsx` - 修复播放逻辑
+  - `src/components/DictationBox.tsx` - 添加逐词窥视 + 成功音效
+  - `src/components/WordMode.tsx` - 添加成功音效
+  - `src/components/ShadowingPanel.tsx` - 添加成功音效 + 优化连读提示
+  - `src/app/topics/dictation/[slug]/DictationPracticeClient.tsx` - UI 布局优化
+  - `src/app/topics/shadowing/[slug]/ShadowingPracticeClient.tsx` - UI 布局优化
+  - `src/app/practice/page.tsx` - UI 布局优化
+
+---
+
 ## [7.1.0] - 2025-02-24
 
 ### Fixed

@@ -521,9 +521,9 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
           </div>
 
           <div className="bg-gray-100 rounded-lg p-4 mb-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center gap-2">
               {/* Navigation Controls */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <button
                   onClick={handlePrevious}
                   disabled={isFirstSentence}
@@ -558,12 +558,12 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
               </div>
 
               {/* Speed Control */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">{t("practice.speed")}:</span>
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <select
                   value={playbackRate}
                   onChange={(e) => setPlaybackRate(Number(e.target.value))}
-                  className="border rounded-lg px-2 py-1 text-sm bg-white"
+                  className="border rounded-lg px-2 py-1 text-sm bg-white min-w-[60px] text-xs sm:text-sm"
+                  aria-label={t("practice.speed")}
                 >
                   <option value="0.25">0.25x</option>
                   <option value="0.5">0.5x</option>

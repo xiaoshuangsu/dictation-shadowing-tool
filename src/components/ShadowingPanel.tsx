@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useSuccessSound } from "@/hooks/useSuccessSound"
 
 interface Sentence {
   id: number
@@ -209,6 +210,7 @@ const generateLinkingIPA = (first: string, second: string): string => {
 
 export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
   const { t } = useLanguage()
+  const { playSuccessSound } = useSuccessSound(0.5) // 音量 0.5
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
   const [userTranscript, setUserTranscript] = useState("")
@@ -605,6 +607,12 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                         sentenceId: sentence.id,
                         sentenceText: sentence.text
                       })
+
+                      // 如果完全正确，播放成功音效
+                      if (isCorrect) {
+                        playSuccessSound()
+                      }
+
                       // 传递秒数
                       onCompleteRef.current(isCorrect, durationSeconds)
                     }
@@ -670,6 +678,12 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                         sentenceId: sentence.id,
                         sentenceText: sentence.text
                       })
+
+                      // 如果完全正确，播放成功音效
+                      if (isCorrect) {
+                        playSuccessSound()
+                      }
+
                       onCompleteRef.current(isCorrect, durationSeconds)
                     }
                   }, 100)
