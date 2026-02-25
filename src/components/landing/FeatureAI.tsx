@@ -101,7 +101,7 @@ export default function FeatureAI() {
               className="relative"
             >
               <img
-                src="/ai-feedback.png"
+                src="ai-feedback.png"
                 alt="learn english with AI"
                 className="w-full h-auto rounded-3xl shadow-2xl"
               />
