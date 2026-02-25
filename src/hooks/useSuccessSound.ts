@@ -12,7 +12,12 @@ export function useSuccessSound(volume: number = 0.5) {
   // 初始化音频元素（组件挂载时创建）
   useEffect(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio('success-notification.wav')
+      // 使用完整的绝对路径
+      const audioPath = process.env.NODE_ENV === 'production'
+        ? '/dictation-shadowing-tool/success-notification.wav'
+        : '/success-notification.wav'
+
+      audioRef.current = new Audio(audioPath)
       audioRef.current.volume = volume
       audioRef.current.preload = 'auto' // 预加载
     }
