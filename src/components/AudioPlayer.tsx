@@ -43,9 +43,7 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       cleanupRef.current()
       cleanupRef.current = null
     }
-    if (audioRef.current) {
-      audioRef.current.pause()
-    }
+    // 不在这里暂停，让新的 play() 调用自然处理
     setIsPlaying(false)
     setIsAudioPlaying(false)
   }
@@ -55,10 +53,12 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
 
     if (audioRef.current) {
       const audio = audioRef.current
+
+      // 设置新的时间和播放速率
       audio.currentTime = currentSentence.startTime
       audio.playbackRate = playbackRate
 
-      console.log('AudioPlayer - Playing sentence at', currentSentence.startTime)
+      console.log('AudioPlayer - Playing sentence at', currentSentence.startTime, 'rate:', playbackRate)
 
       // 添加播放时间跟踪
       const handlePlay = () => {
@@ -87,6 +87,17 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       }
 
       const handleTimeUpdate = () => {
+        // 检查是否播放到指定时间，如果是则停止
+        if (audio.currentTime >= currentSentence.endTime) {
+          audio.pause()
+          setIsPlaying(false)
+          if (cleanupRef.current) {
+            cleanupRef.current()
+            cleanupRef.current = null
+          }
+          return
+        }
+
         if (isAudioPlaying) {
           const now = Date.now()
           const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
@@ -134,26 +145,15 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       }
 
       // 播放音频
-      audio.play().then(() => {
-        setIsPlaying(true)
-      }).catch(err => {
-        console.error('AudioPlayer - Play error:', err)
-        setIsPlaying(false)
-      })
-
-      const durationToPlay = currentSentence.endTime - currentSentence.startTime
-      timeoutRef.current = setTimeout(() => {
-        if (audioRef.current) {
-          audio.pause()
+      const playPromise = audio.play()
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setIsPlaying(true)
+        }).catch(err => {
+          console.error('AudioPlayer - Play error:', err)
           setIsPlaying(false)
-
-          // 清理事件监听器
-          if (cleanupRef.current) {
-            cleanupRef.current()
-            cleanupRef.current = null
-          }
-        }
-      }, (durationToPlay / playbackRate) * 1000 + 200)
+        })
+      }
     }
   }
 

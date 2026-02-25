@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Eye } from "lucide-react"
 import ConfirmModal from "./ConfirmModal"
 import { useLanguage } from "@/contexts/LanguageContext"
+import { useSuccessSound } from "@/hooks/useSuccessSound"
 
 interface Sentence {
   id: number
@@ -24,6 +25,7 @@ type WordStatus = "correct" | "incorrect" | "pending"
 
 export default function DictationBox({ sentence, onComplete, onNext, isLastSentence }: DictationBoxProps) {
   const { t } = useLanguage()
+  const { playSuccessSound } = useSuccessSound(0.5) // 音量 0.5
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [showAllWords, setShowAllWords] = useState(false)
@@ -193,6 +195,11 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   const handleCheckAnswer = () => {
     setShowResult(true)
     const isCorrect = checkCorrect()
+
+    // 如果完全正确，播放成功音效
+    if (isCorrect) {
+      playSuccessSound()
+    }
 
     // V3.1: 计算有效作答时间（秒）
     const durationSeconds = calculateEffectiveTime()
