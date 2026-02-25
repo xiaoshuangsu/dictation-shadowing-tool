@@ -11,7 +11,7 @@ export function useSuccessSound(volume: number = 0.5) {
 
   // 初始化音频元素（只创建一次）
   if (!audioRef.current) {
-    audioRef.current = new Audio('/success-notification.wav')
+    audioRef.current = new Audio('success-notification.wav')
     audioRef.current.volume = volume
     audioRef.current.preload = 'auto' // 预加载
   }
