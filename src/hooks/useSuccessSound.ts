@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 
 /**
  * 播放成功音效的 Hook
@@ -9,12 +9,14 @@ import { useRef, useCallback } from 'react'
 export function useSuccessSound(volume: number = 0.5) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  // 初始化音频元素（只创建一次）
-  if (!audioRef.current) {
-    audioRef.current = new Audio('success-notification.wav')
-    audioRef.current.volume = volume
-    audioRef.current.preload = 'auto' // 预加载
-  }
+  // 初始化音频元素（组件挂载时创建）
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio('success-notification.wav')
+      audioRef.current.volume = volume
+      audioRef.current.preload = 'auto' // 预加载
+    }
+  }, [volume])
 
   /**
    * 播放成功音效
