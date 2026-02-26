@@ -130,7 +130,13 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
           // Use transcript from material (like the original practice page)
           if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
             console.log(`Loaded transcript with ${material.transcript.length} sentences`)
-            setSampleSentences(material.transcript)
+            // Convert startTime and endTime from strings to numbers
+            const transcript = material.transcript.map((s: any) => ({
+              ...s,
+              startTime: parseFloat(s.startTime),
+              endTime: parseFloat(s.endTime),
+            }))
+            setSampleSentences(transcript)
           } else {
             setSampleSentences(defaultSentences)
           }

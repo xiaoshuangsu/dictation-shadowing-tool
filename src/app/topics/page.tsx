@@ -14,6 +14,11 @@ const CATEGORY_MAP = {
   '历史演讲': { en: 'Historical Speeches', zh: '历史演讲' },
   '文化历史': { en: 'Culture & History', zh: '文化历史' },
   '艺术文化': { en: 'Arts & Culture', zh: '艺术文化' },
+  'YouTube Vlog': { en: 'YouTube Vlog', zh: 'YouTube Vlog' },
+  '故事': { en: 'Stories', zh: '故事' },
+  '人物访谈': { en: 'Interviews', zh: '人物访谈' },
+  'BBC Learning English': { en: 'BBC Learning English', zh: 'BBC Learning English' },
+  'VOA Learning English': { en: 'VOA Learning English', zh: 'VOA Learning English' },
 } as const
 
 // 使用环境变量的 Supabase 配置
@@ -38,9 +43,14 @@ type Material = {
 // 分类顺序和配置
 const CATEGORIES = [
   { id: '日常生活', label: 'Daily Life' },
+  { id: 'YouTube Vlog', label: 'YouTube Vlog' },
   { id: '历史演讲', label: 'Historical Speeches' },
   { id: '文化历史', label: 'Culture & History' },
   { id: '艺术文化', label: 'Arts & Culture' },
+  { id: '故事', label: 'Stories' },
+  { id: '人物访谈', label: 'Interviews' },
+  { id: 'BBC Learning English', label: 'BBC Learning English' },
+  { id: 'VOA Learning English', label: 'VOA Learning English' },
 ]
 
 // 难度颜色映射
@@ -49,6 +59,8 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   A2: 'bg-blue-100 text-blue-700 border-blue-200',
   B1: 'bg-yellow-100 text-yellow-700 border-yellow-200',
   B2: 'bg-red-100 text-red-700 border-red-200',
+  C1: 'bg-purple-100 text-purple-700 border-purple-200',
+  C2: 'bg-pink-100 text-pink-700 border-pink-200',
 }
 
 export default function MaterialsPage() {

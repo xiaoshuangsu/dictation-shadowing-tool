@@ -11,6 +11,8 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   A2: 'bg-blue-100 text-blue-700 border-blue-200',
   B1: 'bg-yellow-100 text-yellow-700 border-yellow-200',
   B2: 'bg-red-100 text-red-700 border-red-200',
+  C1: 'bg-purple-100 text-purple-700 border-purple-200',
+  C2: 'bg-cyan-100 text-cyan-700 border-cyan-200',
 }
 
 export function MaterialCard({ material, onPlay }: MaterialCardProps) {
