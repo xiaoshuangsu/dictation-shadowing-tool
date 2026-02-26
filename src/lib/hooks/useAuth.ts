@@ -80,8 +80,6 @@ export function useAuth(): AuthState {
             // Still set user even if profile fetch fails
           }
 
-          console.log('User profile:', profile)
-
           setUser({
             id: session.user.id,
             email: session.user.email || '',
@@ -128,8 +126,6 @@ export function useAuth(): AuthState {
 
             const data = await Promise.race([profilePromise, timeoutPromise]) as { data: any }
             const profile = data.data
-
-            console.log('User profile fetched:', profile)
 
             setUser({
               id: session.user.id,
