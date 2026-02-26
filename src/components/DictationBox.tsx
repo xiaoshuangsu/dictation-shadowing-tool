@@ -447,8 +447,8 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
 
       {/* Result Display */}
       {showResult && !isCorrect && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-700">
+        <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
+          <p className="text-sm text-blue-700">
             {t('practice.dictation.incorrect')}
           </p>
         </div>

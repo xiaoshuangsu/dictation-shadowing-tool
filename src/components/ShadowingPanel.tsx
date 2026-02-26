@@ -339,12 +339,13 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         })
         i++
       } else {
-        // 使用智能匹配算法（Metaphone + 上下文感知）
+        // 使用智能匹配算法（Metaphone + 上下文感知）- "口语优先"容错版本
+        // 降低置信度阈值：0.75 → 0.60，接受更多合理发音变体
         const context = originalWords.slice(Math.max(0, i - 1), i + 2)
         const matchResult = intelligentMatch(originalWords[i], recognizedWords[j], context)
 
-        if (matchResult.isMatch && matchResult.confidence >= 0.75) {
-          // 匹配成功（包括近音词、STT误判修正）
+        if (matchResult.isMatch && matchResult.confidence >= 0.60) {
+          // 匹配成功（包括近音词、STT误判修正、常见发音变体）
           if (matchResult.confidence >= 0.85) {
             // 高置信度：完全匹配（绿色）
             diffs.push({
@@ -353,7 +354,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               originalIndex: i
             })
           } else {
-            // 中等置信度：接近匹配（黄色/weak_link）
+            // 中等置信度：接近匹配（灰色/weak_link）- 容忍发音差异
             diffs.push({
               word: originalWords[i],
               status: 'weak_link',
@@ -867,6 +868,52 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           }
         }
 
+        // 等待跳转完成后再播放
+        let seekAttempts = 0
+        const maxSeekAttempts = 10
+
+        const verifyAndPlay = () => {
+          seekAttempts++
+          const currentTime = audio.currentTime
+          const targetTime = sentence.startTime
+          const diff = Math.abs(currentTime - targetTime)
+
+          console.log(`Seek attempt ${seekAttempts}: current=${currentTime.toFixed(2)}s, target=${targetTime.toFixed(2)}s, diff=${diff.toFixed(2)}s`)
+
+          // 如果接近目标位置（允许0.5秒误差），开始播放
+          if (diff < 0.5) {
+            console.log('Position verified, starting playback at', currentTime)
+            audio.play().catch(err => {
+              console.error('Failed to play audio:', err)
+            })
+            audio.removeEventListener('seeked', verifyAndPlay)
+            audio.removeEventListener('timeupdate', checkSeek)
+          } else if (seekAttempts >= maxSeekAttempts) {
+            // 超过最大尝试次数，强制播放
+            console.warn('Max seek attempts reached, playing at current position', currentTime)
+            audio.play().catch(err => {
+              console.error('Failed to play audio:', err)
+            })
+            audio.removeEventListener('seeked', verifyAndPlay)
+            audio.removeEventListener('timeupdate', checkSeek)
+          } else {
+            // 还没到达目标位置，继续等待
+            audio.currentTime = targetTime
+          }
+        }
+
+        const handleSeeked = () => {
+          console.log('Seeked event fired, current position:', audio.currentTime)
+          // seeked 事件触发后验证位置
+          setTimeout(verifyAndPlay, 50)
+        }
+
+        const checkSeek = () => {
+          if (audio.currentTime >= sentence.startTime - 0.5) {
+            verifyAndPlay()
+          }
+        }
+
         const handleEnded = () => {
           if (isPlaying) {
             const now = Date.now()
@@ -884,6 +931,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         audio.addEventListener('pause', handlePause, { once: false })
         audio.addEventListener('timeupdate', handleTimeUpdate, { once: false })
         audio.addEventListener('ended', handleEnded, { once: false })
+        audio.addEventListener('seeked', handleSeeked, { once: true })
+        audio.addEventListener('timeupdate', checkSeek, { once: false })
 
         // 保存清理函数
         cleanupRef.current = () => {
@@ -891,11 +940,14 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           audio.removeEventListener('pause', handlePause)
           audio.removeEventListener('timeupdate', handleTimeUpdate)
           audio.removeEventListener('ended', handleEnded)
+          audio.removeEventListener('seeked', verifyAndPlay)
+          audio.removeEventListener('timeupdate', checkSeek)
         }
 
-        audio.play().catch(err => {
-          console.error('Failed to play audio:', err)
-        })
+        // 初始触发跳转
+        console.log('Setting currentTime to', sentence.startTime)
+        audio.currentTime = sentence.startTime
+        setTimeout(verifyAndPlay, 100)  // 100ms 后验证并播放
 
         // 在句子的结束时间停止播放
         const durationToPlay = (sentence.endTime - sentence.startTime) * 1000
@@ -913,39 +965,12 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
 
   /**
    * 检测并生成连读提示
-   * 只在有错误（读错、漏读）且涉及连读词时才提示
+   * 【已禁用】影子跟读练习中不再显示连读提示
+   * 用户要求：Ban "Linking Tips" in shadowing practice
    */
   const getLinkingTips = (): { hasTips: boolean; pairs: LinkingPair[] } => {
-    // 检查是否有错误
-    const hasErrors = wordDiffs.some(d => d.status !== 'match')
-    if (!hasErrors) {
-      return { hasTips: false, pairs: [] }
-    }
-
-    // 检查错误中是否涉及可以连读的词对
-    const linkingPairs = detectLinkingPairs(sentenceRef.current.text)
-    if (linkingPairs.length === 0) {
-      return { hasTips: false, pairs: [] }
-    }
-
-    // 检查是否有漏读或连读弱读的词，且该词在连读组合中
-    const missedWords = new Set(
-      wordDiffs
-        .filter(d => d.status === 'deletion' || d.status === 'weak_link')
-        .map(d => d.word.toLowerCase())
-    )
-
-    // 找到涉及漏读词的连读组合
-    const relevantPairs = linkingPairs.filter(pair =>
-      missedWords.has(pair.first.toLowerCase()) ||
-      missedWords.has(pair.second.toLowerCase())
-    )
-
-    if (relevantPairs.length === 0) {
-      return { hasTips: false, pairs: [] }
-    }
-
-    return { hasTips: true, pairs: relevantPairs.slice(0, 1) }
+    // 始终返回 false，禁用连读提示
+    return { hasTips: false, pairs: [] }
   }
 
   /**
@@ -1101,6 +1126,19 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         }`}>
           <p className="text-xs text-gray-500 mb-2">{t('practice.shadowing.myPronunciation')}:</p>
 
+          {/* 音频播放器 - 紧凑版，放在 My Pronunciation 下方 */}
+          {recordedAudioUrl && (
+            <div className="mb-3">
+              <audio
+                ref={audioRef}
+                src={recordedAudioUrl}
+                controls
+                className="w-full h-10"
+                onError={(e) => console.error("Audio error:", e)}
+              />
+            </div>
+          )}
+
           {/* 单词对比结果 */}
           <div className="mb-3 text-base leading-relaxed">
             {wordDiffs.length > 0 ? (
@@ -1146,55 +1184,14 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 <span className="font-medium">{t('practice.shadowing.perfectPronunciation')}</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-orange-600">
+              <div className="flex items-center gap-2 text-blue-600">
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                <span className="font-medium">{t('practice.shadowing.keepPracticing')}</span>
+                <span className="font-medium">继续加油！多练习能让发音更自然</span>
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {/* 音频对比区域 */}
-      {recordedAudioUrl && (
-        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm font-medium text-gray-700 mb-3">🎵 {t('practice.shadowing.audioComparison')}</p>
-
-          <div className="flex gap-3">
-            {/* 播放原音 */}
-            <button
-              onClick={playOriginal}
-              className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-              </svg>
-              <span className="text-sm font-medium text-gray-700">{t('practice.shadowing.original')}</span>
-            </button>
-
-            {/* 播放我的录音 */}
-            <button
-              onClick={playRecording}
-              className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3s-3 1.34-3 3v6c0 1.66 1.34 3 3 3z"/>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-              </svg>
-              <span className="text-sm font-medium text-gray-700">{t('practice.shadowing.myRecording')}</span>
-            </button>
-          </div>
-
-          {/* 音频播放器 */}
-          <audio
-            ref={audioRef}
-            src={recordedAudioUrl}
-            controls
-            className="w-full mt-3"
-            onError={(e) => console.error("Audio error:", e)}
-          />
         </div>
       )}
 

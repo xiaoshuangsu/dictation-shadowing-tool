@@ -300,8 +300,8 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
       {/* Result Display */}
       {showResult && isCorrect === false && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm text-red-700 mb-2">
+        <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
+          <p className="text-sm text-blue-700 mb-2">
             {t('practice.wordMode.incorrect')}
           </p>
           <button
