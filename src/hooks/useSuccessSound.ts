@@ -4,34 +4,25 @@ import { useRef, useCallback, useEffect } from 'react'
  * 播放成功音效的 Hook
  * - 预加载音频，确保无延迟播放
  * - 支持快速连续点击，会中断前一个声音
- * - 移动端使用更低的音量
- * - 从 localStorage 读取用户设置的全局音量
+ * - 使用静音状态而不是音量
+ * - 从 localStorage 读取全局静音状态
  */
-export function useSuccessSound(defaultVolume: number = 0.05) {
+export function useSuccessSound() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const isReadyRef = useRef(false)
 
-  // 检测是否为移动设备
-  const isMobile = () => {
-    if (typeof window === 'undefined') return false
-    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-  }
-
-  // 获取用户保存的全局音量
-  const getSavedVolume = (): number => {
-    if (typeof window === 'undefined') return defaultVolume
+  // 从 localStorage 获取全局静音状态
+  const getGlobalMuted = (): boolean => {
+    if (typeof window === 'undefined') return true // 默认静音
     try {
-      const saved = localStorage.getItem('audioVolume')
+      const saved = localStorage.getItem('audioMuted')
       if (saved !== null) {
-        const vol = parseFloat(saved)
-        // 成功音效应该是全局音量的 40%（更小）
-        return vol * 0.4
+        return saved === 'true'
       }
     } catch (error) {
-      console.warn('Failed to read saved volume:', error)
+      console.warn('Failed to read audioMuted:', error)
     }
-    // 默认值：移动端更低
-    return isMobile() ? 0.02 : defaultVolume
+    return true // 默认静音（保护用户耳朵）
   }
 
   // 初始化音频元素（组件挂载时创建）
@@ -43,15 +34,15 @@ export function useSuccessSound(defaultVolume: number = 0.05) {
         : '/success-notification.wav'
 
       const audio = new Audio(audioPath)
-      const actualVolume = getSavedVolume()
-      audio.volume = actualVolume
+      const isMuted = getGlobalMuted()
+      audio.muted = isMuted // 使用静音状态
       audio.preload = 'auto' // 预加载
 
       // 监听音频可以播放事件（更早触发）
       const handleCanPlay = () => {
         if (!isReadyRef.current) {
           isReadyRef.current = true
-          console.log('Success sound can play, volume:', actualVolume, 'isMobile:', isMobile())
+          console.log('Success sound can play, muted:', isMuted)
         }
       }
 
@@ -67,26 +58,8 @@ export function useSuccessSound(defaultVolume: number = 0.05) {
         console.warn('Failed to load success sound:', e)
       })
 
-      // 移动端：提前加载并播放一次（静音）来激活音频
-      if (isMobile()) {
-        audio.load()
-        // 尝试在用户第一次交互时预热音频
-        const enableAudioOnFirstInteraction = () => {
-          audio.play().then(() => {
-            audio.pause()
-            audio.currentTime = 0
-            console.log('Mobile audio pre-warmed')
-          }).catch(() => {
-            console.log('Mobile audio pre-warm failed (expected)')
-          })
-          document.removeEventListener('touchstart', enableAudioOnFirstInteraction)
-          document.removeEventListener('click', enableAudioOnFirstInteraction)
-        }
-        document.addEventListener('touchstart', enableAudioOnFirstInteraction, { once: true })
-        document.addEventListener('click', enableAudioOnFirstInteraction, { once: true })
-      } else {
-        audio.load()
-      }
+      // 提前加载音频
+      audio.load()
 
       audioRef.current = audio
 
@@ -100,7 +73,7 @@ export function useSuccessSound(defaultVolume: number = 0.05) {
         }
       }
     }
-  }, [defaultVolume])
+  }, [])
 
   /**
    * 播放成功音效
@@ -109,16 +82,21 @@ export function useSuccessSound(defaultVolume: number = 0.05) {
   const playSuccessSound = useCallback(() => {
     if (audioRef.current) {
       const audio = audioRef.current
-      const actualVolume = getSavedVolume()
+      const isMuted = getGlobalMuted()
 
-      // 每次播放前都重新设置音量（确保使用最新的全局音量）
-      audio.volume = actualVolume
-      console.log('Success sound playing at volume:', actualVolume, '(global volume:', actualVolume / 0.4, ')')
+      // 每次播放前都重新设置静音状态（确保同步全局静音状态）
+      audio.muted = isMuted
+      console.log('Success sound playing, muted:', isMuted)
+
+      // 如果静音，不播放
+      if (isMuted) {
+        return
+      }
 
       // 重置到开头
       audio.currentTime = 0
 
-      // 直接播放（不克隆，更快）
+      // 直接播放
       audio.play().catch(err => {
         console.warn('Failed to play success sound:', err)
       })

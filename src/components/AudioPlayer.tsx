@@ -19,34 +19,27 @@ interface AudioPlayerProps {
   onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void // 新增：累计播放时间回调
 }
 
-// 检测是否为移动设备
-const isMobileDevice = () => {
-  if (typeof window === 'undefined') return false
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-}
-
-// 从 localStorage 获取保存的音量
-const getSavedVolume = (): number => {
-  if (typeof window === 'undefined') return 0.5
+// 从 localStorage 获取静音状态
+const getSavedMuted = (): boolean => {
+  if (typeof window === 'undefined') return true // 默认静音（保护用户耳朵）
   try {
-    const saved = localStorage.getItem('audioVolume')
+    const saved = localStorage.getItem('audioMuted')
     if (saved !== null) {
-      return parseFloat(saved)
+      return saved === 'true'
     }
   } catch (error) {
-    console.warn('Failed to read saved volume:', error)
+    console.warn('Failed to read saved muted state:', error)
   }
-  // 默认值：移动端 0.35，桌面端 0.5
-  return isMobileDevice() ? 0.35 : 0.5
+  return true // 默认静音
 }
 
-// 保存音量到 localStorage
-const saveVolume = (volume: number) => {
+// 保存静音状态到 localStorage
+const saveMuted = (muted: boolean) => {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem('audioVolume', volume.toString())
+    localStorage.setItem('audioMuted', muted.toString())
   } catch (error) {
-    console.warn('Failed to save volume:', error)
+    console.warn('Failed to save muted state:', error)
   }
 }
 
@@ -55,8 +48,8 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   const [isPlaying, setIsPlaying] = useState(false)
   const prevTriggerRef = useRef(0)
 
-  // 音量控制
-  const [volume, setVolume] = useState<number>(getSavedVolume)
+  // 静音控制（使用 muted 而不是 volume）
+  const [isMuted, setIsMuted] = useState<boolean>(getSavedMuted)
   const [showVolumeSlider, setShowVolumeSlider] = useState(false)
 
   // 真实播放时间跟踪
@@ -68,29 +61,29 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
 
-  // 初始化音频音量
+  // 初始化音频静音状态
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.volume = volume
-      console.log('AudioPlayer - Volume set to:', volume)
+      audioRef.current.muted = isMuted
+      console.log('AudioPlayer - Muted set to:', isMuted)
     }
-  }, [volume])
+  }, [isMuted])
 
-  // 在 audioRef 改变时也设置音量（确保新创建的 audio 元素也有正确的音量）
+  // 在 audioRef 改变时也设置静音状态
   useEffect(() => {
     if (audioRef.current) {
-      audioRef.current.volume = volume
-      console.log('AudioPlayer - Initial volume set to:', volume)
+      audioRef.current.muted = isMuted
+      console.log('AudioPlayer - Initial muted set to:', isMuted)
     }
-  }, [audioRef, volume])
+  }, [audioRef, isMuted])
 
-  // 处理音量变化
-  const handleVolumeChange = (newVolume: number | string) => {
-    const volumeValue = typeof newVolume === 'string' ? parseFloat(newVolume) : newVolume
-    setVolume(volumeValue)
-    saveVolume(volumeValue)
+  // 处理静音状态变化
+  const handleMutedChange = (muted: boolean) => {
+    setIsMuted(muted)
+    saveMuted(muted)
     if (audioRef.current) {
-      audioRef.current.volume = volumeValue
+      audioRef.current.muted = muted
+      console.log('AudioPlayer - Muted changed to:', muted)
     }
   }
 
@@ -118,9 +111,9 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       // 设置新的时间和播放速率
       audio.currentTime = currentSentence.startTime
       audio.playbackRate = playbackRate
-      audio.volume = volume // 确保音量设置正确
+      audio.muted = isMuted // 确保静音状态正确
 
-      console.log('AudioPlayer - Playing sentence at', currentSentence.startTime, 'rate:', playbackRate, 'volume:', volume)
+      console.log('AudioPlayer - Playing sentence at', currentSentence.startTime, 'rate:', playbackRate, 'muted:', isMuted)
 
       // 添加播放时间跟踪
       const handlePlay = () => {
@@ -282,60 +275,22 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
         </svg>
       </button>
 
-      {/* Volume Control */}
-      <div className="relative">
-        {/* Volume Icon Button */}
-        <button
-          onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-          className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors relative"
-          title="Volume"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {volume > 0 ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707 1.707L5.586 15z" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707 1.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-            )}
-          </svg>
-          {/* Volume indicator dot */}
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500"></span>
-        </button>
-
-        {/* Volume Slider Popup */}
-        {showVolumeSlider && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowVolumeSlider(false)}
-            />
-
-            {/* Slider Card */}
-            <div className="absolute left-0 top-full mt-2 z-20 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-48">
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">音量 Volume</span>
-                  <span className="text-xs text-gray-500">{Math.round(volume * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  value={volume}
-                  onChange={(e) => handleVolumeChange(e.target.value)}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                />
-                <div className="flex justify-between text-xs text-gray-400">
-                  <button onClick={() => handleVolumeChange('0')} className="hover:text-gray-600">静音</button>
-                  <button onClick={() => handleVolumeChange(isMobileDevice() ? '0.35' : '0.5')} className="hover:text-gray-600">默认</button>
-                  <button onClick={() => handleVolumeChange('1')} className="hover:text-gray-600">最大</button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+      {/* Mute Control */}
+      <button
+        onClick={() => handleMutedChange(!isMuted)}
+        className={`p-2 rounded-full hover:bg-gray-200 transition-colors ${
+          isMuted ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+        }`}
+        title={isMuted ? "取消静音 Unmute" : "静音 Mute"}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {isMuted ? (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707 1.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+          ) : (
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707 1.707L5.586 15z" />
+          )}
+        </svg>
+      </button>
     </div>
   )
 }
