@@ -19,18 +19,9 @@ interface AudioPlayerProps {
   onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void // 新增：累计播放时间回调
 }
 
-// 从 localStorage 获取音量
+// 固定音量（不再使用 localStorage，因为已删除音量控制按钮）
 const getSavedVolume = (): number => {
-  if (typeof window === 'undefined') return 0.3 // 默认 0.3（温和适中）
-  try {
-    const saved = localStorage.getItem('audioVolume')
-    if (saved !== null) {
-      return parseFloat(saved)
-    }
-  } catch (error) {
-    console.warn('Failed to read saved volume:', error)
-  }
-  return 0.3 // 默认 0.3
+  return 0.25 // 固定 0.25（温和适中）
 }
 
 export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 1, autoPlayTrigger = 0, onPlayEnd, onTimeUpdate, onPlaybackTimeUpdate }: AudioPlayerProps) {

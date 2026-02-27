@@ -21,20 +21,9 @@ export function useSuccessSound() {
   const isReadyRef = useRef(false)
   const isMobile = useRef(isMobileDevice())
 
-  // 从 localStorage 获取全局音量
+  // 获取成功音效音量（固定值，不再读取 localStorage）
   const getGlobalVolume = (): number => {
-    if (typeof window === 'undefined') return 0.01 // 默认 0.01（极低）
-    try {
-      const saved = localStorage.getItem('audioVolume')
-      if (saved !== null) {
-        const vol = parseFloat(saved)
-        // 成功音效是全局音量的 2%（极低，避免移动端爆鸣）
-        return vol * 0.02
-      }
-    } catch (error) {
-      console.warn('Failed to read audioVolume:', error)
-    }
-    return 0.01 // 默认 0.01
+    return 0.005 // 固定 0.005（主音频 0.25 的 2%，极低）
   }
 
   // 初始化音频元素（组件挂载时创建）
