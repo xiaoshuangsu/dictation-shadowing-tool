@@ -103,6 +103,19 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
 
   const audioPlaybackSecondsRef = useRef(0)
 
+  // 为每个模式独立保存句子索引
+  const dictationSentenceIndexRef = useRef(startIndex)
+  const shadowingSentenceIndexRef = useRef(startIndex)
+
+  // 自动保存当前模式的索引到对应的 ref
+  useEffect(() => {
+    if (mode === 'dictation') {
+      dictationSentenceIndexRef.current = currentSentenceIndex
+    } else {
+      shadowingSentenceIndexRef.current = currentSentenceIndex
+    }
+  }, [currentSentenceIndex, mode])
+
   useEffect(() => {
     async function findMaterial() {
       const titleToSlug = (title: string) =>
@@ -317,8 +330,13 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
           <div className="inline-flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => {
+                // 先保存当前模式的索引
+                if (mode === 'shadowing') {
+                  shadowingSentenceIndexRef.current = currentSentenceIndex
+                }
+                // 切换到 dictation 模式，恢复 dictation 的索引
                 setMode("dictation")
-                setCurrentSentenceIndex(0)
+                setCurrentSentenceIndex(dictationSentenceIndexRef.current)
                 setCompletedSentences(new Set())
                 setCorrectSentences(new Set())
                 setIncorrectSentences(new Set())
@@ -336,8 +354,13 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
             </button>
             <button
               onClick={() => {
+                // 先保存当前模式的索引
+                if (mode === 'dictation') {
+                  dictationSentenceIndexRef.current = currentSentenceIndex
+                }
+                // 切换到 shadowing 模式，恢复 shadowing 的索引
                 setMode("shadowing")
-                setCurrentSentenceIndex(0)
+                setCurrentSentenceIndex(shadowingSentenceIndexRef.current)
                 setCompletedSentences(new Set())
                 setCorrectSentences(new Set())
                 setIncorrectSentences(new Set())
@@ -388,7 +411,8 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                     type="button"
                     onClick={() => {
                       setDictationMode('word')
-                      setCurrentSentenceIndex(0)
+                      // 不重置句子索引，保持当前进度
+                      // setCurrentSentenceIndex(0)
                       setCompletedSentences(new Set())
                       setCorrectSentences(new Set())
                       setIncorrectSentences(new Set())
@@ -408,7 +432,8 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                     type="button"
                     onClick={() => {
                       setDictationMode('whole')
-                      setCurrentSentenceIndex(0)
+                      // 不重置句子索引，保持当前进度
+                      // setCurrentSentenceIndex(0)
                       setCompletedSentences(new Set())
                       setCorrectSentences(new Set())
                       setIncorrectSentences(new Set())

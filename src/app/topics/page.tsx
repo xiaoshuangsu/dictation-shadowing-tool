@@ -24,7 +24,50 @@ const CATEGORY_MAP = {
 // 使用环境变量的 Supabase 配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co'
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
-const supabase = createClient(supabaseUrl, supabaseKey)
+
+// 添加超时和重试配置
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  global: {
+    fetch: (url, options = {}) => {
+      // 创建超时控制器（兼容性更好）
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 秒超时
+
+      return fetch(url, {
+        ...options,
+        signal: controller.signal,
+      }).finally(() => {
+        clearTimeout(timeoutId)
+      })
+    },
+  },
+})
+
+// 带重试的获取素材函数
+async function fetchWithRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  delayMs = 1000
+): Promise<T> {
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error as Error
+      console.warn(`第 ${attempt} 次尝试失败:`, error)
+
+      if (attempt < maxRetries) {
+        const delay = delayMs * attempt // 指数退避
+        console.log(`等待 ${delay}ms 后重试...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  throw lastError
+}
 
 type Material = {
   id: string
@@ -90,20 +133,21 @@ export default function MaterialsPage() {
     async function fetchMaterials() {
       try {
         console.log('=== 开始获取素材 ===')
-        console.log('Supabase URL:', supabaseUrl)
-        console.log('完整请求 URL:', `${supabaseUrl}/rest/v1/materials`)
 
-        const { data, error, status, statusText } = await supabase
-          .from('materials')
-          .select('*')
-          .order('category')
-          .order('title')
+        const result = await fetchWithRetry(async () => {
+          return await supabase
+            .from('materials')
+            .select('*')
+            .order('category')
+            .order('title')
+        })
+
+        const { data, error, status, statusText } = result
 
         console.log('=== API 响应 ===')
         console.log('状态码:', status)
         console.log('状态文本:', statusText)
         console.log('错误:', error)
-        console.log('数据:', data)
         console.log('数据数量:', data?.length || 0)
 
         if (error) {

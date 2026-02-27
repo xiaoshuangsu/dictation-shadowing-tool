@@ -25,7 +25,7 @@ type WordStatus = "correct" | "incorrect" | "pending"
 
 export default function DictationBox({ sentence, onComplete, onNext, isLastSentence }: DictationBoxProps) {
   const { t } = useLanguage()
-  const { playSuccessSound } = useSuccessSound(0.5) // 音量 0.5
+  const { playSuccessSound } = useSuccessSound(0.15) // 音量 0.15 - 降低音量避免刺耳
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [showAllWords, setShowAllWords] = useState(false)

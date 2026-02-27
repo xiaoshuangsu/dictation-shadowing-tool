@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     // Use service_role key for write access
     const supabase = createClient(
       'https://cuxotlijjnxbsirpdkgr.supabase.co',
-      process.env.SUPABASE_SERVICE_KEY || ''
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
     )
 
     const { data, error } = await supabase
