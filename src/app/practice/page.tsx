@@ -233,6 +233,10 @@ function HomeContent() {
   const dictationSentenceIndexRef = useRef(0)
   const shadowingSentenceIndexRef = useRef(0)
 
+  // 初始化状态：从 localStorage 恢复进度（如果已登录）
+  const [currentSentenceIndex, setCurrentSentenceIndex] = useState<number>(0)
+  const [progressRestored, setProgressRestored] = useState(false)
+
   // 自动保存当前模式的索引到对应的 ref
   useEffect(() => {
     if (mode === 'dictation') {
@@ -241,10 +245,6 @@ function HomeContent() {
       shadowingSentenceIndexRef.current = currentSentenceIndex
     }
   }, [currentSentenceIndex, mode])
-
-  // 初始化状态：从 localStorage 恢复进度（如果已登录）
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState<number>(0)
-  const [progressRestored, setProgressRestored] = useState(false)
 
   // 保存练习进度到 localStorage
   const savePracticeProgress = (sentenceIndex: number) => {
