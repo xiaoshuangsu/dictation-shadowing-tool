@@ -97,13 +97,13 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
 
       console.log('AudioPlayer - Playing sentence at', currentSentence.startTime, 'rate:', playbackRate, 'volume:', volume)
 
-      // 移动端：向上滚动页面，确保练习区域可见
+      // 移动端：向上滚动页面，隐藏素材标题，显示练习区域
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
         setTimeout(() => {
           const currentScroll = window.pageYOffset || document.documentElement.scrollTop
-          // 向上滚动 200px，将播放器和练习区域移到视口中
+          // 向上滚动 350px，完全隐藏素材标题
           window.scrollTo({
-            top: Math.max(0, currentScroll - 200),
+            top: Math.max(0, currentScroll - 350),
             behavior: 'smooth'
           })
         }, 100)
