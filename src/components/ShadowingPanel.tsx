@@ -1065,11 +1065,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
 
   return (
     <div>
-      {/* 原音播放器（隐藏） */}
-      <audio
-        ref={originalAudioRef}
-        src={audioSrc}
-      />
+      {/* 原音播放器（已禁用 - 使用主页面的 AudioPlayer 避免冲突） */}
+      {/* <audio ref={originalAudioRef} src={audioSrc} /> */}
 
       <p className="text-sm text-gray-500 mb-4">
         💡 {t('practice.shadowing.tip')}
