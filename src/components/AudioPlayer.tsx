@@ -97,14 +97,15 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
 
       console.log('AudioPlayer - Playing sentence at', currentSentence.startTime, 'rate:', playbackRate, 'volume:', volume)
 
-      // 移动端：滚动到播放区域，确保练习内容可见
+      // 移动端：向上滚动页面，确保练习区域可见
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
-        // 延迟滚动，确保 DOM 更新后执行
         setTimeout(() => {
-          const audioElement = audioRef.current
-          if (audioElement) {
-            audioElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          }
+          const currentScroll = window.pageYOffset || document.documentElement.scrollTop
+          // 向上滚动 200px，将播放器和练习区域移到视口中
+          window.scrollTo({
+            top: Math.max(0, currentScroll - 200),
+            behavior: 'smooth'
+          })
         }, 100)
       }
 
