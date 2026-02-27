@@ -1,14 +1,25 @@
 import { useRef, useCallback, useEffect } from 'react'
 
 /**
+ * 检测是否为移动设备
+ */
+const isMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false
+  const ua = navigator.userAgent
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua)
+}
+
+/**
  * 播放成功音效的 Hook
  * - 预加载音频，确保无延迟播放
  * - 支持快速连续点击，会中断前一个声音
  * - 从 localStorage 读取全局音量并应用比例
+ * - 移动端禁用（因为音量无法控制，会导致爆鸣）
  */
 export function useSuccessSound() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const isReadyRef = useRef(false)
+  const isMobile = useRef(isMobileDevice())
 
   // 从 localStorage 获取全局音量
   const getGlobalVolume = (): number => {
@@ -28,6 +39,12 @@ export function useSuccessSound() {
 
   // 初始化音频元素（组件挂载时创建）
   useEffect(() => {
+    // 移动端不加载音频
+    if (isMobile.current) {
+      console.log('Success sound disabled on mobile')
+      return
+    }
+
     if (!audioRef.current && typeof window !== 'undefined') {
       // 使用完整的绝对路径
       const audioPath = process.env.NODE_ENV === 'production'
@@ -78,9 +95,15 @@ export function useSuccessSound() {
 
   /**
    * 播放成功音效
-   * 如果正在播放，会中断前一个声音并重新播放
+   * 移动端不播放（因为音量无法控制，会导致爆鸣）
    */
   const playSuccessSound = useCallback(() => {
+    // 移动端不播放
+    if (isMobile.current) {
+      console.log('Success sound skipped on mobile')
+      return
+    }
+
     if (audioRef.current) {
       const audio = audioRef.current
 
