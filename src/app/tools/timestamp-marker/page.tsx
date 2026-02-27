@@ -158,23 +158,43 @@ export default function TimestampMarker() {
 
   // Save to database
   const saveToDatabase = async () => {
-    setSaveStatus("Saving...")
+    setSaveStatus("⏳ Saving...")
     try {
+      // 确保时间戳格式正确（转换为字符串，兼容数据库）
+      const formattedTranscript = sentences.map(s => ({
+        ...s,
+        startTime: formatTime(s.startTime),
+        endTime: formatTime(s.endTime)
+      }))
+
       const response = await fetch('/api/update-transcript', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           materialId,
-          transcript: sentences
+          transcript: formattedTranscript
         })
       })
 
-      if (!response.ok) throw new Error('Failed to save')
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to save')
+      }
 
-      setSaveStatus("✅ Saved successfully!")
+      const result = await response.json()
+
+      setSaveStatus(`✅ Saved successfully! (${result.sentenceCount} sentences)`)
+
+      // 3秒后清除状态
       setTimeout(() => setSaveStatus(""), 3000)
+
+      // 可选：添加成功提示音效或视觉反馈
+      console.log('✅ Transcript saved:', result)
     } catch (error: any) {
       setSaveStatus(`❌ Error: ${error.message}`)
+      console.error('Save failed:', error)
+      // 保持错误消息显示更长时间
+      setTimeout(() => setSaveStatus(""), 5000)
     }
   }
 
