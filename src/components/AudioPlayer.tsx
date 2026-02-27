@@ -56,7 +56,7 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume
-      console.log('AudioPlayer - Volume set to:', volume)
+      console.log('AudioPlayer - Volume set to:', volume, 'from useEffect [volume]')
     }
   }, [volume])
 
@@ -64,9 +64,21 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume
-      console.log('AudioPlayer - Initial volume set to:', volume)
+      console.log('AudioPlayer - Initial volume set to:', volume, 'from useEffect [audioRef, volume]')
     }
   }, [audioRef, volume])
+
+  // 监听 localStorage 变化（调试用）
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'audioVolume' && e.newValue !== null) {
+        const newVolume = parseFloat(e.newValue)
+        console.log('AudioPlayer - localStorage audioVolume changed to:', newVolume)
+      }
+    }
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   // 真实播放时间跟踪
   const [isAudioPlaying, setIsAudioPlaying] = useState(false)

@@ -741,6 +741,7 @@ function HomeContent() {
 
                 {audioSrc && currentSentence && (
                   <AudioPlayer
+                    key="main-audio-player"
                     audioSrc={audioSrc}
                     currentSentence={currentSentence}
                     playbackRate={playbackRate}
