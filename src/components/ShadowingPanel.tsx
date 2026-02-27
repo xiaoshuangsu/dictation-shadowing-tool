@@ -211,7 +211,7 @@ const generateLinkingIPA = (first: string, second: string): string => {
 
 export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
   const { t } = useLanguage()
-  const { playSuccessSound } = useSuccessSound(0.15) // 音量 0.15 - 降低音量避免刺耳
+  const { playSuccessSound } = useSuccessSound(0.05) // 音量 0.05 - 进一步降低音量
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
   const [userTranscript, setUserTranscript] = useState("")
