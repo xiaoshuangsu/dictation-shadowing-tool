@@ -12,18 +12,18 @@ export function useSuccessSound() {
 
   // 从 localStorage 获取全局音量
   const getGlobalVolume = (): number => {
-    if (typeof window === 'undefined') return 0.02 // 默认 0.02（极低）
+    if (typeof window === 'undefined') return 0.01 // 默认 0.01（极低）
     try {
       const saved = localStorage.getItem('audioVolume')
       if (saved !== null) {
         const vol = parseFloat(saved)
-        // 成功音效是全局音量的 5%（极低）
-        return vol * 0.05
+        // 成功音效是全局音量的 2%（极低，避免移动端爆鸣）
+        return vol * 0.02
       }
     } catch (error) {
       console.warn('Failed to read audioVolume:', error)
     }
-    return 0.02 // 默认 0.02
+    return 0.01 // 默认 0.01
   }
 
   // 初始化音频元素（组件挂载时创建）
