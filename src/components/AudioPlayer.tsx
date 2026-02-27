@@ -72,8 +72,17 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume
+      console.log('AudioPlayer - Volume set to:', volume)
     }
   }, [volume])
+
+  // 在 audioRef 改变时也设置音量（确保新创建的 audio 元素也有正确的音量）
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume
+      console.log('AudioPlayer - Initial volume set to:', volume)
+    }
+  }, [audioRef, volume])
 
   // 处理音量变化
   const handleVolumeChange = (newVolume: number | string) => {
@@ -247,7 +256,10 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
 
   return (
     <div className="flex items-center gap-2">
-      <audio ref={audioRef} src={audioSrc} />
+      <audio
+        ref={audioRef}
+        src={audioSrc}
+      />
 
       {/* Play/Replay Button */}
       <button
