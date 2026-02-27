@@ -23,7 +23,7 @@ export function useSuccessSound() {
 
   // 获取成功音效音量（固定值，不再读取 localStorage）
   const getGlobalVolume = (): number => {
-    return 0.005 // 固定 0.005（主音频 0.25 的 2%，极低）
+    return 0.1 // 固定 0.1（桌面端适中音量）
   }
 
   // 初始化音频元素（组件挂载时创建）
