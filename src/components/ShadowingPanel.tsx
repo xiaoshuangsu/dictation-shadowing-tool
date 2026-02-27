@@ -259,6 +259,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
   const recordedChunksRef = useRef<Blob[]>([])
   const recordedMimeTypeRef = useRef<string>('')
   const resultProcessedRef = useRef(false)  // Track if we've already processed the result
+  const successSoundPlayedRef = useRef(false)  // 防止成功音效重复播放
 
   // 更新 refs 当值变化时
   useEffect(() => {
@@ -307,6 +308,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
     // 不重置 displayMode，保持用户选择
     recordedChunksRef.current = []
     resultProcessedRef.current = false  // Reset result processed flag
+    successSoundPlayedRef.current = false  // Reset success sound played flag
 
     // 重置播放时间跟踪
     setTotalPlayedSeconds(0)
@@ -658,8 +660,9 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                         sentenceText: sentence.text
                       })
 
-                      // 如果完全正确，播放成功音效
-                      if (isCorrect) {
+                      // 如果完全正确，播放成功音效（只播放一次）
+                      if (isCorrect && !successSoundPlayedRef.current) {
+                        successSoundPlayedRef.current = true
                         playSuccessSound()
                       }
 
@@ -729,8 +732,9 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                         sentenceText: sentence.text
                       })
 
-                      // 如果完全正确，播放成功音效
-                      if (isCorrect) {
+                      // 如果完全正确，播放成功音效（只播放一次）
+                      if (isCorrect && !successSoundPlayedRef.current) {
+                        successSoundPlayedRef.current = true
                         playSuccessSound()
                       }
 
