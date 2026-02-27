@@ -229,6 +229,19 @@ function HomeContent() {
   const [audioPlaybackSeconds, setAudioPlaybackSeconds] = useState(0)
   const audioPlaybackSecondsRef = useRef<number>(0)
 
+  // 为每个模式独立保存句子索引
+  const dictationSentenceIndexRef = useRef(0)
+  const shadowingSentenceIndexRef = useRef(0)
+
+  // 自动保存当前模式的索引到对应的 ref
+  useEffect(() => {
+    if (mode === 'dictation') {
+      dictationSentenceIndexRef.current = currentSentenceIndex
+    } else {
+      shadowingSentenceIndexRef.current = currentSentenceIndex
+    }
+  }, [currentSentenceIndex, mode])
+
   // 初始化状态：从 localStorage 恢复进度（如果已登录）
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState<number>(0)
   const [progressRestored, setProgressRestored] = useState(false)
@@ -589,8 +602,13 @@ function HomeContent() {
           <div className="inline-flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => {
+                // 先保存当前模式的索引
+                if (mode === 'shadowing') {
+                  shadowingSentenceIndexRef.current = currentSentenceIndex
+                }
+                // 切换到 dictation 模式，恢复 dictation 的索引
                 setMode("dictation")
-                setCurrentSentenceIndex(0)
+                setCurrentSentenceIndex(dictationSentenceIndexRef.current)
                 setCompletedSentences(new Set())
                 setCorrectSentences(new Set())
                 setIncorrectSentences(new Set())
@@ -608,8 +626,13 @@ function HomeContent() {
             </button>
             <button
               onClick={() => {
+                // 先保存当前模式的索引
+                if (mode === 'dictation') {
+                  dictationSentenceIndexRef.current = currentSentenceIndex
+                }
+                // 切换到 shadowing 模式，恢复 shadowing 的索引
                 setMode("shadowing")
-                setCurrentSentenceIndex(0)
+                setCurrentSentenceIndex(shadowingSentenceIndexRef.current)
                 setCompletedSentences(new Set())
                 setCorrectSentences(new Set())
                 setIncorrectSentences(new Set())
