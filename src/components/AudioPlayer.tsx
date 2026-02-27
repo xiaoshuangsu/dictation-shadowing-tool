@@ -33,16 +33,6 @@ const getSavedVolume = (): number => {
   return 0.3 // 默认 0.3
 }
 
-// 保存音量到 localStorage
-const saveVolume = (volume: number) => {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem('audioVolume', volume.toString())
-  } catch (error) {
-    console.warn('Failed to save volume:', error)
-  }
-}
-
 export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 1, autoPlayTrigger = 0, onPlayEnd, onTimeUpdate, onPlaybackTimeUpdate }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -50,7 +40,6 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
 
   // 音量控制（使用 volume 并设置合理的默认值）
   const [volume, setVolume] = useState<number>(getSavedVolume)
-  const [showVolumeSlider, setShowVolumeSlider] = useState(false)
 
   // 初始化音频音量
   useEffect(() => {
@@ -88,17 +77,6 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   // 存储当前播放的 timeout 和清理函数
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
-
-  // 处理音量变化
-  const handleVolumeChange = (newVolume: number | string) => {
-    const volumeValue = typeof newVolume === 'string' ? parseFloat(newVolume) : newVolume
-    setVolume(volumeValue)
-    saveVolume(volumeValue)
-    if (audioRef.current) {
-      audioRef.current.volume = volumeValue
-      console.log('AudioPlayer - Volume changed to:', volumeValue)
-    }
-  }
 
   // 清理之前的播放状态
   const cleanupPreviousPlayback = () => {
@@ -287,58 +265,6 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
       </button>
-
-      {/* Volume Control */}
-      <div className="relative">
-        {/* Volume Icon Button */}
-        <button
-          onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-          className="p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors relative"
-          title="音量 Volume"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707 1.707L5.586 15z" />
-          </svg>
-          {/* Volume indicator */}
-          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-blue-500"></span>
-        </button>
-
-        {/* Volume Slider Popup */}
-        {showVolumeSlider && (
-          <>
-            {/* Backdrop */}
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowVolumeSlider(false)}
-            />
-
-            {/* Slider Card */}
-            <div className="absolute left-0 top-full mt-2 z-20 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-48">
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">音量 Volume</span>
-                  <span className="text-xs text-gray-500">{Math.round(volume * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={volume}
-                  onChange={(e) => handleVolumeChange(e.target.value)}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                />
-                <div className="flex justify-between text-xs text-gray-400 gap-2">
-                  <button onClick={() => handleVolumeChange(0)} className="hover:text-gray-600">静音</button>
-                  <button onClick={() => handleVolumeChange(0.3)} className="hover:text-gray-600 font-medium text-blue-600">默认</button>
-                  <button onClick={() => handleVolumeChange(0.5)} className="hover:text-gray-600">中等</button>
-                  <button onClick={() => handleVolumeChange(1)} className="hover:text-gray-600">最大</button>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
     </div>
   )
 }
