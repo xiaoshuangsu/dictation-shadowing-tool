@@ -23,7 +23,7 @@ interface WordModeProps {
 
 export default function WordMode({ sentence, onComplete, currentIndex, totalSentences, onNext, isLastSentence }: WordModeProps) {
   const { t } = useLanguage()
-  const { playSuccessSound } = useSuccessSound(0.15) // 音量 0.15 - 降低音量避免刺耳
+  const { playSuccessSound } = useSuccessSound(0.05) // 音量 0.05 - 进一步降低音量
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
