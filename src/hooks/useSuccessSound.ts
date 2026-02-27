@@ -22,24 +22,39 @@ export function useSuccessSound(volume: number = 0.15) {
       audio.volume = volume
       audio.preload = 'auto' // 预加载
 
-      // 监听音频加载完成事件，确保可以播放
-      audio.addEventListener('canplaythrough', () => {
-        isReadyRef.current = true
-        console.log('Success sound ready to play')
-      })
+      // 监听音频可以播放事件（更早触发）
+      const handleCanPlay = () => {
+        if (!isReadyRef.current) {
+          isReadyRef.current = true
+          console.log('Success sound can play')
+        }
+      }
 
+      // 监听音频加载完成事件
+      const handleCanPlayThrough = () => {
+        isReadyRef.current = true
+        console.log('Success sound ready to play through')
+      }
+
+      audio.addEventListener('canplay', handleCanPlay)
+      audio.addEventListener('canplaythrough', handleCanPlayThrough)
       audio.addEventListener('error', (e) => {
         console.warn('Failed to load success sound:', e)
       })
 
-      audioRef.current = audio
-    }
+      // 开始加载音频
+      audio.load()
 
-    // 清理函数
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause()
-        audioRef.current = null
+      audioRef.current = audio
+
+      // 清理函数
+      return () => {
+        audio.removeEventListener('canplay', handleCanPlay)
+        audio.removeEventListener('canplaythrough', handleCanPlayThrough)
+        if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current = null
+        }
       }
     }
   }, [volume])
@@ -49,18 +64,16 @@ export function useSuccessSound(volume: number = 0.15) {
    * 如果正在播放，会中断前一个声音并重新播放
    */
   const playSuccessSound = useCallback(() => {
-    if (audioRef.current && isReadyRef.current) {
+    if (audioRef.current) {
       // 重置到开头
       audioRef.current.currentTime = 0
 
-      // 快速播放（克隆节点以支持同时播放多个音效）
-      const sound = audioRef.current.cloneNode(true) as HTMLAudioElement
-      sound.volume = volume
-      sound.play().catch(err => {
+      // 直接播放（不克隆，更快）
+      audioRef.current.play().catch(err => {
         console.warn('Failed to play success sound:', err)
       })
     }
-  }, [volume])
+  }, [])
 
   return { playSuccessSound }
 }
