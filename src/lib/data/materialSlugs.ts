@@ -23,7 +23,6 @@ export const MATERIAL_SLUGS = [
   { slug: "handels-messiah" },
   { slug: "hiroshima" },
   { slug: "homebody-in-new-york-bridal-era-wedding-dress-shopping-engagement-photoshoot-at-central-park" },
-  { slug: "homebody-in-new-york-getting-out-of-hibernation-productive-spring-weekend-comfort-food-cravings" },
   { slug: "homebody-in-new-york-introverts-way-of-surviving-winter-by-eating-and-cooking-alone-at-home" },
   { slug: "homebody-in-new-york-productive-home-reset-day-decluttering-car-shopping-how-i-film-my-vlogs" },
   { slug: "homebody-in-new-york-what-i-eat-in-a-day-comfort-food-ive-been-craving" },
