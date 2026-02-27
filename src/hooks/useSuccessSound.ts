@@ -4,25 +4,26 @@ import { useRef, useCallback, useEffect } from 'react'
  * 播放成功音效的 Hook
  * - 预加载音频，确保无延迟播放
  * - 支持快速连续点击，会中断前一个声音
- * - 使用静音状态而不是音量
- * - 从 localStorage 读取全局静音状态
+ * - 从 localStorage 读取全局音量并应用比例
  */
 export function useSuccessSound() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const isReadyRef = useRef(false)
 
-  // 从 localStorage 获取全局静音状态
-  const getGlobalMuted = (): boolean => {
-    if (typeof window === 'undefined') return true // 默认静音
+  // 从 localStorage 获取全局音量
+  const getGlobalVolume = (): number => {
+    if (typeof window === 'undefined') return 0.15 // 默认 0.15
     try {
-      const saved = localStorage.getItem('audioMuted')
+      const saved = localStorage.getItem('audioVolume')
       if (saved !== null) {
-        return saved === 'true'
+        const vol = parseFloat(saved)
+        // 成功音效是全局音量的 40%（更低）
+        return vol * 0.4
       }
     } catch (error) {
-      console.warn('Failed to read audioMuted:', error)
+      console.warn('Failed to read audioVolume:', error)
     }
-    return true // 默认静音（保护用户耳朵）
+    return 0.15 // 默认 0.15
   }
 
   // 初始化音频元素（组件挂载时创建）
@@ -34,15 +35,15 @@ export function useSuccessSound() {
         : '/success-notification.wav'
 
       const audio = new Audio(audioPath)
-      const isMuted = getGlobalMuted()
-      audio.muted = isMuted // 使用静音状态
+      const soundVolume = getGlobalVolume()
+      audio.volume = soundVolume // 使用全局音量
       audio.preload = 'auto' // 预加载
 
       // 监听音频可以播放事件（更早触发）
       const handleCanPlay = () => {
         if (!isReadyRef.current) {
           isReadyRef.current = true
-          console.log('Success sound can play, muted:', isMuted)
+          console.log('Success sound can play, volume:', soundVolume)
         }
       }
 
@@ -82,19 +83,21 @@ export function useSuccessSound() {
   const playSuccessSound = useCallback(() => {
     if (audioRef.current) {
       const audio = audioRef.current
-      const isMuted = getGlobalMuted()
 
-      // 每次播放前都重新设置静音状态（确保同步全局静音状态）
-      audio.muted = isMuted
-      console.log('Success sound playing, muted:', isMuted)
+      // 每次播放前都重新设置音量（确保同步全局音量）
+      const soundVolume = getGlobalVolume()
+      audio.volume = soundVolume
 
-      // 如果静音，不播放
-      if (isMuted) {
+      // 如果音量为0，不播放
+      if (soundVolume === 0) {
+        console.log('Success sound volume is 0, skipping')
         return
       }
 
       // 重置到开头
       audio.currentTime = 0
+
+      console.log('Success sound playing, volume:', soundVolume)
 
       // 直接播放
       audio.play().catch(err => {
