@@ -677,11 +677,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
 
             recog.onend = () => {
               console.log("Speech recognition ended. resultProcessedRef =", resultProcessedRef.current)
-              // 语音识别结束时，同时停止音频录制
-              if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-                mediaRecorderRef.current.stop()
-              }
-              setIsRecording(false)
+              // 移动端：不自动停止录音，让用户手动点击麦克风按钮停止
+              // 只有在用户手动点击停止时才会设置 setIsRecording(false)
 
               // Only process if we haven't already processed a final result
               if (!resultProcessedRef.current) {
@@ -817,15 +814,26 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
 
   // 停止录音
   const stopRecording = () => {
-    if (recognitionRef.current && mediaRecorderRef.current && isRecording) {
+    // 停止音频录制
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       try {
-        recognitionRef.current.stop()
         mediaRecorderRef.current.stop()
-        setIsRecording(false)
       } catch (err) {
-        console.error("Error stopping recording:", err)
+        console.error("Error stopping media recorder:", err)
       }
     }
+
+    // 停止语音识别（如果还在运行）
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop()
+      } catch (err) {
+        // 忽略错误（可能已经停止了）
+        console.log("Speech recognition already stopped")
+      }
+    }
+
+    setIsRecording(false)
   }
 
   // 播放用户录音
