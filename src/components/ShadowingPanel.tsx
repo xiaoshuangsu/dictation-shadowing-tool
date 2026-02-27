@@ -35,18 +35,9 @@ const LINKING_WORDS = new Set([
   'with', 'by', 'as', 'is', 'it', 'this', 'that', 'are', 'was', 'were'
 ])
 
-// 从 localStorage 获取音量（与 AudioPlayer 保持一致）
+// 固定音量（与 AudioPlayer 保持一致）
 const getSavedVolume = (): number => {
-  if (typeof window === 'undefined') return 0.3
-  try {
-    const saved = localStorage.getItem('audioVolume')
-    if (saved !== null) {
-      return parseFloat(saved)
-    }
-  } catch (error) {
-    console.warn('Failed to read saved volume:', error)
-  }
-  return 0.3
+  return 0.25 // 固定 0.25（温和适中）
 }
 
 // 连读组合接口
