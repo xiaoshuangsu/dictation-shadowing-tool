@@ -9,6 +9,7 @@ import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
 import WordMode from "@/components/WordMode"
 import AuthButton from "@/components/auth/AuthButton"
+import { DebugLogger } from "@/components/DebugLogger"
 import { useAuth } from "@/lib/hooks/useAuth"
 import { savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
@@ -987,6 +988,9 @@ function HomeContent() {
           </div>
         </div>
       )}
+
+      {/* Debug Logger - shows on all pages during testing */}
+      <DebugLogger />
     </main>
   )
 }
