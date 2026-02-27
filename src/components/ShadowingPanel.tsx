@@ -661,9 +661,13 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                       })
 
                       // 如果完全正确，播放成功音效（只播放一次）
+                      console.log('ShadowingPanel - Checking success sound conditions:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
                       if (isCorrect && !successSoundPlayedRef.current) {
+                        console.log('ShadowingPanel - Playing success sound')
                         successSoundPlayedRef.current = true
                         playSuccessSound()
+                      } else {
+                        console.log('ShadowingPanel - Success sound NOT played:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
                       }
 
                       // 传递秒数
@@ -733,9 +737,13 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                       })
 
                       // 如果完全正确，播放成功音效（只播放一次）
+                      console.log('ShadowingPanel - Checking success sound conditions:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
                       if (isCorrect && !successSoundPlayedRef.current) {
+                        console.log('ShadowingPanel - Playing success sound')
                         successSoundPlayedRef.current = true
                         playSuccessSound()
+                      } else {
+                        console.log('ShadowingPanel - Success sound NOT played:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
                       }
 
                       onCompleteRef.current(isCorrect, durationSeconds)
