@@ -68,8 +68,15 @@ temp_audio/
 
 # Temp and cache files
 scripts/__pycache__/
+scripts/.venv/
 scripts/tmp/
 scripts/*.json
 !scripts/.env.example
 !scripts/materials-to-process.json.example
 scripts/processing-report-*.json
+
+# Developer scripts (contain API keys, should not be committed)
+scripts/add_youtube_material.py
+scripts/adjust_timestamps.py
+scripts/batch_add_materials.py
+scripts/batch_transcribe_all.py

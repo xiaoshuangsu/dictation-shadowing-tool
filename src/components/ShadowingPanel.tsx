@@ -35,6 +35,20 @@ const LINKING_WORDS = new Set([
   'with', 'by', 'as', 'is', 'it', 'this', 'that', 'are', 'was', 'were'
 ])
 
+// 从 localStorage 获取音量（与 AudioPlayer 保持一致）
+const getSavedVolume = (): number => {
+  if (typeof window === 'undefined') return 0.3
+  try {
+    const saved = localStorage.getItem('audioVolume')
+    if (saved !== null) {
+      return parseFloat(saved)
+    }
+  } catch (error) {
+    console.warn('Failed to read saved volume:', error)
+  }
+  return 0.3
+}
+
 // 连读组合接口
 interface LinkingPair {
   first: string
@@ -258,6 +272,24 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
   useEffect(() => {
     userTranscriptRef.current = userTranscript
   }, [userTranscript])
+
+  // 初始化 originalAudioRef 音量（与全局音量保持一致）
+  useEffect(() => {
+    if (originalAudioRef.current) {
+      const volume = getSavedVolume()
+      originalAudioRef.current.volume = volume
+      console.log('ShadowingPanel - Initial originalAudioRef volume set to:', volume)
+    }
+  }, [originalAudioRef])
+
+  // 初始化 audioRef 音量（与全局音量保持一致）
+  useEffect(() => {
+    if (audioRef.current) {
+      const volume = getSavedVolume()
+      audioRef.current.volume = volume
+      console.log('ShadowingPanel - Initial audioRef volume set to:', volume)
+    }
+  }, [audioRef])
 
   // Track showResult changes for debugging
   useEffect(() => {
@@ -797,6 +829,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
   const playRecording = async () => {
     if (audioRef.current && recordedAudioUrl) {
       try {
+        // 设置音量（与全局音量保持一致）
+        audioRef.current.volume = getSavedVolume()
         audioRef.current.currentTime = 0
         await audioRef.current.play()
       } catch (err) {
@@ -883,6 +917,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           // 如果接近目标位置（允许0.5秒误差），开始播放
           if (diff < 0.5) {
             console.log('Position verified, starting playback at', currentTime)
+            // 设置音量（与全局音量保持一致）
+            audio.volume = getSavedVolume()
             audio.play().catch(err => {
               console.error('Failed to play audio:', err)
             })
@@ -891,6 +927,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           } else if (seekAttempts >= maxSeekAttempts) {
             // 超过最大尝试次数，强制播放
             console.warn('Max seek attempts reached, playing at current position', currentTime)
+            // 设置音量（与全局音量保持一致）
+            audio.volume = getSavedVolume()
             audio.play().catch(err => {
               console.error('Failed to play audio:', err)
             })
