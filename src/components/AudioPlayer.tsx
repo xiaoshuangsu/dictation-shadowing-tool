@@ -101,9 +101,9 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
         setTimeout(() => {
           const currentScroll = window.pageYOffset || document.documentElement.scrollTop
-          // 向下滚动 350px，将素材标题完全移出视口
+          // 向下滚动 300px，将素材标题完全移出视口
           window.scrollTo({
-            top: currentScroll + 350,
+            top: currentScroll + 300,
             behavior: 'smooth'
           })
         }, 100)
