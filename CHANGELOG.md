@@ -5,6 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.7.0] - 2025-02-28
+
+### Added
+- **听写模式下拉框**
+  - 点击"听写"按钮弹出下拉菜单，选择"单词"或"整句"模式
+  - 添加下拉箭头图标，指示可展开选项
+  - 优化UI交互体验
+
+- **原文显示/隐藏功能**
+  - 右侧原文区域添加"显示原文/隐藏原文"按钮
+  - 默认隐藏原文，以星号（`**************************`）代替
+  - 点击按钮后显示完整英文原文
+  - 翻译（中文）始终显示
+
+- **三栏布局优化**
+  - 视频区域：42%（5/12栏）
+  - 练习区域：33%（4/12栏）
+  - 原文区域：25%（3/12栏）
+  - 响应式设计：移动端自动转为单列
+
+### Changed
+- **音频匹配逻辑优化**
+  - 添加高频误判词映射：`pig` ↔ `picked`/`peak`/`peaks`/`pick`
+  - 添加词尾 -ed 容错规则（基础词 + ed 误读修正）
+  - 添加60+可省略功能词（冠词、介词、助动词、连接词等）
+  - 扩展核心词汇映射（little, three, mother, brothers等）
+
+- **进度保存机制改进**
+  - 听写模式和影子跟读模式独立保存进度
+  - 切换模式时自动保存/恢复当前进度
+  - 使用 ref 存储模式状态，避免重置
+
+- **调试日志增强**
+  - `intelligentMatch` 函数添加详细调试日志
+  - 显示匹配过程：HIGH_FREQUENCY_MISHEARS 检查、Metaphone 相似度等
+  - 便于排查词匹配问题
+
+### Fixed
+- **模式切换进度丢失**
+  - 修复从听写切换到影子跟读时进度重置的问题
+  - 修复从影子跟读切换到听写时进度重置的问题
+  - 每个模式独立维护 `currentIndex`、`completedSentences`、`correctSentences` 等
+
+### Technical Details
+- 修改文件：
+  - `src/lib/audio-checker.ts` - 高频误判词映射扩展，添加词尾 -ed 容错
+  - `src/app/topics/shadowing/[slug]/ShadowingPracticeClient.tsx` - UI 优化，进度保存
+- 新增功能：
+  - 下拉框菜单组件（听写模式选择）
+  - 原文显示/隐藏切换
+  - 模式独立进度管理
+
+---
+
 ## [7.3.1] - 2025-02-25
 
 ### Fixed
