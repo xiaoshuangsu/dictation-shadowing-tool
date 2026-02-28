@@ -3,6 +3,7 @@
 export const MATERIAL_SLUGS = [
   { slug: "a-funny-thing-happened-on-the-way-to-school" },
   { slug: "a-new-chapter" },
+  { slug: "english-animation-episode-1" },
   { slug: "advice" },
   { slug: "alices-adventures-ch-1-3-rabbit-hole-shrinking-growing-alice-in-wonderland-little-fox" },
   { slug: "alices-adventures-ch-6-8-growing-too-large-alice-in-wonderland-little-fox" },
