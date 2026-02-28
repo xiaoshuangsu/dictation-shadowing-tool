@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
+import VideoPlayer from "@/components/VideoPlayer"
 import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
 import WordMode from "@/components/WordMode"
@@ -75,6 +76,7 @@ function HomeContent() {
   // 动态素材数据 - 初始值为 null，避免闪现旧标题
   const [audioTitle, setAudioTitle] = useState<string | null>(null)
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
+  const [videoSrc, setVideoSrc] = useState<string | null>(null) // 视频源
   const [sampleSentences, setSampleSentences] = useState<Sentence[] | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true) // 初始加载状态
   const [materialError, setMaterialError] = useState<string | null>(null)
@@ -128,7 +130,7 @@ function HomeContent() {
 
         const { data: material, error } = await supabase
           .from('materials')
-          .select('id, title, category, audio_path, duration, transcript')
+          .select('id, title, category, audio_path, video_path, duration, transcript')
           .eq('id', targetMaterialId)
           .single()
 
@@ -147,6 +149,15 @@ function HomeContent() {
         // 构建音频 URL（从 Supabase Storage）
         const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
         setAudioSrc(supabaseAudioUrl)
+
+        // 构建视频 URL（如果有）
+        if (material.video_path) {
+          const supabaseVideoUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.video_path}`
+          setVideoSrc(supabaseVideoUrl)
+          console.log('Video source set:', supabaseVideoUrl)
+        } else {
+          setVideoSrc(null)
+        }
 
         // 优先使用数据库中的 transcript 数据
         if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
@@ -739,9 +750,20 @@ function HomeContent() {
                   </svg>
                 </button>
 
-                {audioSrc && currentSentence && (
+                {videoSrc && currentSentence && (
+                  <VideoPlayer
+                    key="video-player"
+                    videoSrc={videoSrc}
+                    currentSentence={currentSentence}
+                    playbackRate={playbackRate}
+                    autoPlayTrigger={autoPlayTrigger}
+                    onPlayEnd={() => {}}
+                    onTimeUpdate={handleTimeUpdate}
+                  />
+                )}
+                {!videoSrc && audioSrc && currentSentence && (
                   <AudioPlayer
-                    key="main-audio-player"
+                    key="audio-player"
                     audioSrc={audioSrc}
                     currentSentence={currentSentence}
                     playbackRate={playbackRate}
