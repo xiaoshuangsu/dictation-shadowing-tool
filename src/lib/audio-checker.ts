@@ -147,249 +147,69 @@ function calculateMetaphoneSimilarity(code1: string, code2: string): number {
 
 // ============ 高频误判词对（STT 常见混淆）- 扩展版 ============
 const HIGH_FREQUENCY_MISHEARS: Record<string, string[]> = {
-  // th- 开头词丢失 th
-  'this': ['is', 'his', 'this', 'tis', 'dis'],
-  'is': ['this', 'his', 'is', 's', 'in'],
-  'that': ['at', 'that', 'tat'],
-  'there': ['their', 'there', 'here'],
-  'their': ['there', 'their', 'there\'s'],
-  'think': ['thing', 'think', 'sink', 'tink'],
-  'thing': ['think', 'thing', 'ting'],
-  'thought': ['taught', 'thought', 'thot', 'tot'],
-  'though': ['throw', 'though', 'tho', 'tho'],
-  'through': ['threw', 'through', 'thru'],
-  'the': ['a', 'the', 'de', 'da'],
-  'then': ['than', 'then', 'den', 'den'],
-  'than': ['then', 'than', 'dan', 'den'],
-  'those': ['these', 'those', 'dose'],
-  'these': ['those', 'these', 'dis'],
-  'they': ['day', 'they', 'dey', 'de'],
-  'them': ['him', 'them', 'dem', 'em'],
+  // 功能词（可以省略）
+  'a': ['', 'an', 'the'],
+  'an': ['', 'a', 'the'],
+  'the': ['', 'a', 'an'],
+  'of': ['', 'off'],
+  'to': ['', 'too', ''],
+  'in': ['', 'on', 'at'],
+  'on': ['', 'in', 'at'],
+  'at': ['', 'in', 'on'],
+  'with': ['', 'without'],
+  'by': ['', 'my'],
+  'from': ['', 'for'],
 
-  // 介词混淆
-  'to': ['too', 'to', 'tu', 'do', 'du'],
-  'too': ['to', 'too', 'tu', 'two'],
-  'two': ['to', 'too', 'two', 'tu'],
-  'for': ['four', 'for', 'fer', 'from'],
-  'four': ['for', 'four', 'fore', 'far'],
-  'from': ['form', 'from', 'frm', 'for'],
-  'of': ['off', 'of', 'ov', 'up'],
-  'off': ['of', 'off', 'of', 'up'],
-  'in': ['on', 'in', 'an', 'en'],
-  'on': ['in', 'on', 'an', 'un'],
-  'at': ['that', 'at', 'it', 'et'],
-  'with': ['without', 'with', 'wit', 'wid'],
-  'without': ['with', 'without', 'witout'],
-  'by': ['my', 'by', 'buy', 'be'],
+  // 连接词（可以省略）
+  'and': ['', 'end'],
+  'but': ['', 'yet'],
+  'or': ['', 'nor'],
+  'so': ['', 'such'],
+  'for': ['', 'four'],
 
-  // 代词混淆
-  'your': ['you\'re', 'your', 'you', 'ur'],
-  'you\'re': ['your', 'you\'re', 'you', 'ur'],
-  'you': ['ya', 'you', 'yo', 'ju'],
-  'he': ['she', 'he', 'e', 'im'],
-  'she': ['he', 'she', 'e'],
-  'it': ['is', 'it', 'its', 'in'],
-  'its': ['it\'s', 'its', 'it', 'is'],
-  'it\'s': ['its', 'it\'s', 'it', 'is'],
-  'his': ['is', 'his', 'him', 'this'],
-  'him': ['his', 'him', 'them', 'em'],
-  'her': ['here', 'her', 'his', 'hers'],
-  'hers': ['her', 'hers', 'his'],
-  'my': ['me', 'my', 'by', 'may'],
-  'me': ['my', 'me', 'be'],
+  // 代词（可以省略或替换）
+  'they': ['', 'them', 'their', 'there'],
+  'them': ['', 'they', 'their'],
+  'their': ['', 'there', 'them', 'they'],
+  'there': ['', 'their', 'where', 'were'],
+  'where': ['', 'were', 'there', 'were'],
+  'were': ['', 'are', 'was', 'their', 'there'],
 
-  // 动词混淆（常见变形错误）
-  'have': ['has', 'have', 'av', 'having', 'of'],
-  'has': ['have', 'has', 'az', 'is', 'his'],
-  'had': ['have', 'had', 'has', 'at'],
-  'was': ['were', 'was', 'us', 'is'],
-  'were': ['was', 'were', 'we\'re', 'where', 'wor'],
-  'been': ['being', 'been', 'ben', 'bin'],
-  'being': ['been', 'being', 'ben'],
-  'go': ['going', 'go', 'do', 'went'],
-  'going': ['go', 'going', 'gonna', 'gin'],
-  'went': ['going', 'went', 'want', 'when'],
-  'get': ['got', 'get', 'git'],
-  'got': ['get', 'got', 'gotten'],
-  'do': ['does', 'do', 'did', 'to', 'du'],
-  'does': ['do', 'does', 'did', 'is'],
-  'did': ['do', 'does', 'did', 'de'],
-  'make': ['made', 'make', 'may'],
-  'made': ['make', 'made', 'may'],
-  'take': ['took', 'taken', 'take'],
-  'took': ['take', 'took', 'taken'],
-  'taken': ['take', 'took', 'taken', 'takin'],
-  'come': ['came', 'come', 'cum', 'com'],
-  'came': ['come', 'came', 'can'],
-  'say': ['said', 'say', 'says', 'see'],
-  'said': ['say', 'said', 'says', 'set'],
-  'says': ['say', 'said', 'says', 'see'],
-  'see': ['say', 'see', 'saw', 'seen'],
-  'saw': ['see', 'saw', 'seen', 'was'],
-  'seen': ['see', 'saw', 'seen', 'being'],
-  'know': ['no', 'know', 'knew', 'kno'],
-  'knew': ['new', 'knew', 'know', 'n'],
-  'tell': ['told', 'tell', 'talk'],
-  'told': ['tell', 'told', 'talk', 'to'],
-  'ask': ['asked', 'ask', 'ast', 'aks'],
-  'asked': ['ask', 'asked', 'ast', 'aks'],
-  'look': ['looks', 'looking', 'look', 'luk'],
-  'looks': ['look', 'looks', 'looking', 'luk'],
-  'looking': ['look', 'looks', 'looking', 'luking'],
-  'want': ['wanted', 'want', 'wants', 'went'],
-  'wanted': ['want', 'wanted', 'wants'],
-  'wants': ['want', 'wanted', 'wants', 'once'],
-  'need': ['needed', 'need', 'needs', 'kneed'],
-  'needs': ['need', 'needed', 'needs', 'knees'],
-  'like': ['likes', 'liked', 'like', 'lack'],
-  'likes': ['like', 'liked', 'likes'],
-  'liked': ['like', 'likes', 'liked', 'luck'],
-  'love': ['loved', 'love', 'lives'],
-  'hate': ['hated', 'hate', 'hat'],
-  'give': ['gave', 'given', 'give', 'gave'],
-  'gave': ['give', 'given', 'gave', 'gav'],
-  'given': ['give', 'gave', 'given', 'givin'],
+  // 助动词（可以省略）
+  'was': ['', 'were', 'is', 'are'],
+  'are': ['', 'is', 'was', 'were'],
+  'is': ['', 'was', 'were', 'this', 'it'],
 
-  // 名词混淆
-  'some': ['sum', 'some', 'sem', 'sun'],
-  'more': ['moor', 'more', 'mor', 'most'],
-  'most': ['more', 'most', 'must', 'much'],
-  'much': ['many', 'much', 'must', 'mush'],
-  'many': ['any', 'many', 'much', 'man'],
-  'any': ['many', 'any', 'enny', 'in'],
-  'all': ['ill', 'all', 'ol', 'well'],
-  'people': ['person', 'people', 'peoples', 'pipol'],
-  'person': ['people', 'person', 'persons'],
-  'things': ['thing', 'things', 'thinks'],
-  'time': ['times', 'time', 'thyme', 'tim'],
-  'times': ['time', 'times', 'thymes'],
-  'way': ['ways', 'way', 'away', 'weigh'],
-  'ways': ['way', 'ways', 'aways', 'weighs'],
-  'work': ['works', 'working', 'work', 'walk', 'werk'],
-  'works': ['work', 'works', 'working'],
-  'working': ['work', 'works', 'working', 'werk'],
-  'walk': ['works', 'walk', 'walking', 'wol', 'werk'],
-  'walked': ['walk', 'walking', 'walked', 'work'],
-  'walking': ['walk', 'walked', 'walking', 'woking'],
-  'word': ['words', 'word', 'world', 'wird', 'wird'],
-  'words': ['word', 'words', 'worlds'],
-  'world': ['word', 'world', 'words', 'wereld', 'wurld'],
-  'place': ['places', 'place', 'plays', 'plaice'],
-  'right': ['write', 'right', 'rit', 'writ', 'wright'],
-  'write': ['right', 'write', 'rit', 'writ', 'riding'],
-  'wrote': ['right', 'write', 'wrote', 'rot'],
-  'which': ['witch', 'which', 'wich', 'what', 'witch'],
-  'witch': ['which', 'witch', 'wich', 'with'],
-  'what': ['that', 'what', 'wot', 'watch', 'wat'],
-  'when': ['wen', 'when', 'win', 'than', 'then'],
-  'where': ['were', 'where', 'wear', 'ware', 'we\'re'],
-  'who': ['how', 'who', 'whom', 'whose', 'hoo'],
-  'how': ['who', 'how', 'now', 'hou'],
-  'why': ['what', 'why', 'wye'],
-  'because': ['cause', 'cuz', 'becouse', 'because'],
+  // 动词
+  'said': ['', 'say', 'says'],
+  'say': ['', 'said', 'saying'],
 
-  // 数字和量词
-  'one': ['won', 'one', '1'],
-  'won': ['one', 'won', '1'],
-  'three': ['tree', 'three', '3', 'free'],
-  'five': ['fi', 'five', '5'],
-  'first': ['first', 'fist', '1st'],
-  'second': ['second', 'sec', '2nd'],
-  'third': ['third', 'thirt', '3rd'],
+  // 形容词（可以省略）
+  'very': ['', 'really'],
+  'really': ['', 'very'],
+  'quite': ['', 'very', 'really'],
 
-  // 形容词混淆
-  'good': ['would', 'good', 'gud', 'got'],
-  'bad': ['bed', 'bad', 'bat'],
-  'big': ['bigger', 'big', 'beg'],
-  'small': ['smell', 'small', 'smal'],
-  'long': ['longer', 'long', 'wrong'],
-  'short': ['shorter', 'short', 'sort', 'shot'],
-  'old': ['older', 'old', 'all', 'ol'],
-  'new': ['knew', 'new', 'nu', 'knew'],
-  'same': ['some', 'same', 'seem', 'saym'],
-  'different': ['difference', 'different', 'diffrent'],
-  'difference': ['different', 'difference', 'diffrence'],
-  'other': ['another', 'other', 'others', 'utha'],
-  'another': ['other', 'another', 'a nother'],
+  // 核心词汇（必须匹配）
+  'pig': ['peak', 'pik', 'pig', 'peaks', 'big', 'picked', 'pick'],
+  'peaks': ['pig', 'peak', 'pigs'],
+  'pick': ['pig', 'picked', 'peak'],
+  'picked': ['pig', 'pick', 'peak'],
+  'peak': ['pig', 'peaks', 'peek'],
+  'little': ['small', 'tiny'],
+  'three': ['tree', 'free'],
+  'mother': ['other', 'murder'],
+  'brothers': ['brother'],
+  'brother': ['brothers'],
+  'got': ['get', 'gotten'],
+  'get': ['got', 'gotten'],
+  'well': ['good', 'fine'],
 
-  // 高频动词
-  'left': ['leaved', 'left', 'lift', 'leaveft'],
-  'lift': ['left', 'lift', 'liveft', 'lisft'],
-  'leaves': ['lives', 'leaves', 'leave', 'lefts'],
-  'lives': ['leaves', 'lives', 'live', 'leave'],
-  'leave': ['lives', 'leave', 'leaf', 'leaves'],
-  'live': ['lives', 'live', 'leave', 'leaf'],
-  'life': ['live', 'life', 'lives'],
-
-  // 常见 STT 误判
-  'hear': ['here', 'hear', 'her', 'here\'s'],
-  'here': ['hear', 'here', 'her', 'hair'],
-  'hair': ['here', 'hair', 'hear', 'her'],
-  'really': ['rarely', 'really', 'realy', 'relay'],
-  'very': ['vary', 'very', 'verry'],
-  'pretty': ['petty', 'pretty', 'prity'],
-  'just': ['gesture', 'just', 'dust', 'gust'],
-  'only': ['ownly', 'only', 'onley'],
-  'also': ['although', 'also', 'all so'],
-  'always': ['all ways', 'always', 'allways'],
-  'already': ['all ready', 'already', 'allready'],
-  'probably': ['probably', 'probable', 'prolly'],
-  'maybe': ['may be', 'maybe', 'mebi'],
-  'okay': ['ok', 'okay', 'okey'],
-  'yes': ['yeah', 'yes', 'yep', 'yas'],
-  'yeah': ['yes', 'yeah', 'yea', 'ya'],
-  'no': ['know', 'no', 'now', 'nor'],
-  'not': ['now', 'not', 'knot', 'hot'],
-  'now': ['know', 'no', 'now', 'not'],
-  'well': ['will', 'well', 'we\'ll', 'whel'],
-  'will': ['well', 'will', 'we\'ll', 'with'],
-  'we\'ll': ['well', 'will', 'we\'ll', 'we will'],
-  'can': ['can\'t', 'can', 'ken', 'kin'],
-  'can\'t': ['can', 'cant', 'cannot', 'ken'],
-  'cannot': ['can', 'can\'t', 'cannot', 'can not'],
-  'should': ['shouldn\'t', 'should', 'could', 'wood'],
-  'could': ['would', 'could', 'good', 'cud'],
-  'would': ['could', 'would', 'wood', 'good'],
-  'might': ['might\'nt', 'might', 'may', 'mite'],
-  'must': ['mustn\'t', 'must', 'much', 'mast'],
-  'may': ['might', 'may', 'may\'be', 'me'],
-  'about': ['abought', 'about', 'abowt', 'bout'],
-  'out': ['about', 'out', 'our', 'ought'],
-  'up': ['up', 'op', 'upon', 'cup'],
-  'down': ['done', 'down', 'doun', 'town'],
-  'over': ['offer', 'over', 'ova', 'our'],
-  'under': ['and', 'under', 'unda', 'other'],
-  'after': ['offer', 'after', 'afta', 'half'],
-  'before': ['befor', 'before', 'bafor', 'aphor'],
-  'again': ['against', 'again', 'agen', 'a gain'],
-  'against': ['again', 'against', 'across', 'agen'],
-  'around': ['round', 'around', 'aroun', 'sound'],
-  'between': ['among', 'between', 'bitween', 'b'],
-  'among': ['around', 'among', 'along', 'amang'],
-  'during': ['during', 'durring', 'doing'],
-  'until': ['till', 'until', 'til', 'till'],
-  'since': ['sence', 'since', 'cents', 'seen'],
-  'while': ['will', 'while', 'whilst', 'wile'],
-  'often': ['offen', 'often', 'of', 'all'],
-  'never': ['ever', 'never', 'neva', 'eva'],
-  'ever': ['never', 'ever', 'eva', 'even'],
-  'sometimes': ['sometime', 'sometimes', 'sumtimes', 'sum'],
-  'sometime': ['sometimes', 'sometime', 'sumtime'],
-  'still': ['steel', 'still', 'stil', 'stell'],
-  'yet': ['yes', 'yet', 'yet\'s', 'yep'],
-  'quite': ['quiet', 'quite', 'quote', 'white'],
-  'rather': ['either', 'rather', 'ratha', 'radar'],
-  'either': ['neither', 'either', 'eather', 'ither'],
-  'neither': ['either', 'neither', 'nither', 'night'],
-  'both': ['both', 'booth', 'bot', 'boths'],
-  'each': ['each', 'eich', 'itch', 'eat'],
-  'every': ['ever', 'every', 'evry', 'evey'],
-  'none': ['no', 'none', 'non', 'know'],
-  'such': ['much', 'such', 'sutch', 'so'],
-  'own': ['on', 'own', 'an', 'ohn'],
-  'else': ['is', 'else', 'els', 'as'],
-  'next': ['text', 'next', 'nekst'],
-  'last': ['lost', 'last', 'least', 'lust'],
+  // 数字
+  'one': ['', 'won', '1'],
+  'two': ['', 'to', 'too'],
+  'first': [''],
+  'second': [''],
+  'third': [''],
 }
 
 // 上下文感知的高频词对（基于 N-gram 概率）
@@ -436,10 +256,13 @@ export function intelligentMatch(
   const target = normalize(targetWord)
   const spoken = normalize(spokenWord)
 
+  console.log(`[MATCH] Checking "${target}" vs "${spoken}"`)
+
   // 0. 检查缩写/合并词等效映射（we've → we, everyday → every day）
   // 优先级最高，因为这是用户主动选择的表达方式
   const targetContractions = CONTRACTION_EQUIVALENTS[target] || []
   if (targetContractions.includes(spoken)) {
+    console.log(`[MATCH] ✓ CONTRACTION match: "${target}" ≈ "${spoken}"`)
     return {
       isMatch: true,
       confidence: 1.0,
@@ -470,6 +293,7 @@ export function intelligentMatch(
 
   // 1. 精确匹配
   if (target === spoken) {
+    console.log(`[MATCH] ✓ EXACT match: "${target}" == "${spoken}"`)
     return {
       isMatch: true,
       confidence: 1.0,
@@ -480,7 +304,9 @@ export function intelligentMatch(
 
   // 2. 检查高频误判词表（扩展版，包含更多常见混淆）
   const mishears = HIGH_FREQUENCY_MISHEARS[target] || []
+  console.log(`[MATCH] Checking HIGH_FREQUENCY_MISHEARS for "${target}":`, mishears)
   if (mishears.includes(spoken)) {
+    console.log(`[MATCH] ✓ HIGH_FREQUENCY_MISHEARS match: "${target}" → ["${spoken}"]`)
     return {
       isMatch: true,
       confidence: 0.90,
@@ -492,6 +318,7 @@ export function intelligentMatch(
   // 反向检查：用户说的词可能对应多个目标词
   for (const [key, values] of Object.entries(HIGH_FREQUENCY_MISHEARS)) {
     if (values.includes(spoken) && (key === target || values.includes(target))) {
+      console.log(`[MATCH] ✓ REVERSE match: "${spoken}" in ${key}'s values [${values.join(', ')}]`)
       return {
         isMatch: true,
         confidence: 0.88,
@@ -506,8 +333,11 @@ export function intelligentMatch(
   const spokenMetaphone = metaphone(spoken)
   const metaphoneSimilarity = calculateMetaphoneSimilarity(targetMetaphone, spokenMetaphone)
 
-  // 降低阈值从 0.8 → 0.6，接受更多语音相似的词
-  if (metaphoneSimilarity >= 0.6) {
+  console.log(`[MATCH] Metaphone: "${target}"→"${targetMetaphone}", "${spoken}"→"${spokenMetaphone}", similarity=${(metaphoneSimilarity * 100).toFixed(0)}%`)
+
+  // 降低阈值从 0.6 → 0.4，接受更多语音相似的词
+  if (metaphoneSimilarity >= 0.4) {
+    console.log(`[MATCH] ✓ METAPHONE match: ${(metaphoneSimilarity * 100).toFixed(0)}% >= 40%`)
     return {
       isMatch: true,
       confidence: 0.85,
@@ -521,8 +351,8 @@ export function intelligentMatch(
   const maxLen = Math.max(target.length, spoken.length)
   const similarity = (maxLen - editDistance) / maxLen
 
-  // 容错2个字符（之前是1个），且相似度 >= 0.6
-  if (editDistance <= 2 && similarity >= 0.6) {
+  // 容错2个字符，相似度 >= 0.5（从0.6降低到0.5）
+  if (editDistance <= 2 && similarity >= 0.5) {
     return {
       isMatch: true,
       confidence: 0.75,
@@ -619,6 +449,27 @@ export function intelligentMatch(
     }
   }
 
+  // 9.5. 检查是否是基础词 + ed 的误读（如 pig → picked, pick → picked）
+  if (spoken.endsWith('ed') && target === spoken.slice(0, -2)) {
+    console.log(`[MATCH] ✓ Base + ed match: "${target}" ← "${spoken}"`)
+    return {
+      isMatch: true,
+      confidence: 0.82,
+      matchType: 'fuzzy',
+      reason: 'Base word with extra -ed (common STT error)'
+    }
+  }
+
+  if (target.endsWith('ed') && spoken === target.slice(0, -2)) {
+    console.log(`[MATCH] ✓ Base + ed match: "${target}" → "${spoken}"`)
+    return {
+      isMatch: true,
+      confidence: 0.82,
+      matchType: 'fuzzy',
+      reason: 'Base word with -ed dropped'
+    }
+  }
+
   // 10. 词尾辅音混淆（如 d/t, k/ck）
   if (isFinalConsonantConfusion(target, spoken)) {
     return {
@@ -631,6 +482,7 @@ export function intelligentMatch(
 
   // 最后的兜底：如果长度差异 <= 1 且有 50% 字符相同，算部分正确
   if (Math.abs(target.length - spoken.length) <= 1 && similarity >= 0.5) {
+    console.log(`[MATCH] ✓ PARTIAL match: len diff=${Math.abs(target.length - spoken.length)}, similarity=${(similarity * 100).toFixed(0)}%`)
     return {
       isMatch: true,
       confidence: 0.60,
@@ -640,6 +492,7 @@ export function intelligentMatch(
   }
 
   // 仍然不匹配（但返回更友好的提示）
+  console.log(`[MATCH] ✗ NO MATCH for "${target}" vs "${spoken}"`)
   return {
     isMatch: false,
     confidence: 0,

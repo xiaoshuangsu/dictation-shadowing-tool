@@ -1,0 +1,16 @@
+name = "dictation-video-uploader"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# R2 Bucket 绑定
+[[r2_buckets]]
+binding = "VIDEOS"
+bucket_name = "dictation-videos"
+
+# 环境变量（生产环境）
+[vars]
+ALLOWED_ORIGINS = "https://xiaoshuangsu.github.io"
+
+# 开发环境变量（在 .dev.vars 中配置）
+# R2_ACCESS_KEY_ID = ""
+# R2_SECRET_ACCESS_KEY = ""

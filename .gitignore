@@ -80,3 +80,8 @@ scripts/add_youtube_material.py
 scripts/adjust_timestamps.py
 scripts/batch_add_materials.py
 scripts/batch_transcribe_all.py
+scripts/download_youtube_to_r2.py
+
+# Cloudflare R2 credentials
+.env.local
+scripts/.r2_credentials
