@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
+import VideoPlayer from "@/components/VideoPlayer"
 import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
 import WordMode from "@/components/WordMode"
@@ -82,6 +83,8 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
   const [materialId, setMaterialId] = useState<string | null>(null)
   const [audioTitle, setAudioTitle] = useState<string | null>(null)
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [thumbnailPath, setThumbnailPath] = useState<string | null>(null)
   const [sampleSentences, setSampleSentences] = useState<Sentence[] | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [materialError, setMaterialError] = useState<string | null>(null)
@@ -101,7 +104,44 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
   const [playbackRate, setPlaybackRate] = useState(1)
   const [autoPlayTrigger, setAutoPlayTrigger] = useState(0)
 
+  // 为每个模式独立保存进度
+  const shadowingProgressRef = useRef({
+    currentIndex: 0,
+    completedSentences: new Set<number>(),
+    correctSentences: new Set<number>(),
+    incorrectSentences: new Set<number>(),
+    correctCount: 0
+  })
+
+  const dictationProgressRef = useRef({
+    currentIndex: 0,
+    completedSentences: new Set<number>(),
+    correctSentences: new Set<number>(),
+    incorrectSentences: new Set<number>(),
+    correctCount: 0
+  })
+
   const audioPlaybackSecondsRef = useRef(0)
+
+  // 初始化两个模式的进度 ref
+  useEffect(() => {
+    // 只在第一次渲染时初始化
+    shadowingProgressRef.current = {
+      currentIndex: startIndex,
+      completedSentences: new Set(),
+      correctSentences: new Set(),
+      incorrectSentences: new Set(),
+      correctCount: 0
+    }
+
+    dictationProgressRef.current = {
+      currentIndex: startIndex,
+      completedSentences: new Set(),
+      correctSentences: new Set(),
+      incorrectSentences: new Set(),
+      correctCount: 0
+    }
+  }, []) // 只在挂载时执行一次
 
   useEffect(() => {
     async function findMaterial() {
@@ -122,9 +162,24 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
         if (material) {
           setMaterialId(material.id)
           setAudioTitle(material.title)
-          // Build full audio URL from Supabase Storage
-          const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
-          setAudioSrc(supabaseAudioUrl)
+          setAudioSrc(material.audio_path)
+          setMaterialCategory(material.category)
+
+          // 🆕 检测是否为 R2 URL（通过检查 audio_path）
+          const isR2Url = material.audio_path && material.audio_path.includes('r2-proxy')
+
+          if (isR2Url) {
+            // R2 音频 URL → 视频URL
+            const videoUrl = material.audio_path.replace('/audio/', '/videos/').replace('.mp3', '.mp4')
+            setVideoUrl(videoUrl)
+            // 设置封面路径
+            if (material.thumbnail_path) {
+              setThumbnailPath(material.thumbnail_path)
+            }
+            console.log('✅ 使用 R2 URL（中国可访问）')
+          }
+
+
           setMaterialCategory(material.category)
 
           // Use transcript from material (like the original practice page)
@@ -406,35 +461,104 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-center">
           <div className="inline-flex bg-gray-100 rounded-lg p-1">
+            {/* 听写按钮 - 带下拉框 */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  if (mode === "dictation") {
+                    // 如果已经在听写模式，切换下拉菜单
+                    setIsDictationModeOpen(!isDictationModeOpen)
+                  } else {
+                    // 如果不在听写模式，切换到听写模式
+                    // 保存 Shadowing 模式的进度
+                    shadowingProgressRef.current = {
+                      currentIndex: currentSentenceIndex,
+                      completedSentences: new Set(completedSentences),
+                      correctSentences: new Set(correctSentences),
+                      incorrectSentences: new Set(incorrectSentences),
+                      correctCount
+                    }
+
+                    // 恢复 Dictation 模式的进度
+                    const dictationProgress = dictationProgressRef.current
+                    setCurrentSentenceIndex(dictationProgress.currentIndex)
+                    setCompletedSentences(new Set(dictationProgress.completedSentences))
+                    setCorrectSentences(new Set(dictationProgress.correctSentences))
+                    setIncorrectSentences(new Set(dictationProgress.incorrectSentences))
+                    setCorrectCount(dictationProgress.correctCount)
+
+                    setMode("dictation")
+                    setShowTranscript(false)
+                    setIsRevealed(false)
+                  }
+                }}
+                className={`px-6 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
+                  mode === "dictation"
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-gray-600 hover:text-gray-800"
+                }`}
+              >
+                {t("practice.mode.dictation")}
+                <svg className={`w-4 h-4 transition-transform ${isDictationModeOpen && mode === "dictation" ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* 下拉菜单 - 单词/整句 */}
+              {isDictationModeOpen && mode === "dictation" && (
+                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[120px] z-10">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDictationMode('word')
+                      setIsDictationModeOpen(false)
+                    }}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${
+                      dictationMode === 'word' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
+                    }`}
+                  >
+                    {t("practice.dictationMode.word")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDictationMode('whole')
+                      setIsDictationModeOpen(false)
+                    }}
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 transition-colors ${
+                      dictationMode === 'whole' ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700'
+                    }`}
+                  >
+                    {t("practice.dictationMode.whole")}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* 影子跟读按钮 */}
             <button
               onClick={() => {
-                setMode("dictation")
-                setCurrentSentenceIndex(0)
-                setCompletedSentences(new Set())
-                setCorrectSentences(new Set())
-                setIncorrectSentences(new Set())
-                setCorrectCount(0)
-                setShowTranscript(false)
-                setIsRevealed(false)
-              }}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
-                mode === "dictation"
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
-            >
-              {t("practice.mode.dictation")}
-            </button>
-            <button
-              onClick={() => {
+                // 保存 Dictation 模式的进度
+                dictationProgressRef.current = {
+                  currentIndex: currentSentenceIndex,
+                  completedSentences: new Set(completedSentences),
+                  correctSentences: new Set(correctSentences),
+                  incorrectSentences: new Set(incorrectSentences),
+                  correctCount
+                }
+
+                // 恢复 Shadowing 模式的进度
+                const shadowingProgress = shadowingProgressRef.current
+                setCurrentSentenceIndex(shadowingProgress.currentIndex)
+                setCompletedSentences(new Set(shadowingProgress.completedSentences))
+                setCorrectSentences(new Set(shadowingProgress.correctSentences))
+                setIncorrectSentences(new Set(shadowingProgress.incorrectSentences))
+                setCorrectCount(shadowingProgress.correctCount)
+
                 setMode("shadowing")
-                setCurrentSentenceIndex(0)
-                setCompletedSentences(new Set())
-                setCorrectSentences(new Set())
-                setIncorrectSentences(new Set())
-                setCorrectCount(0)
                 setShowTranscript(false)
                 setIsRevealed(false)
+                setIsDictationModeOpen(false)
               }}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 mode === "shadowing"
@@ -448,127 +572,110 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto p-4">
-        {mode === "dictation" && (
-          <div className="flex justify-start mb-4 items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">{t("practice.dictationMode.label")}:</span>
-            <div className="relative min-w-[200px]">
-              {/* 触发按钮 */}
-              <button
-                type="button"
-                onClick={() => setIsDictationModeOpen(!isDictationModeOpen)}
-                className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors flex items-center justify-between"
-              >
-                <span className="whitespace-nowrap">
-                  {dictationMode === 'word' ? t("practice.dictationMode.word") : t("practice.dictationMode.whole")}
-                </span>
-                <svg
-                  className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isDictationModeOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+      <div className="max-w-7xl mx-auto p-2 lg:p-4">
+        {/* Three-Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3">
+          {/* Left Column - Video/Audio Player (5/12 ≈ 42%) */}
+          <div className="lg:col-span-5 bg-white rounded-lg shadow-sm p-4">
+            <div className="text-center mb-3 text-sm text-gray-600">
+              {currentSentenceIndex + 1} / {sampleSentences.length}
+            </div>
 
-              {/* 下拉菜单 */}
-              {isDictationModeOpen && (
-                <div className="absolute z-[100] w-full min-w-[200px] mt-1 bg-white border border-gray-200 rounded-lg shadow-xl">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDictationMode('word')
-                      setCurrentSentenceIndex(0)
-                      setCompletedSentences(new Set())
-                      setCorrectSentences(new Set())
-                      setIncorrectSentences(new Set())
-                      setCorrectCount(0)
-                      setIsRevealed(false)
-                      setIsDictationModeOpen(false)
-                    }}
-                    className={`w-full px-4 py-2.5 text-sm text-left transition-colors whitespace-nowrap ${
-                      dictationMode === 'word'
-                        ? 'bg-blue-500 text-white'
-                        : 'text-gray-700 hover:bg-blue-50'
-                    }`}
-                  >
-                    {t("practice.dictationMode.word")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDictationMode('whole')
-                      setCurrentSentenceIndex(0)
-                      setCompletedSentences(new Set())
-                      setCorrectSentences(new Set())
-                      setIncorrectSentences(new Set())
-                      setCorrectCount(0)
-                      setIsRevealed(false)
-                      setIsDictationModeOpen(false)
-                    }}
-                    className={`w-full px-4 py-2.5 text-sm text-left transition-colors whitespace-nowrap ${
-                      dictationMode === 'whole'
-                        ? 'bg-blue-500 text-white'
-                        : 'text-gray-700 hover:bg-blue-50'
-                    }`}
-                  >
-                    {t("practice.dictationMode.whole")}
-                  </button>
-                </div>
-              )}
+            {/* Video or Audio Player */}
+            <div className="mb-4">
+              {videoUrl && currentSentence ? (
+                <VideoPlayer
+                  thumbnailPath={thumbnailPath || undefined}
+                  videoSrc={videoUrl}
+                  currentSentence={currentSentence}
+                  playbackRate={playbackRate}
+                  autoPlayTrigger={autoPlayTrigger}
+                  onPlayEnd={() => {}}
+                  onTimeUpdate={handleTimeUpdate}
+                />
+              ) : audioSrc && currentSentence ? (
+                <AudioPlayer
+                  audioSrc={audioSrc}
+                  currentSentence={currentSentence}
+                  playbackRate={playbackRate}
+                  autoPlayTrigger={autoPlayTrigger}
+                  onPlayEnd={() => {}}
+                  onTimeUpdate={handleTimeUpdate}
+                  onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
+                />
+              ) : null}
             </div>
           </div>
-        )}
 
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
-          <div className="text-center mb-4 text-sm text-gray-600">
-            {currentSentenceIndex + 1} / {sampleSentences.length}
-          </div>
+          {/* Middle Column - Practice Area (4/12 ≈ 33%) */}
+          <div className="lg:col-span-4 bg-white rounded-lg shadow-sm p-4">
+            {/* Progress Indicator */}
+            <div className="flex justify-center items-center gap-2 mb-3 text-sm text-gray-600">
+              <span className="font-medium">练习区域</span>
+              <span className="text-gray-400">•</span>
+              <span>Progress</span>
+              <span className="text-blue-600 font-medium">
+                {completedSentences.size} / {sampleSentences.length}
+              </span>
+            </div>
 
-          <div className="bg-gray-100 rounded-lg p-4 mb-6">
-            <div className="flex justify-between items-center gap-2">
-              {/* Navigation Controls */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  onClick={handlePrevious}
-                  disabled={isFirstSentence}
-                  className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
+            {/* Playback Controls */}
+            <div className="bg-gray-50 rounded-lg p-3 mb-4">
+              <div className="flex justify-between items-center">
+                {/* Left: Control Buttons */}
+                <div className="flex items-center gap-2">
+                  {/* Previous Button */}
+                  <button
+                    onClick={handlePrevious}
+                    disabled={isFirstSentence}
+                    className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Previous"
+                  >
+                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
 
-                {audioSrc && currentSentence && (
-                  <AudioPlayer
-                    audioSrc={audioSrc}
-                    currentSentence={currentSentence}
-                    playbackRate={playbackRate}
-                    autoPlayTrigger={autoPlayTrigger}
-                    onPlayEnd={() => {}}
-                    onTimeUpdate={handleTimeUpdate}
-                    onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
-                  />
-                )}
+                  {/* Repeat Button */}
+                  <button
+                    onClick={() => setAutoPlayTrigger(prev => prev + 1)}
+                    className="p-1.5 rounded-lg hover:bg-gray-200"
+                    title="Repeat"
+                  >
+                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
 
-                <button
-                  onClick={handleNext}
-                  disabled={isLastSentence}
-                  className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
+                  {/* Play/Pause Button */}
+                  <button
+                    onClick={() => setAutoPlayTrigger(prev => prev + 1)}
+                    className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+                    title="Play"
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </button>
 
-              {/* Speed Control */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* Next Button */}
+                  <button
+                    onClick={handleNext}
+                    disabled={isLastSentence}
+                    className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Next"
+                  >
+                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Right: Speed Selector */}
                 <select
                   value={playbackRate}
                   onChange={(e) => setPlaybackRate(Number(e.target.value))}
-                  className="border rounded-lg px-2 py-1 text-sm bg-white min-w-[60px] text-xs sm:text-sm"
+                  className="border rounded-lg px-2 py-1.5 text-sm bg-white min-w-[70px]"
                   aria-label={t("practice.speed")}
                 >
                   <option value="0.25">0.25x</option>
@@ -581,108 +688,119 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
                 </select>
               </div>
             </div>
+
+            {/* Practice Input Area */}
+            {mode === 'dictation' ? (
+              dictationMode === 'word' ? (
+                <WordMode
+                  sentence={currentSentence}
+                  currentIndex={currentSentenceIndex}
+                  totalSentences={sampleSentences.length}
+                  onNext={handleNext}
+                  isLastSentence={isLastSentence}
+                  onComplete={handleWordModeComplete}
+                />
+              ) : (
+                <DictationBox
+                  sentence={currentSentence}
+                  onComplete={handleDictationComplete}
+                  onNext={handleNext}
+                  isLastSentence={isLastSentence}
+                />
+              )
+            ) : audioSrc ? (
+              <ShadowingPanel
+                sentence={currentSentence}
+                audioSrc={audioSrc}
+                currentTime={currentTime}
+                onComplete={handleShadowingComplete}
+                onNext={handleNext}
+                isLastSentence={isLastSentence}
+              />
+            ) : null}
           </div>
 
-          {mode === 'dictation' ? (
-            dictationMode === 'word' ? (
-              <WordMode
-                sentence={currentSentence}
-                currentIndex={currentSentenceIndex}
-                totalSentences={sampleSentences.length}
-                onNext={handleNext}
-                isLastSentence={isLastSentence}
-                onComplete={handleWordModeComplete}
-              />
-            ) : (
-              <DictationBox
-                sentence={currentSentence}
-                onComplete={handleDictationComplete}
-                onNext={handleNext}
-                isLastSentence={isLastSentence}
-              />
-            )
-          ) : audioSrc ? (
-            <ShadowingPanel
-              sentence={currentSentence}
-              audioSrc={audioSrc}
-              currentTime={currentTime}
-              onComplete={handleShadowingComplete}
-              onNext={handleNext}
-              isLastSentence={isLastSentence}
-            />
-          ) : null}
-        </div>
-
-        {/* Show Transcript Button */}
-        <div className="text-center">
-          <button
-            onClick={() => setShowTranscript(!showTranscript)}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-          >
-            {showTranscript ? t("practice.transcript.hide") : t("practice.transcript.show")}
-          </button>
-        </div>
-
-        {showTranscript && (
-          <div className="mt-4 bg-white rounded-lg shadow-sm p-4 max-h-96 overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">{t("practice.transcript.title")}</h3>
-            <div className="space-y-3">
+          {/* Right Column - Transcript (3/12 = 25%) */}
+          <div className="lg:col-span-3 bg-white rounded-lg shadow-sm p-4 max-h-[600px] overflow-y-auto">
+            <div className="flex items-center justify-between mb-3 sticky top-0 bg-white py-1">
+              <h3 className="text-base font-semibold text-gray-800">原文</h3>
+              <button
+                onClick={() => setShowTranscript(!showTranscript)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-1 rounded hover:bg-blue-50 transition-colors"
+              >
+                {showTranscript ? '隐藏原文' : '显示原文'}
+              </button>
+            </div>
+            <div className="space-y-2">
               {sampleSentences.map((sentence, index) => {
                 const isCompleted = completedSentences.has(index)
                 const isCorrect = correctSentences.has(index)
                 const isIncorrect = incorrectSentences.has(index)
                 const isCurrent = index === currentSentenceIndex
 
+                // 计算当前播放的单词索引（仅对当前播放的句子）
+                let currentWordIndex = -1
+                if (isCurrent && currentTime >= sentence.startTime && currentTime <= sentence.endTime) {
+                  const words = sentence.text.split(/\s+/)
+                  const duration = sentence.endTime - sentence.startTime
+                  const progress = currentTime - sentence.startTime
+                  currentWordIndex = Math.floor((progress / duration) * words.length)
+                }
+
+                // 将句子分割成单词，便于高亮
+                const words = sentence.text.split(/(\s+)/)
+
                 return (
                   <div
                     key={sentence.id}
                     onClick={() => handleSentenceClick(index)}
-                    className={`border rounded-lg p-3 relative cursor-pointer hover:bg-blue-100 transition-colors ${
+                    className={`border rounded p-3 cursor-pointer hover:bg-blue-50 transition-colors ${
                       isCurrent
-                        ? "bg-blue-50 border-2 border-blue-500"
+                        ? "bg-blue-100 border-2 border-blue-500"
                         : isCompleted
-                        ? "border-green-500 bg-green-50"
-                        : "border-blue-200 bg-gray-50"
+                        ? "border-green-300 bg-green-50"
+                        : "border-gray-200 bg-gray-50"
                     }`}
                   >
-                    <div className="flex justify-between items-start gap-4">
-                      {/* Sentence Number */}
-                      <div className="flex-shrink-0">
-                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded text-xs font-semibold ${
-                          isCompleted
-                            ? "bg-green-500 text-white"
-                            : "bg-blue-200 text-blue-700"
-                        }`}>
-                          {index + 1}
-                        </span>
-                      </div>
+                    <div className="flex items-start gap-2">
+                      <span className={`flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded text-sm font-semibold ${
+                        isCompleted
+                          ? "bg-green-500 text-white"
+                          : "bg-blue-200 text-blue-700"
+                      }`}>
+                        {index + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        {showTranscript ? (
+                          isCurrent ? (
+                            <p className="text-sm text-gray-800 leading-relaxed">
+                              {words.map((word, i) => {
+                                const isWord = word.trim().length > 0
+                                const wordIndex = Math.floor(i / 2) // 因为分割包含空格
+                                const isCurrentWord = isCurrent && wordIndex === currentWordIndex
 
-                      {/* Sentence Content */}
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-800">
-                          {sentence.text.split(' ').map((word, wordIndex) => {
-                            const highlightedWordIndex = index === currentSentenceIndex ? getHighlightedWordIndex(sentence) : -1
-                            const isHighlighted = wordIndex <= highlightedWordIndex
-                            const isCurrentWord = wordIndex === highlightedWordIndex
-
-                            return (
-                              <span
-                                key={wordIndex}
-                                className={
-                                  isCurrentWord
-                                    ? "bg-yellow-300 rounded px-1 font-semibold"
-                                    : isHighlighted && index === currentSentenceIndex
-                                    ? "bg-yellow-100 rounded px-1"
-                                    : ""
-                                }
-                              >
-                                {word}{' '}
-                              </span>
-                            )
-                          })}
-                        </p>
+                                return (
+                                  <span
+                                    key={i}
+                                    className={isCurrentWord ? "bg-yellow-300 px-0.5 rounded font-semibold" : ""}
+                                  >
+                                    {word}
+                                  </span>
+                                )
+                              })}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-800 leading-relaxed break-words">
+                              {sentence.text}
+                            </p>
+                          )
+                        ) : (
+                          <p className="text-sm text-gray-400 leading-relaxed break-words">
+                            {'*'.repeat(Math.min(sentence.text.length, 30))}
+                          </p>
+                        )}
                         {sentence.translation && (
-                          <p className="text-xs text-gray-600 italic mt-1">
+                          <p className="text-xs text-gray-500 italic mt-1">
                             {sentence.translation}
                           </p>
                         )}
@@ -693,7 +811,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
               })}
             </div>
           </div>
-        )}
+        </div>
       </div>
     </main>
   )
