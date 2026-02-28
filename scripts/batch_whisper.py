@@ -40,8 +40,8 @@ def split_words_to_sentences(words: List[Dict], title: str) -> List[Dict]:
 
     分句规则：
     1. 强制标点：[.?!] 必须断句
-    2. 静音敏感度：停顿超过 0.8 秒才断句
-    3. 逗号处理：逗号后停顿超过 0.8 秒才断句
+    2. 静音敏感度：停顿超过 1.5 秒才断句（针对连贯说话优化）
+    3. 逗号处理：逗号后停顿超过 1.5 秒才断句
 
     Args:
         words: Whisper 词级时间戳列表
@@ -71,15 +71,15 @@ def split_words_to_sentences(words: List[Dict], title: str) -> List[Dict]:
             if i < len(words) - 1:
                 next_word = words[i + 1]
                 pause = next_word['start'] - word['end']
-                # 只有停顿超过 0.8 秒才在逗号处断句
-                if pause > 0.8:
+                # 只有停顿超过 1.5 秒才在逗号处断句
+                if pause > 1.5:
                     should_end = True
 
-        # 规则3: 静音检测 - 停顿超过 0.8 秒才断句
+        # 规则3: 静音检测 - 停顿超过 1.5 秒才断句（避免分割连贯说话）
         if i < len(words) - 1 and not should_end:
             next_word = words[i + 1]
             pause = next_word['start'] - word['end']
-            if pause > 0.8:
+            if pause > 1.5:
                 should_end = True
 
         if should_end and current_sentence_words:
