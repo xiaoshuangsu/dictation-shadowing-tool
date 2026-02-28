@@ -327,7 +327,9 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
    * 使用简化的 diff 算法：双指针遍历
    */
   const compareWords = (originalText: string, recognizedText: string): WordDiff[] => {
-    console.log("compareWords called:", { originalText, recognizedText })
+    console.log("===== compareWords called =====")
+    console.log("Original text:", originalText)
+    console.log("Recognized text:", recognizedText)
 
     // 预处理：转小写，去除标点，拆分为单词数组
     const normalize = (text: string) => {
@@ -341,7 +343,9 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
     const originalWords = normalize(originalText).split(' ').filter(w => w.length > 0)
     const recognizedWords = normalize(recognizedText).split(' ').filter(w => w.length > 0)
 
-    console.log("Normalized words:", { originalWords, recognizedWords })
+    console.log("Normalized original words:", originalWords)
+    console.log("Normalized recognized words:", recognizedWords)
+    console.log("==============================")
 
     const diffs: WordDiff[] = []
     let i = 0  // 原句指针
@@ -365,11 +369,18 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         i++
       } else {
         // 使用智能匹配算法（Metaphone + 上下文感知）- "口语优先"容错版本
-        // 降低置信度阈值：0.75 → 0.60，接受更多合理发音变体
         const context = originalWords.slice(Math.max(0, i - 1), i + 2)
         const matchResult = intelligentMatch(originalWords[i], recognizedWords[j], context)
 
-        if (matchResult.isMatch && matchResult.confidence >= 0.60) {
+        console.log(`[COMPARE] "${originalWords[i]}" vs "${recognizedWords[j]}"`, {
+          i, j,
+          isMatch: matchResult.isMatch,
+          confidence: matchResult.confidence,
+          type: matchResult.matchType,
+          reason: matchResult.reason
+        })
+
+        if (matchResult.isMatch && matchResult.confidence >= 0.50) {
           // 匹配成功（包括近音词、STT误判修正、常见发音变体）
           if (matchResult.confidence >= 0.85) {
             // 高置信度：完全匹配（绿色）
@@ -596,75 +607,10 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 interimTranscript = result[0].transcript
                 userTranscriptRef.current = interimTranscript
 
+                // 不要在 isFinal 时立即显示结果，等待用户手动停止录音
                 if (result.isFinal) {
-                  console.log("Final transcript:", interimTranscript)
-                  console.log("Expected text:", sentenceRef.current.text)
-                  setUserTranscript(interimTranscript)
-                  console.log("Setting showResult to true...")
-                  setShowResult(true)
-                  resultProcessedRef.current = true  // Mark result as processed
-                  console.log("showResult state set (async, will take effect on next render)")
-
-                  // 执行单词级对比
-                  const diffs = compareWords(sentenceRef.current.text, interimTranscript)
-                  console.log("Word diffs result:", diffs)
-                  console.log("Word diffs length:", diffs.length)
-                  console.log("Diffs JSON:", JSON.stringify(diffs, null, 2))
-                  setWordDiffs(diffs)
-                  console.log("setWordDiffs called")
-
-                  // 计算整体正确性
-                  const hasErrors = diffs.some(d => d.status !== 'match')
-                  const isCorrect = !hasErrors
-
-                  console.log("Word comparison:", diffs)
-                  console.log("Pronunciation correct:", isCorrect, "Expected:", sentenceRef.current.text)
-
-                  // 延迟调用 onComplete，确保状态更新后再触发 transcript 更新
-                  setTimeout(() => {
-                    if (onCompleteRef.current) {
-                      // 时间计算优先级：真实播放时间 > 页面停留时间
-                      let durationSeconds = 0
-
-                      // 1. 尝试使用真实音频播放时间
-                      if (totalPlayedSecondsRef.current > 0) {
-                        durationSeconds = Math.round(totalPlayedSecondsRef.current)
-                        console.log(`Using real audio playback time: ${durationSeconds}s`)
-                      }
-                      // 2. 兜底：使用页面停留时间
-                      else if (pageStartTime) {
-                        durationSeconds = Math.max(1, Math.round((Date.now() - pageStartTime) / 1000))
-                        console.log(`Using page stay time as fallback: ${durationSeconds}s`)
-                      }
-                      // 3. 最后兜底：默认 1 秒
-                      else {
-                        durationSeconds = 1
-                        console.log('Using default time: 1s')
-                      }
-
-                      console.log('ShadowingPanel - Calling onComplete:', {
-                        isCorrect,
-                        durationSeconds,
-                        totalPlayedSeconds: totalPlayedSecondsRef.current,
-                        pageStartTime,
-                        sentenceId: sentence.id,
-                        sentenceText: sentence.text
-                      })
-
-                      // 如果完全正确，播放成功音效（只播放一次）
-                      console.log('ShadowingPanel - Checking success sound conditions:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
-                      if (isCorrect && !successSoundPlayedRef.current) {
-                        console.log('ShadowingPanel - Playing success sound')
-                        successSoundPlayedRef.current = true
-                        playSuccessSound()
-                      } else {
-                        console.log('ShadowingPanel - Success sound NOT played:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
-                      }
-
-                      // 传递秒数
-                      onCompleteRef.current(isCorrect, durationSeconds)
-                    }
-                  }, 100)
+                  console.log("Final transcript received, waiting for user to stop recording:", interimTranscript)
+                  resultProcessedRef.current = false  // Don't mark as processed yet
                 }
               }
             }
@@ -676,74 +622,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
             }
 
             recog.onend = () => {
-              console.log("Speech recognition ended. resultProcessedRef =", resultProcessedRef.current)
-              // 移动端：不自动停止录音，让用户手动点击麦克风按钮停止
-              // 只有在用户手动点击停止时才会设置 setIsRecording(false)
-
-              // Only process if we haven't already processed a final result
-              if (!resultProcessedRef.current) {
-                const interimTranscript = userTranscriptRef.current
-                if (interimTranscript) {
-                  console.log("Processing interim result:", interimTranscript)
-                  console.log("Expected text:", sentenceRef.current.text)
-
-                  setUserTranscript(interimTranscript)
-                  console.log("Setting showResult to true (from onend)...")
-                  setShowResult(true)
-
-                  // 执行单词级对比
-                  const diffs = compareWords(sentenceRef.current.text, interimTranscript)
-                  console.log("Word diffs result:", diffs)
-                  setWordDiffs(diffs)
-
-                  // 计算整体正确性
-                  const hasErrors = diffs.some(d => d.status !== 'match')
-                  const isCorrect = !hasErrors
-
-                  console.log("Pronunciation correct:", isCorrect)
-
-                  // 延迟调用 onComplete
-                  setTimeout(() => {
-                    if (onCompleteRef.current) {
-                      let durationSeconds = 0
-
-                      if (totalPlayedSecondsRef.current > 0) {
-                        durationSeconds = Math.round(totalPlayedSecondsRef.current)
-                      } else if (pageStartTime) {
-                        durationSeconds = Math.max(1, Math.round((Date.now() - pageStartTime) / 1000))
-                      } else {
-                        durationSeconds = 1
-                      }
-
-                      console.log('ShadowingPanel - Calling onComplete (from onend):', {
-                        isCorrect,
-                        durationSeconds,
-                        totalPlayedSeconds: totalPlayedSecondsRef.current,
-                        pageStartTime,
-                        sentenceId: sentence.id,
-                        sentenceText: sentence.text
-                      })
-
-                      // 如果完全正确，播放成功音效（只播放一次）
-                      console.log('ShadowingPanel - Checking success sound conditions:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
-                      if (isCorrect && !successSoundPlayedRef.current) {
-                        console.log('ShadowingPanel - Playing success sound')
-                        successSoundPlayedRef.current = true
-                        playSuccessSound()
-                      } else {
-                        console.log('ShadowingPanel - Success sound NOT played:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
-                      }
-
-                      onCompleteRef.current(isCorrect, durationSeconds)
-                    }
-                  }, 100)
-                } else {
-                  console.warn("No transcript received from speech recognition")
-                  setMicError("未能识别到语音，请重试")
-                }
-              } else {
-                console.log("Result already processed, skipping onend processing")
-              }
+              console.log("Speech recognition ended.")
+              // 不自动处理结果，等待用户手动点击停止按钮
             }
 
             setRecognition(recog)
@@ -814,6 +694,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
 
   // 停止录音
   const stopRecording = () => {
+    console.log("stopRecording called, processing result...")
+
     // 停止音频录制
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       try {
@@ -834,6 +716,69 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
     }
 
     setIsRecording(false)
+
+    // 处理识别结果并显示"我的发音"
+    const transcript = userTranscriptRef.current
+    console.log("Processing transcript:", transcript)
+
+    if (transcript && transcript.trim().length > 0) {
+      console.log("Setting user transcript and showing result")
+      setUserTranscript(transcript)
+
+      // 执行单词级对比
+      const diffs = compareWords(sentenceRef.current.text, transcript)
+      console.log("Word diffs result:", diffs)
+      setWordDiffs(diffs)
+
+      // 计算整体正确性
+      const hasErrors = diffs.some(d => d.status !== 'match')
+      const isCorrect = !hasErrors
+
+      console.log("Pronunciation correct:", isCorrect)
+
+      // 延迟显示结果，确保音频录制完成
+      setTimeout(() => {
+        console.log("Showing result panel")
+        setShowResult(true)
+
+        // 调用 onComplete
+        if (onCompleteRef.current) {
+          let durationSeconds = 0
+
+          if (totalPlayedSecondsRef.current > 0) {
+            durationSeconds = Math.round(totalPlayedSecondsRef.current)
+          } else if (pageStartTime) {
+            durationSeconds = Math.max(1, Math.round((Date.now() - pageStartTime) / 1000))
+          } else {
+            durationSeconds = 1
+          }
+
+          console.log('ShadowingPanel - Calling onComplete:', {
+            isCorrect,
+            durationSeconds,
+            totalPlayedSeconds: totalPlayedSecondsRef.current,
+            pageStartTime,
+            sentenceId: sentence.id,
+            sentenceText: sentence.text
+          })
+
+          // 如果完全正确，播放成功音效（只播放一次）
+          console.log('ShadowingPanel - Checking success sound conditions:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
+          if (isCorrect && !successSoundPlayedRef.current) {
+            console.log('ShadowingPanel - Playing success sound')
+            successSoundPlayedRef.current = true
+            playSuccessSound()
+          } else {
+            console.log('ShadowingPanel - Success sound NOT played:', { isCorrect, alreadyPlayed: successSoundPlayedRef.current })
+          }
+
+          onCompleteRef.current(isCorrect, durationSeconds)
+        }
+      }, 500) // 等待 500ms 让音频录制完成
+    } else {
+      console.warn("No transcript received")
+      setMicError("未能识别到语音，请重试")
+    }
   }
 
   // 播放用户录音

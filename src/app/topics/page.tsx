@@ -232,6 +232,11 @@ export default function MaterialsPage() {
   // 获取缩略图 URL
   const getThumbnailUrl = (path: string | null) => {
     if (!path) return null
+    // 如果是完整URL（R2或其他CDN），直接使用
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path
+    }
+    // 否则拼接Supabase Storage URL
     return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${path}`
   }
 
