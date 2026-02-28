@@ -38,10 +38,16 @@ def split_words_to_sentences(words: List[Dict], title: str) -> List[Dict]:
     """
     将词级时间戳转换为句子
 
-    分句规则：
-    1. 强制标点：[.?!] 必须断句
-    2. 静音敏感度：停顿超过 1.5 秒才断句（针对连贯说话优化）
-    3. 逗号处理：逗号后停顿超过 1.5 秒才断句
+    智能分句规则（针对连贯说话优化）：
+    1. 长停顿优先：停顿 > 1.5 秒 → 必须断句
+    2. 句号+短停顿：句号/问号/感叹号 + 停顿 > 0.6 秒 → 断句
+    3. 句子长度限制：当前句子 > 30 秒 或 > 50 个词时，
+       遇到句号/问号/感叹号就断句（不管停顿多短）
+
+    这样可以：
+    - 避免分割连贯的短句
+    - 防止产生超长句子（> 30秒）
+    - 在语流转换点自然断句
 
     Args:
         words: Whisper 词级时间戳列表
@@ -57,29 +63,36 @@ def split_words_to_sentences(words: List[Dict], title: str) -> List[Dict]:
     current_sentence_words = []
     sentence_start = words[0]['start']
 
+    LONG_PAUSE_THRESHOLD = 1.5  # 长停顿阈值（秒）
+    SHORT_PAUSE_THRESHOLD = 0.6  # 句号后的短停顿阈值（秒）
+    MAX_SENTENCE_DURATION = 30  # 最大句子时长（秒）
+    MAX_SENTENCE_WORDS = 50     # 最大句子词数
+
     for i, word in enumerate(words):
         current_sentence_words.append(word)
         word_text = word['word'].strip()
         should_end = False
 
-        # 规则1: 强制标点 - [.?!] 必须断句
-        if word_text.endswith(('.', '?', '!')):
-            should_end = True
-
-        # 规则2: 逗号 + 长停顿才断句
-        elif word_text.endswith(','):
-            if i < len(words) - 1:
-                next_word = words[i + 1]
-                pause = next_word['start'] - word['end']
-                # 只有停顿超过 1.5 秒才在逗号处断句
-                if pause > 1.5:
-                    should_end = True
-
-        # 规则3: 静音检测 - 停顿超过 1.5 秒才断句（避免分割连贯说话）
-        if i < len(words) - 1 and not should_end:
+        # 只有在不是最后一个词时才检查停顿
+        if i < len(words) - 1:
             next_word = words[i + 1]
             pause = next_word['start'] - word['end']
-            if pause > 1.5:
+
+            # 计算当前句子的时长和词数
+            current_duration = word['end'] - sentence_start
+            current_word_count = len(current_sentence_words)
+            is_long_sentence = current_duration > MAX_SENTENCE_DURATION or current_word_count > MAX_SENTENCE_WORDS
+
+            # 规则1: 长停顿 → 必须断句
+            if pause > LONG_PAUSE_THRESHOLD:
+                should_end = True
+
+            # 规则2: 句号 + 短停顿 → 断句
+            elif word_text.endswith(('.', '?', '!')) and pause > SHORT_PAUSE_THRESHOLD:
+                should_end = True
+
+            # 规则3: 句子太长 + 遇到句号 → 强制断句
+            elif is_long_sentence and word_text.endswith(('.', '?', '!')):
                 should_end = True
 
         if should_end and current_sentence_words:
