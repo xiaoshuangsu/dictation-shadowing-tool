@@ -70,7 +70,7 @@ export default function VideoPlayer({
 
       timeoutId = setTimeout(() => {
         video.load()
-        if (video.readyState >= HTMLVideoElement.HAVE_METADATA) {
+        if (video.readyState >= 1) { // HAVE_METADATA = 1
           setIsMetadataLoaded(true)
         }
       }, 50)
