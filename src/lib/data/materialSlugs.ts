@@ -57,7 +57,7 @@ export const MATERIAL_SLUGS = [
   { slug: "whats-this-whats-that-easy-dialogue" },
   { slug: "b5l2-dialogue" },
   { slug: "b5l4-dialogue" },
-  { slug: "what-time-is-it-time-for-breakfast" },
-  { slug: "talking-about-a-trip-using-past-simple" },
+  { slug: "what-time-is-it-time-for-breakfast---easy-dialogue---english-video-for-kids" },
+  { slug: "talking-about-a-trip-using-the-past-simple---an-english-conversation-about-a-past-trip" },
   { slug: "yellowstone-national-park" },
 ]
