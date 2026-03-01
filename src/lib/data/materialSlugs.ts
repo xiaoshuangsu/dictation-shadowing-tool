@@ -25,6 +25,7 @@ export const MATERIAL_SLUGS = [
   { slug: "homebody-in-new-york-what-i-eat-in-a-day-comfort-food-ive-been-craving" },
   { slug: "how-to-wake-up-better" },
   { slug: "ice-hockey" },
+  { slug: "its-raining" },
   { slug: "if-i-could-fly" },
   { slug: "i-want-to-dye-my-hair-green" },
   { slug: "jennifer-the-firefighter" },
