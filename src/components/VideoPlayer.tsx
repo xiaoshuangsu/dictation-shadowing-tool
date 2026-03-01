@@ -33,120 +33,165 @@ export default function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
+  const [isMetadataLoaded, setIsMetadataLoaded] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const prevTriggerRef = useRef(0)
+  const isInitializedRef = useRef(false)
 
-  // 使用 ref 存储最新的 currentSentence，避免闭包问题
   const currentSentenceRef = useRef(currentSentence)
   useEffect(() => {
     currentSentenceRef.current = currentSentence
   }, [currentSentence])
 
-  // 固定音量
   const volume = 0.25
 
-  // 初始化视频音量
+  // 初始化视频
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.volume = volume
-    }
-  }, [volume])
+    let timeoutId: NodeJS.Timeout | null = null
+    let rafId: number | null = null
 
-  const playSentence = () => {
-    console.log('🎯 playSentence 被调用')
-    console.log('videoRef.current:', videoRef.current)
+    const initializeVideo = () => {
+      if (isInitializedRef.current) return
 
-    if (videoRef.current) {
       const video = videoRef.current
+      if (!video) {
+        timeoutId = setTimeout(initializeVideo, 100)
+        return
+      }
 
-      // 调试日志
-      const sentence = currentSentenceRef.current
-      console.log('🎬 VideoPlayer.playSentence:', {
-        sentenceId: sentence.id,
-        startTime: sentence.startTime,
-        endTime: sentence.endTime,
-        currentTime: video.currentTime,
-        text: sentence.text?.substring(0, 50)
-      })
-
-      // 先暂停视频
-      video.pause()
-
-      // 设置时间和播放速率
-      video.currentTime = sentence.startTime
-      video.playbackRate = playbackRate
+      isInitializedRef.current = true
       video.volume = volume
 
-      console.log('✅ 视频时间已设置:', {
-        from: video.currentTime,
-        to: sentence.startTime
-      })
+      const handleLoadedMetadata = () => {
+        setIsMetadataLoaded(true)
+      }
 
-      // 移动端：向下滚动
-      if (typeof window !== 'undefined' && window.innerWidth < 768) {
-        setTimeout(() => {
+      video.addEventListener('loadedmetadata', handleLoadedMetadata)
+
+      timeoutId = setTimeout(() => {
+        video.load()
+        if (video.readyState >= HTMLVideoElement.HAVE_METADATA) {
+          setIsMetadataLoaded(true)
+        }
+      }, 50)
+    }
+
+    rafId = requestAnimationFrame(() => {
+      timeoutId = setTimeout(initializeVideo, 50)
+    })
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+  }, [])
+
+  // 当 videoSrc 改变时，重新加载视频
+  useEffect(() => {
+    if (videoSrc && isInitializedRef.current) {
+      const video = videoRef.current
+      if (video) {
+        setIsMetadataLoaded(false)
+        setIsPlaying(false)
+        setHasStarted(false)
+        setIsLoading(false)
+        video.load()
+      }
+    }
+  }, [videoSrc])
+
+  const playSentence = () => {
+    if (videoRef.current && videoSrc) {
+      const video = videoRef.current
+      const sentence = currentSentenceRef.current
+
+      video.pause()
+      video.playbackRate = playbackRate
+      video.volume = volume
+      setIsLoading(true)
+
+      const onSeeked = () => {
+        video.removeEventListener('seeked', onSeeked)
+
+        // 检查是否已缓冲到目标位置
+        const targetTime = sentence.startTime
+        const bufferedEnd = video.buffered.length > 0 ? video.buffered.end(0) : 0
+
+        if (bufferedEnd < targetTime) {
+          const onProgress = () => {
+            const newBufferedEnd = video.buffered.length > 0 ? video.buffered.end(0) : 0
+            if (newBufferedEnd >= targetTime) {
+              setIsLoading(false)
+              video.removeEventListener('progress', onProgress)
+
+              if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                const currentScroll = window.pageYOffset || document.documentElement.scrollTop
+                window.scrollTo({ top: currentScroll + 300, behavior: 'smooth' })
+              }
+
+              setupPlaybackListeners()
+              playVideo()
+            }
+          }
+
+          video.addEventListener('progress', onProgress)
+          return
+        }
+
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
           const currentScroll = window.pageYOffset || document.documentElement.scrollTop
-          window.scrollTo({
-            top: currentScroll + 300,
-            behavior: 'smooth'
-          })
-        }, 100)
-      }
-
-      // 监听播放结束
-      const handleTimeUpdate = () => {
-        const sentence = currentSentenceRef.current
-        if (video.currentTime >= sentence.endTime) {
-          console.log('⏹️ 句子播放结束', {
-            sentenceId: sentence.id,
-            currentTime: video.currentTime,
-            endTime: sentence.endTime
-          })
-          video.pause()
-          setIsPlaying(false)
-          onPlayEnd?.()
+          window.scrollTo({ top: currentScroll + 300, behavior: 'smooth' })
         }
 
-        if (onTimeUpdate) {
-          onTimeUpdate(video.currentTime)
-        }
+        setupPlaybackListeners()
+        setIsLoading(true)
+        playVideo()
       }
 
-      // 添加事件监听
-      video.addEventListener('timeupdate', handleTimeUpdate)
+      const setupPlaybackListeners = () => {
+        const handleTimeUpdate = () => {
+          const sentence = currentSentenceRef.current
+          if (video.currentTime >= sentence.endTime) {
+            video.removeEventListener('timeupdate', handleTimeUpdate)
+            video.pause()
+            setIsLoading(false)
+            setIsPlaying(false)
+            onPlayEnd?.()
+          }
 
-      // 监听播放状态
-      video.addEventListener('playing', () => {
-        console.log('🎬 视频正在播放')
-      })
+          if (onTimeUpdate) {
+            onTimeUpdate(video.currentTime)
+          }
+        }
 
-      video.addEventListener('pause', () => {
-        console.log('⏸️ 视频已暂停, currentTime:', video.currentTime)
-      })
+        video.addEventListener('timeupdate', handleTimeUpdate)
+        video.addEventListener('playing', () => setIsLoading(false), { once: true })
+      }
 
-      // 播放视频
-      console.log('🎵 开始播放视频...', {
-        volume: video.volume,
-        paused: video.paused,
-        currentTime: video.currentTime,
-        duration: video.duration,
-        readyState: video.readyState
-      })
-
-      const playPromise = video.play()
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          console.log('✅ 视频开始播放')
+      const playVideo = () => {
+        const playPromise = video.play()
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            setIsLoading(false)
+            setIsPlaying(true)
+            setHasStarted(true)
+          }).catch(err => {
+            console.error('视频播放错误:', err)
+            setIsLoading(false)
+            setIsPlaying(false)
+          })
+        } else {
+          setIsLoading(false)
           setIsPlaying(true)
           setHasStarted(true)
-        }).catch(err => {
-          console.error('❌ VideoPlayer - Play error:', err)
-          setIsPlaying(false)
-        })
+        }
       }
 
-      // 清理函数
+      video.addEventListener('seeked', onSeeked)
+      video.currentTime = sentence.startTime
+
       return () => {
-        video.removeEventListener('timeupdate', handleTimeUpdate)
+        video.removeEventListener('seeked', onSeeked)
       }
     }
   }
@@ -155,67 +200,71 @@ export default function VideoPlayer({
   useEffect(() => {
     if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
       prevTriggerRef.current = autoPlayTrigger
-      console.log('🎯 VideoPlayer: autoPlayTrigger changed', {
-        trigger: autoPlayTrigger,
-        sentenceId: currentSentence.id,
-        startTime: currentSentence.startTime
-      })
-      setTimeout(() => {
-        playSentence()
-      }, 100)
+      setTimeout(() => playSentence(), 100)
     }
   }, [autoPlayTrigger, currentSentence.id, playbackRate])
 
   return (
-    <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-      {/* 封面背景图 */}
-      {!hasStarted && (
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: 'url(/images/three-little-pigs-cover.png)' }}
-        >
-          {/* 黑色半透明遮罩 */}
-          <div className="absolute inset-0 bg-black/30"></div>
+    <div>
+      <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
+        {!hasStarted && (
+          <div
+            className="absolute inset-0 z-10 bg-cover bg-center bg-gray-800"
+            style={thumbnailPath ? { backgroundImage: `url(${thumbnailPath})` } : {}}
+          >
+            <div className="absolute inset-0 bg-black/30"></div>
 
-          {/* 播放按钮 */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <button
-              onClick={playSentence}
-              className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
-            >
-              <svg className="w-10 h-10 text-blue-600 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </button>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {isLoading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <p className="text-white text-sm font-medium">加载中...</p>
+                </div>
+              ) : (
+                <button
+                  onClick={playSentence}
+                  className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+                >
+                  <svg className="w-10 h-10 text-blue-600 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 视频元素 */}
-      <video
-        ref={videoRef}
-        src={videoSrc}
-        className="w-full h-full"
-        playsInline
-        preload="metadata"
-        style={{
-          opacity: hasStarted ? 1 : 0,
-          pointerEvents: hasStarted ? 'auto' : 'none'
-        }}
-      />
+        <video
+          ref={videoRef}
+          src={videoSrc}
+          className="w-full h-full"
+          playsInline
+          preload="auto"
+        />
+      </div>
 
-      {/* 播放时显示的返回封面按钮 */}
-      {hasStarted && (
+      <div className="flex items-center gap-3 px-2 py-3 mt-3 bg-white rounded-lg border border-gray-200">
         <button
-          onClick={() => setHasStarted(false)}
-          className="absolute top-3 right-3 p-2 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
-          title="返回封面"
+          onClick={playSentence}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-950 text-white rounded-lg hover:bg-blue-900 transition-colors"
         >
-          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
           </svg>
+          <span className="font-medium">开始</span>
         </button>
-      )}
+
+        <button
+          onClick={playSentence}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M1 4v6h6M23 20v-6h-6" />
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
+          </svg>
+          <span className="font-medium">重播</span>
+        </button>
+      </div>
     </div>
   )
 }

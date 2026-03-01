@@ -36,7 +36,6 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume
-      console.log('AudioPlayer - Volume set to:', volume, 'from useEffect [volume]')
     }
   }, [volume])
 
@@ -44,16 +43,15 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume
-      console.log('AudioPlayer - Initial volume set to:', volume, 'from useEffect [audioRef, volume]')
     }
   }, [audioRef, volume])
 
-  // 监听 localStorage 变化（调试用）
+  // 监听 localStorage 变化
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'audioVolume' && e.newValue !== null) {
         const newVolume = parseFloat(e.newValue)
-        console.log('AudioPlayer - localStorage audioVolume changed to:', newVolume)
+        // localStorage 音量变化处理
       }
     }
     window.addEventListener('storage', handleStorageChange)
@@ -95,8 +93,6 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
       audio.playbackRate = playbackRate
       audio.volume = volume // 确保音量设置正确
 
-      console.log('AudioPlayer - Playing sentence at', currentSentence.startTime, 'rate:', playbackRate, 'volume:', volume)
-
       // 移动端：向下滚动，隐藏素材标题，显示模式切换按钮和练习区域
       if (typeof window !== 'undefined' && window.innerWidth < 768) {
         setTimeout(() => {
@@ -114,7 +110,6 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
         if (!isAudioPlaying) {
           setIsAudioPlaying(true)
           lastUpdateTimeRef.current = Date.now()
-          console.log('AudioPlayer - Audio started playing')
         }
       }
 
@@ -123,8 +118,6 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
           const now = Date.now()
           const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
           totalPlayedSecondsRef.current += elapsedSeconds
-
-          console.log(`AudioPlayer - Audio paused. Elapsed: ${elapsedSeconds.toFixed(2)}s, Total: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
 
           // 通知父组件累计播放时间
           if (onPlaybackTimeUpdate) {
@@ -167,8 +160,6 @@ export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 
           const now = Date.now()
           const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
           totalPlayedSecondsRef.current += elapsedSeconds
-
-          console.log(`AudioPlayer - Audio ended. Total played: ${totalPlayedSecondsRef.current.toFixed(2)}s`)
 
           // 通知父组件累计播放时间
           if (onPlaybackTimeUpdate) {

@@ -46,6 +46,7 @@ export const MATERIAL_SLUGS = [
   { slug: "robert-f-kennedy-speech-after-assassination-of-martin-luther-king-jr" },
   { slug: "ronald-reagan-speech-at-normandy" },
   { slug: "the-birthday-gift" },
+  { slug: "the-story-of-the-three-little-pigs" },
   { slug: "the-viking" },
   { slug: "travel_-phrasal-verbs-with-georgie" },
   { slug: "valentines-day-story-culture-and-history-stories-for-kids" },
@@ -53,5 +54,10 @@ export const MATERIAL_SLUGS = [
   { slug: "what-i-look-for-in-a-friend" },
   { slug: "why-do-people-dislike-other-people" },
   { slug: "winston-churchill-braces-britons-to-their-task" },
+  { slug: "whats-this-whats-that-easy-dialogue" },
+  { slug: "b5l2-dialogue" },
+  { slug: "b5l4-dialogue" },
+  { slug: "what-time-is-it-time-for-breakfast" },
+  { slug: "talking-about-a-trip-using-past-simple" },
   { slug: "yellowstone-national-park" },
 ]
