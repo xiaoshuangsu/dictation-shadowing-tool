@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.0] - 2025-03-01
+
+### Added
+- **自动翻译系统**
+  - 新增 GLM API 自动翻译脚本 (`scripts/add_translations_with_glm.py`)
+  - 使用智聊 GLM-4-flash 模型批量翻译英文句子
+  - 为所有 74 个素材添加完整中文字幕
+  - 支持部分翻译素材的自动补全
+
+- **Whisper 转录改进脚本**
+  - 新增 `scripts/regenerate_transcript_with_word_timestamps.py`
+  - 使用 word_timestamps=True 获取精确的词级时间戳
+  - 添加 `no_speech_threshold=0.6` 参数，减少幻听
+  - 添加 `logprob_threshold=-1.0`，提高转录准确度
+  - 自动去除重复句子，保持 transcript 清洁
+
+- **视频文件格式支持**
+  - 支持检测 `.mp4` 和 `-mp4` 文件扩展名
+  - 自动识别视频素材并显示视频播放器
+  - 为 8 个素材更新视频路径
+
+- **R2 Proxy Worker**
+  - 新增 Cloudflare Worker 用于 R2 存储代理
+  - 正确处理 HTTP Range 请求，支持视频流式播放
+  - 配置 CORS 头，支持跨域访问
+  - 使用 `{ offset, length }` 格式处理 range 请求
+
+### Changed
+- **VideoPlayer 组件重构**
+  - 简化代码，移除调试日志
+  - 移除轮询等待 readyState 的逻辑
+  - 优化视频加载和播放流程
+  - 修复 readyState: 0 导致的视频无法播放问题
+
+- **视频播放优化**
+  - 修复 Range 请求处理逻辑
+  - 正确返回 206 Partial Content 响应
+  - 添加 Content-Range 和 Content-Length 头
+  - 改进视频缓冲和 seek 性能
+
+### Fixed
+- **视频无法播放问题**
+  - 修复 R2 proxy worker range 请求格式错误
+  - 修复 HEAD 请求处理，支持元数据加载
+  - 修复视频元素 readyState 检查逻辑
+  - 修复视频初始化时机问题
+
+- **Transcript 幻听问题**
+  - "It's raining" 素材：删除 9 个重复的幻听句子
+  - "Food" 素材：删除幻觉句子，合并错误分割的句子
+  - 添加自动去重逻辑，防止类似问题
+
+### Technical
+- 添加 Cloudflare Workers 配置 (`wrangler.toml`)
+- 添加 R2 bucket 绑定配置
+- 更新 .gitignore，排除临时文件和媒体文件
+
 ## [7.7.0] - 2025-02-28
 
 ### Added
