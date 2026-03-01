@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.1] - 2025-03-01
+
+### Fixed
+- **Slug 匹配问题修复**
+  - 修复 20 个素材页面 404 错误
+  - 添加缺失的 slugs，包括：
+    - april-fools-day-joke-english-conversation
+    - the-lion-and-the-mouse (80 句)
+    - the-cunning-fox-and-the-clever-stork (147 句)
+    - the-goose-that-laid-golden-eggs
+    - 以及其他 16 个素材
+  - 移除 3 个无效的 slugs：
+    - b5l2-dialogue（无对应素材）
+    - b5l4-dialogue（无对应素材）
+    - talking-about-a-trip-using-past-simple（素材无 transcript）
+  - 最终 slug 数量：70（对应 72 个有 transcript 的素材，有 2 对素材生成相同 slug）
+
+### Technical
+- Slug 生成逻辑验证和测试
+- 确认 slug 与素材的一一对应关系
+- 修复 TypeScript 类型错误（HTMLVideoElement.HAVE_METADATA）
+
 ## [7.8.0] - 2025-03-01
 
 ### Added
