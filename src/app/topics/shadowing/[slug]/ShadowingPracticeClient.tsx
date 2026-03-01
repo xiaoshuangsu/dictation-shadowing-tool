@@ -165,18 +165,20 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
           setAudioSrc(material.audio_path)
           setMaterialCategory(material.category)
 
-          // 🆕 检测是否为 R2 URL（通过检查 audio_path）
-          const isR2Url = material.audio_path && material.audio_path.includes('r2-proxy')
+          // 🆕 检测是否为视频文件（audio_path 包含 .mp4 或 -mp4）
+          const hasVideo = material.audio_path && (
+            material.audio_path.endsWith('.mp4') ||
+            material.audio_path.endsWith('-mp4') ||
+            material.audio_path.includes('.mp4')
+          )
 
-          if (isR2Url) {
-            // R2 音频 URL → 视频URL
-            const videoUrl = material.audio_path.replace('/audio/', '/videos/').replace('.mp3', '.mp4')
-            setVideoUrl(videoUrl)
+          if (hasVideo) {
+            // 直接使用 audio_path 作为视频 URL
+            setVideoUrl(material.audio_path)
             // 设置封面路径
             if (material.thumbnail_path) {
               setThumbnailPath(material.thumbnail_path)
             }
-            console.log('✅ 使用 R2 URL（中国可访问）')
           }
 
 
@@ -184,7 +186,6 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
 
           // Use transcript from material (like the original practice page)
           if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
-            console.log(`Loaded transcript with ${material.transcript.length} sentences`)
             // Convert startTime and endTime from strings to numbers
             const transcript = material.transcript.map((s: any) => ({
               ...s,
@@ -272,7 +273,6 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
 
     setIsRevealed(false)
     // 不自动跳转，让用户手动点击"下一句"按钮
-    console.log("handleComplete: Not auto-advancing. User must click Next button.")
   }
 
   // Adapter for DictationBox (matches expected signature)
@@ -311,7 +311,6 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
 
     setIsRevealed(false)
     // 不自动跳转，让用户手动点击"下一句"按钮
-    console.log("Dictation complete, not auto-advancing. User must click Next button.")
   }
 
   // Adapter for WordMode (matches expected signature)
@@ -348,7 +347,6 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
 
     setIsRevealed(false)
     // 不自动跳转，让用户手动点击"下一句"按钮
-    console.log("Word mode complete, not auto-advancing. User must click Next button.")
   }
 
   // Adapter for ShadowingPanel (matches expected signature)
@@ -385,7 +383,6 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
 
     setIsRevealed(false)
     // 不自动跳转，让用户手动点击"下一句"按钮
-    console.log("Shadowing complete, not auto-advancing. User must click Next button.")
   }
 
   const handleSentenceClick = (index: number) => {

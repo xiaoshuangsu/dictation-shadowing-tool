@@ -61,7 +61,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       startTimeRef.current = Date.now()
       pausedDurationRef.current = 0
       lastActivityRef.current = Date.now()
-      console.log('WordMode - Timing started')
     }
   }
 
@@ -69,7 +68,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   const pauseTiming = () => {
     if (timingStarted && !pauseStartRef.current) {
       pauseStartRef.current = Date.now()
-      console.log('WordMode - Timing paused')
     }
   }
 
@@ -79,7 +77,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       pausedDurationRef.current += pauseDuration
       pauseStartRef.current = null
       lastActivityRef.current = Date.now()
-      console.log('WordMode - Timing resumed')
     }
   }
 
@@ -94,7 +91,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
     inactivityTimerRef.current = setTimeout(() => {
       pauseTiming()
-      console.log('WordMode - Paused due to inactivity (60s)')
     }, 60000)
   }
 
@@ -124,7 +120,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
     // 有效性过滤
     if (rawSeconds < 3) {
-      console.log('WordMode - Time too short (< 3s):', rawSeconds)
       return 0
     }
 
@@ -132,18 +127,11 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     const maxSeconds = Math.min(180, audioDuration * 5)
     const effectiveSeconds = Math.min(rawSeconds, maxSeconds)
 
-    console.log('WordMode - Effective time:', {
-      raw: rawSeconds.toFixed(2),
-      effective: effectiveSeconds.toFixed(2),
-      max: maxSeconds
-    })
-
     return Math.round(effectiveSeconds)
   }
 
   // Reset when sentence changes
   useEffect(() => {
-    console.log('WordMode - useEffect triggered for sentence.id:', sentence.id)
     setUserInput("")
     setShowResult(false)
     setIsCorrect(null)
@@ -160,7 +148,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       clearTimeout(inactivityTimerRef.current)
       inactivityTimerRef.current = null
     }
-    console.log('WordMode - Reset complete for sentence.id:', sentence.id)
   }, [sentence.id])
 
   // Check if word is correct
@@ -173,9 +160,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   }
 
   const handleSubmitWord = () => {
-    console.log('WordMode - handleSubmitWord called')
     const correct = checkWordCorrect()
-    console.log('WordMode - Correct:', correct, 'Setting showResult to true')
     setShowResult(true)
     setIsCorrect(correct)
 
@@ -186,16 +171,13 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
     // V3.1: 计算有效作答时间（秒）
     const durationSeconds = calculateEffectiveTime()
-    console.log('WordMode - Duration:', durationSeconds, 'seconds')
 
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current)
     }
 
     if (onComplete) {
-      console.log('WordMode - Calling onComplete with:', { correct, durationSeconds })
       onComplete(correct, false, durationSeconds)
-      console.log('WordMode - onComplete callback completed')
     }
   }
 

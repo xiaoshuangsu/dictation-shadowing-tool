@@ -85,3 +85,4 @@ scripts/download_youtube_to_r2.py
 # Cloudflare R2 credentials
 .env.local
 scripts/.r2_credentials
+.r2_credentials
