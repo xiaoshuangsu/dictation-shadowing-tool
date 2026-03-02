@@ -393,7 +393,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                 <LocalizedLink
                   href={`/topics#${materialCategory}`}
                   className="text-gray-500 hover:text-blue-600"
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                     // 如果已经在 topics 页面，手动滚动
                     if (window.location.pathname === '/topics' || window.location.pathname === '/dictation-shadowing-tool/topics') {
                       e.preventDefault()
