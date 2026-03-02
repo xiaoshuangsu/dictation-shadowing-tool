@@ -19,15 +19,13 @@ export default function Navigation() {
   const userMenuRef = useRef<HTMLDivElement>(null)
 
   // Helper function to get localized path
+  // 注意：Next.js 的 basePath 配置会自动添加 /dictation-shadowing-tool，我们只需要处理语言前缀
   const getLocalizedPath = (path: string) => {
-    const isProd = process.env.NODE_ENV === 'production'
-    const basePath = isProd ? '/dictation-shadowing-tool' : ''
-
     // 中文是默认/权威语言，不加前缀；英文加 /en 前缀
     if (language === "en") {
-      return `${basePath}/en${path === "/" ? "" : path}`
+      return `/en${path === "/" ? "" : path}`
     }
-    return `${basePath}${path}`
+    return path
   }
 
   useEffect(() => {
