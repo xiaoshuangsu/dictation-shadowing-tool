@@ -129,8 +129,14 @@ export default function VideoPlayer({
               video.removeEventListener('progress', onProgress)
 
               if (typeof window !== 'undefined' && window.innerWidth < 768) {
-                const currentScroll = window.pageYOffset || document.documentElement.scrollTop
-                window.scrollTo({ top: currentScroll + 300, behavior: 'smooth' })
+                // 找到模式切换按钮容器
+                const modeSwitchBar = document.querySelector('[class*="sticky top-0 z-50"]') as HTMLElement
+                if (modeSwitchBar) {
+                  // 滚动到模式切换按钮位置，留出一些顶部间距
+                  const rect = modeSwitchBar.getBoundingClientRect()
+                  const scrollTop = window.pageYOffset + rect.top - 10
+                  window.scrollTo({ top: scrollTop, behavior: 'smooth' })
+                }
               }
 
               setupPlaybackListeners()
@@ -143,8 +149,14 @@ export default function VideoPlayer({
         }
 
         if (typeof window !== 'undefined' && window.innerWidth < 768) {
-          const currentScroll = window.pageYOffset || document.documentElement.scrollTop
-          window.scrollTo({ top: currentScroll + 300, behavior: 'smooth' })
+          // 找到模式切换按钮容器
+          const modeSwitchBar = document.querySelector('[class*="sticky top-0 z-50"]') as HTMLElement
+          if (modeSwitchBar) {
+            // 滚动到模式切换按钮位置，留出一些顶部间距
+            const rect = modeSwitchBar.getBoundingClientRect()
+            const scrollTop = window.pageYOffset + rect.top - 10
+            window.scrollTo({ top: scrollTop, behavior: 'smooth' })
+          }
         }
 
         setupPlaybackListeners()

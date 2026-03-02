@@ -1186,21 +1186,26 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         </div>
       )}
 
-      {/* 大麦克风按钮 */}
+      {/* 麦克风按钮 - 圆角四方形 + 文字 */}
       <div className="flex justify-center mb-4">
         <button
           onClick={isRecording ? stopRecording : startRecording}
           disabled={!recognition || !mediaRecorder}
-          className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
+          className={`flex items-center gap-3 px-6 py-3 rounded-lg transition-all ${
             isRecording
-              ? "bg-red-500 text-white scale-100 shadow-lg"
-              : "bg-blue-500 text-white hover:bg-blue-600 hover:scale-100 shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:scale-100"
+              ? "bg-red-500 text-white shadow-lg"
+              : "bg-blue-500 text-white hover:bg-blue-600 shadow-md disabled:bg-gray-300 disabled:cursor-not-allowed"
           }`}
         >
-          <svg className={`w-8 h-8 ${isRecording ? "animate-pulse" : ""}`} fill="currentColor" viewBox="0 0 24 24">
+          {/* 麦克风图标 */}
+          <svg className={`w-6 h-6 ${isRecording ? "animate-pulse" : ""}`} fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3s-3 1.34-3 3v6c0 1.66 1.34 3 3 3z"/>
             <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
           </svg>
+          {/* 文字 */}
+          <span className="text-sm font-medium whitespace-nowrap">
+            {isRecording ? "结束录音" : "开始录音"}
+          </span>
         </button>
       </div>
 

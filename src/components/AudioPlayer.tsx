@@ -16,238 +16,125 @@ interface AudioPlayerProps {
   autoPlayTrigger?: number
   onPlayEnd?: () => void
   onTimeUpdate?: (currentTime: number) => void
-  onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void // 新增：累计播放时间回调
+  onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void
 }
 
-// 固定音量（不再使用 localStorage，因为已删除音量控制按钮）
-const getSavedVolume = (): number => {
-  return 0.25 // 固定 0.25（温和适中）
-}
-
-export default function AudioPlayer({ audioSrc, currentSentence, playbackRate = 1, autoPlayTrigger = 0, onPlayEnd, onTimeUpdate, onPlaybackTimeUpdate }: AudioPlayerProps) {
+export default function AudioPlayer({
+  audioSrc,
+  currentSentence,
+  playbackRate = 1,
+  autoPlayTrigger = 0,
+  onPlayEnd,
+  onTimeUpdate,
+  onPlaybackTimeUpdate
+}: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const prevTriggerRef = useRef(0)
 
-  // 音量控制（使用 volume 并设置合理的默认值）
-  const [volume, setVolume] = useState<number>(getSavedVolume)
-
-  // 初始化音频音量
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
-  }, [volume])
-
-  // 在 audioRef 改变时也设置音量
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = volume
-    }
-  }, [audioRef, volume])
-
-  // 监听 localStorage 变化
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'audioVolume' && e.newValue !== null) {
-        const newVolume = parseFloat(e.newValue)
-        // localStorage 音量变化处理
-      }
-    }
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [])
-
-  // 真实播放时间跟踪
-  const [isAudioPlaying, setIsAudioPlaying] = useState(false)
+  // 播放时间跟踪
+  const isPlayingRef = useRef(false)
   const lastUpdateTimeRef = useRef<number>(0)
   const totalPlayedSecondsRef = useRef<number>(0)
 
-  // 存储当前播放的 timeout 和清理函数
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  // 清理函数
   const cleanupRef = useRef<(() => void) | null>(null)
 
-  // 清理之前的播放状态
-  const cleanupPreviousPlayback = () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
+  const clearListeners = () => {
     if (cleanupRef.current) {
       cleanupRef.current()
       cleanupRef.current = null
     }
-    // 不在这里暂停，让新的 play() 调用自然处理
-    setIsPlaying(false)
-    setIsAudioPlaying(false)
   }
 
   const playSentence = () => {
-    cleanupPreviousPlayback()
-
-    if (audioRef.current) {
-      const audio = audioRef.current
-
-      // 设置新的时间和播放速率
-      audio.currentTime = currentSentence.startTime
-      audio.playbackRate = playbackRate
-      audio.volume = volume // 确保音量设置正确
-
-      // 移动端：向下滚动，隐藏素材标题，显示模式切换按钮和练习区域
-      if (typeof window !== 'undefined' && window.innerWidth < 768) {
-        setTimeout(() => {
-          const currentScroll = window.pageYOffset || document.documentElement.scrollTop
-          // 向下滚动 300px，将素材标题完全移出视口
-          window.scrollTo({
-            top: currentScroll + 300,
-            behavior: 'smooth'
-          })
-        }, 100)
-      }
-
-      // 添加播放时间跟踪
-      const handlePlay = () => {
-        if (!isAudioPlaying) {
-          setIsAudioPlaying(true)
-          lastUpdateTimeRef.current = Date.now()
-        }
-      }
-
-      const handlePause = () => {
-        if (isAudioPlaying) {
-          const now = Date.now()
-          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
-          totalPlayedSecondsRef.current += elapsedSeconds
-
-          // 通知父组件累计播放时间
-          if (onPlaybackTimeUpdate) {
-            onPlaybackTimeUpdate(totalPlayedSecondsRef.current)
-          }
-
-          setIsAudioPlaying(false)
-        }
-      }
-
-      const handleTimeUpdate = () => {
-        // 检查是否播放到指定时间，如果是则停止
-        if (audio.currentTime >= currentSentence.endTime) {
-          audio.pause()
-          setIsPlaying(false)
-          if (cleanupRef.current) {
-            cleanupRef.current()
-            cleanupRef.current = null
-          }
-          return
-        }
-
-        if (isAudioPlaying) {
-          const now = Date.now()
-          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
-          lastUpdateTimeRef.current = now
-
-          // 累计播放时间
-          totalPlayedSecondsRef.current += elapsedSeconds
-
-          // 通知父组件累计播放时间
-          if (onPlaybackTimeUpdate) {
-            onPlaybackTimeUpdate(totalPlayedSecondsRef.current)
-          }
-        }
-      }
-
-      const handleEnded = () => {
-        if (isAudioPlaying) {
-          const now = Date.now()
-          const elapsedSeconds = (now - lastUpdateTimeRef.current) / 1000
-          totalPlayedSecondsRef.current += elapsedSeconds
-
-          // 通知父组件累计播放时间
-          if (onPlaybackTimeUpdate) {
-            onPlaybackTimeUpdate(totalPlayedSecondsRef.current)
-          }
-
-          setIsAudioPlaying(false)
-        }
-      }
-
-      // 添加事件监听器
-      audio.addEventListener('play', handlePlay)
-      audio.addEventListener('pause', handlePause)
-      audio.addEventListener('timeupdate', handleTimeUpdate)
-      audio.addEventListener('ended', handleEnded)
-
-      // 保存清理函数
-      cleanupRef.current = () => {
-        audio.removeEventListener('play', handlePlay)
-        audio.removeEventListener('pause', handlePause)
-        audio.removeEventListener('timeupdate', handleTimeUpdate)
-        audio.removeEventListener('ended', handleEnded)
-      }
-
-      // 播放音频
-      const playPromise = audio.play()
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          setIsPlaying(true)
-        }).catch(err => {
-          console.error('AudioPlayer - Play error:', err)
-          setIsPlaying(false)
-        })
-      }
-    }
-  }
-
-  // Set up timeupdate event listener
-  useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
 
+    clearListeners()
+
+    // 设置参数
+    audio.playbackRate = playbackRate
+    audio.volume = 0.25
+
+    // 创建事件处理器
     const handleTimeUpdate = () => {
       if (onTimeUpdate) {
         onTimeUpdate(audio.currentTime)
       }
+
+      // 播放时间统计
+      if (isPlayingRef.current) {
+        const now = Date.now()
+        const elapsed = (now - lastUpdateTimeRef.current) / 1000
+        lastUpdateTimeRef.current = now
+        totalPlayedSecondsRef.current += elapsed
+
+        if (onPlaybackTimeUpdate) {
+          onPlaybackTimeUpdate(totalPlayedSecondsRef.current)
+        }
+      }
+
+      // 检查是否播放结束
+      if (audio.currentTime >= currentSentence.endTime) {
+        audio.pause()
+        setIsPlaying(false)
+        isPlayingRef.current = false
+        clearListeners()
+        if (onPlayEnd) onPlayEnd()
+      }
     }
 
-    audio.addEventListener('timeupdate', handleTimeUpdate)
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate)
+    const handlePlay = () => {
+      setIsPlaying(true)
+      isPlayingRef.current = true
+      lastUpdateTimeRef.current = Date.now()
     }
-  }, [onTimeUpdate])
+
+    const handlePause = () => {
+      setIsPlaying(false)
+      isPlayingRef.current = false
+    }
+
+    // 添加监听器
+    audio.addEventListener('timeupdate', handleTimeUpdate)
+    audio.addEventListener('play', handlePlay)
+    audio.addEventListener('pause', handlePause)
+
+    cleanupRef.current = () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate)
+      audio.removeEventListener('play', handlePlay)
+      audio.removeEventListener('pause', handlePause)
+    }
+
+    // 设置播放位置并播放
+    audio.currentTime = currentSentence.startTime
+
+    // 等待seek完成后播放
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        audio.play().then(() => {
+          setIsPlaying(true)
+        }).catch(err => {
+          console.error('Play error:', err)
+          setIsPlaying(false)
+        })
+      })
+    })
+  }
 
   // Auto-play when trigger changes
   useEffect(() => {
     if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
       prevTriggerRef.current = autoPlayTrigger
-      // Small delay to ensure the sentence has changed
-      setTimeout(() => {
-        playSentence()
-      }, 100)
+      setTimeout(() => playSentence(), 50)
     }
-  }, [autoPlayTrigger, currentSentence.id, playbackRate])
+  }, [autoPlayTrigger, currentSentence])
 
-  // 组件卸载时清理
+  // 清理
   useEffect(() => {
-    return () => {
-      cleanupPreviousPlayback()
-    }
+    return () => clearListeners()
   }, [])
 
-  return (
-    <div className="flex items-center gap-2">
-      <audio
-        ref={audioRef}
-        src={audioSrc}
-      />
-
-      {/* Play/Replay Button */}
-      <button
-        onClick={playSentence}
-        className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
-      >
-        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-          <path d={isPlaying ? "M6 19h4V5H6v14zm8-14v14h4V5h-4z" : "M8 5v14l11-7z"} />
-        </svg>
-      </button>
-    </div>
-  )
+  return <audio ref={audioRef} src={audioSrc} preload="auto" />
 }

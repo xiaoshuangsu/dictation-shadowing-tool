@@ -16,12 +16,27 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export function MaterialCard({ material, onPlay }: MaterialCardProps) {
-  // 硬编码 Supabase URL（GitHub Pages 静态构建无法使用环境变量）
+  // R2 Worker URL（图片和视频已迁移到 R2）
+  const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
   const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
 
-  // 获取缩略图 URL
+  // 获取缩略图 URL（R2 优先，fallback 到 Supabase）
   const getThumbnailUrl = (path: string | null) => {
     if (!path) return null
+    // 如果已经是完整 URL，直接使用
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path
+    }
+    // 优先使用 R2 Worker URL
+    return `${R2_WORKER_URL}/${path}`
+  }
+
+  // 获取 Supabase fallback URL
+  const getSupabaseUrl = (path: string | null) => {
+    if (!path) return null
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path
+    }
     return `${SUPABASE_URL}/storage/v1/object/public/engnovate-audio/${path}`
   }
 
@@ -46,6 +61,20 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   }
 
   const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
+  const supabaseUrl = getSupabaseUrl(material.thumbnail_path)
+
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget
+    const currentSrc = img.src
+
+    // 如果当前是 R2 URL，尝试 Supabase Storage
+    if (currentSrc.includes('r2-proxy') && supabaseUrl) {
+      img.src = supabaseUrl
+    } else {
+      // 都失败了，隐藏图片，显示占位符
+      img.style.display = 'none'
+    }
+  }
 
   return (
     <div
@@ -59,6 +88,7 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
             src={thumbnailUrl}
             alt={material.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={handleImageError}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
