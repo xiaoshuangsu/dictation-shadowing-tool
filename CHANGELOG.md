@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.4] - 2025-03-02
+
+### Fixed
+- **TypeScript类型错误**
+  - 修复DictationPracticeClient中onClick事件处理器的类型注解
+  - 修复ShadowingPracticeClient中onClick事件处理器的类型注解
+  - 确保GitHub Pages构建成功
+
 ## [7.8.3] - 2025-03-02
 
 ### Changed
