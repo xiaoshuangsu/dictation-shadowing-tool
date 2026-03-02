@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
 
-export type Language = "en" | "zh"
+export type Language = "zh" | "en"
 
 interface LanguageContextType {
   language: Language
@@ -632,12 +632,12 @@ interface LanguageProviderProps {
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setLanguage] = useState<Language>("en")
+  const [language, setLanguage] = useState<Language>("zh")
 
   useEffect(() => {
     // Detect language from localStorage or cookie
     const savedLang = localStorage.getItem("language") as Language
-    if (savedLang && (savedLang === "en" || savedLang === "zh")) {
+    if (savedLang && (savedLang === "zh" || savedLang === "en")) {
       setLanguage(savedLang)
     }
   }, [])
