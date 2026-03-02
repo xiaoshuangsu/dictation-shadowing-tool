@@ -20,10 +20,13 @@ export default function Navigation() {
 
   // Helper function to get localized path
   const getLocalizedPath = (path: string) => {
+    const isProd = process.env.NODE_ENV === 'production'
+    const basePath = isProd ? '/dictation-shadowing-tool' : ''
+
     if (language === "zh") {
-      return `/zh-CN${path === "/" ? "" : path}`
+      return `${basePath}/zh-CN${path === "/" ? "" : path}`
     }
-    return path
+    return `${basePath}${path}`
   }
 
   useEffect(() => {
