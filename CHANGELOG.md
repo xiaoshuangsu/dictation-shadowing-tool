@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.3] - 2025-03-02
+
+### Changed
+- **AudioPlayer组件重构**
+  - 简化播放逻辑，从400行减少到140行
+  - 使用requestAnimationFrame替代复杂的事件处理
+  - 移除seeked事件的重试逻辑，提升播放响应速度
+  - 直接设置currentTime并播放，减少延迟
+
+- **素材卡片布局优化**
+  - 单个卡片保持固定宽度，不拉伸填满整行
+  - 右侧留白，卡片位置在左侧第一格
+  - 使用max-width和flex-1组合实现响应式布局
+  - 支持不同屏幕尺寸：1/4/4列布局
+
+- **练习页面布局调整**
+  - 优化三栏高度设置，更好利用屏幕空间
+  - 调整左右两侧的padding和margin间隙
+  - 改善整体视觉平衡
+
+- **听写和影子跟读模式样式改进**
+  - 优化单词模式和整句模式的显示样式
+  - 统一交互体验
+
+### Fixed
+- **Audio播放定位问题**
+  - 修复音频播放时无法正确跳转到指定时间的问题
+  - 确保每个句子从正确的startTime开始播放
+  - 在endTime时准确停止播放
+
+- **Transcript数据结构**
+  - 修复id属性覆盖问题，使用`s.id ?? index`保留数据库中已有id
+  - 确保AudioPlayer正确检测句子变化
+
+### Removed
+- **删除素材分类和卡片**
+  - 删除"历史演讲"分类（9个素材，包括Bill Clinton系列）
+  - 删除"YouTube Vlog"分类（4个素材）
+  - 删除"故事"分类中的多个素材（17个）
+  - 总计删除30个素材
+
+### Technical
+- 主要修改文件：
+  - `src/components/AudioPlayer.tsx` - 完全重构，简化代码
+  - `src/app/topics/page.tsx` - 卡片响应式布局
+  - `src/app/topics/dictation/[slug]/DictationPracticeClient.tsx` - 修复id属性，布局优化
+  - `src/app/topics/shadowing/[slug]/ShadowingPracticeClient.tsx` - 布局优化
+  - `src/components/topics/MaterialCard.tsx` - 卡片布局
+  - `src/components/ShadowingPanel.tsx` - 样式改进
+  - `src/components/VideoPlayer.tsx` - 样式调整
+  - `src/hooks/useSuccessSound.ts` - 音效处理优化
+
 ## [7.8.2] - 2025-03-01
 
 ### Added

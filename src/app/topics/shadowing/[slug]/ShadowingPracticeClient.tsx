@@ -163,8 +163,23 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
         if (material) {
           setMaterialId(material.id)
           setAudioTitle(material.title)
-          setAudioSrc(material.audio_path)
           setMaterialCategory(material.category)
+
+          // R2 Worker 基础 URL
+          const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+
+          // 构造完整的 URL
+          const getFullUrl = (path: string | null) => {
+            if (!path) return null
+            if (path.startsWith('http://') || path.startsWith('https://')) {
+              return path
+            }
+            return `${R2_WORKER_URL}/${path}`
+          }
+
+          // 设置音频/视频 URL
+          const fullAudioPath = getFullUrl(material.audio_path)
+          setAudioSrc(fullAudioPath)
 
           // 🆕 检测是否为视频文件（audio_path 包含 .mp4 或 -mp4）
           const hasVideo = material.audio_path && (
@@ -173,15 +188,15 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
             material.audio_path.includes('.mp4')
           )
 
-          if (hasVideo) {
-            // 直接使用 audio_path 作为视频 URL
-            setVideoUrl(material.audio_path)
-            // 设置封面路径
-            if (material.thumbnail_path) {
-              setThumbnailPath(material.thumbnail_path)
-            }
+          if (hasVideo && fullAudioPath) {
+            setVideoUrl(fullAudioPath)
           }
 
+          // 设置缩略图
+          if (material.thumbnail_path) {
+            const thumbnailUrl = getFullUrl(material.thumbnail_path)
+            setThumbnailPath(thumbnailUrl)
+          }
 
           setMaterialCategory(material.category)
 
@@ -454,7 +469,20 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
             {materialCategory && (
               <>
                 <span className="mx-2 text-gray-400">›</span>
-                <LocalizedLink href={`/topics#${materialCategory}`} className="text-gray-500 hover:text-blue-600">{getCategoryLabel(materialCategory, language)}</LocalizedLink>
+                <LocalizedLink
+                  href={`/topics#${materialCategory}`}
+                  className="text-gray-500 hover:text-blue-600"
+                  onClick={(e) => {
+                    // 如果已经在 topics 页面，手动滚动
+                    if (window.location.pathname === '/topics' || window.location.pathname === '/dictation-shadowing-tool/topics') {
+                      e.preventDefault()
+                      const element = document.getElementById(materialCategory)
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }
+                    }
+                  }}
+                >{getCategoryLabel(materialCategory, language)}</LocalizedLink>
               </>
             )}
             {audioTitle && (
@@ -473,7 +501,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200 md:static sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-center">
           <div className="inline-flex bg-gray-100 rounded-lg p-1">
             {/* 听写按钮 - 带下拉框 */}

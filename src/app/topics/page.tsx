@@ -236,8 +236,8 @@ export default function MaterialsPage() {
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path
     }
-    // 否则拼接Supabase Storage URL
-    return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${path}`
+    // 使用 R2 Worker URL
+    return `https://r2-proxy.suxiaoshuang2020.workers.dev/${path}`
   }
 
   // 格式化时长
@@ -334,7 +334,7 @@ export default function MaterialsPage() {
                 : categoryMaterials.slice(0, 4) // 默认只显示4个
 
               return (
-                <section key={categoryId} id={categoryId}>
+                <section key={categoryId} id={categoryId} className="scroll-mt-4">
                   {/* Section Header */}
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">
@@ -361,26 +361,45 @@ export default function MaterialsPage() {
                     )}
                   </div>
 
-                  {/* Card Grid - Flex 单行，超出隐藏 */}
-                  <div className="flex gap-4 overflow-hidden">
-                    {displayedMaterials.slice(0, 4).map((material, index) => {
+                  {/* Card Grid - 折叠时单行，展开时网格换行 */}
+                  <div className={isExpanded ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "flex gap-4 overflow-hidden"}>
+                    {displayedMaterials.map((material, index) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
+                      // Fallback 到 Supabase Storage
+                      const supabaseUrl = material.thumbnail_path
+                        ? `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.thumbnail_path}`
+                        : null
 
                       const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-                        console.warn('缩略图加载失败:', thumbnailUrl)
-                        console.warn('素材 ID:', material.id, '缩略图路径:', material.thumbnail_path)
-                        e.currentTarget.style.display = 'none'
+                        const img = e.currentTarget
+                        const currentSrc = img.src
+
+                        // 如果当前是 R2 URL，尝试 Supabase Storage
+                        if (currentSrc.includes('r2-proxy') && supabaseUrl) {
+                          console.log('R2 加载失败，尝试 Supabase Storage:', supabaseUrl)
+                          img.src = supabaseUrl
+                        } else {
+                          // 都失败了，隐藏图片
+                          console.warn('缩略图加载失败:', material.thumbnail_path)
+                          img.style.display = 'none'
+                        }
                       }
 
-                      // 响应式显示：确保单行，空间不足时隐藏后面的卡片
+                      // 只在折叠时应用响应式隐藏和宽度控制
                       const getResponsiveClass = (idx: number) => {
-                        const classes = ['flex-1'] // 所有卡片都 flex-1 等宽
-                        // index 1: sm+ (640px) 显示
-                        if (idx === 1) classes.push('hidden', 'sm:block')
-                        // index 2: md+ (768px) 显示
-                        if (idx === 2) classes.push('hidden', 'md:block')
-                        // index 3: lg+ (1024px) 显示
-                        if (idx === 3) classes.push('hidden', 'lg:block')
+                        if (isExpanded) return '' // 展开时显示所有
+                        // 使用 flex-1 均匀分配空间，同时用 max-width 限制单卡片宽度
+                        const classes = [
+                          'flex-1',                    // 多卡片时均匀分配空间
+                          'w-full',                    // 基础宽度
+                          'sm:max-w-[50%]',            // sm断点最大50%（显示2个）
+                          'lg:max-w-[33.333%]',        // lg断点最大33.33%（显示3个）
+                          'xl:max-w-[25%]'             // xl断点最大25%（显示4个）
+                        ]
+                        // 卡片2+: sm (640px) 以下隐藏
+                        if (idx >= 2) classes.push('hidden', 'sm:block')
+                        // 卡片3+: md (768px) 到 lg (1024px) 之间隐藏
+                        if (idx >= 3) classes.push('md:hidden', 'lg:block')
                         return classes.join(' ')
                       }
 
@@ -388,7 +407,6 @@ export default function MaterialsPage() {
                         <div
                           key={material.id}
                           className={`bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group ${getResponsiveClass(index)}`}
-                          style={{ minWidth: '240px' }}
                         >
                           {/* 统一纵向卡片布局，支持弹性缩放 */}
                           <div className="flex flex-col">

@@ -173,47 +173,48 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
         if (material) {
           setMaterialId(material.id)
           setAudioTitle(material.title)
-          // 直接使用 material.audio_path（可能是 R2 URL 或 Supabase Storage 路径）
-          setAudioSrc(material.audio_path)
           setMaterialCategory(material.category)
 
-          // 检测是否为 R2 URL
-          const isR2Url = material.audio_path && material.audio_path.includes('r2-proxy')
+          // R2 Worker 基础 URL
+          const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
 
-          if (isR2Url) {
-            // 设置音频 URL
-            setAudioSrc(material.audio_path)
-
-            // 检查是否真的有视频文件（audio_path 包含 .mp4 或 -mp4）
-            const hasVideo = material.audio_path && (material.audio_path.endsWith('.mp4') || material.audio_path.endsWith('-mp4') || material.audio_path.includes('.mp4'))
-
-            if (hasVideo) {
-              // R2 视频 URL
-              setVideoUrl(material.audio_path)
-              // 同时设置封面（如果有）
-              if (material.thumbnail_path) {
-                const thumbnailUrl = material.thumbnail_path.startsWith('http')
-                  ? material.thumbnail_path
-                  : material.thumbnail_path
-                setThumbnailPath(thumbnailUrl)
-              }
-            } else {
-              // 只有音频，设置封面（如果有）
-              if (material.thumbnail_path) {
-                // 需要构造完整的 R2 URL
-                const thumbnailUrl = material.thumbnail_path.startsWith('http')
-                  ? material.thumbnail_path
-                  : `${material.audio_path.split('/audio/')[0]}/thumbnails/${material.thumbnail_path.split('/')[-1]}`
-                setThumbnailPath(thumbnailUrl)
-              }
+          // 构造完整的 URL
+          const getFullUrl = (path: string | null) => {
+            if (!path) return null
+            if (path.startsWith('http://') || path.startsWith('https://')) {
+              return path
             }
+            return `${R2_WORKER_URL}/${path}`
+          }
+
+          // 设置音频/视频 URL
+          const fullAudioPath = getFullUrl(material.audio_path)
+          setAudioSrc(fullAudioPath)
+
+          // 检查是否是视频文件
+          const hasVideo = material.audio_path && (
+            material.audio_path.endsWith('.mp4') ||
+            material.audio_path.endsWith('-mp4') ||
+            material.audio_path.includes('.mp4')
+          )
+
+          if (hasVideo && fullAudioPath) {
+            setVideoUrl(fullAudioPath)
+          }
+
+          // 设置缩略图
+          if (material.thumbnail_path) {
+            const thumbnailUrl = getFullUrl(material.thumbnail_path)
+            setThumbnailPath(thumbnailUrl)
           }
 
           // Use transcript from material (like the original practice page)
           if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
             // Convert startTime and endTime from strings to numbers
-            const transcript = material.transcript.map((s: any) => ({
+            const transcript = material.transcript.map((s: any, index: number) => ({
               ...s,
+              // 只在没有id时才添加
+              id: s.id ?? index,
               startTime: parseFloat(s.startTime),
               endTime: parseFloat(s.endTime),
             }))
@@ -257,6 +258,10 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
       const nextIndex = currentSentenceIndex + 1
       setCurrentSentenceIndex(nextIndex)
       setAutoPlayTrigger(prev => prev + 1)
+      // 切换到下一句后，设置为已播放（延迟执行，确保在 useEffect 重置之后）
+      setTimeout(() => {
+        setHasPlayedCurrent(true)
+      }, 0)
     }
   }
 
@@ -385,7 +390,20 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
             {materialCategory && (
               <>
                 <span className="mx-2 text-gray-400">›</span>
-                <LocalizedLink href={`/topics#${materialCategory}`} className="text-gray-500 hover:text-blue-600">{getCategoryLabel(materialCategory, language)}</LocalizedLink>
+                <LocalizedLink
+                  href={`/topics#${materialCategory}`}
+                  className="text-gray-500 hover:text-blue-600"
+                  onClick={(e) => {
+                    // 如果已经在 topics 页面，手动滚动
+                    if (window.location.pathname === '/topics' || window.location.pathname === '/dictation-shadowing-tool/topics') {
+                      e.preventDefault()
+                      const element = document.getElementById(materialCategory)
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }
+                    }
+                  }}
+                >{getCategoryLabel(materialCategory, language)}</LocalizedLink>
               </>
             )}
             {audioTitle && (
@@ -404,7 +422,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200 md:static sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-center">
           <div className="inline-flex bg-gray-100 rounded-lg p-1">
             <button
@@ -487,7 +505,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
 
             {/* Hidden Audio Player (for audio-only materials) */}
             {audioSrc && !videoUrl && currentSentence && (
-              <div style={{ display: 'none' }}>
+              <div style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden' }}>
                 <AudioPlayer
                   audioSrc={audioSrc}
                   currentSentence={currentSentence}
