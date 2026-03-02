@@ -9,8 +9,12 @@ interface LocalizedLinkProps {
 }
 
 export default function LocalizedLink({ href, children, className, ...props }: LocalizedLinkProps) {
+  // 在生产环境添加 basePath
+  const isProd = process.env.NODE_ENV === 'production'
+  const basePath = isProd ? '/dictation-shadowing-tool' : ''
+
   return (
-    <Link href={href} className={className} {...props}>
+    <Link href={`${basePath}${href}`} className={className} {...props}>
       {children}
     </Link>
   )
