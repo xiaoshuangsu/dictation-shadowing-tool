@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.2] - 2025-03-01
+
+### Added
+- **听写模式筛选器**
+  - 在输入标签右侧添加模式下拉框，支持"单词"和"整句"切换
+  - 自定义下拉组件，白色背景，灰色边框，阴影悬浮效果
+  - 触发按钮显示当前选中模式，下拉箭头指示可展开
+  - 移除顶部标题下方的旧模式下拉框，简化UI布局
+
+- **显示文稿功能**
+  - 右栏"原文"改为可点击的"显示文稿"按钮
+  - 默认隐藏文稿内容，每个单词显示为星号（如：`**** ****** ***`）
+  - 点击按钮后显示完整英文原文和中文翻译
+  - 再次点击变为"隐藏文稿"
+  - 隐藏状态下不显示中文翻译，防止剧透
+
+### Changed
+- **标签统一**
+  - 单词模式和整句模式标签统一为"输入您听到的内容："
+  - 移除原有的"输入缺失的单词："标签
+  - 提升UI一致性
+
+- **布局高度优化**
+  - 右栏最大高度从 600px 增加到 850px
+  - 更好利用屏幕空间，减少下方空白区域
+  - 应用到听写和影子跟读两个练习页面
+
+- **翻译文本简化**
+  - "输入缺失的单词："改为"输入："
+  - 中英文翻译同步更新
+
+### Technical
+- 修改文件：
+  - `src/components/WordMode.tsx` - 添加模式下拉框，统一标签
+  - `src/components/DictationBox.tsx` - 添加模式下拉框
+  - `src/contexts/LanguageContext.tsx` - 更新翻译文本
+  - `src/app/topics/dictation/[slug]/DictationPracticeClient.tsx` - 移除顶部下拉框，添加显示文稿功能，增加高度
+  - `src/app/topics/shadowing/[slug]/ShadowingPracticeClient.tsx` - 添加显示文稿功能，增加高度
+- 下拉组件样式：bg-white, border-gray-200, shadow-xl, whitespace-nowrap
+- 星号生成逻辑：每个单词最多4个星号，保持单词数量一致
+
 ## [7.8.1] - 2025-03-01
 
 ### Fixed
