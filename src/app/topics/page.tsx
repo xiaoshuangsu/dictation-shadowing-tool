@@ -281,7 +281,7 @@ export default function MaterialsPage() {
       </div>
 
       {/* 筛选栏 + 素材列表：共用同一个容器 */}
-      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
         {/* 筛选栏 */}
         {!loading && (
           <div className="mt-12 mb-10">
@@ -361,9 +361,9 @@ export default function MaterialsPage() {
                     )}
                   </div>
 
-                  {/* Card Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {displayedMaterials.map((material) => {
+                  {/* Card Grid - Flex 单行，超出隐藏 */}
+                  <div className="flex gap-4 overflow-hidden">
+                    {displayedMaterials.slice(0, 4).map((material, index) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
 
                       const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -372,15 +372,28 @@ export default function MaterialsPage() {
                         e.currentTarget.style.display = 'none'
                       }
 
+                      // 响应式显示：确保单行，空间不足时隐藏后面的卡片
+                      const getResponsiveClass = (idx: number) => {
+                        const classes = ['flex-1'] // 所有卡片都 flex-1 等宽
+                        // index 1: sm+ (640px) 显示
+                        if (idx === 1) classes.push('hidden', 'sm:block')
+                        // index 2: md+ (768px) 显示
+                        if (idx === 2) classes.push('hidden', 'md:block')
+                        // index 3: lg+ (1024px) 显示
+                        if (idx === 3) classes.push('hidden', 'lg:block')
+                        return classes.join(' ')
+                      }
+
                       return (
                         <div
                           key={material.id}
-                          className="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group"
+                          className={`bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group ${getResponsiveClass(index)}`}
+                          style={{ minWidth: '240px' }}
                         >
-                          {/* 移动端：横向卡片布局，中屏及以上垂直布局 */}
-                          <div className="flex flex-row md:flex-col">
-                            {/* 左侧：缩略图 */}
-                            <div className="w-32 md:w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 flex-shrink-0 overflow-hidden">
+                          {/* 统一纵向卡片布局，支持弹性缩放 */}
+                          <div className="flex flex-col">
+                            {/* 缩略图 */}
+                            <div className="w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
                               {thumbnailUrl ? (
                                 <img
                                   src={thumbnailUrl}
@@ -397,24 +410,24 @@ export default function MaterialsPage() {
                               )}
 
                               {/* 左上角：难度标签 */}
-                              <div className="absolute top-2 left-2 md:top-3 md:left-3">
-                                <span className={`px-2 py-1 md:px-3 md:py-1.5 rounded text-xs md:text-sm font-bold border-2 ${DIFFICULTY_COLORS[material.difficulty]}`}>
+                              <div className="absolute top-2 left-2">
+                                <span className={`px-2 py-1 rounded text-xs font-bold border-2 ${DIFFICULTY_COLORS[material.difficulty]}`}>
                                   {material.difficulty}
                                 </span>
                               </div>
 
                               {/* 右下角：播放时长 */}
                               {material.duration && (
-                                <div className="absolute bottom-2 right-2 md:bottom-3 md:right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 md:px-2.5 md:py-1 rounded text-xs font-medium">
+                                <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-xs font-medium">
                                   {formatDuration(material.duration)}
                                 </div>
                               )}
                             </div>
 
-                            {/* 右侧：内容区域 */}
-                            <div className="flex-1 p-3 md:p-4 flex flex-col justify-between">
+                            {/* 内容区域 */}
+                            <div className="p-3 flex flex-col justify-between">
                               {/* 标题 */}
-                              <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-2 md:mb-3 line-clamp-2">
+                              <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-2 md:mb-3 line-clamp-1">
                                 {material.title}
                               </h3>
 
@@ -422,13 +435,13 @@ export default function MaterialsPage() {
                               <div className="flex gap-2">
                                 <LocalizedLink
                                   href={`/topics/dictation/${titleToSlug(material.title)}`}
-                                  className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-blue-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                                  className="flex-1 text-center px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
                                 >
                                   {t("topics.dictation")}
                                 </LocalizedLink>
                                 <LocalizedLink
                                   href={`/topics/shadowing/${titleToSlug(material.title)}`}
-                                  className="flex-1 text-center px-3 py-1.5 md:px-3 md:py-1.5 bg-gray-600 text-white text-xs md:text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
+                                  className="flex-1 text-center px-2 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
                                 >
                                   {t("topics.shadowing")}
                                 </LocalizedLink>

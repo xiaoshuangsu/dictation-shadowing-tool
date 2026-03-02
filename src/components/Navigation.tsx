@@ -23,8 +23,9 @@ export default function Navigation() {
     const isProd = process.env.NODE_ENV === 'production'
     const basePath = isProd ? '/dictation-shadowing-tool' : ''
 
-    if (language === "zh") {
-      return `${basePath}/zh-CN${path === "/" ? "" : path}`
+    // 中文是默认/权威语言，不加前缀；英文加 /en 前缀
+    if (language === "en") {
+      return `${basePath}/en${path === "/" ? "" : path}`
     }
     return `${basePath}${path}`
   }
