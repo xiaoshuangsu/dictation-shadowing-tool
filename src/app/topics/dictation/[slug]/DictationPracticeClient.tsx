@@ -92,18 +92,17 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
 
   const [mode, setMode] = useState<PracticeMode>("dictation")
   const [dictationMode, setDictationMode] = useState<DictationMode>("word")
-  const [isDictationModeOpen, setIsDictationModeOpen] = useState(false)
-  const [isDictationDropdownOpen, setIsDictationDropdownOpen] = useState(false)
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(startIndex)
   const [completedSentences, setCompletedSentences] = useState<Set<number>>(new Set())
   const [correctSentences, setCorrectSentences] = useState<Set<number>>(new Set())
   const [incorrectSentences, setIncorrectSentences] = useState<Set<number>>(new Set())
   const [correctCount, setCorrectCount] = useState(0)
   const [isRevealed, setIsRevealed] = useState(false)
-  const [showTranscript, setShowTranscript] = useState(false)
+  const [showTranscript, setShowTranscript] = useState(false)  // 默认隐藏文稿
   const [currentTime, setCurrentTime] = useState(0)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [autoPlayTrigger, setAutoPlayTrigger] = useState(0)
+  const [hasPlayedCurrent, setHasPlayedCurrent] = useState(false)
 
   const audioPlaybackSecondsRef = useRef(0)
 
@@ -261,6 +260,23 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
     }
   }
 
+  // 播放按钮：第一次点击播放当前句子，第二次点击播放下一句
+  const handlePlayOrNext = () => {
+    if (hasPlayedCurrent) {
+      // 已播放过，播放下一句
+      handleNext()
+    } else {
+      // 第一次点击，播放当前句子
+      setAutoPlayTrigger(prev => prev + 1)
+      setHasPlayedCurrent(true)
+    }
+  }
+
+  // 重置播放状态当句子索引改变
+  useEffect(() => {
+    setHasPlayedCurrent(false)
+  }, [currentSentenceIndex])
+
   const handleComplete = (isCorrect: boolean, usedShowWords: boolean = false, duration?: number) => {
     const newCompleted = new Set(completedSentences)
     newCompleted.add(currentSentenceIndex)
@@ -390,89 +406,29 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
 
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4 flex justify-center">
-          <div className="inline-flex bg-gray-100 rounded-lg p-1 relative">
+          <div className="inline-flex bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => {
-                if (mode === 'dictation') {
-                  // 如果已经在听写模式，切换下拉框
-                  setIsDictationDropdownOpen(!isDictationDropdownOpen)
-                } else {
-                  // 如果不在听写模式，切换到听写模式
-                  if (mode === 'shadowing') {
-                    shadowingSentenceIndexRef.current = currentSentenceIndex
-                  }
-                  setMode("dictation")
-                  setCurrentSentenceIndex(dictationSentenceIndexRef.current)
-                  setCompletedSentences(new Set())
-                  setCorrectSentences(new Set())
-                  setIncorrectSentences(new Set())
-                  setCorrectCount(0)
-                  setShowTranscript(false)
-                  setIsRevealed(false)
+                if (mode === 'shadowing') {
+                  shadowingSentenceIndexRef.current = currentSentenceIndex
                 }
+                setMode("dictation")
+                setCurrentSentenceIndex(dictationSentenceIndexRef.current)
+                setCompletedSentences(new Set())
+                setCorrectSentences(new Set())
+                setIncorrectSentences(new Set())
+                setCorrectCount(0)
+                setShowTranscript(false)
+                setIsRevealed(false)
               }}
-              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
+              className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 mode === "dictation"
                   ? "bg-white text-blue-600 shadow-sm"
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
               {t("practice.mode.dictation")}
-              {mode === "dictation" && (
-                <svg
-                  className={`w-3 h-3 transition-transform ${isDictationDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              )}
             </button>
-
-            {/* Dictation Mode Dropdown */}
-            {mode === "dictation" && isDictationDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-[120px]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDictationMode('word')
-                    setCompletedSentences(new Set())
-                    setCorrectSentences(new Set())
-                    setIncorrectSentences(new Set())
-                    setCorrectCount(0)
-                    setIsRevealed(false)
-                    setIsDictationDropdownOpen(false)
-                  }}
-                  className={`w-full px-4 py-2.5 text-sm text-left transition-colors whitespace-nowrap ${
-                    dictationMode === 'word'
-                      ? 'bg-blue-500 text-white'
-                      : 'text-gray-700 hover:bg-blue-50'
-                  }`}
-                >
-                  {t("practice.dictationMode.word")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDictationMode('whole')
-                    setCompletedSentences(new Set())
-                    setCorrectSentences(new Set())
-                    setIncorrectSentences(new Set())
-                    setCorrectCount(0)
-                    setIsRevealed(false)
-                    setIsDictationDropdownOpen(false)
-                  }}
-                  className={`w-full px-4 py-2.5 text-sm text-left transition-colors whitespace-nowrap ${
-                    dictationMode === 'whole'
-                      ? 'bg-blue-500 text-white'
-                      : 'text-gray-700 hover:bg-blue-50'
-                  }`}
-                >
-                  {t("practice.dictationMode.whole")}
-                </button>
-              </div>
-            )}
 
             <button
               onClick={() => {
@@ -487,7 +443,6 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                 setCorrectCount(0)
                 setShowTranscript(false)
                 setIsRevealed(false)
-                setIsDictationDropdownOpen(false)
               }}
               className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                 mode === "shadowing"
@@ -501,11 +456,11 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-2 lg:p-4">
+      <div className="max-w-[1440px] mx-auto px-1 md:px-2 lg:px-2">
         {/* Three-Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3">
-          {/* Left Column - Video/Audio Player (5/12 ≈ 42%) */}
-          <div className="lg:col-span-5 bg-white rounded-lg shadow-sm p-4">
+        <div className="grid grid-cols-1 gap-4 lg:flex">
+          {/* Left Column - Video/Audio Player (37%) */}
+          <div className="bg-white rounded-lg shadow-sm p-4 lg:w-[37%] flex-shrink-0">
             <div className="text-center mb-3 text-sm text-gray-600">
               {currentSentenceIndex + 1} / {sampleSentences.length}
             </div>
@@ -520,8 +475,12 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                   currentSentence={currentSentence}
                   playbackRate={playbackRate}
                   autoPlayTrigger={autoPlayTrigger}
-                  onPlayEnd={() => {}}
+                  onPlayEnd={() => {
+                    setHasPlayedCurrent(true)
+                  }}
                   onTimeUpdate={handleTimeUpdate}
+                  hasPlayedCurrent={hasPlayedCurrent}
+                  onPlayNext={handleNext}
                 />
               ) : null}
             </div>
@@ -542,8 +501,8 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
             )}
           </div>
 
-          {/* Middle Column - Practice Area (4/12 ≈ 33%) */}
-          <div className="lg:col-span-4 bg-white rounded-lg shadow-sm p-4">
+          {/* Middle Column - Practice Area (37%) */}
+          <div className="lg:col-span-5 bg-white rounded-lg shadow-sm p-4 lg:w-[37%] flex-shrink-0">
             {/* Playback Controls */}
             <div className="bg-gray-100 rounded-lg p-3 mb-4">
               <div className="flex justify-between items-center gap-2">
@@ -558,8 +517,22 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                     </svg>
                   </button>
                   <button
-                    onClick={() => setAutoPlayTrigger(prev => prev + 1)}
+                    onClick={() => {
+                      setAutoPlayTrigger(prev => prev + 1)
+                      setHasPlayedCurrent(true)
+                    }}
                     className="p-2 rounded-lg hover:bg-gray-200"
+                    title="重播"
+                  >
+                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 4v6h6M23 20v-6h-6" />
+                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handlePlayOrNext}
+                    className="p-2 rounded-lg hover:bg-gray-200"
+                    title={hasPlayedCurrent ? "下一句" : "播放"}
                   >
                     <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
@@ -602,6 +575,15 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                   onNext={handleNext}
                   isLastSentence={isLastSentence}
                   onComplete={handleWordModeComplete}
+                  dictationMode={dictationMode}
+                  onDictationModeChange={(newMode) => {
+                    setDictationMode(newMode)
+                    setCompletedSentences(new Set())
+                    setCorrectSentences(new Set())
+                    setIncorrectSentences(new Set())
+                    setCorrectCount(0)
+                    setIsRevealed(false)
+                  }}
                 />
               ) : (
                 <DictationBox
@@ -609,6 +591,15 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                   onComplete={handleDictationComplete}
                   onNext={handleNext}
                   isLastSentence={isLastSentence}
+                  dictationMode={dictationMode}
+                  onDictationModeChange={(newMode) => {
+                    setDictationMode(newMode)
+                    setCompletedSentences(new Set())
+                    setCorrectSentences(new Set())
+                    setIncorrectSentences(new Set())
+                    setCorrectCount(0)
+                    setIsRevealed(false)
+                  }}
                 />
               )
             ) : audioSrc ? (
@@ -622,15 +613,27 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
             ) : null}
           </div>
 
-          {/* Right Column - Transcript (3/12 = 25%) */}
-          <div className="lg:col-span-3 bg-white rounded-lg shadow-sm p-4 max-h-[600px] overflow-y-auto">
+          {/* Right Column - Transcript (26%) */}
+          <div
+            className="lg:col-span-3 bg-white rounded-lg shadow-sm p-4 max-h-[850px] overflow-y-auto scrollbar-thin lg:w-[26%] flex-shrink-0"
+          >
             <div className="flex items-center justify-between mb-3 sticky top-0 bg-white py-1">
-              <h3 className="text-base font-semibold text-gray-800">原文</h3>
+              <button
+                onClick={() => setShowTranscript(!showTranscript)}
+                className="text-base font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+              >
+                {showTranscript ? '隐藏文稿' : '显示文稿'}
+              </button>
             </div>
             <div className="space-y-2">
               {sampleSentences.map((sentence, index) => {
                 const isCompleted = completedSentences.has(index)
                 const isCurrent = index === currentSentenceIndex
+
+                // 生成星号文本：每个单词用星号代替，保持单词长度
+                const generateStarText = (text: string) => {
+                  return text.split(' ').map(word => '*'.repeat(Math.min(word.length, 4))).join(' ')
+                }
 
                 return (
                   <div
@@ -654,9 +657,9 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                       </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-800 leading-relaxed break-words">
-                          {sentence.text}
+                          {showTranscript ? sentence.text : generateStarText(sentence.text)}
                         </p>
-                        {sentence.translation && (
+                        {showTranscript && sentence.translation && (
                           <p className="text-xs text-gray-500 italic mt-1">
                             {sentence.translation}
                           </p>

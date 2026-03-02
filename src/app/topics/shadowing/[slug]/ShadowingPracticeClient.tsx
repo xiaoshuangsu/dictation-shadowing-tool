@@ -103,6 +103,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
   const [currentTime, setCurrentTime] = useState(0)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [autoPlayTrigger, setAutoPlayTrigger] = useState(0)
+  const [hasPlayedCurrent, setHasPlayedCurrent] = useState(false)
 
   // 为每个模式独立保存进度
   const shadowingProgressRef = useRef({
@@ -233,6 +234,23 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
       setAutoPlayTrigger(prev => prev + 1)
     }
   }
+
+  // 播放按钮：第一次点击播放当前句子，第二次点击播放下一句
+  const handlePlayOrNext = () => {
+    if (hasPlayedCurrent) {
+      // 已播放过，播放下一句
+      handleNext()
+    } else {
+      // 第一次点击，播放当前句子
+      setAutoPlayTrigger(prev => prev + 1)
+      setHasPlayedCurrent(true)
+    }
+  }
+
+  // 重置播放状态当句子索引改变
+  useEffect(() => {
+    setHasPlayedCurrent(false)
+  }, [currentSentenceIndex])
 
   const handleComplete = (isCorrect: boolean, usedShowWords: boolean = false, duration?: number) => {
     const newCompleted = new Set(completedSentences)
@@ -569,11 +587,11 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-2 lg:p-4">
+      <div className="max-w-[1440px] mx-auto px-1 md:px-2 lg:px-2">
         {/* Three-Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3">
-          {/* Left Column - Video/Audio Player (5/12 ≈ 42%) */}
-          <div className="lg:col-span-5 bg-white rounded-lg shadow-sm p-4">
+        <div className="grid grid-cols-1 gap-4 lg:flex">
+          {/* Left Column - Video/Audio Player (37%) */}
+          <div className="lg:col-span-4 bg-white rounded-lg shadow-sm p-4 lg:w-[37%] flex-shrink-0">
             <div className="text-center mb-3 text-sm text-gray-600">
               {currentSentenceIndex + 1} / {sampleSentences.length}
             </div>
@@ -587,8 +605,12 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
                   currentSentence={currentSentence}
                   playbackRate={playbackRate}
                   autoPlayTrigger={autoPlayTrigger}
-                  onPlayEnd={() => {}}
+                  onPlayEnd={() => {
+                    setHasPlayedCurrent(true)
+                  }}
                   onTimeUpdate={handleTimeUpdate}
+                  hasPlayedCurrent={hasPlayedCurrent}
+                  onPlayNext={handleNext}
                 />
               ) : audioSrc && currentSentence ? (
                 <AudioPlayer
@@ -604,8 +626,8 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
             </div>
           </div>
 
-          {/* Middle Column - Practice Area (4/12 ≈ 33%) */}
-          <div className="lg:col-span-4 bg-white rounded-lg shadow-sm p-4">
+          {/* Middle Column - Practice Area (37%) */}
+          <div className="lg:col-span-5 bg-white rounded-lg shadow-sm p-4 lg:w-[37%] flex-shrink-0">
             {/* Progress Indicator */}
             <div className="flex justify-center items-center gap-2 mb-3 text-sm text-gray-600">
               <span className="font-medium">练习区域</span>
@@ -635,20 +657,24 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
 
                   {/* Repeat Button */}
                   <button
-                    onClick={() => setAutoPlayTrigger(prev => prev + 1)}
+                    onClick={() => {
+                      setAutoPlayTrigger(prev => prev + 1)
+                      setHasPlayedCurrent(true)
+                    }}
                     className="p-1.5 rounded-lg hover:bg-gray-200"
-                    title="Repeat"
+                    title="重播"
                   >
                     <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 4v6h6M23 20v-6h-6" />
+                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
                     </svg>
                   </button>
 
                   {/* Play/Pause Button */}
                   <button
-                    onClick={() => setAutoPlayTrigger(prev => prev + 1)}
+                    onClick={handlePlayOrNext}
                     className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-                    title="Play"
+                    title={hasPlayedCurrent ? "下一句" : "播放"}
                   >
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z" />
@@ -717,15 +743,14 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
             ) : null}
           </div>
 
-          {/* Right Column - Transcript (3/12 = 25%) */}
-          <div className="lg:col-span-3 bg-white rounded-lg shadow-sm p-4 max-h-[600px] overflow-y-auto">
+          {/* Right Column - Transcript (26%) */}
+          <div className="lg:col-span-3 bg-white rounded-lg shadow-sm p-4 max-h-[850px] overflow-y-auto scrollbar-thin lg:w-[26%] flex-shrink-0">
             <div className="flex items-center justify-between mb-3 sticky top-0 bg-white py-1">
-              <h3 className="text-base font-semibold text-gray-800">原文</h3>
               <button
                 onClick={() => setShowTranscript(!showTranscript)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium px-3 py-1 rounded hover:bg-blue-50 transition-colors"
+                className="text-base font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
               >
-                {showTranscript ? '隐藏原文' : '显示原文'}
+                {showTranscript ? '隐藏文稿' : '显示文稿'}
               </button>
             </div>
             <div className="space-y-2">
@@ -793,10 +818,10 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
                           )
                         ) : (
                           <p className="text-sm text-gray-400 leading-relaxed break-words">
-                            {'*'.repeat(Math.min(sentence.text.length, 30))}
+                            {sentence.text.split(' ').map(word => '*'.repeat(Math.min(word.length, 4))).join(' ')}
                           </p>
                         )}
-                        {sentence.translation && (
+                        {showTranscript && sentence.translation && (
                           <p className="text-xs text-gray-500 italic mt-1">
                             {sentence.translation}
                           </p>

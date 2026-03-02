@@ -19,9 +19,11 @@ interface WordModeProps {
   totalSentences: number
   onNext?: () => void
   isLastSentence?: boolean
+  dictationMode?: "word" | "whole"
+  onDictationModeChange?: (mode: "word" | "whole") => void
 }
 
-export default function WordMode({ sentence, onComplete, currentIndex, totalSentences, onNext, isLastSentence }: WordModeProps) {
+export default function WordMode({ sentence, onComplete, currentIndex, totalSentences, onNext, isLastSentence, dictationMode = "word", onDictationModeChange }: WordModeProps) {
   const { t } = useLanguage()
   const { playSuccessSound } = useSuccessSound() // 使用全局静音状态
   const [userInput, setUserInput] = useState("")
@@ -29,6 +31,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [showWord, setShowWord] = useState(false)
   const [showTranslation, setShowTranslation] = useState(false)  // 控制翻译显示状态
+  const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false)  // 模式下拉框状态
 
   // V3.1 有效作答时间跟踪
   const [timingStarted, setTimingStarted] = useState(false)
@@ -251,10 +254,50 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         )}
       </div>
 
-      {/* Label */}
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {t('practice.wordMode.typeMissingWord')}:
-      </label>
+      {/* Label with Filter */}
+      <div className="mb-2 relative">
+        <label className="text-sm font-medium text-gray-700">
+          {t('practice.dictation.typeWhatYouHear')}:
+        </label>
+        <div className="inline-block relative ml-2">
+          <button
+            type="button"
+            onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {dictationMode === "word" ? "单词" : "整句"}
+            <svg className={`w-3 h-3 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {/* Dropdown Menu */}
+          {isModeDropdownOpen && (
+            <div className="absolute left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 min-w-full">
+              <button
+                type="button"
+                onClick={() => {
+                  onDictationModeChange?.("word")
+                  setIsModeDropdownOpen(false)
+                }}
+                className="w-full px-4 py-2.5 text-sm text-left text-gray-600 hover:bg-blue-50 transition-colors whitespace-nowrap"
+              >
+                单词
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDictationModeChange?.("whole")
+                  setIsModeDropdownOpen(false)
+                }}
+                className="w-full px-4 py-2.5 text-sm text-left text-gray-600 hover:bg-gray-100 transition-colors whitespace-nowrap"
+              >
+                整句
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Input Area */}
       <div className="relative mb-4">

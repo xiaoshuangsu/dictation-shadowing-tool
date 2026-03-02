@@ -19,6 +19,8 @@ interface VideoPlayerProps {
   titleZh?: string
   onPlayEnd?: () => void
   onTimeUpdate?: (currentTime: number) => void
+  hasPlayedCurrent?: boolean
+  onPlayNext?: () => void
 }
 
 export default function VideoPlayer({
@@ -28,7 +30,9 @@ export default function VideoPlayer({
   autoPlayTrigger = 0,
   thumbnailPath,
   onPlayEnd,
-  onTimeUpdate
+  onTimeUpdate,
+  hasPlayedCurrent = false,
+  onPlayNext,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -245,13 +249,19 @@ export default function VideoPlayer({
 
       <div className="flex items-center gap-3 px-2 py-3 mt-3 bg-white rounded-lg border border-gray-200">
         <button
-          onClick={playSentence}
+          onClick={() => {
+            if (hasPlayedCurrent && onPlayNext) {
+              onPlayNext()
+            } else {
+              playSentence()
+            }
+          }}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-950 text-white rounded-lg hover:bg-blue-900 transition-colors"
         >
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l11-7z" />
           </svg>
-          <span className="font-medium">开始</span>
+          <span className="font-medium">{hasPlayedCurrent ? "下一句" : "开始"}</span>
         </button>
 
         <button
