@@ -178,6 +178,22 @@ export default function MaterialsPage() {
     fetchMaterials()
   }, [])
 
+  // 处理 URL hash 滚动到对应分类
+  useEffect(() => {
+    if (!loading && materials.length > 0) {
+      const hash = window.location.hash.slice(1) // 移除 # 号
+      if (hash) {
+        // 等待 DOM 渲染完成
+        setTimeout(() => {
+          const element = document.getElementById(hash)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 100)
+      }
+    }
+  }, [loading, materials])
+
   // 多维度过滤素材
   const filteredMaterials = useMemo(() => {
     return materials.filter(material => {
