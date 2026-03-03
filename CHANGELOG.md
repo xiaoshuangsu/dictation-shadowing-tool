@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.6] - 2025-03-02
+
+### Fixed
+- **面包屑导航修复**
+  - 修复点击面包屑"素材"无法返回素材列表的问题
+  - 修复点击面包屑分类名称无法返回并定位的问题
+  - 点击"素材"可返回到素材列表页面
+  - 点击分类名称（如"日常生活"）可返回并自动滚动到对应分类
+  - 在素材列表页面添加 URL hash 处理逻辑，确保带 hash 的 URL 能正确滚动
+
 ## [7.8.5] - 2025-03-02
 
 ### Changed
