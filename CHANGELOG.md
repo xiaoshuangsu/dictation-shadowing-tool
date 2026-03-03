@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.7] - 2025-03-02
+
+### Performance
+- **音频/视频预加载优化**
+  - 将 AudioPlayer 的 preload 从 "auto" 改为 "metadata"
+  - 将 VideoPlayer 的 preload 从 "auto" 改为 "metadata"
+  - 页面加载时只加载元数据（时长、尺寸等），大幅减少初始加载时间
+  - 用户点击播放时使用流式加载，边下载边播放
+  - 第一句可以立即开始播放，无需等待整个文件下载完成
+  - 用户练习时后台继续缓冲后续内容，提升用户体验
+
 ## [7.8.6] - 2025-03-02
 
 ### Fixed
