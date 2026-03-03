@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { titleToSlug } from '@/lib/utils/slug'
 
 const supabase = createClient(
   'https://cuxotlijjnxbsirpdkgr.supabase.co',
@@ -18,13 +19,6 @@ export async function findMaterialIdBySlug(slug: string): Promise<string | null>
     if (!materials) return null
 
     // Generate slug from each title and find match
-    const titleToSlug = (title: string) =>
-      title
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-
     const material = materials.find(m => titleToSlug(m.title) === slug)
 
     return material?.id || null
@@ -92,13 +86,6 @@ export async function getMaterialBySlug(slug: string): Promise<{ id: string; tit
       .select('id, title, category')
 
     if (!materials) return null
-
-    const titleToSlug = (title: string) =>
-      title
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, '')
-        .replace(/[\s_]+/g, '-')
-        .replace(/^-+|-+$/g, '')
 
     const material = materials.find(m => titleToSlug(m.title) === slug)
 
