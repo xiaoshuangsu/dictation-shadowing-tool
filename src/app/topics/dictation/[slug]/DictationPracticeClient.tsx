@@ -380,24 +380,26 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-2">
           <nav className="flex items-center text-sm">
-            <LocalizedLink href="/topics" className="text-gray-500 hover:text-blue-600">{t("practice.breadcrumb.topics")}</LocalizedLink>
+            <a
+              href="/topics"
+              onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                e.preventDefault()
+                window.location.href = '/topics'
+              }}
+              className="text-gray-500 hover:text-blue-600"
+            >{t("practice.breadcrumb.topics")}</a>
             {materialCategory && (
               <>
                 <span className="mx-2 text-gray-400">›</span>
-                <LocalizedLink
+                <a
                   href={`/topics#${materialCategory}`}
-                  className="text-gray-500 hover:text-blue-600"
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                    // 如果已经在 topics 页面，手动滚动
-                    if (window.location.pathname === '/topics' || window.location.pathname === '/dictation-shadowing-tool/topics') {
-                      e.preventDefault()
-                      const element = document.getElementById(materialCategory)
-                      if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                      }
-                    }
+                    e.preventDefault()
+                    // 跳转到素材页面并滚动到对应分类
+                    window.location.href = `/topics#${materialCategory}`
                   }}
-                >{getCategoryLabel(materialCategory, language)}</LocalizedLink>
+                  className="text-gray-500 hover:text-blue-600"
+                >{getCategoryLabel(materialCategory, language)}</a>
               </>
             )}
             {audioTitle && (
