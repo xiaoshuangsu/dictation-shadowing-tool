@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "sync-slugs": "node scripts/sync-slugs.js",
     "translate": "node scripts/translate.js",
     "translate-all": "node scripts/translate.js",
     "translate-new": "node scripts/translate.js --new",
