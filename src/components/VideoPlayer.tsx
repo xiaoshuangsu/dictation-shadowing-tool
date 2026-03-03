@@ -255,7 +255,7 @@ export default function VideoPlayer({
           src={videoSrc}
           className="w-full h-full"
           playsInline
-          preload="auto"
+          preload="metadata"
         />
       </div>
 
