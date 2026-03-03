@@ -13,6 +13,7 @@ import { savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
 import { useLanguage } from "@/contexts/LanguageContext"
 import LocalizedLink from "@/components/LocalizedLink"
+import { titleToSlug } from "@/lib/utils/slug"
 
 const supabase = createClient(
   'https://cuxotlijjnxbsirpdkgr.supabase.co',
@@ -146,13 +147,6 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
 
   useEffect(() => {
     async function findMaterial() {
-      const titleToSlug = (title: string) =>
-        title
-          .toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/[\s_]+/g, '-')
-          .replace(/^-+|-+$/g, '')
-
       try {
         const { data: materials } = await supabase
           .from('materials')
