@@ -55,6 +55,7 @@ const translations = {
     "topics.category.dailyLife": "Daily Life",
     "topics.category.historicalSpeeches": "Historical Speeches",
     "topics.category.cultureHistory": "Culture & History",
+    "topics.category.heartStories": "Heart & Soul Stories",
     "topics.category.artsCulture": "Arts & Culture",
 
     // Practice Page
@@ -360,6 +361,7 @@ const translations = {
     "topics.category.dailyLife": "日常生活",
     "topics.category.historicalSpeeches": "历史演讲",
     "topics.category.cultureHistory": "文化历史",
+    "topics.category.heartStories": "心灵故事",
     "topics.category.artsCulture": "艺术文化",
 
     // Practice Page

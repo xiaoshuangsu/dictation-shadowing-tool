@@ -45,7 +45,8 @@ export default function TimestampMarker() {
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [loading, setLoading] = useState(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isVideo, setIsVideo] = useState(false)
+  const audioRef = useRef<HTMLAudioElement | HTMLVideoElement>(null)
   const [saveStatus, setSaveStatus] = useState("")
   const [activeSentenceIndex, setActiveSentenceIndex] = useState(0)
 
@@ -63,7 +64,11 @@ export default function TimestampMarker() {
       if (!data) throw new Error('Material not found')
 
       setSentences(data.transcript || [])
-      setAudioSrc(`https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${data.audio_path}`)
+      // audio_path 已经是完整 URL，直接使用
+      const audioPath = data.audio_path || ''
+      setAudioSrc(audioPath)
+      // 检查是否是视频文件
+      setIsVideo(audioPath.endsWith('.mp4'))
       setCurrentIndex(0)
     } catch (error: any) {
       console.error('Error loading material:', error)
@@ -250,21 +255,30 @@ export default function TimestampMarker() {
 
         {sentences.length > 0 && (
           <>
-            {/* Audio Player */}
+            {/* Audio/Video Player */}
             <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Audio Player</h2>
-              <audio
-                ref={audioRef}
-                src={audioSrc}
-                controls
-                className="w-full"
-              />
+              <h2 className="text-xl font-semibold mb-4">{isVideo ? 'Video Player' : 'Audio Player'}</h2>
+              {isVideo ? (
+                <video
+                  ref={audioRef as any}
+                  src={audioSrc}
+                  controls
+                  className="w-full"
+                />
+              ) : (
+                <audio
+                  ref={audioRef as any}
+                  src={audioSrc}
+                  controls
+                  className="w-full"
+                />
+              )}
               <div className="mt-2 flex justify-between text-sm">
                 <span className="text-gray-600">
                   Current: {currentTime.toFixed(2)}s
                 </span>
                 <span className="font-semibold text-purple-600">
-                  🎵 Playing: Sentence {activeSentenceIndex + 1}
+                  {isVideo ? '🎬' : '🎵'} Playing: Sentence {activeSentenceIndex + 1}
                 </span>
               </div>
             </div>

@@ -13,6 +13,7 @@ const CATEGORY_MAP = {
   '日常生活': { en: 'Daily Life', zh: '日常生活' },
   '历史演讲': { en: 'Historical Speeches', zh: '历史演讲' },
   '文化历史': { en: 'Culture & History', zh: '文化历史' },
+  '心灵故事': { en: 'Heart & Soul Stories', zh: '心灵故事' },
   '艺术文化': { en: 'Arts & Culture', zh: '艺术文化' },
   'YouTube Vlog': { en: 'YouTube Vlog', zh: 'YouTube Vlog' },
   '故事': { en: 'Stories', zh: '故事' },
@@ -81,6 +82,7 @@ type Material = {
   play_count: number
   created_at: string
   updated_at: string
+  video_path?: string | null
 }
 
 // 分类顺序和配置
@@ -89,6 +91,7 @@ const CATEGORIES = [
   { id: 'YouTube Vlog', label: 'YouTube Vlog' },
   { id: '历史演讲', label: 'Historical Speeches' },
   { id: '文化历史', label: 'Culture & History' },
+  { id: '心灵故事', label: 'Heart & Soul Stories' },
   { id: '艺术文化', label: 'Arts & Culture' },
   { id: '故事', label: 'Stories' },
   { id: '人物访谈', label: 'Interviews' },

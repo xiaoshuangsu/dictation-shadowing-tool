@@ -1,6 +1,7 @@
 name = "r2-proxy"
 main = "index.js"
 compatibility_date = "2024-01-01"
+type = "modules"
 
 # 绑定 R2 bucket
 [[r2_buckets]]

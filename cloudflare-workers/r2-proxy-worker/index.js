@@ -60,6 +60,13 @@ export default {
       headers.set('Accept-Ranges', 'bytes');
       headers.set('Content-Length', object.size.toString());
 
+      // 设置缓存策略：视频文件缓存 1 小时，其他文件缓存 1 天
+      if (objectKey.endsWith('.mp4')) {
+        headers.set('Cache-Control', 'public, max-age=3600'); // 1 小时
+      } else {
+        headers.set('Cache-Control', 'public, max-age=86400'); // 1 天
+      }
+
       // HEAD 请求：只返回头信息
       if (request.method === 'HEAD') {
         return new Response(null, { headers, status: 200 });
