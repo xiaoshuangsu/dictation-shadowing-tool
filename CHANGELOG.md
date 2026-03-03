@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.9] - 2025-03-02
+
+### Added
+- **新素材：Come to the Fair**
+  - 添加到文化历史分类，B1 难度
+  - 使用 Whisper 生成带时间戳的文稿（42句）
+  - 使用 GLM-4-Flash API 翻译成地道中文
+  - 上传音频文件和封面图到 R2 存储
+
+### Fixed
+- **面包屑导航自适应**
+  - 使用环境变量判断 basePath（process.env.NODE_ENV）
+  - 开发环境使用 /topics，生产环境使用 /dictation-shadowing-tool/topics
+  - 解决了本地和 GitHub Pages 路径不一致的问题
+  - 删除了重复的 Valentine's Day Story 素材（保留日常生活分类的）
+
+### Changed
+- **素材封面更新**
+  - A Funny Thing Happened On The Way To School
+  - Advice
+  - Cowboys
+  - I Want to Dye My Hair Green
+  - Come to the Fair
+  - Why Do People Dislike Other People
+  - 所有封面图均为 1280x720 像素，48KB
+
+### Dependencies
+- 添加 axios 依赖用于 GLM API 调用
+
 ## [7.8.8] - 2025-03-02
 
 ### Fixed
