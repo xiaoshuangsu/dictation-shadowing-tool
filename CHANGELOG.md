@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.8] - 2025-03-02
+
+### Fixed
+- **面包屑导航路径修复**
+  - 修复面包屑链接缺少 basePath 前缀导致 404 的问题
+  - 将 /topics 改为 /dictation-shadowing-tool/topics
+  - 现在点击面包屑可以正确返回素材列表并定位到对应分类
+
 ## [7.8.7] - 2025-03-02
 
 ### Performance
