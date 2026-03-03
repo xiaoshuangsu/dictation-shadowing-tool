@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.5] - 2025-03-02
+
+### Changed
+- **URL Slug生成优化**
+  - 增强titleToSlug()函数，处理带特殊字符的长标题
+  - 移除方括号内容，如[Time]、[Video]等
+  - 移除常见前缀标记，如"Easy Dialogue"、"Beginner English"、"English video for Kids"等
+  - 限制slug长度为100字符
+  - 统一DictationPracticeClient和ShadowingPracticeClient使用共享的slug生成函数
+  - 重新生成materialSlugs.ts，使用简化后的slug（40个素材）
+  - 将素材标题从"[Time] What time is it_ Time for breakfast. - Easy Dialogue - English video for Kids"改为"What time is it - Time for breakfast"
+  - 新slug为"what-time-is-it-time-for-breakfast"（原为"time---what-time-is-it-time-for-breakfast---easy-dialogue---english-video-for-kids"）
+
 ## [7.8.4] - 2025-03-02
 
 ### Fixed
