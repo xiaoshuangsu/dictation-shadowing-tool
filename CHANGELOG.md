@@ -1,5 +1,24 @@
 # Changelog
 
+## [7.8.10] - 2026-03-03
+
+### Fixed
+- 修复右侧文稿区域滚动问题 - "显示文稿"标题现在固定在顶部，句子列表在下方独立滚动
+- 修复 R2 Worker 视频缓存问题 - 将视频文件缓存从 1 年改为 1 小时
+
+### Added
+- 新增素材："Empty Your Mind - A Powerful Motivational Story for Your Life"
+- 新增分类："心灵故事" (Heart & Soul Stories)
+- 时间戳标记工具支持视频文件播放
+
+### Changed
+- 优化 Cloudflare R2 Worker 缓存策略
+  - 视频文件 (.mp4): 1 小时缓存
+  - 其他文件: 1 天缓存
+- 更新 April Fool's Day Joke 视频到新的 R2 路径
+
+# Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
