@@ -8,7 +8,7 @@ export const MATERIAL_SLUGS = [
   { slug: "corruption" },
   { slug: "come-to-the-fair" },
   { slug: "cowboys" },
-  { slug: "empty-your-mind" },
+  { slug: "empty-your-mind-a-powerful-motivational-story-for-your-life" },
   { slug: "describing-your-hometown-adjectives-prepositions-of-place" },
   { slug: "first-snowfall" },
   { slug: "food-talking-about-food-beginner-english-a-conversation-about-food" },
