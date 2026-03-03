@@ -6,6 +6,7 @@ export const MATERIAL_SLUGS = [
   { slug: "april-fools-day-joke-english-conversation" },
   { slug: "canada-provinces-and-territories" },
   { slug: "corruption" },
+  { slug: "come-to-the-fair" },
   { slug: "cowboys" },
   { slug: "describing-your-hometown-adjectives-prepositions-of-place" },
   { slug: "first-snowfall" },
