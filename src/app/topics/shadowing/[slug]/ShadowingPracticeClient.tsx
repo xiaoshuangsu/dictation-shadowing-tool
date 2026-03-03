@@ -771,8 +771,9 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
           </div>
 
           {/* Right Column - Transcript (26%) */}
-          <div className="lg:col-span-3 bg-white rounded-lg shadow-sm p-4 max-h-[850px] overflow-y-auto scrollbar-thin lg:w-[26%] flex-shrink-0">
-            <div className="flex items-center justify-between mb-3 sticky top-0 bg-white py-1">
+          <div className="lg:col-span-3 bg-white rounded-lg shadow-sm p-4 h-[850px] flex flex-col lg:w-[26%] flex-shrink-0">
+            {/* 固定标题区域 */}
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 flex-shrink-0">
               <button
                 onClick={() => setShowTranscript(!showTranscript)}
                 className="text-base font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
@@ -780,7 +781,9 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
                 {showTranscript ? '隐藏文稿' : '显示文稿'}
               </button>
             </div>
-            <div className="space-y-2">
+            {/* 可滚动句子列表区域 */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin pr-1">
+              <div className="space-y-2 pt-3">
               {sampleSentences.map((sentence, index) => {
                 const isCompleted = completedSentences.has(index)
                 const isCorrect = correctSentences.has(index)
@@ -858,6 +861,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
                   </div>
                 )
               })}
+              </div>
             </div>
           </div>
         </div>
