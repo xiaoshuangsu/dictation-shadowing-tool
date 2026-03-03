@@ -437,6 +437,8 @@ export default function MaterialsPage() {
                                   alt={material.title}
                                   className="w-full h-full object-cover"
                                   onError={handleImageError}
+                                  loading="lazy"
+                                  decoding="async"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
