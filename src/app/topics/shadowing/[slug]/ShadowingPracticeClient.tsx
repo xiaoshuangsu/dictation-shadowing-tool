@@ -460,10 +460,10 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
         <div className="max-w-6xl mx-auto px-4 py-2">
           <nav className="flex items-center text-sm">
             <a
-              href="/topics"
+              href="/dictation-shadowing-tool/topics"
               onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                 e.preventDefault()
-                window.location.href = '/topics'
+                window.location.href = '/dictation-shadowing-tool/topics'
               }}
               className="text-gray-500 hover:text-blue-600"
             >{t("practice.breadcrumb.topics")}</a>
@@ -471,11 +471,11 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
               <>
                 <span className="mx-2 text-gray-400">›</span>
                 <a
-                  href={`/topics#${materialCategory}`}
+                  href={`/dictation-shadowing-tool/topics#${materialCategory}`}
                   onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                     e.preventDefault()
                     // 跳转到素材页面并滚动到对应分类
-                    window.location.href = `/topics#${materialCategory}`
+                    window.location.href = `/dictation-shadowing-tool/topics#${materialCategory}`
                   }}
                   className="text-gray-500 hover:text-blue-600"
                 >{getCategoryLabel(materialCategory, language)}</a>
