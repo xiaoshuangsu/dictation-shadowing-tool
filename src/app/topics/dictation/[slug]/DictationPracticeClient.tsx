@@ -256,6 +256,22 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
       setTimeout(() => {
         setHasPlayedCurrent(true)
       }, 0)
+
+      // 移动端：滚动到模式切换按钮区域
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        setTimeout(() => {
+          // 找到模式切换按钮容器并滚动到该位置
+          const modeSwitchBar = document.querySelector('[class*="sticky"]') as HTMLElement
+          if (modeSwitchBar) {
+            const rect = modeSwitchBar.getBoundingClientRect()
+            const scrollTop = window.pageYOffset + rect.top - 10
+            window.scrollTo({ top: scrollTop, behavior: 'smooth' })
+          } else {
+            // 如果找不到模式切换按钮，滚动到页面顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }
+        }, 100)
+      }
     }
   }
 
