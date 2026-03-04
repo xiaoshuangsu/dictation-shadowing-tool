@@ -1,0 +1,39 @@
+# Cloudflare Worker 配置文件示例
+# 文件名: wrangler.toml
+# 位置: 在您的 Worker 项目根目录
+
+name = "r2-proxy"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# R2 存储桶绑定
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "your-bucket-name"  # 替换为您的 R2 bucket 名称
+
+# 如果使用 Cloudflare Images API（可选）
+# [vars]
+# ENABLE_IMAGES = "true"
+
+# Cloudflare Images 绑定（如果使用）
+# [[images]]
+# binding = "IMAGES"
+
+# 环境变量（可选）
+# [vars]
+# CACHE_TTL = "31536000"
+# DEFAULT_QUALITY = "75"
+
+# KV 命名空间绑定（用于缓存，可选）
+# [[kv_namespaces]]
+# binding = "IMAGE_CACHE"
+# id = "your-kv-namespace-id"
+
+# 触发器（可选）
+# [triggers]
+# crons = ["0 * * * *"]  # 每小时运行一次
+
+# 路由配置
+# routes = [
+#   { pattern = "https://r2-proxy.suxiaoshuang2020.workers.dev/*", zone_name = "suxiaoshuang2020.workers.dev" }
+# ]
