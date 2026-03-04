@@ -255,8 +255,8 @@ export default function MaterialsPage() {
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path
     }
-    // 使用 R2 Worker URL
-    return `https://r2-proxy.suxiaoshuang2020.workers.dev/${path}`
+    // 使用 Supabase Storage（立即可用，移动端兼容）
+    return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${path}`
   }
 
   // 格式化时长

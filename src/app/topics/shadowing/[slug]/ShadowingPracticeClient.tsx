@@ -159,8 +159,8 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
           setAudioTitle(material.title)
           setMaterialCategory(material.category)
 
-          // R2 Worker 基础 URL
-          const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+          // Supabase Storage 基础 URL（立即可用，移动端兼容）
+          const SUPABASE_STORAGE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio'
 
           // 构造完整的 URL
           const getFullUrl = (path: string | null) => {
@@ -168,7 +168,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
             if (path.startsWith('http://') || path.startsWith('https://')) {
               return path
             }
-            return `${R2_WORKER_URL}/${path}`
+            return `${SUPABASE_STORAGE_URL}/${path}`
           }
 
           // 设置音频/视频 URL
