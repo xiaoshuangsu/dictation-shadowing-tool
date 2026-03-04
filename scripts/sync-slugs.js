@@ -17,6 +17,7 @@ function titleToSlug(title) {
   return title
     .toLowerCase()
     .replace(/[^\w\s-]/g, '') // 移除特殊字符
+    .replace(/_/g, '-') // 下划线替换为连字符
     .replace(/\s+/g, '-') // 空格替换为连字符
     .replace(/-+/g, '-') // 多个连字符合并为一个
     .replace(/^-+|-+$/g, '') // 移除首尾连字符
