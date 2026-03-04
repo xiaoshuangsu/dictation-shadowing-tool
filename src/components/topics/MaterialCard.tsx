@@ -20,15 +20,15 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
   const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
 
-  // 获取缩略图 URL（R2 优先，fallback 到 Supabase）
+  // 获取缩略图 URL（Supabase 直接使用，避免 R2 404 延迟）
   const getThumbnailUrl = (path: string | null) => {
     if (!path) return null
     // 如果已经是完整 URL，直接使用
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path
     }
-    // 优先使用 R2 Worker URL
-    return `${R2_WORKER_URL}/${path}`
+    // 直接使用 Supabase Storage（立即可用，移动端兼容）
+    return `${SUPABASE_URL}/storage/v1/object/public/engnovate-audio/${path}`
   }
 
   // 获取 Supabase fallback URL
