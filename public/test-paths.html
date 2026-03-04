@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head><title>Check Paths</title></head>
+<body>
+<h1>Checking Resource Paths</h1>
+<div id="result">Loading...</div>
+<script type="module">
+  const supabaseUrl = 'https://cuxotlijjnxbsirpdkgr.supabase.co';
+  const supabaseKey = 'sb_publishable_E14-9O-p9jZqfL6ikHARsQ_l6zTiwNr';
+
+  async function check() {
+    // Fetch first material
+    const response = await fetch(`${supabaseUrl}/rest/v1/materials?select=thumbnail_path,audio_path,video_path,title&limit=1`, {
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`
+      }
+    });
+
+    const data = await response.json();
+    const result = document.getElementById('result');
+
+    if (data && data.length > 0) {
+      const m = data[0];
+      result.innerHTML = `
+        <h2>${m.title}</h2>
+        <p><strong>thumbnail_path:</strong> <code>${m.thumbnail_path || '(null)'}</code></p>
+        <p><strong>audio_path:</strong> <code>${m.audio_path || '(null)'}</code></p>
+        <p><strong>video_path:</strong> <code>${m.video_path || '(null)'}</code></p>
+
+        <h3>Testing URLs:</h3>
+        <p>R2 Worker: <a href="https://r2-proxy.suxiaoshuang2020.workers.dev/${m.thumbnail_path}" target="_blank">Link</a></p>
+        <p>Supabase: <a href="https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${m.thumbnail_path}" target="_blank">Link</a></p>
+
+        <h3>Images:</h3>
+        <img src="https://r2-proxy.suxiaoshuang2020.workers.dev/${m.thumbnail_path}" onerror="this.style.border='2px solid red'" style="max-width:200px">
+        <img src="https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${m.thumbnail_path}" onerror="this.style.border='2px solid red'" style="max-width:200px">
+      `;
+    } else {
+      result.innerHTML = '<p>No data found</p>';
+    }
+  }
+
+  check();
+</script>
+</body>
+</html>
