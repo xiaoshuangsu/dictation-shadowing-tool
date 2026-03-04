@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
+    "postbuild": "node scripts/fix-static-export.js",
     "start": "next start",
     "lint": "next lint",
     "sync-slugs": "node scripts/sync-slugs.js",
