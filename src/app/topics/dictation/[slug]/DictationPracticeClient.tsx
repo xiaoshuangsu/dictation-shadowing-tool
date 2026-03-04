@@ -185,15 +185,18 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
           const fullAudioPath = getFullUrl(material.audio_path)
           setAudioSrc(fullAudioPath)
 
-          // 检查是否是视频文件
-          const hasVideo = material.audio_path && (
-            material.audio_path.endsWith('.mp4') ||
-            material.audio_path.endsWith('-mp4') ||
-            material.audio_path.includes('.mp4')
+          // 检查是否有视频（优先检查 video_path 字段，其次检查 audio_path 是否是视频）
+          const hasVideo = material.video_path || (
+            material.audio_path && (
+              material.audio_path.endsWith('.mp4') ||
+              material.audio_path.endsWith('-mp4') ||
+              material.audio_path.includes('.mp4')
+            )
           )
 
-          if (hasVideo && fullAudioPath) {
-            setVideoUrl(fullAudioPath)
+          if (hasVideo) {
+            const videoPath = material.video_path || fullAudioPath
+            setVideoUrl(getFullUrl(videoPath))
           }
 
           // 设置缩略图

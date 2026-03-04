@@ -28,7 +28,7 @@ export default {
         console.error(`[R2 Router] R2 bucket not bound`);
         return new Response(JSON.stringify({
           error: 'R2 bucket not configured',
-          message: '请检查 Worker 是否绑定了 R2 存储桶 (engnovate-audio)'
+          message: '请检查 Worker 是否绑定了 R2 存储桶 (shadowhub)'
         }), {
           status: 500,
           headers: {

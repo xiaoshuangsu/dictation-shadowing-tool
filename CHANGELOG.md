@@ -1,5 +1,39 @@
 # Changelog
 
+## [8.0.0] - 2026-03-04
+
+### Fixed
+- **修复视频文件检测逻辑** 🐛
+  - 优先检查 `material.video_path` 字段，不再误判 `audio_path` 结尾为 `.mp4` 的情况
+  - 修复 April Fool's Day Joke 等素材的视频显示问题
+  - 为 Food、Ordering in a Restaurant、Introductions、Sports & Activities、Vocabulary、It's raining、Three Little Pigs、What time is it 等 8 个素材添加 `video_path` 字段
+  - 当前有 13 个素材正确设置了 video_path
+
+- **修复缩略图文件名特殊字符问题** 🖼️
+  - 重命名 5 个包含特殊单引号（'）的缩略图文件
+  - Lou_Gehrig_'Farewell_Speech'.jpg → lou-gehrig-farewell-speech.jpg
+  - Jessica's_First_Day_of_School.jpg → jessicas-first-day-of-school.jpg
+  - New_Year's_Day.jpg → new-years-day.jpg
+  - Handel's_"Messiah".jpg → handels-messiah.jpg
+  - Mark's_Big_Game.jpg → marks-big-game.jpg
+  - 更新 Supabase 数据库中的 thumbnail_path 路径
+  - 重新上传到 R2 存储
+
+- **修复音频文件路径错误** 🎵
+  - 修复 8 个素材的 audio_path（错误的 -mp4 后缀改为 .mp3）
+  - Food、Ordering in a Restaurant、Introductions、Unlock the Secrets to School Success、Describing your Hometown、Vocabulary、Talking about a Trip、Sports & Activities
+  - 修复 Sports & Activities 文件名（去掉 `&` 符号）
+
+### Changed
+- **文件命名标准化** 📝
+  - 所有新素材文件名必须使用标准连字符 `-`，剔除特殊单引号
+  - 数据库路径与 R2 物理路径保持一致
+
+### Technical Details
+- 修改文件：`src/app/topics/dictation/[slug]/DictationPracticeClient.tsx`
+- 数据库更新：13 条 video_path 记录，8 条 audio_path 记录，5 条 thumbnail_path 记录
+- R2 上传：5 个重命名的缩略图文件
+
 ## [7.8.11] - 2026-03-04
 
 ### Fixed
