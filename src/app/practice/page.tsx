@@ -24,10 +24,9 @@ interface Sentence {
   translation?: string  // 可选的中文翻译
 }
 
-// 硬编码 Supabase 配置（GitHub Pages 静态构建无法使用环境变量）
 const supabase = createClient(
-  'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
 )
 
 // 默认音频标题（First Snowfall）

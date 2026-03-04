@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { titleToSlug } from '@/lib/utils/slug'
 
 const supabase = createClient(
-  'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
 )
 
 /**
