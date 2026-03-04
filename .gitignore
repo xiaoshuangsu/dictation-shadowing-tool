@@ -86,3 +86,8 @@ scripts/download_youtube_to_r2.py
 .env.local
 scripts/.r2_credentials
 .r2_credentials
+
+# Large media files - host on R2/Supabase instead
+public/youtube_videos/
+public/audio/*.mp3
+public/audio/*.mp4
