@@ -1,5 +1,28 @@
 # Changelog
 
+## [7.8.11] - 2026-03-04
+
+### Fixed
+- **修复移动端素材加载失败问题** 🐛
+  - 修复练习页面音频/视频 URL 拼接错误，现在正确支持 R2 Worker URL
+  - 修复素材卡片缩略图路径问题，所有素材封面现在能正常显示
+  - 移动端音频现在能正常播放，视频不再黑屏
+
+### Changed
+- **R2 存储架构简化** 🗂️
+  - 统一所有资源到 R2 bucket (shadowhub)
+  - 删除冗余的 VIDEOS bucket 绑定
+  - Worker 简化为单一 R2 bucket 路由
+  - 文件命名标准化：全部使用小写+连字符格式
+  - 数据库路径与 R2 物理路径 100% 吻合
+
+### Technical Details
+- 清理重复文件：videos/ 从 47 个减少到 20 个
+- 重命名 audio/ 文件：29 个文件改为标准格式
+- 重命名康轩文件：音频、视频、缩略图命名统一（kh-b5l2-dialogue.*）
+- 更新 Supabase 数据库：24 个 audio_path，1 个 thumbnail_path
+- Worker 测试：5/5 通过，支持 CORS、Range 请求
+
 ## [7.8.10] - 2026-03-03
 
 ### Fixed
