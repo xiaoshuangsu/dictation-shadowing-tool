@@ -145,15 +145,20 @@ function HomeContent() {
         setAudioTitle(material.title)
         setMaterialCategory(material.category)
 
-        // 构建音频 URL（从 Supabase Storage）
-        const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
-        setAudioSrc(supabaseAudioUrl)
+        // 使用数据库中的完整 URL（R2 Worker URL）
+        // 如果是相对路径，则拼接 Supabase Storage URL
+        const audioUrl = material.audio_path?.startsWith('http')
+          ? material.audio_path
+          : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
+        setAudioSrc(audioUrl)
 
         // 构建视频 URL（如果有）
         if (material.video_path) {
-          const supabaseVideoUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.video_path}`
-          setVideoSrc(supabaseVideoUrl)
-          console.log('Video source set:', supabaseVideoUrl)
+          const videoUrl = material.video_path?.startsWith('http')
+            ? material.video_path
+            : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.video_path}`
+          setVideoSrc(videoUrl)
+          console.log('Video source set:', videoUrl)
         } else {
           setVideoSrc(null)
         }
@@ -186,7 +191,7 @@ function HomeContent() {
 
         console.log('Material loaded successfully:', {
           title: material.title,
-          audioUrl: supabaseAudioUrl,
+          audioUrl: audioUrl,
           duration: material.duration
         })
 
@@ -339,9 +344,11 @@ function HomeContent() {
       if (error) throw error
       if (!material) throw new Error('Material not found')
 
-      // 构建音频 URL
-      const supabaseAudioUrl = `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
-      setAudioSrc(supabaseAudioUrl)
+      // 使用数据库中的完整 URL（R2 Worker URL）
+      const audioUrl = material.audio_path?.startsWith('http')
+        ? material.audio_path
+        : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
+      setAudioSrc(audioUrl)
       if (material.category) {
         setMaterialCategory(material.category)
       }

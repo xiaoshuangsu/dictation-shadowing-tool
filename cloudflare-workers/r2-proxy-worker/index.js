@@ -1,8 +1,8 @@
 /**
- * Cloudflare Worker: R2 代理访问
+ * Cloudflare Worker: R2 代理访问（简化版）
  *
  * 功能：通过 Worker 公开访问 R2 bucket 中的文件
- * 解决 Public Development URL 的 401 问题
+ * 架构：统一使用 R2 bucket，删除了 VIDEOS 绑定
  */
 
 export default {
@@ -35,7 +35,7 @@ export default {
 
     try {
       // 从 R2 bucket 获取对象
-      const object = await env.VIDEOS.get(objectKey);
+      const object = await env.R2.get(objectKey);
 
       if (!object) {
         return new Response('File not found', { status: 404 });
@@ -52,6 +52,8 @@ export default {
         contentType = 'image/jpeg';
       } else if (objectKey.endsWith('.png')) {
         contentType = 'image/png';
+      } else if (objectKey.endsWith('.webm')) {
+        contentType = 'video/webm';
       }
 
       const headers = new Headers();
@@ -59,13 +61,11 @@ export default {
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Accept-Ranges', 'bytes');
       headers.set('Content-Length', object.size.toString());
+      headers.set('X-Bucket', 'R2');
+      headers.set('X-Source', 'R2-Simplified');
 
-      // 设置缓存策略：视频文件缓存 1 小时，其他文件缓存 1 天
-      if (objectKey.endsWith('.mp4')) {
-        headers.set('Cache-Control', 'public, max-age=3600'); // 1 小时
-      } else {
-        headers.set('Cache-Control', 'public, max-age=86400'); // 1 天
-      }
+      // 设置缓存策略：视频/音频文件缓存 1 年（静态资源）
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
 
       // HEAD 请求：只返回头信息
       if (request.method === 'HEAD') {
@@ -86,7 +86,7 @@ export default {
           headers.set('Content-Length', (end - start + 1).toString());
 
           // 使用正确的 R2 range 格式
-          const rangedObject = await env.VIDEOS.get(objectKey, {
+          const rangedObject = await env.R2.get(objectKey, {
             range: { offset: start, length: end - start + 1 }
           });
 
