@@ -136,5 +136,5 @@ export default function AudioPlayer({
     return () => clearListeners()
   }, [])
 
-  return <audio ref={audioRef} src={audioSrc} preload="metadata" />
+  return <audio ref={audioRef} src={audioSrc} preload="metadata" crossOrigin="anonymous" />
 }
