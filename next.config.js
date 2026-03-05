@@ -9,6 +9,8 @@ const nextConfig = {
   assetPrefix: isProd ? '/dictation-shadowing-tool' : '',
   // Always use static export when NODE_ENV is production
   ...(isProd ? { output: 'export' } : {}),
+  // Allow all cross-origin requests for development (for localtunnel testing)
+  allowedDevOrigins: isProd ? [] : ['*'], // Use wildcard to allow all origins in development
   images: {
     unoptimized: true,
   },
