@@ -41,12 +41,24 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
   const lastActivityRef = useRef<number>(Date.now())
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const sentenceWords = sentence.text.split(" ")
+  const sentenceWords = sentence.text
+    .trim()
+    .split(/\s+/)  // 使用正则表达式分割所有空白字符（空格、制表符等）
+    .filter(w => w.length > 0)
 
   // Randomly select a word to hide (using seeded random based on sentence.id for consistency)
   const { hiddenWordIndex, hiddenWord, visibleWordsBefore, visibleWordsAfter } = useMemo(() => {
+    if (sentenceWords.length === 0) {
+      return {
+        hiddenWordIndex: 0,
+        hiddenWord: "",
+        visibleWordsBefore: [],
+        visibleWordsAfter: []
+      }
+    }
+
     // Use sentence.id as a seed for consistent random selection
-    const seed = sentence.id
+    const seed = sentence.id || 1
     const randomIndex = seed % sentenceWords.length
 
     return {
@@ -56,6 +68,17 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       visibleWordsAfter: sentenceWords.slice(randomIndex + 1)
     }
   }, [sentence.id, sentenceWords])
+
+  // 调试日志
+  useEffect(() => {
+    console.log('[WordMode] sentence.text:', sentence.text)
+    console.log('[WordMode] sentence.text.length:', sentence.text?.length)
+    console.log('[WordMode] sentenceWords:', sentenceWords)
+    console.log('[WordMode] sentenceWords.length:', sentenceWords.length)
+    console.log('[WordMode] visibleWordsBefore:', visibleWordsBefore)
+    console.log('[WordMode] visibleWordsAfter:', visibleWordsAfter)
+    console.log('[WordMode] JSON.stringify(sentence.text):', JSON.stringify(sentence.text))
+  }, [sentence, sentenceWords, visibleWordsBefore, visibleWordsAfter])
 
   // V3.1: 启动计时
   const startTiming = () => {
@@ -235,13 +258,25 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
 
         {/* 第二行：原文 */}
         <p className="text-lg leading-relaxed">
-          {visibleWordsBefore.map((word, index) => (
-            <span key={index} className="text-gray-800">{word} </span>
-          ))}
-          <span className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[     ]</span>
-          {visibleWordsAfter.map((word, index) => (
-            <span key={index} className="text-gray-800"> {word}</span>
-          ))}
+          {sentence.text ? (
+            <>
+              {visibleWordsBefore.length > 0 && visibleWordsBefore.map((word, index) => (
+                <span key={index} className="text-gray-800">{word} </span>
+              ))}
+              <span className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[     ]</span>
+              {visibleWordsAfter.length > 0 && visibleWordsAfter.map((word, index) => (
+                <span key={index} className="text-gray-800"> {word}</span>
+              ))}
+              {/* 调试：如果没有单词，显示提示 */}
+              {visibleWordsBefore.length === 0 && visibleWordsAfter.length === 0 && (
+                <span className="text-red-500 text-xs ml-2">
+                  (单词数: {sentenceWords.length})
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="text-gray-400 italic">加载中...</span>
+          )}
         </p>
 
         {/* 中文翻译显示 */}
