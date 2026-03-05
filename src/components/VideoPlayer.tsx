@@ -256,6 +256,7 @@ export default function VideoPlayer({
           className="w-full h-full"
           playsInline
           preload="metadata"
+          crossOrigin="anonymous"
         />
       </div>
 

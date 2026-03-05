@@ -127,13 +127,22 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
           .from('materials')
           .select('*')
 
-        // 改进查找逻辑：支持多种匹配方式，优先选择有完整 transcript 的记录
-        let materials = allMaterials?.filter(m => {
-          // 1. 精确 ID 匹配
-          if (m.id === slug) return true
-          // 2. 标题 slug 匹配
-          if (titleToSlug(m.title) === slug) return true
-          // 3. 模糊匹配：从 slug 中提取关键词进行匹配
+        // 改进查找逻辑：支持多种匹配方式，优先选择完全匹配的
+        const matches: { material: any, matchType: 'exact' | 'slug' | 'fuzzy' }[] = []
+        let fuzzyMatches: any[] = []
+
+        allMaterials?.forEach(m => {
+          // 1. 精确 ID 匹配（最高优先级）
+          if (m.id === slug) {
+            matches.push({ material: m, matchType: 'exact' })
+            return
+          }
+          // 2. 标题 slug 匹配（高优先级）
+          if (titleToSlug(m.title) === slug) {
+            matches.push({ material: m, matchType: 'slug' })
+            return
+          }
+          // 3. 模糊匹配（低优先级）
           const slugKeywords = slug.replace(/-/g, ' ').toLowerCase()
           const titleLower = m.title.toLowerCase()
           // 移除常见后缀后再匹配
@@ -145,24 +154,34 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
             .replace(/-/g, ' ')
           if (slugKeywords.includes('this') && slugKeywords.includes('that') &&
               titleClean.includes('this') && titleClean.includes('that')) {
-            return true
+            fuzzyMatches.push(m)
           }
-          return false
         })
 
-        // 优先选择有更多 transcript 的记录（跳过只有默认句子的）
-        const material = materials?.sort((a, b) => {
-          const aTranscript = a.transcript || []
-          const bTranscript = b.transcript || []
-          const aCount = aTranscript.length || 0
-          const bCount = bTranscript.length || 0
-          // 过滤掉只有默认句子的记录
-          const aFailed = aCount === 1 && aTranscript[0]?.text?.includes('Please')
-          const bFailed = bCount === 1 && bTranscript[0]?.text?.includes('Please')
-          if (aFailed && !bFailed) return 1
-          if (!aFailed && bFailed) return -1
-          return bCount - aCount
-        })[0]
+        // 按匹配类型优先级选择：exact > slug > fuzzy
+        let material = null
+        if (matches.length > 0) {
+          // 在同一匹配类型中，优先选择 transcript 数量多的
+          const bestMatch = matches.sort((a, b) => {
+            // 优先级：exact > slug > fuzzy
+            const typePriority = { exact: 3, slug: 2, fuzzy: 1 }
+            const typeDiff = typePriority[b.matchType] - typePriority[a.matchType]
+            if (typeDiff !== 0) return typeDiff
+
+            // 同类型下，选择 transcript 多的
+            const aTranscript = a.material.transcript || []
+            const bTranscript = b.material.transcript || []
+            return bTranscript.length - aTranscript.length
+          })[0]
+          material = bestMatch.material
+        } else if (fuzzyMatches.length > 0) {
+          // 模糊匹配中选择 transcript 数量多的
+          material = fuzzyMatches.sort((a, b) => {
+            const aTranscript = a.transcript || []
+            const bTranscript = b.transcript || []
+            return bTranscript.length - aTranscript.length
+          })[0]
+        }
 
         if (material) {
           setMaterialId(material.id)

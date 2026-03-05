@@ -76,6 +76,7 @@ function HomeContent() {
   const [audioTitle, setAudioTitle] = useState<string | null>(null)
   const [audioSrc, setAudioSrc] = useState<string | null>(null)
   const [videoSrc, setVideoSrc] = useState<string | null>(null) // 视频源
+  const [thumbnailPath, setThumbnailPath] = useState<string | null>(null) // 缩略图
   const [sampleSentences, setSampleSentences] = useState<Sentence[] | null>(null)
   const [isInitialLoading, setIsInitialLoading] = useState(true) // 初始加载状态
   const [materialError, setMaterialError] = useState<string | null>(null)
@@ -108,13 +109,11 @@ function HomeContent() {
       }
 
       if (!targetMaterialId) {
-        // 没有 materialId，使用默认素材
-        console.log('⚠️ No material ID provided, using default material:', DEFAULT_AUDIO_TITLE)
-        setAudioTitle(DEFAULT_AUDIO_TITLE)
-        setAudioSrc(DEFAULT_AUDIO_SRC)
-        setSampleSentences(defaultSentences)
+        // 没有 materialId，显示提示引导用户选择素材
+        console.log('⚠️ No material ID provided, showing selection prompt')
         setIsInitialLoading(false)
-        localStorage.removeItem('currentMaterialId') // 清除保存的 ID
+        setMaterialError('请先从素材页面选择一个练习内容')
+        // 不再使用默认素材
         return
       }
 
@@ -129,7 +128,7 @@ function HomeContent() {
 
         const { data: material, error } = await supabase
           .from('materials')
-          .select('id, title, category, audio_path, video_path, duration, transcript')
+          .select('id, title, category, audio_path, video_path, thumbnail_path, duration, transcript')
           .eq('id', targetMaterialId)
           .single()
 
@@ -147,9 +146,12 @@ function HomeContent() {
 
         // 使用数据库中的完整 URL（R2 Worker URL）
         // 如果是相对路径，则拼接 Supabase Storage URL
+        console.log('原始 audio_path:', material.audio_path)
+        console.log('是否以 http 开头:', material.audio_path?.startsWith('http'))
         const audioUrl = material.audio_path?.startsWith('http')
           ? material.audio_path
           : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
+        console.log('最终 audioUrl:', audioUrl)
         setAudioSrc(audioUrl)
 
         // 构建视频 URL（如果有）
@@ -161,6 +163,17 @@ function HomeContent() {
           console.log('Video source set:', videoUrl)
         } else {
           setVideoSrc(null)
+        }
+
+        // 构建缩略图 URL（如果有）
+        if (material.thumbnail_path) {
+          const thumbnailUrl = material.thumbnail_path?.startsWith('http')
+            ? material.thumbnail_path
+            : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.thumbnail_path}`
+          setThumbnailPath(thumbnailUrl)
+          console.log('Thumbnail path set:', thumbnailUrl)
+        } else {
+          setThumbnailPath(null)
         }
 
         // 优先使用数据库中的 transcript 数据
@@ -763,6 +776,7 @@ function HomeContent() {
                     currentSentence={currentSentence}
                     playbackRate={playbackRate}
                     autoPlayTrigger={autoPlayTrigger}
+                    thumbnailPath={thumbnailPath || undefined}
                     onPlayEnd={() => {}}
                     onTimeUpdate={handleTimeUpdate}
                   />

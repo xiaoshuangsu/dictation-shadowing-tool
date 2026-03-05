@@ -24,7 +24,7 @@ const CATEGORY_MAP = {
 
 // 使用环境变量的 Supabase 配置
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_E14-9O-p9jZqL6ikHARsQ_l6zTiwNr'
 
 // 添加超时和重试配置
 const supabase = createClient(supabaseUrl, supabaseKey, {
@@ -155,12 +155,13 @@ export default function MaterialsPage() {
 
         if (error) {
           console.error('Supabase 错误详情:', {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
+            message: error.message || '未知错误',
+            details: error.details || null,
+            hint: error.hint || null,
+            code: error.code || null,
+            name: error.name || null,
           })
-          setError(`错误: ${error.message} (代码: ${error.code})`)
+          setError(`错误: ${error.message || '未知错误'} ${error.code ? `(${error.code})` : ''}`)
           throw error
         }
 
@@ -384,8 +385,8 @@ export default function MaterialsPage() {
                   <div className={isExpanded ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "flex gap-4 overflow-hidden"}>
                     {displayedMaterials.map((material, index) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
-                      // Fallback 到 Supabase Storage
-                      const supabaseUrl = material.thumbnail_path
+                      // Fallback 到 Supabase Storage（仅当 thumbnail_path 是相对路径时）
+                      const supabaseUrl = material.thumbnail_path && !material.thumbnail_path.startsWith('http')
                         ? `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.thumbnail_path}`
                         : null
 
@@ -439,6 +440,7 @@ export default function MaterialsPage() {
                                   onError={handleImageError}
                                   loading="lazy"
                                   decoding="async"
+                                  crossOrigin="anonymous"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
