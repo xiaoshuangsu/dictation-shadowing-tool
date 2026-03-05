@@ -90,6 +90,7 @@ const CATEGORIES = [
   { id: '日常生活', label: 'Daily Life' },
   { id: 'YouTube Vlog', label: 'YouTube Vlog' },
   { id: '历史演讲', label: 'Historical Speeches' },
+  { id: 'TED演讲', label: 'TED Talks' },
   { id: '文化历史', label: 'Culture & History' },
   { id: '心灵故事', label: 'Heart & Soul Stories' },
   { id: '艺术文化', label: 'Arts & Culture' },
@@ -170,10 +171,24 @@ export default function MaterialsPage() {
         setError(null)
       } catch (err) {
         console.error('获取素材失败:', err)
-        const errorMsg = err instanceof Error ? err.message : String(err)
-        if (!errorMsg.includes('错误:')) {
-          setError(`加载失败: ${errorMsg}`)
+        // 安全地提取错误信息
+        let errorMsg = '未知错误'
+        if (err) {
+          if (typeof err === 'string') {
+            errorMsg = err
+          } else if (err instanceof Error) {
+            errorMsg = err.message
+          } else if ((err as any).message) {
+            errorMsg = (err as any).message
+          } else {
+            try {
+              errorMsg = JSON.stringify(err)
+            } catch {
+              errorMsg = '无法解析的错误'
+            }
+          }
         }
+        setError(`加载失败: ${errorMsg}`)
       } finally {
         setLoading(false)
       }
@@ -351,7 +366,7 @@ export default function MaterialsPage() {
               const isExpanded = expandedCategories.has(categoryId)
               const displayedMaterials = isExpanded
                 ? categoryMaterials
-                : categoryMaterials.slice(0, 4) // 默认只显示4个
+                : categoryMaterials.slice(0, 2) // 默认只显示2个
 
               return (
                 <section key={categoryId} id={categoryId} className="scroll-mt-4">
@@ -363,7 +378,7 @@ export default function MaterialsPage() {
                         ({categoryMaterials.length} {t("topics.lessons")})
                       </span>
                     </h2>
-                    {categoryMaterials.length > 4 && (
+                    {categoryMaterials.length > 2 && (
                       <button
                         onClick={() => {
                           const newExpanded = new Set(expandedCategories)

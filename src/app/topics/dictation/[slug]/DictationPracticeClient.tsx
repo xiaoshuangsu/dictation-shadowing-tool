@@ -693,6 +693,28 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                   return text.split(' ').map(word => '*'.repeat(Math.min(word.length, 4))).join(' ')
                 }
 
+                // 生成挖空单词的文本（单词听写模式）
+                const generateWordModeText = (text: string, sentenceId: number) => {
+                  const words = text.split(' ')
+                  // 使用句子 ID 作为种子保持一致性
+                  const hiddenIndex = sentenceId % words.length
+                  return words.map((word, i) =>
+                    i === hiddenIndex ? '[_____]' : word
+                  ).join(' ')
+                }
+
+                // 确定显示的文本
+                let displayText = sentence.text
+                if (!showTranscript) {
+                  if (mode === 'dictation' && dictationMode === 'word' && isCurrent) {
+                    // 单词模式 + 当前句子：显示挖空的单词
+                    displayText = generateWordModeText(sentence.text, sentence.id)
+                  } else {
+                    // 其他情况：显示星号
+                    displayText = generateStarText(sentence.text)
+                  }
+                }
+
                 return (
                   <div
                     key={sentence.id}
@@ -715,7 +737,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
                       </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-800 leading-relaxed break-words">
-                          {showTranscript ? sentence.text : generateStarText(sentence.text)}
+                          {displayText}
                         </p>
                         {showTranscript && sentence.translation && (
                           <p className="text-xs text-gray-500 italic mt-1">

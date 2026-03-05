@@ -1,5 +1,47 @@
 # Changelog
 
+## [8.1.0] - 2026-03-05
+
+### Added
+- **YouTube 自动化处理脚本** 🎬
+  - 新建 `scripts/youtube_single.py` - 单视频处理脚本
+  - 支持 YouTube 视频下载、转录、翻译、上传全流程自动化
+  - Whisper 毫秒级对齐 + GLM API 翻译
+  - 物理断句逻辑：标点强制切分、逗号+停顿>0.8s切分、任何停顿>0.8s切分
+  - R2 Worker URL 自动配置，移动端跨域兼容
+  - 支持分类：story, ted, speech, daily, culture
+
+- **TED 演讲分类** 🎤
+  - 新增 "TED演讲" 分类 (B1 难度)
+  - 已上传 3 个 TED 素材：
+    - What happens to your brain without any social contact? - Terry Kupers
+    - The 3 best predictors of how well youll age - Juulia Jylhv
+    - What lack of sleep does to the teenage brain - Wendy Troxel
+
+### Fixed
+- **错误处理优化** 🐛
+  - 修复 `src/app/topics/page.tsx` 错误对象显示为 `[object Object]` 的问题
+  - 安全提取错误信息，支持 Error 对象、字符串、JSON 等多种格式
+
+- **单词模式单词分割修复** 🔧
+  - 修复 `src/components/WordMode.tsx` 单词分割逻辑
+  - 使用正则表达式 `/\s+/` 代替 `split(" ")` 正确分割所有空白字符
+  - 修复转录脚本单词拼接逻辑：`" ".join()` 代替 `"".join()`
+
+### Changed
+- **移动端素材展示优化** 📱
+  - 默认显示素材数从 4 个改为 2 个（适配小屏幕）
+  - "查看全部"按钮触发条件从 >4 改为 >2
+  - 更好适配 iPhone 15 等小屏设备
+
+### Technical Details
+- 新增文件：`scripts/youtube_single.py` (350 行)
+- 修改文件：
+  - `src/app/topics/page.tsx` - 错误处理、默认显示数量、TED 分类
+  - `src/components/WordMode.tsx` - 单词分割逻辑优化
+  - `src/app/topics/dictation/[slug]/DictationPracticeClient.tsx` - 右侧文稿显示优化
+- 数据库更新：3 个 TED 素材，新增 transcript (38-70 句不等)
+
 ## [8.0.0] - 2026-03-04
 
 ### Fixed
