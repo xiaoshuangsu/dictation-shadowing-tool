@@ -40,9 +40,9 @@ export function getR2PublicUrl(key: string): string {
  * @returns 对象键名
  */
 export function extractR2Key(url: string): string {
-  // 尝试从 Worker URL 提取
-  if (url.includes(R2_WORKER_URL)) {
-    return url.replace(`${R2_WORKER_URL}/`, '')
+  // 尝试从 CORS 代理 URL 提取
+  if (url.includes(R2_CORS_PROXY)) {
+    return url.replace(`${R2_CORS_PROXY}/`, '')
   }
   // 尝试从公开 URL 提取
   if (url.includes(R2_PUBLIC_URL)) {
@@ -59,7 +59,7 @@ export function extractR2Key(url: string): string {
  * @returns 是否为 R2 URL
  */
 export function isR2Url(url: string): boolean {
-  return url.includes('workers.dev') || url.includes('r2.dev') || url.includes(R2_WORKER_URL) || url.includes(R2_PUBLIC_URL)
+  return url.includes('workers.dev') || url.includes('r2.dev') || url.includes(R2_CORS_PROXY) || url.includes(R2_PUBLIC_URL)
 }
 
 /**
