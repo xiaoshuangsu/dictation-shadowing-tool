@@ -1,7 +1,7 @@
 export default function HeroVisual() {
   return (
     <div
-      className="relative w-full max-w-xl mx-auto flex items-center justify-center animate-fade-in"
+      className="relative w-full max-w-xl mx-auto flex items-center justify-center animate-fade-in z-10"
       style={{ maxHeight: '450px' }}
     >
       {/* 浅蓝渐变背景 */}
