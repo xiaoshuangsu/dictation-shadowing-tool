@@ -186,9 +186,6 @@ function HomeContent() {
           setThumbnailPath(thumbnailUrl)
           console.log('Thumbnail URL:', thumbnailUrl?.substring(0, 60))
         }
-        } else {
-          setThumbnailPath(null)
-        }
 
         // 优先使用数据库中的 transcript 数据
         if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
