@@ -38,15 +38,21 @@ const getCdnUrl = (url: string | null) => {
   if (!url) return null
   if (typeof window === 'undefined') return url
 
+  // 移动设备检测 - 保持原有逻辑
   const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
 
   if (!url.startsWith('http')) {
     // 相对路径，使用 Supabase Storage
     return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${url}`
   }
-  // 完整 URL：桌面端替换 R2 公共域名为 Worker 代理
-  if (url.includes(R2_PUBLIC_URL) && !isMobile) {
-    return url.replace(R2_PUBLIC_URL, R2_CORS_PROXY)
+  // 完整 URL：所有设备都替换 R2 公共域名为 Worker 代理
+  // Worker 使用 HTTP/2 协议，避免 QUIC 协议的兼容性问题
+  if (url.includes(R2_PUBLIC_URL)) {
+    const proxiedUrl = url.replace(R2_PUBLIC_URL, R2_CORS_PROXY)
+    // 添加缓存破坏参数，确保使用最新的代理配置
+    const urlObj = new URL(proxiedUrl)
+    urlObj.searchParams.set('v', '2') // 版本号，当 Worker 更新时可修改
+    return urlObj.toString()
   }
   return url
 }

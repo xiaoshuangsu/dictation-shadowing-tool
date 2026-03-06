@@ -1,6 +1,5 @@
 "use client"
 
-import { motion } from "framer-motion"
 import { ArrowRight } from "lucide-react"
 import HeroVisual from "./HeroVisual"
 import { useLanguage } from "@/contexts/LanguageContext"
@@ -13,13 +12,8 @@ export default function Hero() {
     <section className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 py-20 md:py-28 overflow-hidden">
       <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12 relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="text-center lg:text-left"
-          >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 flex flex-col">
+          <div className="text-center lg:text-left relative z-20">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 flex flex-col text-gray-900">
               <span>{t("hero.title.line1")}</span>
               <span>{t("hero.title.line2")}</span>
             </h1>
@@ -37,7 +31,7 @@ export default function Hero() {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </LocalizedLink>
             </div>
-          </motion.div>
+          </div>
 
           {/* Right side visual component */}
           <HeroVisual />
