@@ -2,35 +2,35 @@
  * Cloudflare R2 客户端配置
  *
  * 用于访问存储在 R2 上的视频文件
+ * 根据设备类型选择不同的 URL 以解决 CORS 和移动端访问问题
  */
 
-// R2 公开访问 URL 配置
+// R2 公共域名（移动端使用，避免运营商对 workers.dev 的限制）
+const R2_PUBLIC_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev'
 
-// 选项1：使用 Worker 代理（推荐，无速率限制）
-const R2_WORKER_URL = process.env.NEXT_PUBLIC_R2_WORKER_URL || 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+// R2 CORS 代理 Worker（桌面端使用，提供 CORS 头）
+const R2_CORS_PROXY = 'https://r2-cors-proxy.suxiaoshuang2020.workers.dev'
 
-// 选项2：使用 R2 提供的公开 URL（有速率限制）
-const R2_ACCOUNT_ID = process.env.NEXT_PUBLIC_R2_ACCOUNT_ID || ''
-const R2_PUBLIC_URL = `https://pub-${R2_ACCOUNT_ID}.r2.dev`
-
-// 选项3：使用自定义域名（如果已配置）
-// const R2_CUSTOM_DOMAIN = process.env.NEXT_PUBLIC_R2_DOMAIN || 'https://videos.yourdomain.com'
+/**
+ * 检测是否为移动设备
+ */
+function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') return false
+  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
+}
 
 /**
  * 生成 R2 对象的公开访问 URL
+ * 根据设备类型自动选择合适的 URL
  *
  * @param key - R2 对象键名（如 "videos/video-name.mp4"）
  * @returns 完整的公开访问 URL
  */
 export function getR2PublicUrl(key: string): string {
-  // 优先使用 Worker 代理 URL（无速率限制）
-  return `${R2_WORKER_URL}/${key}`
-
-  // 或使用 R2 默认公开 URL（有速率限制）
-  // return `${R2_PUBLIC_URL}/${key}`
-
-  // 或使用自定义域名（如果已配置）
-  // return `${R2_CUSTOM_DOMAIN}/${key}`
+  // 桌面端：使用 CORS 代理（解决跨域问题）
+  // 移动端：直接使用 R2 公共域名（避免运营商限制）
+  const baseUrl = isMobileDevice() ? R2_PUBLIC_URL : R2_CORS_PROXY
+  return `${baseUrl}/${key}`
 }
 
 /**

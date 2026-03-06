@@ -29,6 +29,28 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
 )
 
+// R2 URL 配置
+const R2_PUBLIC_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev'
+const R2_CORS_PROXY = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+
+// 根据设备类型选择合适的 CDN URL
+const getCdnUrl = (url: string | null) => {
+  if (!url) return null
+  if (typeof window === 'undefined') return url
+
+  const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
+
+  if (!url.startsWith('http')) {
+    // 相对路径，使用 Supabase Storage
+    return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${url}`
+  }
+  // 完整 URL：桌面端替换 R2 公共域名为 Worker 代理
+  if (url.includes(R2_PUBLIC_URL) && !isMobile) {
+    return url.replace(R2_PUBLIC_URL, R2_CORS_PROXY)
+  }
+  return url
+}
+
 // 默认音频标题（First Snowfall）
 const DEFAULT_AUDIO_TITLE = "First Snowfall"
 
@@ -144,34 +166,26 @@ function HomeContent() {
         setAudioTitle(material.title)
         setMaterialCategory(material.category)
 
-        // 使用数据库中的完整 URL（R2 Worker URL）
-        // 如果是相对路径，则拼接 Supabase Storage URL
-        console.log('原始 audio_path:', material.audio_path)
-        console.log('是否以 http 开头:', material.audio_path?.startsWith('http'))
-        const audioUrl = material.audio_path?.startsWith('http')
-          ? material.audio_path
-          : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
-        console.log('最终 audioUrl:', audioUrl)
+        // 构建音频 URL
+        const audioUrl = getCdnUrl(material.audio_path)
+        console.log('Audio URL:', audioUrl?.substring(0, 60))
         setAudioSrc(audioUrl)
 
         // 构建视频 URL（如果有）
         if (material.video_path) {
-          const videoUrl = material.video_path?.startsWith('http')
-            ? material.video_path
-            : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.video_path}`
+          const videoUrl = getCdnUrl(material.video_path)
           setVideoSrc(videoUrl)
-          console.log('Video source set:', videoUrl)
+          console.log('Video URL:', videoUrl?.substring(0, 60))
         } else {
           setVideoSrc(null)
         }
 
         // 构建缩略图 URL（如果有）
         if (material.thumbnail_path) {
-          const thumbnailUrl = material.thumbnail_path?.startsWith('http')
-            ? material.thumbnail_path
-            : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.thumbnail_path}`
+          const thumbnailUrl = getCdnUrl(material.thumbnail_path)
           setThumbnailPath(thumbnailUrl)
-          console.log('Thumbnail path set:', thumbnailUrl)
+          console.log('Thumbnail URL:', thumbnailUrl?.substring(0, 60))
+        }
         } else {
           setThumbnailPath(null)
         }
@@ -357,10 +371,8 @@ function HomeContent() {
       if (error) throw error
       if (!material) throw new Error('Material not found')
 
-      // 使用数据库中的完整 URL（R2 Worker URL）
-      const audioUrl = material.audio_path?.startsWith('http')
-        ? material.audio_path
-        : `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.audio_path}`
+      // 构建音频 URL（根据设备类型选择 CDN）
+      const audioUrl = getCdnUrl(material.audio_path)
       setAudioSrc(audioUrl)
       if (material.category) {
         setMaterialCategory(material.category)
