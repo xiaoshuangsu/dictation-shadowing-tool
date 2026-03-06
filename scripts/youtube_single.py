@@ -46,7 +46,8 @@ load_env()
 
 # ==================== 配置 ====================
 R2_ENDPOINT = f"https://{os.environ['NEXT_PUBLIC_R2_ACCOUNT_ID']}.r2.cloudflarestorage.com"
-R2_WORKER_URL = os.environ['NEXT_PUBLIC_R2_WORKER_URL']
+# 使用 R2 公共域名（移动端兼容，无需 Worker 代理）
+R2_PUBLIC_URL = "https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev"
 SUPABASE_URL = os.environ['NEXT_PUBLIC_SUPABASE_URL']
 SUPABASE_KEY = os.environ['SUPABASE_SERVICE_ROLE_KEY']
 GLM_API_KEY = os.environ['GLM_API_KEY']
@@ -84,6 +85,7 @@ def download_video(youtube_url: str) -> Optional[Dict]:
     # 先获取元数据
     info_cmd = [
         "/opt/homebrew/bin/yt-dlp",
+        "--cookies-from-browser", "chrome",
         "--dump-json",
         "--no-playlist",
         youtube_url
@@ -100,11 +102,9 @@ def download_video(youtube_url: str) -> Optional[Dict]:
     # 再下载视频
     cmd = [
         "/opt/homebrew/bin/yt-dlp",
-        "--remote-components", "ejs:github",
-        "--js-runtimes", "node",
+        "--cookies-from-browser", "chrome",
         "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
         "--merge-output-format", "mp4",
-        "--cookies", "/Users/a/dictation/www.youtube.com_cookies.txt",
         "-o", str(output_file),
         "--no-playlist",
         youtube_url
@@ -112,6 +112,8 @@ def download_video(youtube_url: str) -> Optional[Dict]:
 
     result = subprocess.run(cmd, capture_output=True)
     if result.returncode != 0 or not output_file.exists():
+        if result.stderr:
+            print(f"下载错误: {result.stderr.decode()}")
         return None
 
     return {
@@ -361,7 +363,7 @@ def upload_to_r2(file_path: str = None, data: bytes = None,
                 ExtraArgs={'ContentType': content_type}
             )
 
-        return f"{R2_WORKER_URL}/{key}"
+        return f"{R2_PUBLIC_URL}/{key}"
 
     except Exception as e:
         log(f"R2 上传失败 {key}: {e}")
@@ -385,17 +387,40 @@ def sync_supabase(metadata: Dict, transcript: List[Dict],
     # 获取音频文件大小
     audio_size = os.path.getsize(WORK_DIR / "audio.mp3") if (WORK_DIR / "audio.mp3").exists() else 0
 
+    # 生成 SEO 字段
+    slug = slugify(metadata['title'])
+
+    # 生成 meta_title: [Title] | English Dictation & Shadowing
+    meta_title = f"{metadata['title']} | English Dictation & Shadowing"
+
+    # 生成 meta_description: 从转录文本提取前 150 字符
+    if transcript and len(transcript) > 0:
+        # 取前 5 句话作为描述
+        desc_text = ' '.join([s.get('text', '') for s in transcript[:5]])
+        desc_text = desc_text.replace('\n', ' ').strip()
+        meta_description = desc_text[:150] + '...' if len(desc_text) > 150 else desc_text
+    else:
+        meta_description = f"Practice English listening and speaking with '{metadata['title']}' dictation exercise. Improve your English skills with interactive audio and text."
+
+    # og_image: 复用缩略图路径
+    og_image = thumbnail_url
+
     material_data = {
         'title': metadata['title'],
+        'slug': slug,  # SEO: URL 友好的唯一标识
         'category': metadata.get('category', '故事'),
         'difficulty': metadata.get('difficulty', 'A2'),
         'audio_path': audio_url,
-        'video_path': video_url,  # 添加视频路径
+        'video_path': video_url,
         'thumbnail_path': thumbnail_url,
         'audio_size': audio_size,
         'duration': metadata.get('duration', 0),
         'transcript': transcript,
-        'play_count': 0
+        'play_count': 0,
+        # SEO 字段
+        'meta_title': meta_title,
+        'meta_description': meta_description,
+        'og_image': og_image
     }
 
     try:
@@ -422,7 +447,7 @@ def sync_supabase(metadata: Dict, transcript: List[Dict],
 def main():
     if len(sys.argv) < 2:
         print("用法: python3 scripts/youtube_single.py <YouTube_URL> [分类]")
-        print("分类: story, speech, daily, culture (默认: story)")
+        print("分类: story, ted, speech, daily, culture, bbc, voa (默认: story)")
         sys.exit(1)
 
     youtube_url = sys.argv[1]
@@ -431,7 +456,9 @@ def main():
         'ted': ('TED演讲', 'B1'),
         'speech': ('历史演讲', 'B1'),
         'daily': ('日常生活', 'A2'),
-        'culture': ('艺术文化', 'B2')
+        'culture': ('艺术文化', 'B2'),
+        'bbc': ('BBC Learning English', 'A2'),
+        'voa': ('VOA Learning English', 'A2')
     }
     category = sys.argv[2] if len(sys.argv) > 2 else 'story'
 

@@ -1,5 +1,49 @@
 # Changelog
 
+## [8.2.0] - 2026-03-06
+
+### Added
+- **SEO 字段支持** 🔍
+  - 数据库新增 4 个 SEO 字段：`slug`、`meta_title`、`meta_description`、`og_image`
+  - Python 脚本自动生成 SEO 元数据
+  - 50 条现有记录批量填充 SEO 数据
+  - 新增 BBC Learning English 和 VOA Learning English 分类参数
+
+- **R2 公共域名迁移** ☁️
+  - 开启 R2 Bucket Public Access
+  - 迁移所有资源 URL 到 R2 公共域名
+  - 桌面端/移动端分离策略，解决 CORS 和移动访问问题
+
+### Fixed
+- **跨域资源加载 (CORS)** 🌐
+  - 桌面端：使用 R2 Worker 代理（提供 CORS 头）
+  - 移动端：使用 R2 公共域名（避免运营商限制）
+  - 更新 5 个前端组件的 CDN 选择逻辑
+  - 修复练习页面音频/视频播放无声音问题
+
+- **素材卡片布局优化** 📱
+  - 默认显示数量自适应屏幕大小（移动1/小屏2/中屏3/大屏4）
+  - 统一使用网格布局，移除复杂的响应式隐藏逻辑
+  - "查看全部"按钮显示条件优化
+
+### Changed
+- **分类整理** 📂
+  - 迁移 BBC 视频到 "BBC Learning English" 分类
+  - 数据库当前共 50 条记录
+
+### Technical Details
+- 修改文件：
+  - `scripts/youtube_single.py` - SEO 字段生成、新增 bbc/voa 分类
+  - `scripts/add_seo_fields.js` - SEO 字段填充脚本
+  - `scripts/add_seo_fields.sql` - SQL 脚本
+  - `src/app/practice/page.tsx` - CDN 选择逻辑
+  - `src/app/topics/page.tsx` - 布局优化、CDN 选择
+  - `src/app/topics/dictation/[slug]/DictationPracticeClient.tsx` - CDN 选择
+  - `src/app/topics/shadowing/[slug]/ShadowingPracticeClient.tsx` - CDN 选择
+  - `src/components/topics/MaterialCard.tsx` - CDN 选择
+  - `src/lib/r2/client.ts` - 设备检测、URL 生成逻辑
+- 数据库更新：新增 SEO 字段，50 条记录批量更新
+
 ## [8.1.0] - 2026-03-05
 
 ### Added

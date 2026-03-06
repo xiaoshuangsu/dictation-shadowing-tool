@@ -264,15 +264,30 @@ export default function MaterialsPage() {
     return grouped
   }, [filteredMaterials, filters.category])
 
-  // 获取缩略图 URL
+  // R2 URL 配置
+  const R2_PUBLIC_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev'
+  const R2_CORS_PROXY = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+
+  // 检测是否为移动设备
+  const isMobile = typeof window !== 'undefined' && /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
+
+  // 获取缩略图 URL（根据设备类型选择合适的 CDN）
   const getThumbnailUrl = (path: string | null) => {
     if (!path) return null
-    // 如果是完整URL（R2或其他CDN），直接使用
+
+    // 如果是完整 URL，检查是否需要根据设备类型替换
     if (path.startsWith('http://') || path.startsWith('https://')) {
+      // 如果是 R2 公共域名，桌面端替换为 CORS 代理
+      if (path.includes(R2_PUBLIC_URL) && !isMobile) {
+        return path.replace(R2_PUBLIC_URL, R2_CORS_PROXY)
+      }
+      // 其他情况直接使用原 URL
       return path
     }
-    // 使用 Supabase Storage（立即可用，移动端兼容）
-    return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${path}`
+
+    // 相对路径：根据设备类型选择 CDN
+    const baseUrl = isMobile ? R2_PUBLIC_URL : R2_CORS_PROXY
+    return `${baseUrl}/${path}`
   }
 
   // 格式化时长
@@ -364,9 +379,21 @@ export default function MaterialsPage() {
               const categoryLabel = categoryConfig?.label || categoryId
 
               const isExpanded = expandedCategories.has(categoryId)
+
+              // 根据屏幕大小决定默认显示数量
+              const getDefaultDisplayCount = () => {
+                if (typeof window === 'undefined') return 4
+                const width = window.innerWidth
+                if (width < 640) return 1  // 移动端
+                if (width < 1024) return 2 // 小屏
+                if (width < 1280) return 3 // 中屏
+                return 4 // 大屏
+              }
+
+              const defaultCount = getDefaultDisplayCount()
               const displayedMaterials = isExpanded
                 ? categoryMaterials
-                : categoryMaterials.slice(0, 2) // 默认只显示2个
+                : categoryMaterials.slice(0, defaultCount)
 
               return (
                 <section key={categoryId} id={categoryId} className="scroll-mt-4">
@@ -378,7 +405,7 @@ export default function MaterialsPage() {
                         ({categoryMaterials.length} {t("topics.lessons")})
                       </span>
                     </h2>
-                    {categoryMaterials.length > 2 && (
+                    {categoryMaterials.length > defaultCount && (
                       <button
                         onClick={() => {
                           const newExpanded = new Set(expandedCategories)
@@ -396,8 +423,8 @@ export default function MaterialsPage() {
                     )}
                   </div>
 
-                  {/* Card Grid - 折叠时单行，展开时网格换行 */}
-                  <div className={isExpanded ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "flex gap-4 overflow-hidden"}>
+                  {/* Card Grid - 始终使用网格布局 */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material, index) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
                       // Fallback 到 Supabase Storage（仅当 thumbnail_path 是相对路径时）
@@ -411,37 +438,20 @@ export default function MaterialsPage() {
 
                         // 如果当前是 R2 URL，尝试 Supabase Storage
                         if (currentSrc.includes('r2-proxy') && supabaseUrl) {
-                          console.log('R2 加载失败，尝试 Supabase Storage:', supabaseUrl)
+                          img.src = supabaseUrl
+                        } else if (currentSrc.includes('pub-') && currentSrc.includes('.r2.dev') && supabaseUrl) {
+                          // R2 公共域名失败，尝试 Supabase Storage
                           img.src = supabaseUrl
                         } else {
                           // 都失败了，隐藏图片
-                          console.warn('缩略图加载失败:', material.thumbnail_path)
                           img.style.display = 'none'
                         }
-                      }
-
-                      // 只在折叠时应用响应式隐藏和宽度控制
-                      const getResponsiveClass = (idx: number) => {
-                        if (isExpanded) return '' // 展开时显示所有
-                        // 使用 flex-1 均匀分配空间，同时用 max-width 限制单卡片宽度
-                        const classes = [
-                          'flex-1',                    // 多卡片时均匀分配空间
-                          'w-full',                    // 基础宽度
-                          'sm:max-w-[50%]',            // sm断点最大50%（显示2个）
-                          'lg:max-w-[33.333%]',        // lg断点最大33.33%（显示3个）
-                          'xl:max-w-[25%]'             // xl断点最大25%（显示4个）
-                        ]
-                        // 卡片2+: sm (640px) 以下隐藏
-                        if (idx >= 2) classes.push('hidden', 'sm:block')
-                        // 卡片3+: md (768px) 到 lg (1024px) 之间隐藏
-                        if (idx >= 3) classes.push('md:hidden', 'lg:block')
-                        return classes.join(' ')
                       }
 
                       return (
                         <div
                           key={material.id}
-                          className={`bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group ${getResponsiveClass(index)}`}
+                          className="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group"
                         >
                           {/* 统一纵向卡片布局，支持弹性缩放 */}
                           <div className="flex flex-col">
@@ -456,6 +466,7 @@ export default function MaterialsPage() {
                                   loading="lazy"
                                   decoding="async"
                                   crossOrigin="anonymous"
+                                  referrerPolicy="no-referrer"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">

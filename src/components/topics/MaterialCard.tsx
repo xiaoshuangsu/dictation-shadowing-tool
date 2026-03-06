@@ -16,19 +16,30 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export function MaterialCard({ material, onPlay }: MaterialCardProps) {
-  // R2 Worker URL（图片和视频已迁移到 R2）
-  const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+  // R2 URL 配置
+  const R2_PUBLIC_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev'
+  const R2_CORS_PROXY = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
   const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
 
-  // 获取缩略图 URL（优先使用 R2 Worker，兼容相对路径）
+  // 检测是否为移动设备
+  const isMobile = typeof window !== 'undefined' && /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
+
+  // 获取缩略图 URL（根据设备类型选择合适的 CDN）
   const getThumbnailUrl = (path: string | null) => {
     if (!path) return null
-    // 如果已经是完整 URL，直接使用
+
+    // 如果是完整 URL，检查是否需要根据设备类型替换
     if (path.startsWith('http://') || path.startsWith('https://')) {
+      // 如果是 R2 公共域名，桌面端替换为 CORS 代理
+      if (path.includes(R2_PUBLIC_URL) && !isMobile) {
+        return path.replace(R2_PUBLIC_URL, R2_CORS_PROXY)
+      }
       return path
     }
-    // 相对路径：使用 R2 Worker
-    return `${R2_WORKER_URL}/${path}`
+
+    // 相对路径：根据设备类型选择 CDN
+    const baseUrl = isMobile ? R2_PUBLIC_URL : R2_CORS_PROXY
+    return `${baseUrl}/${path}`
   }
 
   // 获取 Supabase fallback URL
