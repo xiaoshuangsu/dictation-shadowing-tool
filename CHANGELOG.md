@@ -1,5 +1,30 @@
 # Changelog
 
+## [8.2.1] - 2026-03-06
+
+### Fixed
+- **音频播放 QUIC 协议错误** 🎵
+  - 修复 ERR_QUIC_PROTOCOL_ERROR.QUIC_TOO_MANY_RTOS 错误
+  - 所有设备统一使用 R2 CORS Worker 代理访问音频
+  - 添加缓存破坏参数 ?v=2，确保使用最新配置
+  - 避免 QUIC 协议与 R2 公共域名的兼容性问题
+
+- **首页文案不显示问题** 🏠
+  - 移除 framer-motion 动画，改用普通 div 元素
+  - 调整 z-index，确保文字层级正确
+  - 解决浏览器缓存导致的渲染问题
+
+- **个人中心缩略图显示** 👤
+  - 修复 MaterialProgress 组件中缩略图 URL 处理逻辑
+  - 添加对完整 URL 的检测，避免重复处理 R2 CDN URL
+
+### Technical Details
+- 修改文件：
+  - `src/app/practice/page.tsx` - getCdnUrl 函数优化
+  - `src/components/landing/Hero.tsx` - 移除 framer-motion
+  - `src/components/landing/HeroVisual.tsx` - z-index 调整
+  - `src/components/profile/MaterialProgress.tsx` - URL 处理逻辑
+
 ## [8.2.0] - 2026-03-06
 
 ### Added
