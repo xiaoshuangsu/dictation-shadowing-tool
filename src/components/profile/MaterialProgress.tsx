@@ -141,6 +141,11 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
   const getThumbnailUrl = (thumbnailPath: string | null | undefined) => {
     if (!thumbnailPath) return null
 
+    // 如果已经是完整 URL（R2 Worker 或其他 CDN），直接使用
+    if (thumbnailPath.startsWith('http://') || thumbnailPath.startsWith('https://')) {
+      return thumbnailPath
+    }
+
     // 移除可能存在的 'thumbnails/' 前缀
     const filename = thumbnailPath.replace(/^thumbnails\//, '')
 

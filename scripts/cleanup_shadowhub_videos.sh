@@ -21,12 +21,9 @@ R2_BUCKET="engnovate-audio"
 SHADOWHUB_VIDEOS="shadowhub/videos/"
 SHADOWHUB_YOUTUBE_VIDEOS="shadowhub/youtube_videos/"
 
-# 检查 wrangler 是否安装
-if ! command -v wrangler &> /dev/null; then
-    echo "❌ 错误: wrangler 未安装"
-    echo ""
-    echo "请安装 wrangler:"
-    echo "  npm install -g wrangler"
+# 检查 wrangler 是否可用
+if ! npx wrangler --version &> /dev/null; then
+    echo "❌ 错误: wrangler 不可用"
     echo ""
     exit 1
 fi
@@ -36,12 +33,12 @@ echo -e "${YELLOW}步骤 1: 扫描目录${NC}"
 echo "========================================"
 
 echo "获取 shadowhub/videos/ 文件列表..."
-wrangler r2 object list "$R2_BUCKET" --prefix="$SHADOWHUB_VIDEOS" > /tmp/shadowhub_videos.txt 2>&1 || true
-videos_count=$(grep -c "^shadowhub/videos/" /tmp/shadowhub_videos.txt || echo "0")
+npx wrangler r2 object list "$R2_BUCKET" --prefix="$SHADOWHUB_VIDEOS" > /tmp/shadowhub_videos.txt 2>&1 || true
+videos_count=$(grep -c "^shadowhub/videos/" /tmp/shadowhub_videos.txt 2>/dev/null || echo "0")
 
 echo "获取 shadowhub/youtube_videos/ 文件列表..."
-wrangler r2 object list "$R2_BUCKET" --prefix="$SHADOWHUB_YOUTUBE_VIDEOS" > /tmp/shadowhub_youtube_videos.txt 2>&1 || true
-youtube_count=$(grep -c "^shadowhub/youtube_videos/" /tmp/shadowhub_youtube_videos.txt || echo "0")
+npx wrangler r2 object list "$R2_BUCKET" --prefix="$SHADOWHUB_YOUTUBE_VIDEOS" > /tmp/shadowhub_youtube_videos.txt 2>&1 || true
+youtube_count=$(grep -c "^shadowhub/youtube_videos/" /tmp/shadowhub_youtube_videos.txt 2>/dev/null || echo "0")
 
 echo ""
 echo "shadowhub/videos/: $videos_count 个文件"
@@ -120,7 +117,7 @@ if [ "$duplicate_count" -gt 0 ]; then
     echo "$duplicates" | while read -r filename; do
         if [ -n "$filename" ]; then
             echo "  🗑️  删除: shadowhub/youtube_videos/$filename"
-            wrangler r2 object delete "$R2_BUCKET" "shadowhub/youtube_videos/$filename" > /dev/null 2>&1 || true
+            npx wrangler r2 object delete "$R2_BUCKET" "shadowhub/youtube_videos/$filename" > /dev/null 2>&1 || true
             deleted_count=$((deleted_count + 1))
         fi
     done
@@ -140,12 +137,12 @@ grep "^shadowhub/youtube_videos/" /tmp/shadowhub_youtube_videos.txt 2>/dev/null 
             echo "  ⚠️  跳过: $filename (目标已存在)"
         else
             echo "  📦 移动: $filename"
-            wrangler r2 object copy "$R2_BUCKET" "$old_key" "$R2_BUCKET" "$new_key" > /dev/null 2>&1 || true
+            npx wrangler r2 object copy "$R2_BUCKET" "$old_key" "$R2_BUCKET" "$new_key" > /dev/null 2>&1 || true
             moved_count=$((moved_count + 1))
         fi
 
         # 删除源文件
-        wrangler r2 object delete "$R2_BUCKET" "$old_key" > /dev/null 2>&1 || true
+        npx wrangler r2 object delete "$R2_BUCKET" "$old_key" > /dev/null 2>&1 || true
     fi
 done
 
@@ -154,11 +151,11 @@ echo ""
 echo -e "${YELLOW}步骤 4: 验证结果${NC}"
 echo "========================================"
 
-wrangler r2 object list "$R2_BUCKET" --prefix="$SHADOWHUB_YOUTUBE_VIDEOS" > /tmp/youtube_final.txt 2>&1 || true
-youtube_final=$(grep -c "^shadowhub/youtube_videos/" /tmp/youtube_final.txt || echo "0")
+npx wrangler r2 object list "$R2_BUCKET" --prefix="$SHADOWHUB_YOUTUBE_VIDEOS" > /tmp/youtube_final.txt 2>&1 || true
+youtube_final=$(grep -c "^shadowhub/youtube_videos/" /tmp/youtube_final.txt 2>/dev/null || echo "0")
 
-wrangler r2 object list "$R2_BUCKET" --prefix="$SHADOWHUB_VIDEOS" > /tmp/videos_final.txt 2>&1 || true
-videos_final=$(grep -c "^shadowhub/videos/" /tmp/videos_final.txt || echo "0")
+npx wrangler r2 object list "$R2_BUCKET" --prefix="$SHADOWHUB_VIDEOS" > /tmp/videos_final.txt 2>&1 || true
+videos_final=$(grep -c "^shadowhub/videos/" /tmp/videos_final.txt 2>/dev/null || echo "0")
 
 echo ""
 echo -e "${GREEN}清理完成！${NC}"

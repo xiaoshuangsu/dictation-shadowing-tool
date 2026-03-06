@@ -14,7 +14,6 @@ scripts/processing-report-*.json
 
 # next.js
 /.next/
-/out/
 
 # production
 /build
