@@ -95,3 +95,4 @@ public/audio/*.mp4
 out
 .next
 
+ffmpeg
