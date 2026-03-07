@@ -75,6 +75,55 @@ def slugify(text: str) -> str:
     return text.strip('-')[:100]
 
 
+# ==================== 步骤 0: 检查重复 ====================
+def check_duplicate(youtube_url: str) -> Optional[Dict]:
+    """检查视频是否已存在于数据库中"""
+    log("检查是否已存在...")
+
+    try:
+        # 先获取元数据（只获取信息，不下载）
+        info_cmd = [
+            "/opt/homebrew/bin/yt-dlp",
+            "--cookies-from-browser", "chrome",
+            "--dump-json",
+            "--no-playlist",
+            youtube_url
+        ]
+
+        info_result = subprocess.run(info_cmd, capture_output=True, text=True)
+        if info_result.returncode != 0:
+            return None
+
+        video_info = json.loads(info_result.stdout)
+        video_id = video_info.get("id", "")
+        raw_title = video_info.get("title", "Unknown")
+
+        # 提取英文部分（去掉中文字符）
+        title = re.sub(r'[^\x00-\x7F]+', '', raw_title).strip()
+        if not title:
+            title = raw_title
+
+        # 在数据库中查询
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        existing = supabase.table('materials').select('*').eq(
+            'title', title
+        ).execute()
+
+        if existing.data:
+            return {
+                'exists': True,
+                'title': title,
+                'video_id': video_id,
+                'record': existing.data[0]
+            }
+
+        return {'exists': False, 'title': title, 'video_id': video_id}
+
+    except Exception as e:
+        log(f"检查失败: {e}")
+        return None
+
+
 # ==================== 步骤 1: 下载视频 ====================
 def download_video(youtube_url: str) -> Optional[Dict]:
     """下载视频并获取元数据"""
@@ -474,6 +523,17 @@ def main():
     log(f"分类: {category_zh} ({difficulty})")
 
     try:
+        # 0. 检查是否已存在
+        duplicate_check = check_duplicate(youtube_url)
+        if duplicate_check and duplicate_check.get('exists'):
+            existing_title = duplicate_check['title']
+            log("="*50)
+            log(f"⚠️  视频已存在！")
+            log(f"标题: {existing_title}")
+            log(f"如需重新处理，请先手动删除数据库中的记录")
+            log("="*50)
+            sys.exit(0)
+
         # 1. 下载
         result = download_video(youtube_url)
         if not result:

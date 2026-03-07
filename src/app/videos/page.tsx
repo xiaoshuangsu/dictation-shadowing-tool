@@ -1,5 +1,5 @@
 import { getR2PublicUrl, buildR2Key, R2ResourceType } from '@/lib/r2/client'
-import videosData from '../../../data/videos.json'
+import videosData from '@data/videos.json'
 
 interface VideoEntry {
   id: string
