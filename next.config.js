@@ -4,6 +4,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+
+  // Disable webpack cache to prevent large files
+  webpack: (config, { dev, isServer }) => {
+    config.cache = false;
+    return config;
+  },
 }
 
 module.exports = nextConfig
