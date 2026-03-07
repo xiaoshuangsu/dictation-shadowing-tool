@@ -1,18 +1,24 @@
-// Dynamic routes - placeholder page for static export
-// Client-side handles the actual navigation
+// Dynamic routes - generate all material pages at build time
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
 
 export async function generateStaticParams() {
-  return [{ slug: 'placeholder' }]
+  const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+  const { data: materials } = await supabase
+    .from('materials')
+    .select('id')
+
+  // Generate routes for all materials
+  return (materials || []).map((material) => ({
+    slug: material.id,
+  }))
 }
 
-export default function DictationPracticePage() {
-  return (
-    <div className="p-4 text-center">
-      <h1 className="text-xl font-bold mb-4">Dictation Practice</h1>
-      <p>Please return to the <a href="/topics" className="text-blue-500 underline">topics page</a> to select a material.</p>
-      <script dangerouslySetInnerHTML={{
-        __html: `window.location.href = '/topics';`
-      }} />
-    </div>
-  )
+import DictationPracticeClient from './DictationPracticeClient'
+
+export default function DictationPracticePage({ params }: { params: { slug: string } }) {
+  return <DictationPracticeClient slug={params.slug} />
 }
