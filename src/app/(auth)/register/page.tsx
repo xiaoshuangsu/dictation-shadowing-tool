@@ -13,8 +13,6 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import RegisterForm from '@/components/auth/RegisterForm'
 import Link from 'next/link'
 
-// Force dynamic rendering to prevent build-time prerendering
-export const dynamic = 'force-dynamic'
 
 export default function RegisterPage() {
   const { isAuthenticated, loading } = useAuth()

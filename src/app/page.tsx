@@ -1,7 +1,5 @@
 "use client"
 
-// Force dynamic rendering to prevent build-time prerendering
-export const dynamic = 'force-dynamic'
 
 import Hero from "@/components/landing/Hero"
 import HowItWorks from "@/components/landing/HowItWorks"

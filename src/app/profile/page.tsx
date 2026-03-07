@@ -19,8 +19,6 @@ import AuthButton from '@/components/auth/AuthButton'
 import MaterialProgressList from '@/components/profile/MaterialProgress'
 import UnlockedPrompt from '@/components/profile/UnlockedPrompt'
 
-// Force dynamic rendering to prevent build-time prerendering
-export const dynamic = 'force-dynamic'
 
 export default function ProfilePage() {
   const { user, loading, isAuthenticated } = useAuth()

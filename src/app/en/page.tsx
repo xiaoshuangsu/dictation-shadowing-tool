@@ -1,7 +1,5 @@
 "use client"
 
-// Force dynamic rendering to prevent build-time prerendering
-export const dynamic = 'force-dynamic'
 
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
