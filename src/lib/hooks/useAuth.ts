@@ -104,7 +104,7 @@ export function useAuth(): AuthState {
 
     // Listen for auth changes - IMPORTANT: This should be the PRIMARY source of truth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: any, session: any) => {
         console.log('Auth state changed:', { event, hasSession: !!session, userId: session?.user?.id })
 
         if (!mounted || !isSubscribed) return

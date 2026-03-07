@@ -98,7 +98,7 @@ export default function ProfilePage() {
         .gte('completed_at', today)
 
       const todayShadowingSeconds = (todayShadowingData || [])
-        .reduce((sum, record) => sum + (record.duration_seconds || 0), 0)
+        .reduce((sum: number, record: any) => sum + (record.duration_seconds || 0), 0)
       const todayShadowingMinutes = Math.ceil(todayShadowingSeconds / 60)
 
       console.log('fetchUserData - Today shadowing time:', {

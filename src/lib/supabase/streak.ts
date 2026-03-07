@@ -72,7 +72,7 @@ export async function getUserStats(userId: string): Promise<UserStats | null> {
 
   // 累计所有 Shadowing 记录的 duration_seconds，转换为分钟
   const totalShadowingSeconds = (shadowingTimeData || [])
-    .reduce((sum, record) => sum + (record.duration_seconds || 0), 0)
+    .reduce((sum: number, record: any) => sum + (record.duration_seconds || 0), 0)
 
   const totalShadowingMinutes = Math.ceil(totalShadowingSeconds / 60)
 
