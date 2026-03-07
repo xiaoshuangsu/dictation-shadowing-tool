@@ -6,86 +6,40 @@
  * deployment platform environment variables (production).
  *
  * Get your credentials from: https://supabase.com/dashboard/project/_/settings/api
+ *
+ * IMPORTANT: The following environment variables MUST be set:
+ * - NEXT_PUBLIC_SUPABASE_URL
+ * - NEXT_PUBLIC_SUPABASE_ANON_KEY
  */
 
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Force use of environment variables - no fallback to mock client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// Check if credentials are available
-const hasCredentials = !!(supabaseUrl && supabaseAnonKey)
-
-if (!hasCredentials) {
-  if (typeof window !== 'undefined') {
-    console.warn(
-      'Supabase credentials not found. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
+// Validate environment variables at build time
+if (typeof window === 'undefined') {
+  // Build-time validation
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      'Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
     )
   }
 }
 
-// Create a chainable query builder for mock client
-const createMockQuery = () => {
-  const query: any = {
-    eq: () => query,
-    neq: () => query,
-    gte: () => query,
-    lte: () => query,
-    like: () => query,
-    ilike: () => query,
-    in: () => query,
-    order: () => query,
-    limit: async () => ({ data: [], error: null }),
-    single: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+export const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    auth: {
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true,
+    },
   }
-  return query
-}
-
-// Create mock client for build time if credentials are missing
-const createMockClient = () => ({
-  from: () => ({
-    select: () => createMockQuery(),
-    insert: () => ({
-      select: () => createMockQuery(),
-    }),
-  }),
-  auth: {
-    getUser: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
-    getSession: async () => ({ data: { session: null }, error: { message: 'Supabase not configured' } }),
-    signInWithPassword: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
-    signUp: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
-    signOut: async () => ({ error: { message: 'Supabase not configured' } }),
-    onAuthStateChange: () => ({
-      data: {
-        subscription: {
-          unsubscribe: () => {},
-        },
-      },
-    }),
-  },
-})
-
-export const supabase = hasCredentials
-  ? createClient(
-      supabaseUrl!,
-      supabaseAnonKey!,
-      {
-        auth: {
-          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true,
-        },
-      }
-    )
-  : (createMockClient() as any)
-
-// Debug: Log initialization
-if (typeof window !== 'undefined') {
-  console.log('Supabase URL:', supabaseUrl)
-  console.log('Supabase Key present:', !!supabaseAnonKey)
-  console.log('Supabase client initialized')
-}
+)
 
 export default supabase
 
