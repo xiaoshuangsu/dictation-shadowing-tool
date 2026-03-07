@@ -20,6 +20,8 @@ const CATEGORY_MAP = {
   '人物访谈': { en: 'Interviews', zh: '人物访谈' },
   'BBC Learning English': { en: 'BBC Learning English', zh: 'BBC Learning English' },
   'VOA Learning English': { en: 'VOA Learning English', zh: 'VOA Learning English' },
+  'TED演讲': { en: 'TED Talks', zh: 'TED演讲' },
+  '动画片': { en: 'Cartoons', zh: '动画片' },
 } as const
 
 // 使用环境变量的 Supabase 配置
@@ -95,6 +97,7 @@ const CATEGORIES = [
   { id: '心灵故事', label: 'Heart & Soul Stories' },
   { id: '艺术文化', label: 'Arts & Culture' },
   { id: '故事', label: 'Stories' },
+  { id: '动画片', label: 'Cartoons' },
   { id: '人物访谈', label: 'Interviews' },
   { id: 'BBC Learning English', label: 'BBC Learning English' },
   { id: 'VOA Learning English', label: 'VOA Learning English' },

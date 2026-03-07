@@ -1,5 +1,19 @@
 # Changelog
 
+## [8.2.2] - 2026-03-06
+
+### Added
+- **新增"动画片"内容分类** 🎨
+  - 添加 `cartoon` 分类支持，难度级别 A1
+  - 更新前端分类映射，支持中英文显示
+  - 优化分类筛选功能，确保所有分类正确显示
+
+### Technical Details
+- 修改文件：
+  - `scripts/youtube_single.py` - 添加 cartoon 分类支持
+  - `src/app/topics/page.tsx` - 更新 CATEGORY_MAP 和 CATEGORIES
+  - `src/components/topics/FilterBar.tsx` - 完善分类映射表
+
 ## [8.2.1] - 2026-03-06
 
 ### Fixed
