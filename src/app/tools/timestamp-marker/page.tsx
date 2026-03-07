@@ -4,12 +4,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useRef } from "react"
-import { createClient } from "@supabase/supabase-js"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
-)
+import { supabase } from "@/lib/supabase/client"
 
 interface Sentence {
   id: number

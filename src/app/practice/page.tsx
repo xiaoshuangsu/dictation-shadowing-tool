@@ -6,7 +6,6 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect, useRef, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
 import VideoPlayer from "@/components/VideoPlayer"
 import DictationBox from "@/components/DictationBox"
@@ -15,6 +14,7 @@ import WordMode from "@/components/WordMode"
 import AuthButton from "@/components/auth/AuthButton"
 import { DebugLogger } from "@/components/DebugLogger"
 import { useAuth } from "@/lib/hooks/useAuth"
+import { supabase } from "@/lib/supabase/client"
 import { savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
 
@@ -26,11 +26,6 @@ interface Sentence {
   endTime: number
   translation?: string  // 可选的中文翻译
 }
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
-)
 
 // R2 URL 配置（统一使用 Worker 代理）
 const R2_WORKER_URL = 'https://media.shadowhub.app'

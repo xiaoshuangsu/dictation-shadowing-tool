@@ -2,23 +2,17 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
 import VideoPlayer from "@/components/VideoPlayer"
 import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
 import WordMode from "@/components/WordMode"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { savePracticeRecord } from "@/lib/supabase/client"
+import { supabase, savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
 import { useLanguage } from "@/contexts/LanguageContext"
 import LocalizedLink from "@/components/LocalizedLink"
 import { titleToSlug } from "@/lib/utils/slug"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
-)
 
 // Category mapping for bilingual labels
 const CATEGORY_LABELS: Record<string, { en: string; zh: string }> = {
@@ -152,7 +146,7 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
           .from('materials')
           .select('*')
 
-        const material = materials?.find(m => m.id === slug || titleToSlug(m.title) === slug)
+        const material = materials?.find((m: any) => m.id === slug || titleToSlug(m.title) === slug)
 
         if (material) {
           setMaterialId(material.id)

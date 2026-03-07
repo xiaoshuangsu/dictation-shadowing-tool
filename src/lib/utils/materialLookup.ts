@@ -1,10 +1,10 @@
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
-)
+interface MaterialBasic {
+  id: string
+  title: string
+}
 
 /**
  * Find material ID by slug
@@ -19,7 +19,7 @@ export async function findMaterialIdBySlug(slug: string): Promise<string | null>
     if (!materials) return null
 
     // Generate slug from each title and find match
-    const material = materials.find(m => titleToSlug(m.title) === slug)
+    const material = materials.find((m: MaterialBasic) => titleToSlug(m.title) === slug)
 
     return material?.id || null
   } catch (error) {
@@ -87,7 +87,7 @@ export async function getMaterialBySlug(slug: string): Promise<{ id: string; tit
 
     if (!materials) return null
 
-    const material = materials.find(m => titleToSlug(m.title) === slug)
+    const material = materials.find((m: any) => titleToSlug(m.title) === slug)
 
     return material || null
   } catch (error) {

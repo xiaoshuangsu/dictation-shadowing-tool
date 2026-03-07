@@ -2,23 +2,17 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { createClient } from "@supabase/supabase-js"
 import AudioPlayer from "@/components/AudioPlayer"
 import VideoPlayer from "@/components/VideoPlayer"
 import DictationBox from "@/components/DictationBox"
 import ShadowingPanel from "@/components/ShadowingPanel"
 import WordMode from "@/components/WordMode"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { savePracticeRecord } from "@/lib/supabase/client"
+import { supabase, savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
 import { useLanguage } from "@/contexts/LanguageContext"
 import LocalizedLink from "@/components/LocalizedLink"
 import { titleToSlug } from "@/lib/utils/slug"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_UeaK10sYGQPjB17Vg-IpcQ_ql3xHKMm'
-)
 
 // Category mapping for bilingual labels
 const CATEGORY_LABELS: Record<string, { en: string; zh: string }> = {
@@ -131,7 +125,7 @@ export function DictationPracticeClientContent({ slug }: { slug: string }) {
         const matches: { material: any, matchType: 'exact' | 'slug' | 'fuzzy' }[] = []
         let fuzzyMatches: any[] = []
 
-        allMaterials?.forEach(m => {
+        allMaterials?.forEach((m: any) => {
           // 1. 精确 ID 匹配（最高优先级）
           if (m.id === slug) {
             matches.push({ material: m, matchType: 'exact' })

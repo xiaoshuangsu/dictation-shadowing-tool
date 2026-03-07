@@ -5,11 +5,11 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { createClient } from '@supabase/supabase-js'
 import FilterBar, { FilterOptions } from '@/components/topics/FilterBar'
 import { titleToSlug } from '@/lib/utils/slug'
 import { useLanguage } from '@/contexts/LanguageContext'
 import LocalizedLink from '@/components/LocalizedLink'
+import { supabase } from '@/lib/supabase/client'
 
 // 分类映射
 const CATEGORY_MAP = {
@@ -26,28 +26,6 @@ const CATEGORY_MAP = {
   'TED演讲': { en: 'TED Talks', zh: 'TED演讲' },
   '动画片': { en: 'Cartoons', zh: '动画片' },
 } as const
-
-// 使用环境变量的 Supabase 配置
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cuxotlijjnxbsirpdkgr.supabase.co'
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_E14-9O-p9jZqL6ikHARsQ_l6zTiwNr'
-
-// 添加超时和重试配置
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  global: {
-    fetch: (url, options = {}) => {
-      // 创建超时控制器（兼容性更好）
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 秒超时
-
-      return fetch(url, {
-        ...options,
-        signal: controller.signal,
-      }).finally(() => {
-        clearTimeout(timeoutId)
-      })
-    },
-  },
-})
 
 // 带重试的获取素材函数
 async function fetchWithRetry<T>(
