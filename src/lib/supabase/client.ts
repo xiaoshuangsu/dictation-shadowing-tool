@@ -14,31 +14,21 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+// Hardcoded credentials for static export
+const supabaseUrl = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
 
 // Debug logging
 if (typeof window !== 'undefined') {
-  console.log('[Supabase] URL:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'MISSING')
+  console.log('[Supabase] URL:', supabaseUrl.substring(0, 30) + '...')
   console.log('[Supabase] Key present:', !!supabaseAnonKey)
   const isValidFormat = supabaseAnonKey.startsWith('eyJ') || supabaseAnonKey.startsWith('sb_publishable')
   console.log('[Supabase] Key format valid:', isValidFormat)
 }
 
-// Runtime validation (browser only, not during build)
-if (typeof window !== 'undefined' && (!supabaseUrl || !supabaseAnonKey)) {
-  console.error(
-    '[Supabase] Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
-  )
-}
-
-// Use actual Supabase credentials (fallback values for static export)
-const clientUrl = supabaseUrl || 'https://cuxotlijjnxbsirpdkgr.supabase.co'
-const clientKey = supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
-
 export const supabase = createClient(
-  clientUrl,
-  clientKey,
+  supabaseUrl,
+  supabaseAnonKey,
   {
     auth: {
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
