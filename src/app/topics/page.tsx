@@ -267,30 +267,20 @@ export default function MaterialsPage() {
     return grouped
   }, [filteredMaterials, filters.category])
 
-  // R2 URL 配置
-  const R2_PUBLIC_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev'
-  const R2_CORS_PROXY = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+  // R2 URL 配置（统一使用 Worker 代理）
+  const R2_WORKER_URL = 'https://media.shadowhub.app'
 
-  // 检测是否为移动设备
-  const isMobile = typeof window !== 'undefined' && /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
-
-  // 获取缩略图 URL（根据设备类型选择合适的 CDN）
+  // 获取缩略图 URL
   const getThumbnailUrl = (path: string | null) => {
     if (!path) return null
 
-    // 如果是完整 URL，检查是否需要根据设备类型替换
+    // 如果是完整 URL，直接使用
     if (path.startsWith('http://') || path.startsWith('https://')) {
-      // 如果是 R2 公共域名，桌面端替换为 CORS 代理
-      if (path.includes(R2_PUBLIC_URL) && !isMobile) {
-        return path.replace(R2_PUBLIC_URL, R2_CORS_PROXY)
-      }
-      // 其他情况直接使用原 URL
       return path
     }
 
-    // 相对路径：根据设备类型选择 CDN
-    const baseUrl = isMobile ? R2_PUBLIC_URL : R2_CORS_PROXY
-    return `${baseUrl}/${path}`
+    // 相对路径：添加 Worker 域名
+    return `${R2_WORKER_URL}/${path}`
   }
 
   // 格式化时长

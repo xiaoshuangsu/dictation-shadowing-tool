@@ -159,23 +159,13 @@ export function ShadowingPracticeClientContent({ slug }: { slug: string }) {
           setAudioTitle(material.title)
           setMaterialCategory(material.category)
 
-          // Supabase Storage 基础 URL（立即可用，移动端兼容）
-          // R2 URL 配置
-          const R2_PUBLIC_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev'
-          const R2_CORS_PROXY = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+          // R2 URL 配置（统一使用 Worker 代理）
           const SUPABASE_STORAGE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio'
 
-          // 检测是否为移动设备
-          const isMobile = /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
-
-          // 构造完整的 URL（根据设备类型选择 CDN）
+          // 构造完整的 URL
           const getFullUrl = (path: string | null) => {
             if (!path) return null
             if (path.startsWith('http://') || path.startsWith('https://')) {
-              // 桌面端：替换 R2 公共域名为 Worker 代理（解决 CORS）
-              if (path.includes(R2_PUBLIC_URL) && !isMobile) {
-                return path.replace(R2_PUBLIC_URL, R2_CORS_PROXY)
-              }
               return path
             }
             return `${SUPABASE_STORAGE_URL}/${path}`

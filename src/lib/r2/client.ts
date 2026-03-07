@@ -5,32 +5,18 @@
  * 根据设备类型选择不同的 URL 以解决 CORS 和移动端访问问题
  */
 
-// R2 公共域名（移动端使用，避免运营商对 workers.dev 的限制）
-const R2_PUBLIC_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev'
-
-// R2 CORS 代理 Worker（桌面端使用，提供 CORS 头）
-const R2_CORS_PROXY = 'https://r2-cors-proxy.suxiaoshuang2020.workers.dev'
-
-/**
- * 检测是否为移动设备
- */
-function isMobileDevice(): boolean {
-  if (typeof window === 'undefined') return false
-  return /iPad|iPhone|iPod|Android/i.test(navigator.userAgent)
-}
+// R2 Worker 代理域名（统一使用，所有设备）
+const R2_WORKER_URL = 'https://media.shadowhub.app'
 
 /**
  * 生成 R2 对象的公开访问 URL
- * 根据设备类型自动选择合适的 URL
+ * 统一使用 Worker 代理，自动处理 CORS 和缓存
  *
  * @param key - R2 对象键名（如 "videos/video-name.mp4"）
  * @returns 完整的公开访问 URL
  */
 export function getR2PublicUrl(key: string): string {
-  // 桌面端：使用 CORS 代理（解决跨域问题）
-  // 移动端：直接使用 R2 公共域名（避免运营商限制）
-  const baseUrl = isMobileDevice() ? R2_PUBLIC_URL : R2_CORS_PROXY
-  return `${baseUrl}/${key}`
+  return `${R2_WORKER_URL}/${key}`
 }
 
 /**
@@ -40,13 +26,9 @@ export function getR2PublicUrl(key: string): string {
  * @returns 对象键名
  */
 export function extractR2Key(url: string): string {
-  // 尝试从 CORS 代理 URL 提取
-  if (url.includes(R2_CORS_PROXY)) {
-    return url.replace(`${R2_CORS_PROXY}/`, '')
-  }
-  // 尝试从公开 URL 提取
-  if (url.includes(R2_PUBLIC_URL)) {
-    return url.replace(`${R2_PUBLIC_URL}/`, '')
+  // 从 Worker URL 提取
+  if (url.includes(R2_WORKER_URL)) {
+    return url.replace(`${R2_WORKER_URL}/`, '')
   }
   // 如果已经是键名，直接返回
   return url
@@ -59,7 +41,7 @@ export function extractR2Key(url: string): string {
  * @returns 是否为 R2 URL
  */
 export function isR2Url(url: string): boolean {
-  return url.includes('workers.dev') || url.includes('r2.dev') || url.includes(R2_CORS_PROXY) || url.includes(R2_PUBLIC_URL)
+  return url.includes(R2_WORKER_URL) || url.includes('workers.dev') || url.includes('r2.dev')
 }
 
 /**
