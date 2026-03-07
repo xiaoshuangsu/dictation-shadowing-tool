@@ -32,9 +32,9 @@ if (typeof window !== 'undefined' && (!supabaseUrl || !supabaseAnonKey)) {
   )
 }
 
-// Use placeholder values during build time if env vars are not available
-const clientUrl = supabaseUrl || 'https://placeholder.supabase.co'
-const clientKey = supabaseAnonKey || 'placeholder-key'
+// Use actual Supabase credentials (fallback values for static export)
+const clientUrl = supabaseUrl || 'https://cuxotlijjnxbsirpdkgr.supabase.co'
+const clientKey = supabaseAnonKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
 
 export const supabase = createClient(
   clientUrl,
