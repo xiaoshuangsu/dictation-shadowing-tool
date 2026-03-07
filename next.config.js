@@ -1,18 +1,8 @@
 /** @type {import('next').NextConfig} */
-/** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable static export to enable dynamic rendering for Supabase
-  // Cloudflare Pages supports full Next.js features
-  output: undefined,
-
-  // Image optimization
+  // Image optimization (disabled for Cloudflare Pages compatibility)
   images: {
     unoptimized: true,
-  },
-
-  // Experimental features for better compatibility
-  experimental: {
-    serverComponentsExternalPackages: [],
   },
 }
 
