@@ -42,8 +42,17 @@ const createMockClient = () => ({
   }),
   auth: {
     getUser: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+    getSession: async () => ({ data: { session: null }, error: { message: 'Supabase not configured' } }),
     signInWithPassword: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+    signUp: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
     signOut: async () => ({ error: { message: 'Supabase not configured' } }),
+    onAuthStateChange: () => ({
+      data: {
+        subscription: {
+          unsubscribe: () => {},
+        },
+      },
+    }),
   },
 })
 
