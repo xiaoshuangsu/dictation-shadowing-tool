@@ -1,5 +1,40 @@
 # Changelog
 
+## [8.3.0] - 2026-03-07
+
+### Added
+- **自定义域名支持** 🌐
+  - 配置主域名 `shadowhub.app` 指向 GitHub Pages
+  - 配置媒体子域名 `media.shadowhub.app` 通过 Worker 代理访问 R2 资源
+  - 解决跨账户 R2 绑定问题（R2 在账号 A，域名在账号 B）
+
+- **Worker 代理优化** ⚡
+  - 在账号 B 创建 Worker `morning-sound-a67b` 作为媒体代理
+  - 自动添加 CORS 头，解决跨域问题
+  - 智能缓存策略（图片 7 天，音视频 30 天）
+  - 透明代理所有媒体请求
+
+### Changed
+- **统一媒体域名** 🎯
+  - 所有媒体链接更新为 `https://media.shadowhub.app/...`
+  - 数据库 89 条记录全部更新
+  - 前端代码统一使用新域名
+  - 移除设备类型检测，所有设备使用同一域名
+
+### Technical Details
+- 新增文件：
+  - `cloudflare-workers/media-proxy/worker.js` - Worker 代理脚本
+  - `cloudflare-workers/media-proxy/README.md` - 部署指南
+  - `CNAME` - GitHub Pages 自定义域名配置
+  - `scripts/update_to_custom_domain.py` - 数据库链接更新脚本
+
+- 修改文件：
+  - `src/lib/r2/client.ts` - 统一使用 media.shadowhub.app
+  - `src/app/topics/page.tsx` - 更新媒体域名配置
+  - `src/components/topics/MaterialCard.tsx` - 更新媒体域名配置
+  - `src/app/practice/page.tsx` - 更新媒体域名配置
+  - `package.json` - 版本号更新至 8.3.0
+
 ## [8.2.2] - 2026-03-06
 
 ### Added
