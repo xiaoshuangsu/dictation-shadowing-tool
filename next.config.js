@@ -5,9 +5,15 @@ const nextConfig = {
     unoptimized: true,
   },
 
-  // Disable webpack cache to prevent large files
-  webpack: (config, { dev, isServer }) => {
-    config.cache = false;
+  // Ensure trailing slash for proper routing
+  trailingSlash: true,
+
+  // Disable webpack cache generation to prevent large cache files
+  webpack: (config, { isServer }) => {
+    // Disable filesystem cache to prevent cache/webpack/ directory generation
+    if (!isServer) {
+      config.cache = false;
+    }
     return config;
   },
 }
