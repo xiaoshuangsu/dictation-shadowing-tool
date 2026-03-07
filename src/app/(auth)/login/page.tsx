@@ -13,6 +13,9 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import LoginForm from '@/components/auth/LoginForm'
 import Link from 'next/link'
 
+// Force dynamic rendering to prevent build-time prerendering
+export const dynamic = 'force-dynamic'
+
 export default function LoginPage() {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()

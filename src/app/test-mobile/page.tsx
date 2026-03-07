@@ -1,5 +1,8 @@
 "use client"
 
+// Force dynamic rendering to prevent build-time prerendering
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from "react"
 
 export default function TestMobilePage() {

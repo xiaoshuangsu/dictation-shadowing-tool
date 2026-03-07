@@ -1,18 +1,18 @@
 /** @type {import('next').NextConfig} */
-const isProd = process.env.NODE_ENV === 'production'
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Only use basePath in production for GitHub Pages
-  basePath: isProd ? '/dictation-shadowing-tool' : '',
-  // Use assetPrefix for static resources (images, etc.)
-  assetPrefix: isProd ? '/dictation-shadowing-tool' : '',
-  // Always use static export when NODE_ENV is production
-  ...(isProd ? { output: 'export' } : {}),
-  // Allow all cross-origin requests for development (for localtunnel testing)
-  allowedDevOrigins: isProd ? [] : ['*'], // Use wildcard to allow all origins in development
+  // Disable static export to enable dynamic rendering for Supabase
+  // Cloudflare Pages supports full Next.js features
+  output: undefined,
+
+  // Image optimization
   images: {
     unoptimized: true,
+  },
+
+  // Experimental features for better compatibility
+  experimental: {
+    serverComponentsExternalPackages: [],
   },
 }
 

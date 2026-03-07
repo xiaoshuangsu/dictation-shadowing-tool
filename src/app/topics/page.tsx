@@ -1,5 +1,8 @@
 'use client'
 
+// Force dynamic rendering to prevent build-time prerendering
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
