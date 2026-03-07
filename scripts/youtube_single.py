@@ -447,7 +447,7 @@ def sync_supabase(metadata: Dict, transcript: List[Dict],
 def main():
     if len(sys.argv) < 2:
         print("用法: python3 scripts/youtube_single.py <YouTube_URL> [分类]")
-        print("分类: story, ted, speech, daily, culture, bbc, voa (默认: story)")
+        print("分类: story, ted, speech, daily, culture, bbc, voa, cartoon (默认: story)")
         sys.exit(1)
 
     youtube_url = sys.argv[1]
@@ -458,7 +458,8 @@ def main():
         'daily': ('日常生活', 'A2'),
         'culture': ('艺术文化', 'B2'),
         'bbc': ('BBC Learning English', 'A2'),
-        'voa': ('VOA Learning English', 'A2')
+        'voa': ('VOA Learning English', 'A2'),
+        'cartoon': ('动画片', 'A1')
     }
     category = sys.argv[2] if len(sys.argv) > 2 else 'story'
 

@@ -31,10 +31,15 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
 
   // 分类映射
   const CATEGORY_MAP = {
-    '日常生活': { en: 'Daily Life', zh: '日常生活' },
+    '故事': { en: 'Stories', zh: '故事' },
+    'TED演讲': { en: 'TED Talks', zh: 'TED演讲' },
     '历史演讲': { en: 'Historical Speeches', zh: '历史演讲' },
-    '文化历史': { en: 'Culture & History', zh: '文化历史' },
+    '日常生活': { en: 'Daily Life', zh: '日常生活' },
     '艺术文化': { en: 'Arts & Culture', zh: '艺术文化' },
+    '文化历史': { en: 'Culture & History', zh: '文化历史' },
+    'BBC Learning English': { en: 'BBC Learning English', zh: 'BBC Learning English' },
+    'VOA Learning English': { en: 'VOA Learning English', zh: 'VOA Learning English' },
+    '动画片': { en: 'Cartoons', zh: '动画片' },
   }
 
   // 构建话题选项（动态，使用映射）
