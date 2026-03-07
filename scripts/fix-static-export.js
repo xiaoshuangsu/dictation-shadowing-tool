@@ -60,6 +60,15 @@ function fixStaticExport() {
 
   console.log(`✅ 完成！修复了 ${fixedCount} 个路径`)
 
+  // 复制 CNAME 文件到 out 目录（GitHub Pages 自定义域名）
+  const cnameSourcePath = path.join(process.cwd(), 'CNAME')
+  const cnameDestPath = path.join(outDir, 'CNAME')
+
+  if (fs.existsSync(cnameSourcePath)) {
+    fs.copyFileSync(cnameSourcePath, cnameDestPath)
+    console.log('✅ 复制 CNAME 文件到 out 目录')
+  }
+
   // 删除 test-mobile 目录（仅用于开发调试）
   const testMobilePath = path.join(outDir, 'test-mobile')
   if (fs.existsSync(testMobilePath)) {
