@@ -90,3 +90,8 @@ scripts/.r2_credentials
 public/youtube_videos/
 public/audio/*.mp3
 public/audio/*.mp4
+
+# Build outputs
+out
+.next
+
