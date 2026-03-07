@@ -1,14 +1,9 @@
-import { MATERIAL_SLUGS } from '@/lib/data/materialSlugs'
 import { Suspense } from 'react'
 import ShadowingPracticeClient from './ShadowingPracticeClient'
 
-// Tell Next.js that all slug params should be treated as dynamic
+// Force dynamic rendering to avoid build-time pre-rendering
+export const dynamic = 'force-dynamic'
 export const dynamicParams = true
-
-// Generate static params for build time
-export function generateStaticParams() {
-  return MATERIAL_SLUGS
-}
 
 export default function ShadowingPracticePage({
   params,

@@ -13,26 +13,54 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
+// Check if credentials are available
+const hasCredentials = !!(supabaseUrl && supabaseAnonKey)
+
+if (!hasCredentials) {
   if (typeof window !== 'undefined') {
-    console.error(
+    console.warn(
       'Supabase credentials not found. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
     )
   }
 }
 
-export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || '',
-  {
-    auth: {
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  }
-)
+// Create mock client for build time if credentials are missing
+const createMockClient = () => ({
+  from: () => ({
+    select: () => ({
+      eq: () => ({
+        single: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+        limit: async () => ({ data: [], error: null }),
+      }),
+      single: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+    }),
+    insert: () => ({
+      select: () => ({
+        single: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+      }),
+    }),
+  }),
+  auth: {
+    getUser: async () => ({ data: { user: null }, error: { message: 'Supabase not configured' } }),
+    signInWithPassword: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+    signOut: async () => ({ error: { message: 'Supabase not configured' } }),
+  },
+})
+
+export const supabase = hasCredentials
+  ? createClient(
+      supabaseUrl!,
+      supabaseAnonKey!,
+      {
+        auth: {
+          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+          autoRefreshToken: true,
+          persistSession: true,
+          detectSessionInUrl: true,
+        },
+      }
+    )
+  : (createMockClient() as any)
 
 // Debug: Log initialization
 if (typeof window !== 'undefined') {
