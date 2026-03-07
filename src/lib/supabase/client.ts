@@ -24,20 +24,29 @@ if (!hasCredentials) {
   }
 }
 
+// Create a chainable query builder for mock client
+const createMockQuery = () => {
+  const query: any = {
+    eq: () => query,
+    neq: () => query,
+    gte: () => query,
+    lte: () => query,
+    like: () => query,
+    ilike: () => query,
+    in: () => query,
+    order: () => query,
+    limit: async () => ({ data: [], error: null }),
+    single: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+  }
+  return query
+}
+
 // Create mock client for build time if credentials are missing
 const createMockClient = () => ({
   from: () => ({
-    select: () => ({
-      eq: () => ({
-        single: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
-        limit: async () => ({ data: [], error: null }),
-      }),
-      single: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
-    }),
+    select: () => createMockQuery(),
     insert: () => ({
-      select: () => ({
-        single: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
-      }),
+      select: () => createMockQuery(),
     }),
   }),
   auth: {
