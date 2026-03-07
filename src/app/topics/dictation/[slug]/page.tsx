@@ -1,25 +1,18 @@
-import { Suspense } from 'react'
-import DictationPracticeClient from './DictationPracticeClient'
+// Dynamic routes - placeholder page for static export
+// Client-side handles the actual navigation
 
-// Force dynamic rendering to avoid build-time pre-rendering
-export const dynamic = 'force-dynamic'
-export const dynamicParams = true
+export async function generateStaticParams() {
+  return [{ slug: 'placeholder' }]
+}
 
-export default function DictationPracticePage({
-  params,
-}: {
-  params: { slug: string }
-}) {
+export default function DictationPracticePage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    }>
-      <DictationPracticeClient slug={params.slug} />
-    </Suspense>
+    <div className="p-4 text-center">
+      <h1 className="text-xl font-bold mb-4">Dictation Practice</h1>
+      <p>Please return to the <a href="/topics" className="text-blue-500 underline">topics page</a> to select a material.</p>
+      <script dangerouslySetInnerHTML={{
+        __html: `window.location.href = '/topics';`
+      }} />
+    </div>
   )
 }
