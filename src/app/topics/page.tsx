@@ -115,6 +115,9 @@ export default function MaterialsPage() {
   }, [materials])
 
   useEffect(() => {
+    // Skip data fetching during build time
+    if (typeof window === 'undefined') return
+
     async function fetchMaterials() {
       try {
         console.log('=== 开始获取素材 ===')

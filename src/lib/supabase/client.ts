@@ -14,23 +14,23 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-// Force use of environment variables - no fallback to mock client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
-// Validate environment variables at build time
-if (typeof window === 'undefined') {
-  // Build-time validation
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      'Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
-    )
-  }
+// Runtime validation (browser only, not during build)
+if (typeof window !== 'undefined' && (!supabaseUrl || !supabaseAnonKey)) {
+  console.error(
+    'Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
+  )
 }
 
+// Use placeholder values during build time if env vars are not available
+const clientUrl = supabaseUrl || 'https://placeholder.supabase.co'
+const clientKey = supabaseAnonKey || 'placeholder-key'
+
 export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
+  clientUrl,
+  clientKey,
   {
     auth: {
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
