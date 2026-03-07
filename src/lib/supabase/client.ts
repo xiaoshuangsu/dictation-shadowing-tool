@@ -9,7 +9,7 @@
  *
  * IMPORTANT: The following environment variables MUST be set:
  * - NEXT_PUBLIC_SUPABASE_URL
- * - NEXT_PUBLIC_SUPABASE_ANON_KEY
+ * - NEXT_PUBLIC_SUPABASE_ANON_KEY (can be JWT format "eyJ..." or legacy "sb_publishable..." format)
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -17,10 +17,18 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
+// Debug logging
+if (typeof window !== 'undefined') {
+  console.log('[Supabase] URL:', supabaseUrl ? supabaseUrl.substring(0, 30) + '...' : 'MISSING')
+  console.log('[Supabase] Key present:', !!supabaseAnonKey)
+  const isValidFormat = supabaseAnonKey.startsWith('eyJ') || supabaseAnonKey.startsWith('sb_publishable')
+  console.log('[Supabase] Key format valid:', isValidFormat)
+}
+
 // Runtime validation (browser only, not during build)
 if (typeof window !== 'undefined' && (!supabaseUrl || !supabaseAnonKey)) {
   console.error(
-    'Missing required Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
+    '[Supabase] Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set.'
   )
 }
 
