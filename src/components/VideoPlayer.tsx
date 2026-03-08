@@ -199,7 +199,7 @@ export default function VideoPlayer({
 
   // 有视频源时，显示实际的视频播放器
   return (
-    <div>
+    <div key={videoSrc || 'video-player'}>
       <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
         {videoError ? (
           // 视频加载失败时显示错误信息
@@ -216,19 +216,20 @@ export default function VideoPlayer({
           </div>
         ) : (
           <video
+            key={videoSrc || 'video-element'}
             ref={videoRef}
+            src={videoSrc || undefined}
             className="w-full h-full object-cover"
             controls
             playsInline
+            webkit-playsinline="true"
             preload="metadata"
             crossOrigin="anonymous"
             poster={thumbnailPath}
             onError={handleVideoError}
             onLoadStart={handleLoadStart}
             onCanPlay={handleCanPlay}
-          >
-            {videoSrc && <source src={videoSrc} type="video/mp4" />}
-          </video>
+          />
         )}
 
         {isLoading && (

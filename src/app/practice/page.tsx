@@ -38,7 +38,18 @@ const getCdnUrl = (url: string | null) => {
   }
 
   // 相对路径：使用 R2 Worker 代理
-  return `${R2_WORKER_URL}/${url}`
+  const finalUrl = `${R2_WORKER_URL}/${url}`
+
+  // 验证并记录视频路径
+  if (url.includes('.mp4') || url.includes('videos/')) {
+    console.log('🎬 Video URL constructed:', {
+      original: url,
+      final: finalUrl,
+      hasMp4Extension: url.endsWith('.mp4')
+    })
+  }
+
+  return finalUrl
 }
 
 // 默认音频标题（First Snowfall）

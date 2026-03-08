@@ -17,20 +17,27 @@ export default {
       // 移除前缀，获取 R2 路径（例如：/videos/xxx.mp4 -> videos/xxx.mp4）
       const r2Key = url.pathname.replace(/^\//, '')
 
-      // 检查文件扩展名以确定 MIME 类型
+      // 检查文件扩展名以确定 MIME 类型（强制设置）
       const mimeType = getMimeType(r2Key)
+      console.log(`Fetching: ${r2Key}, MIME: ${mimeType}`)
+
+      // 获取 Range 请求头（完美透传）
+      const rangeHeader = request.headers.get('Range')
+      console.log(`Range header: ${rangeHeader}`)
 
       // 从 R2 获取对象（使用绑定名称 R2）
       const object = await env.R2.get(r2Key, {
-        range: request.headers.get('Range') || undefined,
-        method: request.method
+        range: rangeHeader || undefined
       })
 
       if (!object) {
-        return new Response('Object not found', { status: 404 })
+        console.error(`Object not found: ${r2Key}`)
+        return new Response('Object not found', { status: 404,
+          headers: { 'Access-Control-Allow-Origin': '*' }
+        })
       }
 
-      // 构建响应头
+      // 构建响应头（强制 Content-Type）
       const headers = new Headers()
       headers.set('Content-Type', mimeType)
       headers.set('Access-Control-Allow-Origin', '*')
@@ -38,11 +45,13 @@ export default {
       headers.set('Access-Control-Allow-Headers', 'Range, Content-Type')
       headers.set('Accept-Ranges', 'bytes')
 
-      // 处理 Range 请求
+      // 处理 Range 请求（完美透传）
       if (object.range) {
         const range = object.range
         headers.set('Content-Range', `bytes ${range.offset}-${range.end}/${object.size}`)
         headers.set('Content-Length', String(range.end - range.offset + 1))
+
+        console.log(`Returning 206: ${range.offset}-${range.end}/${object.size}`)
 
         return new Response(object.body, {
           status: 206, // Partial Content
@@ -54,6 +63,8 @@ export default {
       headers.set('Content-Length', String(object.size))
       headers.set('Cache-Control', 'public, max-age=86400') // 缓存 24 小时
 
+      console.log(`Returning 200: size=${object.size}`)
+
       return new Response(object.body, {
         status: 200,
         headers
@@ -61,7 +72,10 @@ export default {
 
     } catch (error) {
       console.error('Worker error:', error)
-      return new Response('Internal Server Error', { status: 500 })
+      return new Response('Internal Server Error', {
+        status: 500,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      })
     }
   }
 }
