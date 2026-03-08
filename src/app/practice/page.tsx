@@ -184,21 +184,25 @@ function HomeContent() {
 
         // 构建视频 URL（如果有）
         if (material.video_path) {
-          const videoUrl = getCdnUrl(material.video_path)
+          // 🔴 路径预洗：在进入组件前完成 .mp4 补全
+          let videoUrl = getCdnUrl(material.video_path)
 
-          // 🔴 关键验证：确保 videoSrc 以 .mp4 结尾
+          // 二次验证：确保以 .mp4 结尾
           if (!videoUrl.endsWith('.mp4')) {
-            console.error('❌ Video URL missing .mp4 extension:', {
+            console.warn('⚠️ Video URL missing .mp4, auto-fixing:', {
               original: material.video_path,
-              constructed: videoUrl
+              before: videoUrl
             })
-            // 强制补全
             videoUrl = `${videoUrl}.mp4`
-            console.log('🔧 Force-fixed video URL:', videoUrl)
           }
 
+          // 最终验证
+          if (!videoUrl.endsWith('.mp4')) {
+            console.error('❌ CRITICAL: Video URL still missing .mp4:', videoUrl)
+          }
+
+          console.log('✅ Final Video URL (pre-washed):', videoUrl.substring(0, 80))
           setVideoSrc(videoUrl)
-          console.log('✅ Final Video URL:', videoUrl?.substring(0, 60))
         } else {
           setVideoSrc(null)
         }

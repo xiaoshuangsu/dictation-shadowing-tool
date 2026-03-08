@@ -47,6 +47,7 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [videoError, setVideoError] = useState<string | null>(null)
+  const [isMuted, setIsMuted] = useState(true) // 🔴 强制静音初始化，绕过自动播放限制
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // 详细的视频错误处理
@@ -146,13 +147,76 @@ export default function VideoPlayer({
   const handlePlay = () => {
     setIsLoading(true)
     onPlay?.()
-    setTimeout(() => setIsLoading(false), 500)
+
+    // 🔴 Promise 保护：处理播放被拦截的情况
+    if (videoRef.current) {
+      const playPromise = videoRef.current.play()
+
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('✅ Video play succeeded')
+            setIsLoading(false)
+          })
+          .catch(error => {
+            console.warn('⚠️ Video play intercepted:', error.name, error.message)
+
+            // 如果是 NotSupportedError，尝试静音后重试
+            if (error.name === 'NotSupportedError') {
+              console.log('🔧 Retrying with muted audio...')
+              videoRef.current!.muted = true
+              setIsMuted(true)
+              return videoRef.current!.play()
+                .then(() => {
+                  console.log('✅ Video play succeeded with muted audio')
+                  setIsLoading(false)
+                })
+                .catch(retryError => {
+                  console.error('❌ Video play failed even with muted:', retryError)
+                  setIsLoading(false)
+                })
+            }
+
+            setIsLoading(false)
+          })
+      } else {
+        setTimeout(() => setIsLoading(false), 500)
+      }
+    }
   }
 
   const handleReplay = () => {
     setIsLoading(true)
     onReplay?.()
-    setTimeout(() => setIsLoading(false), 500)
+
+    // 🔴 Promise 保护：同上
+    if (videoRef.current) {
+      const playPromise = videoRef.current.play()
+
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('✅ Video replay succeeded')
+            setIsLoading(false)
+          })
+          .catch(error => {
+            console.warn('⚠️ Video replay intercepted:', error.name)
+
+            if (error.name === 'NotSupportedError') {
+              console.log('🔧 Retrying replay with muted audio...')
+              videoRef.current!.muted = true
+              setIsMuted(true)
+              return videoRef.current!.play()
+                .then(() => setIsLoading(false))
+                .catch(() => setIsLoading(false))
+            }
+
+            setIsLoading(false)
+          })
+      } else {
+        setTimeout(() => setIsLoading(false), 500)
+      }
+    }
   }
 
   // 如果没有视频源，显示封面图片
@@ -233,12 +297,16 @@ export default function VideoPlayer({
             controls
             playsInline
             webkit-playsinline="true"
+            muted={isMuted}
             preload="metadata"
             crossOrigin="anonymous"
             poster={thumbnailPath}
             onError={handleVideoError}
             onLoadStart={handleLoadStart}
             onCanPlay={handleCanPlay}
+            onPlayProtected={(e) => {
+              console.log('🔒 Play protected event:', e)
+            }}
           />
         )}
 
