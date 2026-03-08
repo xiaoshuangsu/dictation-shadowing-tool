@@ -81,7 +81,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
       return url
     }
     // 相对路径：添加 R2 Worker 域名（移动端兼容）
-    return `https://media.shadowhub.app/${url}`
+    return `https://r2-proxy.suxiaoshuang2020.workers.dev/${url}`
   }
 
   // Practice state

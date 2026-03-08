@@ -17,7 +17,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   // R2 URL 配置（统一使用 Worker 代理）
-  const R2_WORKER_URL = 'https://media.shadowhub.app'
+  const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
   const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
 
   // 获取缩略图 URL

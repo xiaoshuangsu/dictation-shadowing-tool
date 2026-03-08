@@ -250,7 +250,7 @@ export default function MaterialsPage() {
   }, [filteredMaterials, filters.category])
 
   // R2 URL 配置（统一使用 Worker 代理）
-  const R2_WORKER_URL = 'https://media.shadowhub.app'
+  const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
 
   // 获取缩略图 URL
   const getThumbnailUrl = (path: string | null) => {

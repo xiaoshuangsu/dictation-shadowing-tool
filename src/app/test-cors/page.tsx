@@ -58,7 +58,7 @@ export default function TestCorsPage() {
           <h2 className="text-lg font-semibold mb-2">Fetch HEAD 测试（检查 CORS 头）</h2>
 
           <button
-            onClick={() => testUrl('Worker URL', 'https://media.shadowhub.app/thumbnails/corruption.jpg')}
+            onClick={() => testUrl('Worker URL', 'https://r2-proxy.suxiaoshuang2020.workers.dev/thumbnails/corruption.jpg')}
             className="px-4 py-2 bg-blue-500 text-white rounded mr-2 mb-2"
           >
             测试 Worker
@@ -89,7 +89,7 @@ export default function TestCorsPage() {
           <h2 className="text-lg font-semibold mb-2">图片加载测试（浏览器实际渲染）</h2>
 
           <button
-            onClick={() => testImageLoad('Worker Image', 'https://media.shadowhub.app/thumbnails/corruption.jpg')}
+            onClick={() => testImageLoad('Worker Image', 'https://r2-proxy.suxiaoshuang2020.workers.dev/thumbnails/corruption.jpg')}
             className="px-4 py-2 bg-blue-500 text-white rounded mr-2 mb-2"
           >
             加载 Worker 图片
@@ -107,7 +107,7 @@ export default function TestCorsPage() {
               <p className="text-sm mb-1">Worker 图片：</p>
               <img
                 crossOrigin="anonymous"
-                src="https://media.shadowhub.app/thumbnails/corruption.jpg"
+                src="https://r2-proxy.suxiaoshuang2020.workers.dev/thumbnails/corruption.jpg"
                 alt="Worker"
                 className="w-full rounded border"
                 style={{ minHeight: '100px', backgroundColor: '#f0f0f0' }}
