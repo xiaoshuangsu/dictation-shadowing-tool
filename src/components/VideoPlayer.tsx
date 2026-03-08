@@ -152,6 +152,7 @@ export default function VideoPlayer({
             </svg>
             <p className="text-gray-400 text-sm">视频加载失败</p>
             <p className="text-gray-500 text-xs">{videoError}</p>
+            <p className="text-gray-600 text-xs mt-2">使用封面图练习</p>
           </div>
         ) : (
           <video
@@ -160,11 +161,12 @@ export default function VideoPlayer({
             className="w-full h-full object-cover"
             controls
             playsInline
-            preload="auto"
+            preload="metadata"
             crossOrigin="anonymous"
             poster={thumbnailPath}
-            onError={() => setVideoError('视频无法播放')}
+            onError={() => setVideoError('视频无法加载，请使用封面图练习')}
             onLoadStart={() => setVideoError(null)}
+            onCanPlay={() => setVideoError(null)}
           />
         )}
 
