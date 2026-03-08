@@ -1,6 +1,8 @@
 /**
  * R2 Proxy Worker - 支持视频/音频 Range 请求
  * 用于 shadowhub.app 媒体资源代理
+ *
+ * 绑定名称：R2
  */
 
 export default {
@@ -18,8 +20,8 @@ export default {
       // 检查文件扩展名以确定 MIME 类型
       const mimeType = getMimeType(r2Key)
 
-      // 从 R2 获取对象
-      const object = await env.R2_BUCKET.get(r2Key, {
+      // 从 R2 获取对象（使用绑定名称 R2）
+      const object = await env.R2.get(r2Key, {
         range: request.headers.get('Range') || undefined,
         method: request.method
       })

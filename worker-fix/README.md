@@ -36,10 +36,12 @@ iOS Safari 报错 `MEDIA_ERR_SRC_NOT_SUPPORTED (Code 4)`，原因：
 ### 4. 绑定 R2 Bucket（如果还没有）
 在 Worker 设置中添加：
 ```
-变量名：R2_BUCKET
+Binding name（变量名）：R2
 类型：R2 Bucket
 Bucket 名称：[你的 R2 bucket 名称]
 ```
+
+**注意**：Worker 代码中使用的 binding name 是 `env.R2`，所以这里的 Variable name 必须设置为 `R2`
 
 ### 5. 部署
 点击 "Deploy" 或 "Save and Deploy"
