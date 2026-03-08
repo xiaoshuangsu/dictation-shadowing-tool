@@ -64,7 +64,7 @@ export default function AudioPlayer({
 
     // 设置参数
     audio.playbackRate = playbackRate
-    audio.volume = 1.0
+    audio.volume = 0.25  // 固定音量，与 ShadowingPanel 保持一致
 
     // 开始加载
     setLoading(true)
