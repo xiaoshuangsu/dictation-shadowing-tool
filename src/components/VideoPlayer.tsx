@@ -65,26 +65,53 @@ export default function VideoPlayer({
         3: 'MEDIA_ERR_DECODE - 视频解码失败',
         4: 'MEDIA_ERR_SRC_NOT_SUPPORTED - 视频格式不支持'
       }
-      console.error('Video Error:', {
+      const errorInfo = {
         code: errorCode,
         message: video.error.message,
         details: errorDetails[errorCode as keyof typeof errorDetails] || '未知错误',
         src: video.src,
         networkState: video.networkState,
-        readyState: video.readyState
-      })
+        readyState: video.readyState,
+        currentSrc: video.currentSrc
+      }
+      console.error('===== Video Error Details =====', errorInfo)
       errorMessage = `${errorDetails[errorCode as keyof typeof errorDetails] || '加载失败'}，请使用封面图练习`
     }
 
     setVideoError(errorMessage)
   }
 
+  // 视频加载开始诊断
+  const handleLoadStart = () => {
+    const video = videoRef.current
+    if (video) {
+      console.log('===== Video Load Start =====', {
+        src: video.src,
+        currentSrc: video.currentSrc,
+        videoSrc: videoSrc
+      })
+      setVideoError(null)
+    }
+  }
+
+  // 视频可以播放诊断
+  const handleCanPlay = () => {
+    console.log('===== Video Can Play =====')
+    setVideoError(null)
+  }
+
   // 强制加载视频资源（当 videoSrc 变化时）
   useEffect(() => {
     if (videoRef.current && videoSrc) {
+      console.log('===== VideoPlayer Props =====', {
+        videoSrc: videoSrc?.substring(0, 80),
+        thumbnailPath: thumbnailPath?.substring(0, 80),
+        hasVideoSrc: !!videoSrc,
+        hasThumbnailPath: !!thumbnailPath
+      })
       videoRef.current.load()
     }
-  }, [videoSrc])
+  }, [videoSrc, thumbnailPath])
 
   // 同步视频播放位置（当 currentSentence 变化时）
   useEffect(() => {
@@ -198,8 +225,8 @@ export default function VideoPlayer({
             crossOrigin="anonymous"
             poster={thumbnailPath}
             onError={handleVideoError}
-            onLoadStart={() => setVideoError(null)}
-            onCanPlay={() => setVideoError(null)}
+            onLoadStart={handleLoadStart}
+            onCanPlay={handleCanPlay}
           />
         )}
 
