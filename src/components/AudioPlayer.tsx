@@ -55,7 +55,7 @@ export default function AudioPlayer({
 
     // 设置参数
     audio.playbackRate = playbackRate
-    audio.volume = 0.25
+    audio.volume = 1.0
 
     // 创建事件处理器
     const handleTimeUpdate = () => {
