@@ -22,6 +22,19 @@ interface VideoPlayerProps {
   onReplay?: () => void
 }
 
+interface VideoPlayerProps {
+  videoSrc?: string
+  currentSentence: Sentence
+  currentTime?: number  // 添加 currentTime prop 用于同步
+  thumbnailPath?: string
+  title?: string
+  titleZh?: string
+  hasPlayedCurrent?: boolean
+  onPlayNext?: () => void
+  onPlay?: () => void
+  onReplay?: () => void
+}
+
 export default function VideoPlayer({
   videoSrc,
   currentSentence,
@@ -33,6 +46,7 @@ export default function VideoPlayer({
   onReplay,
 }: VideoPlayerProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [videoError, setVideoError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // 强制加载视频资源（当 videoSrc 变化时）
@@ -130,16 +144,29 @@ export default function VideoPlayer({
   return (
     <div>
       <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-        <video
-          ref={videoRef}
-          src={videoSrc}
-          className="w-full h-full object-cover"
-          controls
-          playsInline
-          preload="auto"
-          crossOrigin="anonymous"
-          poster={thumbnailPath}
-        />
+        {videoError ? (
+          // 视频加载失败时显示错误信息
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-800">
+            <svg className="w-16 h-16 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A9 9 0 0121 2.012 9 9 0 0118.455 5.788z" />
+            </svg>
+            <p className="text-gray-400 text-sm">视频加载失败</p>
+            <p className="text-gray-500 text-xs">{videoError}</p>
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            src={videoSrc}
+            className="w-full h-full object-cover"
+            controls
+            playsInline
+            preload="auto"
+            crossOrigin="anonymous"
+            poster={thumbnailPath}
+            onError={() => setVideoError('视频无法播放')}
+            onLoadStart={() => setVideoError(null)}
+          />
+        )}
 
         {isLoading && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
