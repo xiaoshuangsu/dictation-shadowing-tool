@@ -434,13 +434,13 @@ export default function MaterialsPage() {
                             <div className="w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
                               {thumbnailUrl ? (
                                 <img
+                                  crossOrigin="anonymous"
                                   src={thumbnailUrl}
                                   alt={material.title}
                                   className="w-full h-full object-cover"
                                   onError={handleImageError}
                                   loading="lazy"
                                   decoding="async"
-                                  crossOrigin="anonymous"
                                   referrerPolicy="no-referrer"
                                 />
                               ) : (

@@ -186,6 +186,7 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
           <div className="flex-shrink-0 w-16 h-16">
             {thumbnailUrl && !imageError ? (
               <img
+                crossOrigin="anonymous"
                 src={thumbnailUrl}
                 alt={material.audioTitle}
                 className="w-16 h-16 rounded-lg object-cover"

@@ -87,6 +87,7 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
       <div className="relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
         {thumbnailUrl ? (
           <img
+            crossOrigin="anonymous"
             src={thumbnailUrl}
             alt={material.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"

@@ -80,8 +80,8 @@ export default function VideoPlayer({
       <div>
         <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
           <div
-            className="absolute inset-0 bg-cover bg-center bg-gray-800"
-            style={thumbnailPath ? { backgroundImage: `url(${thumbnailPath})` } : {}}
+            className="absolute inset-0 bg-cover bg-center"
+            style={thumbnailPath ? { backgroundImage: `url(${thumbnailPath})` } : { backgroundColor: '#1f2937' }}
           >
             <div className="absolute inset-0 bg-black/30"></div>
 
@@ -137,6 +137,7 @@ export default function VideoPlayer({
           muted
           playsInline
           preload="metadata"
+          crossOrigin="anonymous"
         />
 
         {isLoading && (

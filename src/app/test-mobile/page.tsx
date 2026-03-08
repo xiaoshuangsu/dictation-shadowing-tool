@@ -97,6 +97,7 @@ export default function TestMobilePage() {
             测试公共图片
           </button>
           <img
+            crossOrigin="anonymous"
             src="https://via.placeholder.com/400x200/0000FF/FFFFFF?text=Test+Image"
             alt="公共图片"
             className="w-full rounded border"
@@ -121,6 +122,7 @@ export default function TestMobilePage() {
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="text-lg font-semibold mb-2">测试 5: 公共视频</h2>
           <video
+            crossOrigin="anonymous"
             src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
             className="w-full rounded border"
             style={{ minHeight: '150px', backgroundColor: '#000' }}

@@ -73,6 +73,17 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const [thumbnailPath, setThumbnailPath] = useState<string | undefined>(undefined)
   const [sampleSentences, setSampleSentences] = useState<Sentence[]>(defaultSentences)
 
+  // CDN URL helper
+  const getCdnUrl = (url: string | null): string | undefined => {
+    if (!url) return undefined
+    // 如果是完整 URL，直接使用
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url
+    }
+    // 相对路径：添加 R2 Worker 域名（移动端兼容）
+    return `https://media.shadowhub.app/${url}`
+  }
+
   // Practice state
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)  // 初始值为 0
   const [hasStarted, setHasStarted] = useState(false)  // 新增：跟踪是否已开始播放
@@ -104,15 +115,15 @@ export default function PracticePage({ category, slug }: { category: string; slu
         if (found) {
           setMaterial(found)
 
-          // Set audio/video URLs
+          // Set audio/video URLs with CDN transformation
           if (found.audio_path) {
-            setAudioSrc(found.audio_path)
+            setAudioSrc(getCdnUrl(found.audio_path))
           }
           if (found.video_path) {
-            setVideoUrl(found.video_path)
+            setVideoUrl(getCdnUrl(found.video_path))
           }
           if (found.thumbnail_path) {
-            setThumbnailPath(found.thumbnail_path)
+            setThumbnailPath(getCdnUrl(found.thumbnail_path))
           }
 
           // Set transcript
