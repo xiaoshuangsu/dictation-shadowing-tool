@@ -103,6 +103,13 @@ export default function MaterialsPage() {
     duration: null,
     category: null,
   })
+  // 图片加载状态跟踪
+  const [imageLoadedStates, setImageLoadedStates] = useState<Record<number, boolean>>({})
+
+  // 更新图片加载状态的辅助函数
+  const setImageLoaded = (materialId: number, loaded: boolean) => {
+    setImageLoadedStates(prev => ({ ...prev, [materialId]: loaded }))
+  }
 
   // 获取本地化的分类名称
   const getLocalizedCategory = (categoryId: string) => {
@@ -402,12 +409,12 @@ export default function MaterialsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material, index) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
-                      const [imageLoaded, setImageLoaded] = useState(false)
+                      const imageLoaded = imageLoadedStates[material.id] || false
 
                       const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
                         // Worker 加载失败时，隐藏图片显示占位符
                         e.currentTarget.style.display = 'none'
-                        setImageLoaded(true) // 停止加载指示器
+                        setImageLoaded(material.id, true) // 停止加载指示器
                       }
 
                       return (
@@ -427,7 +434,7 @@ export default function MaterialsPage() {
                                     alt={material.title}
                                     className="w-full h-full object-cover"
                                     onError={handleImageError}
-                                    onLoad={() => setImageLoaded(true)}
+                                    onLoad={() => setImageLoaded(material.id, true)}
                                     loading="lazy"
                                     decoding="async"
                                     referrerPolicy="no-referrer"
