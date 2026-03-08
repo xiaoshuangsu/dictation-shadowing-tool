@@ -402,25 +402,10 @@ export default function MaterialsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material, index) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
-                      // Fallback 到 Supabase Storage（仅当 thumbnail_path 是相对路径时）
-                      const supabaseUrl = material.thumbnail_path && !material.thumbnail_path.startsWith('http')
-                        ? `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${material.thumbnail_path}`
-                        : null
 
                       const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-                        const img = e.currentTarget
-                        const currentSrc = img.src
-
-                        // 如果当前是 R2 URL，尝试 Supabase Storage
-                        if (currentSrc.includes('r2-proxy') && supabaseUrl) {
-                          img.src = supabaseUrl
-                        } else if (currentSrc.includes('pub-') && currentSrc.includes('.r2.dev') && supabaseUrl) {
-                          // R2 公共域名失败，尝试 Supabase Storage
-                          img.src = supabaseUrl
-                        } else {
-                          // 都失败了，隐藏图片
-                          img.style.display = 'none'
-                        }
+                        // Worker 加载失败时，隐藏图片显示占位符
+                        e.currentTarget.style.display = 'none'
                       }
 
                       return (
