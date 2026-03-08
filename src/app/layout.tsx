@@ -7,6 +7,10 @@ import { LanguageProvider } from "@/contexts/LanguageContext"
 export const metadata: Metadata = {
   title: "ShadowHub - English Dictation & Shadowing Practice",
   description: "Practice English listening and speaking with dictation and shadowing exercises. Get AI feedback and graded content for all levels.",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 }
 
 export default function RootLayout({

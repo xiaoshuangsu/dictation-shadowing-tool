@@ -3,12 +3,18 @@
  *
  * Provides authentication state and methods (login, register, logout)
  * using Supabase Auth.
+ *
+ * V9 优化：
+ * - 防止 INITIAL_SESSION 重复触发
+ * - 防止重复 fetch profile（使用 profileFetchedRef）
+ * - 延长超时到 20 秒，适应静态导出环境
+ * - 简化初始化逻辑，只依赖 onAuthStateChange
+ * - 确保监听器正确清理
  */
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { User } from '@supabase/supabase-js'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
 export interface AuthUser {
@@ -31,54 +37,86 @@ export function useAuth(): AuthState {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // 使用 ref 防止重复处理
+  const initializedRef = useRef(false)
+  const profileFetchedRef = useRef(false) // 防止重复 fetch profile
+  const timeoutRef = useRef<NodeJS.Timeout>()
+
+  // 获取 profile 的函数（封装以便复用）
+  const fetchProfile = useCallback(async (userId: string, email: string) => {
+    // 如果已经获取过，直接返回 null
+    if (profileFetchedRef.current) {
+      console.log('Profile already fetched, skipping duplicate request')
+      return null
+    }
+
+    console.log('Fetching user profile...')
+
+    try {
+      const profilePromise = supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      const timeoutPromise = new Promise((resolve) =>
+        setTimeout(() => resolve({ data: null }), 10000)
+      )
+
+      const data = await Promise.race([profilePromise, timeoutPromise]) as { data: any }
+      const profile = data.data
+
+      // 标记已获取
+      profileFetchedRef.current = true
+
+      return profile
+    } catch (error) {
+      console.error('Failed to fetch profile:', error)
+      profileFetchedRef.current = true // 即使失败也标记，避免重复尝试
+      return null
+    }
+  }, [])
+
   // Initialize auth state on mount
   useEffect(() => {
     let mounted = true
-    let isSubscribed = true
-    let timeoutId: NodeJS.Timeout
 
-    // Get current session
-    const initializeAuth = async () => {
-      if (!mounted || !isSubscribed) return
+    // 设置超时保护（20 秒）
+    timeoutRef.current = setTimeout(() => {
+      if (mounted && loading) {
+        console.log('Auth initialization timeout (20s), setting loading to false')
+        setLoading(false)
+      }
+    }, 20000)
 
-      try {
-        console.log('Initializing auth state...')
+    // 只依赖 onAuthStateChange，避免重复触发
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event: any, session: any) => {
+        if (!mounted) return
 
-        // Add timeout to prevent infinite loading
-        timeoutId = setTimeout(() => {
-          console.log('Auth initialization timeout, setting loading to false')
-          if (mounted && isSubscribed) {
-            setLoading(false)
-          }
-        }, 5000) // 5 second timeout
+        console.log('Auth state changed:', { event, hasSession: !!session, userId: session?.user?.id })
 
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-
-        // Clear timeout on success
-        if (timeoutId) clearTimeout(timeoutId)
-
-        if (sessionError) {
-          console.error('Session error:', sessionError)
+        // 清除超时计时器（任何 auth 事件都说明初始化已完成）
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+          timeoutRef.current = undefined
         }
 
-        console.log('Session from getSession():', session ? {
-          hasUser: !!session.user,
-          userId: session.user?.id,
-          userEmail: session.user?.email,
-        } : 'No session')
-
-        if (mounted && isSubscribed && session?.user) {
-          // Fetch user profile
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          if (profileError) {
-            console.error('Profile fetch error:', profileError)
-            // Still set user even if profile fetch fails
+        // 处理 INITIAL_SESSION（首次加载）
+        if (event === 'INITIAL_SESSION') {
+          if (initializedRef.current) {
+            // 防止重复处理
+            console.log('INITIAL_SESSION already handled, skipping')
+            return
           }
+          initializedRef.current = true
+        }
+
+        if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session?.user)) {
+          console.log('User signed in / INITIAL_SESSION with user')
+
+          // 只在首次时获取 profile
+          const profile = await fetchProfile(session.user.id, session.user.email || '')
 
           setUser({
             id: session.user.id,
@@ -86,101 +124,38 @@ export function useAuth(): AuthState {
             username: profile?.username || session.user.email?.split('@')[0] || null,
             avatarUrl: profile?.avatar_url || null,
           })
-        } else {
-          console.log('No session found, user not logged in')
-        }
-      } catch (error) {
-        console.error('Failed to initialize auth:', error)
-        // Ensure loading is set to false even on error
-        if (timeoutId) clearTimeout(timeoutId)
-      } finally {
-        if (mounted && isSubscribed) {
-          setLoading(false)
-        }
-      }
-    }
 
-    initializeAuth()
-
-    // Listen for auth changes - IMPORTANT: This should be the PRIMARY source of truth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: any, session: any) => {
-        console.log('Auth state changed:', { event, hasSession: !!session, userId: session?.user?.id })
-
-        if (!mounted || !isSubscribed) return
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          console.log('User signed in, fetching profile...')
-
-          // Fetch user profile with timeout
-          try {
-            const profilePromise = supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single()
-
-            const timeoutPromise = new Promise((resolve) =>
-              setTimeout(() => resolve({ data: null }), 5000)
-            )
-
-            const data = await Promise.race([profilePromise, timeoutPromise]) as { data: any }
-            const profile = data.data
-
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              username: profile?.username || session.user.email?.split('@')[0] || null,
-              avatarUrl: profile?.avatar_url || null,
-            })
-          } catch (profileError) {
-            console.error('Failed to fetch profile, setting basic user info:', profileError)
-            // Even if profile fetch fails, set user with basic info
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              username: session.user.email?.split('@')[0] || null,
-              avatarUrl: null,
-            })
-          }
-
-          // Force loading to false when signed in
+          // 签入后强制设置 loading 为 false
           setLoading(false)
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out')
           setUser(null)
+          // 重置标记，允许下次重新登录时获取
+          profileFetchedRef.current = false
           setLoading(false)
-        } else {
-          // INITIAL_SESSION or TOKEN_REFRESH
-          if (session?.user) {
-            console.log('Session refreshed, updating user state')
-            const { data: profile } = await supabase
-              .from('user_profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single()
-
-            setUser({
-              id: session.user.id,
-              email: session.user.email || '',
-              username: profile?.username || session.user.email?.split('@')[0] || null,
-              avatarUrl: profile?.avatar_url || null,
-            })
-          }
+        } else if (event === 'INITIAL_SESSION' && !session?.user) {
+          // INITIAL_SESSION 但没有用户（未登录状态）
+          console.log('INITIAL_SESSION: No user (not logged in)')
+          initializedRef.current = true
           setLoading(false)
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Token refreshed')
+          // TOKEN_REFRESHED 不需要重新获取 profile
         }
       }
     )
 
     return () => {
+      console.log('Cleaning up auth subscription')
       mounted = false
-      isSubscribed = false
-      if (timeoutId) clearTimeout(timeoutId)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
       if (subscription) {
         subscription.unsubscribe()
       }
     }
-  }, [])
+  }, [loading, fetchProfile])
 
   const login = useCallback(async (email: string, password: string) => {
     try {
@@ -190,8 +165,6 @@ export function useAuth(): AuthState {
         password,
       })
 
-      console.log('Login result:', { data, error })
-
       if (error) {
         console.error('Login error:', error)
         return {
@@ -200,7 +173,7 @@ export function useAuth(): AuthState {
         }
       }
 
-      console.log('Login successful, session:', data.session)
+      console.log('Login successful')
       return { success: true }
     } catch (error: any) {
       console.error('Login exception:', error)
@@ -225,8 +198,6 @@ export function useAuth(): AuthState {
         },
       })
 
-      console.log('Supabase signUp result:', { data, error })
-
       if (error) {
         console.error('Supabase signUp error:', error)
 
@@ -241,17 +212,6 @@ export function useAuth(): AuthState {
         }
 
         return { success: false, error: errorMessage }
-      }
-
-      // Debug logging
-      console.log('Register result:', { data, error })
-      console.log('Session after register:', data.session)
-
-      // Check if session was created
-      if (data.session) {
-        console.log('Session created successfully, user should be logged in')
-      } else {
-        console.log('No session created - user may need to confirm email')
       }
 
       return { success: true }

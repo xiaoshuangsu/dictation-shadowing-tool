@@ -390,6 +390,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                 <VideoPlayer
                   videoSrc={videoUrl}
                   currentSentence={currentSentence}
+                  currentTime={currentTime}
                   thumbnailPath={thumbnailPath}
                   hasPlayedCurrent={hasPlayedCurrent}
                   onPlayNext={handleNext}
@@ -414,7 +415,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
           {/* Middle Column - Practice Area (50%) */}
           <div className="lg:col-span-[2] w-full bg-white rounded-lg shadow-sm p-6">
             {/* Hidden Audio Player - The Only Media Source */}
-            {audioSrc && currentSentence && mode === 'dictation' && (
+            {audioSrc && currentSentence && (mode === 'dictation' || mode === 'shadowing') && (
               <div style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', pointerEvents: 'none' }}>
                 <AudioPlayer
                   audioSrc={audioSrc}

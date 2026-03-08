@@ -35,13 +35,8 @@ export function useSuccessSound() {
     }
 
     if (!audioRef.current && typeof window !== 'undefined') {
-      // 获取 basePath（如果配置了）
-      const basePath = (process.env.NODE_ENV === 'production')
-        ? '/dictation-shadowing-tool'
-        : ''
-
-      // 构建音频路径
-      const audioPath = `${basePath}/success-notification.wav`
+      // 使用绝对路径，确保从根目录加载（避免三级路由路径偏移问题）
+      const audioPath = '/success-notification.wav'
       console.log('Loading success sound from:', audioPath)
 
       const audio = new Audio(audioPath)
