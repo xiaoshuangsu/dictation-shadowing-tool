@@ -49,6 +49,36 @@ export default function VideoPlayer({
   const [videoError, setVideoError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
 
+  // 详细的视频错误处理
+  const handleVideoError = () => {
+    const video = videoRef.current
+    if (!video) return
+
+    let errorMessage = '视频无法加载，请使用封面图练习'
+
+    // 获取详细错误信息
+    if (video.error) {
+      const errorCode = video.error.code
+      const errorDetails = {
+        1: 'MEDIA_ERR_ABORTED - 用户中止',
+        2: 'MEDIA_ERR_NETWORK - 网络错误',
+        3: 'MEDIA_ERR_DECODE - 视频解码失败',
+        4: 'MEDIA_ERR_SRC_NOT_SUPPORTED - 视频格式不支持'
+      }
+      console.error('Video Error:', {
+        code: errorCode,
+        message: video.error.message,
+        details: errorDetails[errorCode as keyof typeof errorDetails] || '未知错误',
+        src: video.src,
+        networkState: video.networkState,
+        readyState: video.readyState
+      })
+      errorMessage = `${errorDetails[errorCode as keyof typeof errorDetails] || '加载失败'}，请使用封面图练习`
+    }
+
+    setVideoError(errorMessage)
+  }
+
   // 强制加载视频资源（当 videoSrc 变化时）
   useEffect(() => {
     if (videoRef.current && videoSrc) {
@@ -146,13 +176,16 @@ export default function VideoPlayer({
       <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
         {videoError ? (
           // 视频加载失败时显示错误信息
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-800">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-800 p-4">
             <svg className="w-16 h-16 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A9 9 0 0121 2.012 9 9 0 0118.455 5.788z" />
             </svg>
-            <p className="text-gray-400 text-sm">视频加载失败</p>
-            <p className="text-gray-500 text-xs">{videoError}</p>
-            <p className="text-gray-600 text-xs mt-2">使用封面图练习</p>
+            <p className="text-gray-400 text-sm font-medium">视频加载失败</p>
+            <p className="text-gray-500 text-xs mt-1">{videoError}</p>
+            {videoSrc && (
+              <p className="text-gray-600 text-xs mt-2 opacity-70">{videoSrc.substring(0, 50)}...</p>
+            )}
+            <p className="text-gray-400 text-xs mt-3">请使用封面图练习</p>
           </div>
         ) : (
           <video
@@ -164,7 +197,7 @@ export default function VideoPlayer({
             preload="metadata"
             crossOrigin="anonymous"
             poster={thumbnailPath}
-            onError={() => setVideoError('视频无法加载，请使用封面图练习')}
+            onError={handleVideoError}
             onLoadStart={() => setVideoError(null)}
             onCanPlay={() => setVideoError(null)}
           />
