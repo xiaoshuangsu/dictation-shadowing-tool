@@ -1,4 +1,5 @@
 import { type Material } from '@/lib/supabase/client'
+import { useState } from 'react'
 
 interface MaterialCardProps {
   material: Material
@@ -16,6 +17,8 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export function MaterialCard({ material, onPlay }: MaterialCardProps) {
+  const [imageLoaded, setImageLoaded] = useState(false)
+
   // R2 URL 配置（统一使用 Worker 代理）
   const R2_WORKER_URL = 'https://media.shadowhub.app'
   const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
@@ -86,13 +89,29 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
       {/* 封面图 */}
       <div className="relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
         {thumbnailUrl ? (
-          <img
-            crossOrigin="anonymous"
-            src={thumbnailUrl}
-            alt={material.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={handleImageError}
-          />
+          <>
+            <img
+              crossOrigin="anonymous"
+              src={thumbnailUrl}
+              alt={material.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={handleImageError}
+              style={{
+                opacity: imageLoaded ? 1 : 0,
+                transition: 'opacity 0.3s ease-in'
+              }}
+              onLoad={() => setImageLoaded(true)}
+            />
+            {/* 加载指示器 */}
+            {!imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+                <svg className="w-12 h-12 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V8a8 8 0 00-8 8z"></path>
+                </svg>
+              </div>
+            )}
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg className="w-16 h-16 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
