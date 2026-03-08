@@ -140,7 +140,9 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
     router.push(url)
   }
 
-  // 构建 Supabase Storage 公开 URL
+  // 构建 Worker 代理 URL（统一使用 media.shadowhub.app）
+  const R2_WORKER_URL = 'https://media.shadowhub.app'
+
   const getThumbnailUrl = (thumbnailPath: string | null | undefined) => {
     if (!thumbnailPath) return null
 
@@ -152,8 +154,8 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
     // 移除可能存在的 'thumbnails/' 前缀
     const filename = thumbnailPath.replace(/^thumbnails\//, '')
 
-    // 构建完整的公开 URL
-    return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/thumbnails/${filename}`
+    // 使用 Worker 代理访问
+    return `${R2_WORKER_URL}/thumbnails/${filename}`
   }
 
   const thumbnailUrl = getThumbnailUrl(material.thumbnail)
