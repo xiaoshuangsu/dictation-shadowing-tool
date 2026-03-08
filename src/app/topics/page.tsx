@@ -413,6 +413,7 @@ export default function MaterialsPage() {
 
                       const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
                         // Worker 加载失败时，隐藏图片显示占位符
+                        console.warn('Image load failed:', material.title, 'URL:', thumbnailUrl?.substring(0, 50))
                         e.currentTarget.style.display = 'none'
                         setImageLoaded(material.id, true) // 停止加载指示器
                       }
@@ -435,7 +436,6 @@ export default function MaterialsPage() {
                                     className="w-full h-full object-cover"
                                     onError={handleImageError}
                                     onLoad={() => setImageLoaded(material.id, true)}
-                                    loading="lazy"
                                     decoding="async"
                                     referrerPolicy="no-referrer"
                                     style={{
