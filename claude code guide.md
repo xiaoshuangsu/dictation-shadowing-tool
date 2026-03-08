@@ -46,15 +46,17 @@
 1. **FFmpeg 压制**：480p (CRF 28-32)。
 2. **AI 处理**：生成 Whisper 字幕 (JSON) + GLM 翻译。
 3. **R2 唯一化上传**：上传前检查桶内是否存在该 Slug 的旧文件，执行覆盖式同步。
-4. **数据库对齐**：确保 Supabase 存储的是**完整的 R2 公共域名 URL**（移动端兼容）。
+4. **数据库对齐**：确保 Supabase 存储的是**相对路径**（如 `videos/b3l3-dialogue.mp4`），由前端 `getCdnUrl()` 自动拼接 Worker 代理。
 5. **物理删除（安全锁）**：只有收到 R2 和 Supabase 的"成功双重确认"后，才允许删除本地原始文件。
 
 ---
 
 ## 4. 路径处理与前端规范 (404 Prevention)
-* **禁止拼接**：前端 `practice/page.tsx` 直接使用数据库中的完整 URL。
-* **R2 公共域名规范**：所有资源路径必须使用 R2 公共域名（`https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev/`），不使用 Worker 代理。
-* **清理脏数据**：发现数据库中带有 `supabase.co` 或 `r2-proxy.workers.dev` 拼接路径的记录，一律修正为 R2 公共域名 URL。
+* **禁止拼接**：前端 `practice/page.tsx` 必须通过 `getCdnUrl()` 函数处理数据库中的相对路径。
+* **Worker 代理强制要求**：所有素材（视频、音频、缩略图）必须通过 A 账号的 Worker 代理（`https://media.shadowhub.app`）获取。
+  - ✅ **原因**：Worker 提供移动端必备的 CORS 头和 Range 请求支持
+  - ❌ **禁止**：直接使用 R2 公共域名或 Supabase Storage URL
+* **清理脏数据**：发现数据库中带有 R2 公共域名或 Supabase 直连 URL 的记录，一律修正为相对路径（由 `getCdnUrl` 自动拼接 Worker 代理）。
 
 ---
 
@@ -80,14 +82,26 @@
 2. **版本记录**：更新 `package.json` 版本号，手动编写 `CHANGELOG.md`。
 3. **Git 流程**：打 Tag -> Commit -> Push 至 GitHub 触发 Pages 更新。
 
-## 7.移动端与跨域资源开发规范 (Mobile & CORS Protocol)
+## 7. 移动端与跨域资源开发规范 (Mobile & CORS Protocol)
 
 ### 1. 跨域资源强制要求 (CORS Requirements)
-* **核心原则**：使用 R2 公共域名（`pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev`）加载资源，移动端完全兼容。
-* **强制动作**：凡是 `<img />`, `<audio />`, `<video />` 标签，只要 `src` 涉及非同源 URL，**必须**显式添加 `crossOrigin="anonymous"` 属性。
-    - ✅ ` <video src={url} crossOrigin="anonymous" playsInline />`
-* **iOS 特性**：视频组件必须包含 `playsInline` 属性，以防止在移动端自动全屏或加载失败。
-* **禁止 Worker 代理**：不使用 `r2-proxy.suxiaoshuang2020.workers.dev`，移动运营商可能限制访问。
+* **核心原则**：所有素材必须通过 A 账号 Worker 代理（`https://media.shadowhub.app`）加载。
+  - ✅ **Worker 提供的关键能力**：
+    - 正确的 CORS 头（`Access-Control-Allow-Origin: *`）
+    - Range 请求支持（206 Partial Content）- 移动端播放器分段请求的必备能力
+    - R2 直连在 Range 请求方面表现不稳定，Worker 代理完美中转
+* **血泪史教训**：
+  - R2 公共域名（`pub-*.r2.dev`）**缺少 CORS 头**，导致 iOS/移动端封面显示失败（黑屏）
+  - 直接使用 R2 或 Supabase URL 会导致资源加载中断
+* **强制动作**：凡是 `<img />`, `<audio />`, `<video />` 标签，**必须**显式添加 `crossOrigin="anonymous"` 属性。
+  - ✅ `<video src={url} crossOrigin="anonymous" playsInline />`
+* **iOS 特定坑点**：
+  - ⚠️ **必须包含 `playsInline` 属性**，否则视频无法内联播放
+  - ⚠️ **不能缺失 `crossOrigin="anonymous"` 属性**，即使有 Worker 代理，封面依然会黑屏
+  - 这是实测中最耗时的发现
+* **路由冲突警示**：
+  - 🔴 **B 账号严禁设置 `media.shadowhub.app/*` 路由**，否则会拦截 A 账号的素材流量
+  - B 账号只负责前端托管，A 账号 Worker 负责资源代理
 
 ### 2. 数据匹配优先级逻辑 (Data Retrieval Priority)
 * **场景**：在动态路由 `[slug]` 页面根据路径查找数据库记录时。
@@ -140,10 +154,15 @@
    - **职责**：主入口，负责前端代码构建、部署与展示。
 
 2. **A 账号 (素材存储账号)**：
-   - **托管服务**：Cloudflare R2 存储桶
+   - **托管服务**：Cloudflare R2 存储桶 + Worker 代理
    - **职责**：存放音频、视频、缩略图等大文件。
    - **访问限制**：素材必须通过 **Worker 代理 URL** (`https://media.shadowhub.app`) 获取。
-   - **CORS 要求**：A 账号的 Worker 必须显式允许来自 `https://shadowhub.app` 的请求。
+   - **Worker 映射关系**：
+     - 实际 Worker 地址：`r2-proxy.suxiaoshuang2020.workers.dev`（A 账号）
+     - 自定义域名映射：`media.shadowhub.app` → `r2-proxy.suxiaoshuang2020.workers.dev`
+     - 前端统一使用 `https://media.shadowhub.app` 访问素材
+   - **CORS 要求**：A 账号的 Worker 必须显式允许来自 `https://shadowhub.app` 的请求，并支持 Range 请求。
+   - **路由冲突警示**：🔴 **B 账号严禁设置 `media.shadowhub.app/*` 路由**，否则会拦截 A 账号的素材流量！
 
 3. **Supabase (中枢数据库)**：
    - **项目 ID**：`cuxotlijjnxbsirpdkgr`
@@ -217,6 +236,59 @@
 
 > **给 Claude Code 的提示**：在执行任何修改前，请先读取此指南。严禁引入任何破坏静态导出机制的服务端逻辑。
 
+---
+
+# 🎨 用户体验标准规范 (UX Standards)
+
+### 1. 音量一致性标准
+* **统一音量**：所有音频/视频组件的初始音量必须设置为 **0.25**（25%）。
+  - ✅ **原因**：1.0（100%）音量过大，0.25 音量适中温和
+  - ✅ **范围**：AudioPlayer、VideoPlayer、ShadowingPanel 等所有播放器
+* **代码示例**：
+  ```typescript
+  audio.volume = 0.25  // 固定音量，与 ShadowingPanel 保持一致
+  ```
+
+### 2. 加载状态 UI 规范
+* **强制要求**：媒体加载时必须显示加载状态指示器。
+* **原因**：使用 `preload="metadata"` 策略时，点击播放后才开始下载数据，有明显延迟。显示加载提示可缓解用户等待焦虑。
+* **技术实现**：
+  - 监听 `canplay`、`playing`、`waiting` 事件
+  - 通过 `onLoadingChange` 回调通知父组件
+  - 显示旋转图标 + "加载中..."文字提示
+* **代码参考**：
+  ```typescript
+  const [audioLoading, setAudioLoading] = useState(false)
+
+  // AudioPlayer 中
+  audio.addEventListener('canplay', () => onLoadingChange?.(false))
+  audio.addEventListener('playing', () => onLoadingChange?.(false))
+  audio.addEventListener('waiting', () => onLoadingChange?.(true))
+
+  // UI 中
+  {audioLoading && (
+    <div className="flex items-center gap-1 text-xs text-blue-600">
+      <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <span>加载中...</span>
+    </div>
+  )}
+  ```
+
+### 3. 视频加载策略
+* **大文件优化**：对于 10MB+ 视频文件，使用 `preload="metadata"` 避免移动端超时。
+* **错误降级**：视频加载失败时，引导用户"使用封面图练习"。
+* **关键属性组合**：
+  ```tsx
+  <video
+    preload="metadata"
+    crossOrigin="anonymous"
+    playsInline
+    onCanPlay={() => setError(null)}
+    onError={() => setError('视频无法加载，请使用封面图练习')}
+  />
+  ```
+
+---
 
 # 🌐 路由与 SEO 规范 (Routing & SEO Specs)
 
