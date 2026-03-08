@@ -134,7 +134,7 @@ export default function VideoPlayer({
           ref={videoRef}
           src={videoSrc}
           className="w-full h-full object-cover"
-          muted
+          controls
           playsInline
           preload="metadata"
           crossOrigin="anonymous"
