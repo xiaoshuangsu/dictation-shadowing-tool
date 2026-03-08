@@ -1,0 +1,8 @@
+# Cloudflare Pages redirects for static export
+# Ensure trailing slashes work correctly
+
+# Redirect /profile to /profile/
+/profile /profile/ 308
+
+# Redirect other paths without trailing slash
+/topics/* /topics/:splat/ 308
