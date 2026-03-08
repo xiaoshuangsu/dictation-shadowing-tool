@@ -25,7 +25,7 @@ interface Sentence {
 }
 
 // R2 URL 配置（统一使用 Worker 代理）
-const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+const R2_WORKER_URL = 'https://media.shadowhub.app'
 
 // 根据设备类型选择合适的 CDN URL
 const getCdnUrl = (url: string | null) => {

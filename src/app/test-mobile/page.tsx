@@ -55,14 +55,14 @@ export default function TestMobilePage() {
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h2 className="text-lg font-semibold mb-2">测试 1: Worker 代理 R2 图片（移动端兼容）</h2>
           <button
-            onClick={() => testImage("https://r2-proxy.suxiaoshuang2020.workers.dev/thumbnails/april-fools-day-joke-english-conversation.jpeg", "Worker代理R2图片")}
+            onClick={() => testImage("https://media.shadowhub.app/thumbnails/april-fools-day-joke-english-conversation.jpeg", "Worker代理R2图片")}
             className="px-4 py-2 bg-blue-500 text-white rounded mb-2"
           >
             测试 Worker 代理图片
           </button>
           <img
             crossOrigin="anonymous"
-            src="https://r2-proxy.suxiaoshuang2020.workers.dev/thumbnails/april-fools-day-joke-english-conversation.jpeg"
+            src="https://media.shadowhub.app/thumbnails/april-fools-day-joke-english-conversation.jpeg"
             alt="Worker 代理 R2 图片"
             className="w-full rounded border"
             style={{ minHeight: '150px', backgroundColor: '#f0f0f0' }}
@@ -109,7 +109,7 @@ export default function TestMobilePage() {
           <h2 className="text-lg font-semibold mb-2">测试 4: Worker 代理 R2 视频（移动端兼容）</h2>
           <video
             crossOrigin="anonymous"
-            src="https://r2-proxy.suxiaoshuang2020.workers.dev/videos/1772532535.mp4"
+            src="https://media.shadowhub.app/videos/1772532535.mp4"
             className="w-full rounded border"
             style={{ minHeight: '150px', backgroundColor: '#000' }}
             controls

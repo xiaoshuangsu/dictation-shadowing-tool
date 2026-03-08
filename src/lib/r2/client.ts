@@ -6,7 +6,7 @@
  */
 
 // R2 Worker 代理域名（统一使用，所有设备）
-const R2_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev'
+const R2_WORKER_URL = 'https://media.shadowhub.app'
 
 /**
  * 生成 R2 对象的公开访问 URL
