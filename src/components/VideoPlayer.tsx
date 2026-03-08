@@ -304,9 +304,6 @@ export default function VideoPlayer({
             onError={handleVideoError}
             onLoadStart={handleLoadStart}
             onCanPlay={handleCanPlay}
-            onPlayProtected={(e) => {
-              console.log('🔒 Play protected event:', e)
-            }}
           />
         )}
 
