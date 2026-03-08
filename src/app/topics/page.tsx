@@ -402,10 +402,12 @@ export default function MaterialsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material, index) => {
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
+                      const [imageLoaded, setImageLoaded] = useState(false)
 
                       const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
                         // Worker 加载失败时，隐藏图片显示占位符
                         e.currentTarget.style.display = 'none'
+                        setImageLoaded(true) // 停止加载指示器
                       }
 
                       return (
@@ -418,16 +420,32 @@ export default function MaterialsPage() {
                             {/* 缩略图 */}
                             <div className="w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
                               {thumbnailUrl ? (
-                                <img
-                                  crossOrigin="anonymous"
-                                  src={thumbnailUrl}
-                                  alt={material.title}
-                                  className="w-full h-full object-cover"
-                                  onError={handleImageError}
-                                  loading="lazy"
-                                  decoding="async"
-                                  referrerPolicy="no-referrer"
-                                />
+                                <>
+                                  <img
+                                    crossOrigin="anonymous"
+                                    src={thumbnailUrl}
+                                    alt={material.title}
+                                    className="w-full h-full object-cover"
+                                    onError={handleImageError}
+                                    onLoad={() => setImageLoaded(true)}
+                                    loading="lazy"
+                                    decoding="async"
+                                    referrerPolicy="no-referrer"
+                                    style={{
+                                      opacity: imageLoaded ? 1 : 0,
+                                      transition: 'opacity 0.3s ease-in'
+                                    }}
+                                  />
+                                  {/* 加载指示器 */}
+                                  {!imageLoaded && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
+                                      <svg className="w-12 h-12 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V8a8 8 0 00-8 8z"></path>
+                                      </svg>
+                                    </div>
+                                  )}
+                                </>
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                   <svg className="w-12 h-12 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
