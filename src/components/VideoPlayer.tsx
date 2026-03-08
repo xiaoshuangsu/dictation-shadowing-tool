@@ -217,7 +217,6 @@ export default function VideoPlayer({
         ) : (
           <video
             ref={videoRef}
-            src={videoSrc}
             className="w-full h-full object-cover"
             controls
             playsInline
@@ -227,7 +226,9 @@ export default function VideoPlayer({
             onError={handleVideoError}
             onLoadStart={handleLoadStart}
             onCanPlay={handleCanPlay}
-          />
+          >
+            {videoSrc && <source src={videoSrc} type="video/mp4" />}
+          </video>
         )}
 
         {isLoading && (
