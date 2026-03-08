@@ -104,10 +104,10 @@ export default function MaterialsPage() {
     category: null,
   })
   // 图片加载状态跟踪
-  const [imageLoadedStates, setImageLoadedStates] = useState<Record<number, boolean>>({})
+  const [imageLoadedStates, setImageLoadedStates] = useState<Record<string, boolean>>({})
 
   // 更新图片加载状态的辅助函数
-  const setImageLoaded = (materialId: number, loaded: boolean) => {
+  const setImageLoaded = (materialId: string, loaded: boolean) => {
     setImageLoadedStates(prev => ({ ...prev, [materialId]: loaded }))
   }
 
