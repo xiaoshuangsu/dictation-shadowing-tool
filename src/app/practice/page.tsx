@@ -187,6 +187,13 @@ function HomeContent() {
           // 🔴 路径预洗：在进入组件前完成 .mp4 补全
           let videoUrl = getCdnUrl(material.video_path)
 
+          // 🔴 空值检查：getCdnUrl 可能返回 null
+          if (!videoUrl) {
+            console.error('❌ videoUrl is null after getCdnUrl:', material.video_path)
+            setVideoSrc(null)
+            return
+          }
+
           // 二次验证：确保以 .mp4 结尾
           if (!videoUrl.endsWith('.mp4')) {
             console.warn('⚠️ Video URL missing .mp4, auto-fixing:', {
