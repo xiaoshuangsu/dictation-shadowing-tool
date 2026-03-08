@@ -773,11 +773,13 @@ function HomeContent() {
                     key="video-player"
                     videoSrc={videoSrc}
                     currentSentence={currentSentence}
-                    playbackRate={playbackRate}
-                    autoPlayTrigger={autoPlayTrigger}
                     thumbnailPath={thumbnailPath || undefined}
-                    onPlayEnd={() => {}}
-                    onTimeUpdate={handleTimeUpdate}
+                    onPlay={() => {
+                      setAutoPlayTrigger(prev => prev + 1)
+                    }}
+                    onReplay={() => {
+                      setAutoPlayTrigger(prev => prev + 1)
+                    }}
                   />
                 )}
                 {!videoSrc && audioSrc && currentSentence && (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useEffect } from "react"
+import { useState } from "react"
 
 interface Sentence {
   id: number
@@ -10,263 +10,68 @@ interface Sentence {
 }
 
 interface VideoPlayerProps {
-  videoSrc: string
+  videoSrc?: string
   currentSentence: Sentence
-  playbackRate?: number
-  autoPlayTrigger?: number
   thumbnailPath?: string
   title?: string
   titleZh?: string
-  onPlayEnd?: () => void
-  onTimeUpdate?: (currentTime: number) => void
   hasPlayedCurrent?: boolean
   onPlayNext?: () => void
+  onPlay?: () => void
+  onReplay?: () => void
 }
 
 export default function VideoPlayer({
   videoSrc,
   currentSentence,
-  playbackRate = 1,
-  autoPlayTrigger = 0,
   thumbnailPath,
-  onPlayEnd,
-  onTimeUpdate,
   hasPlayedCurrent = false,
   onPlayNext,
+  onPlay,
+  onReplay,
 }: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [hasStarted, setHasStarted] = useState(false)
-  const [isMetadataLoaded, setIsMetadataLoaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const prevTriggerRef = useRef(0)
-  const isInitializedRef = useRef(false)
 
-  const currentSentenceRef = useRef(currentSentence)
-  useEffect(() => {
-    currentSentenceRef.current = currentSentence
-  }, [currentSentence])
-
-  const volume = 0.25
-
-  // 初始化视频
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout | null = null
-    let rafId: number | null = null
-
-    const initializeVideo = () => {
-      if (isInitializedRef.current) return
-
-      const video = videoRef.current
-      if (!video) {
-        timeoutId = setTimeout(initializeVideo, 100)
-        return
-      }
-
-      isInitializedRef.current = true
-      video.volume = volume
-
-      const handleLoadedMetadata = () => {
-        setIsMetadataLoaded(true)
-      }
-
-      video.addEventListener('loadedmetadata', handleLoadedMetadata)
-
-      timeoutId = setTimeout(() => {
-        video.load()
-        if (video.readyState >= 1) { // HAVE_METADATA = 1
-          setIsMetadataLoaded(true)
-        }
-      }, 50)
-    }
-
-    rafId = requestAnimationFrame(() => {
-      timeoutId = setTimeout(initializeVideo, 50)
-    })
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId)
-      if (rafId) cancelAnimationFrame(rafId)
-    }
-  }, [])
-
-  // 当 videoSrc 改变时，重新加载视频
-  useEffect(() => {
-    if (videoSrc && isInitializedRef.current) {
-      const video = videoRef.current
-      if (video) {
-        setIsMetadataLoaded(false)
-        setIsPlaying(false)
-        setHasStarted(false)
-        setIsLoading(false)
-        video.load()
-      }
-    }
-  }, [videoSrc])
-
-  const playSentence = () => {
-    if (videoRef.current && videoSrc) {
-      const video = videoRef.current
-      const sentence = currentSentenceRef.current
-
-      video.pause()
-      video.playbackRate = playbackRate
-      video.volume = volume
-      setIsLoading(true)
-
-      const onSeeked = () => {
-        video.removeEventListener('seeked', onSeeked)
-
-        // 检查是否已缓冲到目标位置
-        const targetTime = sentence.startTime
-        const bufferedEnd = video.buffered.length > 0 ? video.buffered.end(0) : 0
-
-        if (bufferedEnd < targetTime) {
-          const onProgress = () => {
-            const newBufferedEnd = video.buffered.length > 0 ? video.buffered.end(0) : 0
-            if (newBufferedEnd >= targetTime) {
-              setIsLoading(false)
-              video.removeEventListener('progress', onProgress)
-
-              if (typeof window !== 'undefined' && window.innerWidth < 768) {
-                // 找到模式切换按钮容器
-                const modeSwitchBar = document.querySelector('[class*="sticky top-0 z-50"]') as HTMLElement
-                if (modeSwitchBar) {
-                  // 滚动到模式切换按钮位置，留出一些顶部间距
-                  const rect = modeSwitchBar.getBoundingClientRect()
-                  const scrollTop = window.pageYOffset + rect.top - 10
-                  window.scrollTo({ top: scrollTop, behavior: 'smooth' })
-                }
-              }
-
-              setupPlaybackListeners()
-              playVideo()
-            }
-          }
-
-          video.addEventListener('progress', onProgress)
-          return
-        }
-
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
-          // 找到模式切换按钮容器
-          const modeSwitchBar = document.querySelector('[class*="sticky top-0 z-50"]') as HTMLElement
-          if (modeSwitchBar) {
-            // 滚动到模式切换按钮位置，留出一些顶部间距
-            const rect = modeSwitchBar.getBoundingClientRect()
-            const scrollTop = window.pageYOffset + rect.top - 10
-            window.scrollTo({ top: scrollTop, behavior: 'smooth' })
-          }
-        }
-
-        setupPlaybackListeners()
-        setIsLoading(true)
-        playVideo()
-      }
-
-      const setupPlaybackListeners = () => {
-        const handleTimeUpdate = () => {
-          const sentence = currentSentenceRef.current
-          if (video.currentTime >= sentence.endTime) {
-            video.removeEventListener('timeupdate', handleTimeUpdate)
-            video.pause()
-            setIsLoading(false)
-            setIsPlaying(false)
-            onPlayEnd?.()
-          }
-
-          if (onTimeUpdate) {
-            onTimeUpdate(video.currentTime)
-          }
-        }
-
-        video.addEventListener('timeupdate', handleTimeUpdate)
-        video.addEventListener('playing', () => setIsLoading(false), { once: true })
-      }
-
-      const playVideo = () => {
-        const playPromise = video.play()
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            setIsLoading(false)
-            setIsPlaying(true)
-            setHasStarted(true)
-          }).catch(err => {
-            console.error('视频播放错误:', err)
-            setIsLoading(false)
-            setIsPlaying(false)
-          })
-        } else {
-          setIsLoading(false)
-          setIsPlaying(true)
-          setHasStarted(true)
-        }
-      }
-
-      video.addEventListener('seeked', onSeeked)
-      video.currentTime = sentence.startTime
-
-      return () => {
-        video.removeEventListener('seeked', onSeeked)
-      }
-    }
+  const handlePlay = () => {
+    setIsLoading(true)
+    onPlay?.()
+    // Reset loading state after a short delay
+    setTimeout(() => setIsLoading(false), 500)
   }
 
-  // Auto-play when trigger changes
-  useEffect(() => {
-    if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
-      prevTriggerRef.current = autoPlayTrigger
-      setTimeout(() => playSentence(), 100)
-    }
-  }, [autoPlayTrigger, currentSentence.id, playbackRate])
+  const handleReplay = () => {
+    setIsLoading(true)
+    onReplay?.()
+    setTimeout(() => setIsLoading(false), 500)
+  }
 
   return (
     <div>
+      {/* Video Thumbnail Display */}
       <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-        {!hasStarted && (
-          <div
-            className="absolute inset-0 z-10 bg-cover bg-center bg-gray-800"
-            style={thumbnailPath ? { backgroundImage: `url(${thumbnailPath})` } : {}}
-          >
-            <div className="absolute inset-0 bg-black/30"></div>
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-gray-800"
+          style={thumbnailPath ? { backgroundImage: `url(${thumbnailPath})` } : {}}
+        >
+          <div className="absolute inset-0 bg-black/30"></div>
 
+          {isLoading && (
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              {isLoading ? (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <p className="text-white text-sm font-medium">加载中...</p>
-                </div>
-              ) : (
-                <button
-                  onClick={playSentence}
-                  className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
-                >
-                  <svg className="w-10 h-10 text-blue-600 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </button>
-              )}
+              <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <p className="text-white text-sm font-medium mt-2">播放中...</p>
             </div>
-          </div>
-        )}
-
-        <video
-          ref={videoRef}
-          src={videoSrc}
-          className="w-full h-full"
-          playsInline
-          preload="metadata"
-          crossOrigin="anonymous"
-        />
+          )}
+        </div>
       </div>
 
+      {/* Control Buttons */}
       <div className="flex items-center gap-3 px-2 py-3 mt-3 bg-white rounded-lg border border-gray-200">
         <button
           onClick={() => {
             if (hasPlayedCurrent && onPlayNext) {
               onPlayNext()
             } else {
-              playSentence()
+              handlePlay()
             }
           }}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-950 text-white rounded-lg hover:bg-blue-900 transition-colors"
@@ -278,7 +83,7 @@ export default function VideoPlayer({
         </button>
 
         <button
-          onClick={playSentence}
+          onClick={handleReplay}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

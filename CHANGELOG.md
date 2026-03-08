@@ -1,6 +1,74 @@
 # Changelog
 
-## [8.3.0] - 2026-03-07
+## [9.0.0] - 2026-03-07
+
+### Added
+- **统一三级路由架构** 🏗️
+  - 重构路由为 `/topics/[category]/[slug]/` 结构
+  - 删除旧的 `dictation/[slug]` 和 `shadowing/[slug]` 路由
+  - 新增分类工具函数 `categoryToSlug` 和 `slugToCategory`
+  - 实现统一的 URL slug 映射（支持中文分类名转 URL-friendly slug）
+
+### Changed
+- **练习页面三栏布局优化** 🎨
+  - 重构页面布局：左（视频+进度）、中（练习区）、右（原文）
+  - 优化顶部导航：面包屑 → 标题 → 模式切换 Tab
+  - 进度统计移至左栏视频上方
+  - 素材标题居中显示，移除难度标签
+  - 修复 sticky 定位遮挡问题（top-20 → top-40）
+
+- **右侧原文稿交互增强** 📝
+  - 隐藏模式：默认显示星号（`***`）代替单词
+  - 点击 Show 按钮显示原文和翻译
+  - 点击任意句子切换并播放该句
+
+- **媒体播放架构重构** 🎵
+  - 实现"单音源、双入口"架构
+  - 中栏 AudioPlayer 为唯一音源
+  - 左栏 VideoPlayer 重构为纯展示组件（移除内部 `<video>` 标签）
+  - 修复双重声音 Bug
+
+- **分句播放逻辑重写** ▶️
+  - 引入 `hasStarted` 状态跟踪首次点击
+  - 使用 `flushSync` 强制同步更新状态
+  - 修复分句步进 Bug，确保每次点击都递增索引并播放
+  - 左栏和中栏播放按钮统一调用 `handlePlayOrNext`
+
+### Fixed
+- **修复 WordMode 死循环问题**
+  - 删除调试 useEffect，避免无限重渲染
+  - 优化计算逻辑，提升性能
+
+- **修复索引更新时序问题**
+  - 所有索引更新改用函数式更新 (`prev => prev + 1`)
+  - 使用 `flushSync` 解决 React 18 批处理导致的时序问题
+
+### Technical Details
+- 新增文件：
+  - `src/app/topics/[category]/[slug]/page.tsx` - 新的三级路由页面
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 练习页主组件
+  - `src/lib/utils/category.ts` - 分类工具函数
+  - `public/_redirects` - 重定向配置
+
+- 删除文件：
+  - `src/app/topics/dictation/[slug]/DictationPracticeClient.tsx`
+  - `src/app/topics/dictation/[slug]/page.tsx`
+  - `src/app/topics/shadowing/[slug]/ShadowingPracticeClient.tsx`
+  - `src/app/topics/shadowing/[slug]/page.tsx`
+
+- 修改文件：
+  - `src/components/VideoPlayer.tsx` - 重构为纯展示组件
+  - `src/components/WordMode.tsx` - 删除调试 useEffect
+  - `src/components/profile/MaterialProgress.tsx`
+  - `src/lib/supabase/client.ts` - 硬编码凭证（静态导出）
+  - `src/app/topics/page.tsx` - 更新路由结构
+  - `src/app/practice/page.tsx` - 更新 VideoPlayer props
+
+- Breaking Changes:
+  - 练习页面 URL 从 `/practice?slug=xxx` 改为 `/topics/[category]/[slug]/`
+  - 需要重新生成所有静态页面（已自动完成）
+
+
 
 ### Added
 - **自定义域名支持** 🌐

@@ -121,3 +121,120 @@
 ### 3. 代码层面的 SEO 实现
 * **动态渲染**: 在 `[slug]/page.tsx` 中，必须使用 `generateMetadata` 函数，将上述数据库字段映射到页面的 `<title>` 和 `<meta name="description">` 标签中。
 * **结构化数据**: 脚本应自动为每个视频页生成 `VideoObject` 的 JSON-LD 脚本块。
+
+
+# ShadowHub 静态导出部署与维护指南 🚀
+
+## 📌 项目定位
+本项目采用 **Next.js 静态导出 (Static Export)** 方案，部署于 **Cloudflare Pages**，并结合 **Supabase** (数据库) 与 **Cloudflare R2** (素材存储) 实现。
+
+---
+
+## 🏗️ 资源架构与账号归属（环境隔离说明）
+
+本项目涉及跨账号资源集成，开发与调试时必须遵循以下架构：
+
+1. **B 账号 (域名与前端托管账号)**：
+   - **托管服务**：Cloudflare Pages
+   - **域名**：`shadowhub.app`
+   - **职责**：主入口，负责前端代码构建、部署与展示。
+
+2. **A 账号 (素材存储账号)**：
+   - **托管服务**：Cloudflare R2 存储桶
+   - **职责**：存放音频、视频、缩略图等大文件。
+   - **访问限制**：素材必须通过 **Worker 代理 URL** (`https://media.shadowhub.app`) 获取。
+   - **CORS 要求**：A 账号的 Worker 必须显式允许来自 `https://shadowhub.app` 的请求。
+
+3. **Supabase (中枢数据库)**：
+   - **项目 ID**：`cuxotlijjnxbsirpdkgr`
+   - **职责**：存储素材元数据、练习文本及 R2 资源索引。
+
+---
+
+## 🛠 核心技术规范与解决方案
+
+### 1. 环境变量与凭证处理 🔐
+* **核心原则**：在静态导出模式下，`process.env` 无法实时读取，**必须硬编码**到客户端代码中。
+* **关键凭证**：
+    - **Supabase URL**: `https://cuxotlijjnxbsirpdkgr.supabase.co`
+    - **Supabase Anon Key**: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (详见现有配置文件)
+    - **R2 Worker URL**: `https://media.shadowhub.app`
+
+### 2. 动态路由生成 (slug) 🛣️
+* **问题**：`generateStaticParams` 预渲染失败会导致构建崩溃。
+* **规范**：
+    1. **必须包含 try-catch**：确保数据库连接失败时返回占位符。
+    2. **必须包裹 Suspense**：练习页面组件必须被 `<Suspense fallback={...}>` 包裹。
+    3. **Slug 统一化**：确保生成路径和跳转链接均使用 `titleToSlug(m.title)`。
+* **代码参考**：
+    ```typescript
+    export async function generateStaticParams() {
+      try {
+        const { data } = await supabase.from('materials').select('id, title').limit(1000);
+        return data.map(m => ({ slug: titleToSlug(m.title) }));
+      } catch (e) {
+        return [{ slug: 'placeholder' }];
+      }
+    }
+    ```
+
+### 3. 跨域资源 (CORS) 解决方案 🌐
+* **问题**：R2 资源跨账号访问被拒绝。
+* **解决**：在 A 账号 Worker 中注入跨域头。
+* **代码参考**：
+    ```javascript
+    const headers = new Headers();
+    // ...
+    headers.set('Access-Control-Allow-Origin', '*'); // 或 '[https://shadowhub.app](https://shadowhub.app)'
+    headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    return new Response(object.body, { headers });
+    ```
+
+---
+
+## 📋 每次发布前的“检查清单” (Checklist)
+
+1. [ ] **本地验证**：执行 `npm run build`。
+2. [ ] **日志扫描**：
+   - ❌ 严禁出现 `Export encountered errors`。
+   - ❌ 严禁出现 `Error occurred prerendering`。
+   - ✅ 必须看到 `✓ Generating static pages (X/X)`。
+3. [ ] **文件确认**：确认 `out/` 目录下生成了对应的练习页面 HTML。
+
+---
+
+## 🆘 常见错误速查表
+
+| 错误信息 | 原因 | 解决方法 |
+| :--- | :--- | :--- |
+| `placeholder.supabase.co` | 环境变量未嵌入 | 直接在代码中硬编码 URL 和 Key |
+| `CORS policy` / `Failed to fetch` | Worker 缺少 CORS 头 | 在 A 账号 Worker 添加 `Access-Control-Allow-Origin` |
+| `useSearchParams() ... suspense` | 缺少渲染边界 | 在页面组件层级补充 `<Suspense>` |
+| `404 Not Found` (练习页) | Slug 格式不匹配 | 统一使用 `titleToSlug()` 处理 |
+| `Export encountered errors` | 预渲染失败 | 为 `generateStaticParams` 增加 try-catch |
+
+---
+
+> **给 Claude Code 的提示**：在执行任何修改前，请先读取此指南。严禁引入任何破坏静态导出机制的服务端逻辑。
+
+
+# 🌐 路由与 SEO 规范 (Routing & SEO Specs)
+
+### 1. 标准 URL 结构
+所有页面必须遵循以下层级，严禁使用扁平化路径：
+- **分类页**：`/topics/[category-slug]/`
+- **素材练习页**：`/topics/[category-slug]/[material-slug]/`
+- **个人中心**：`/profile/`
+
+### 2. 练习模式切换逻辑
+- **单一 URL 原则**：听写（Dictation）与跟读（Shadowing）必须共用同一个素材页面。
+- **状态区分**：通过 URL 查询参数 `?mode=dictation` 或 `?mode=shadowing` 进行切换。
+- **技术实现**：使用 `useSearchParams` 监听模式，并在页面内通过 `Tab` 组件切换 UI，严禁创建物理上的新页面。
+
+### 3. Slug 生成规范
+- 必须调用 `titleToSlug()` 函数处理标题。
+- 路径末尾必须带有斜杠 `/`（配合 `trailingSlash: true` 配置）。
+
+### 4. 动态生成要求 (SSG)
+- `generateStaticParams` 必须同时返回 `category` 和 `slug`。
+- 必须包含 `try-catch` 容错，构建失败时返回占位路径。

@@ -10,6 +10,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { MaterialProgress } from '@/lib/supabase/client'
 import { formatDate } from '@/utils/analytics'
+import { titleToSlug } from '@/lib/utils/slug'
+import { categoryToSlug } from '@/lib/utils/category'
 
 interface MaterialProgressListProps {
   materials: MaterialProgress[]
@@ -116,23 +118,24 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
 
   // 处理卡片点击
   const handleClick = () => {
-    // 使用 materialId 作为路由参数（因为数据库中没有 slug 字段）
-    const slug = material.materialId
+    // 使用 titleToSlug 和 categoryToSlug 生成路由参数
+    const slug = titleToSlug(material.audioTitle)
+    const categorySlug = categoryToSlug(material.category || '未分类')
     if (!slug) return
 
-    // 根据练习模式构建正确的路由
-    const basePath = practiceMode === 'dictation'
-      ? `/topics/dictation/${slug}`
-      : `/topics/shadowing/${slug}`
+    // 根据练习模式构建正确的路由（统一使用 ?mode 参数）
+    const basePath = `/topics/${categorySlug}/${slug}?mode=${practiceMode}`
 
     // 如果需要从特定句子开始，添加 URL 参数
     const url = targetIndex > 0
-      ? `${basePath}?start=${targetIndex}`
+      ? `${basePath}&start=${targetIndex}`
       : basePath
 
     console.log('MaterialCard - Navigating to:', url)
     console.log('  - audioTitle:', material.audioTitle)
-    console.log('  - materialId:', material.materialId)
+    console.log('  - category:', material.category)
+    console.log('  - categorySlug:', categorySlug)
+    console.log('  - slug:', slug)
     console.log('  - targetIndex:', targetIndex)
     router.push(url)
   }
@@ -276,15 +279,17 @@ function MaterialCard({ material, isCompleted, practiceMode }: MaterialCardProps
                     onClick={(e) => {
                       e.stopPropagation()
                       // Jump to specific sentence (index = id - 1)
-                      const slug = material.materialId
+                      const slug = titleToSlug(material.audioTitle)
+                      const categorySlug = categoryToSlug(material.category || '未分类')
                       if (!slug) return
 
-                      const basePath = practiceMode === 'dictation'
-                        ? `/topics/dictation/${slug}`
-                        : `/topics/shadowing/${slug}`
-
-                      const url = `${basePath}?start=${id - 1}`
+                      const basePath = `/topics/${categorySlug}/${slug}?mode=${practiceMode}`
+                      const url = `${basePath}&start=${id - 1}`
                       console.log('Missing sentence - Navigating to:', url)
+                      console.log('  - audioTitle:', material.audioTitle)
+                      console.log('  - category:', material.category)
+                      console.log('  - categorySlug:', categorySlug)
+                      console.log('  - slug:', slug)
                       router.push(url)
                     }}
                     className="inline-flex items-center px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors cursor-pointer"

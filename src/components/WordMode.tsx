@@ -69,17 +69,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     }
   }, [sentence.id, sentenceWords])
 
-  // 调试日志
-  useEffect(() => {
-    console.log('[WordMode] sentence.text:', sentence.text)
-    console.log('[WordMode] sentence.text.length:', sentence.text?.length)
-    console.log('[WordMode] sentenceWords:', sentenceWords)
-    console.log('[WordMode] sentenceWords.length:', sentenceWords.length)
-    console.log('[WordMode] visibleWordsBefore:', visibleWordsBefore)
-    console.log('[WordMode] visibleWordsAfter:', visibleWordsAfter)
-    console.log('[WordMode] JSON.stringify(sentence.text):', JSON.stringify(sentence.text))
-  }, [sentence, sentenceWords, visibleWordsBefore, visibleWordsAfter])
-
   // V3.1: 启动计时
   const startTiming = () => {
     if (!timingStarted) {

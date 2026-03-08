@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import FilterBar, { FilterOptions } from '@/components/topics/FilterBar'
 import { titleToSlug } from '@/lib/utils/slug'
+import { categoryToSlug } from '@/lib/utils/category'
 import { useLanguage } from '@/contexts/LanguageContext'
 import LocalizedLink from '@/components/LocalizedLink'
 import { supabase } from '@/lib/supabase/client'
@@ -475,13 +476,13 @@ export default function MaterialsPage() {
                               {/* 操作按钮 */}
                               <div className="flex gap-2">
                                 <LocalizedLink
-                                  href={`/topics/dictation/${titleToSlug(material.title)}`}
+                                  href={`/topics/${categoryToSlug(material.category)}/${titleToSlug(material.title)}?mode=dictation`}
                                   className="flex-1 text-center px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
                                 >
                                   {t("topics.dictation")}
                                 </LocalizedLink>
                                 <LocalizedLink
-                                  href={`/topics/shadowing/${titleToSlug(material.title)}`}
+                                  href={`/topics/${categoryToSlug(material.category)}/${titleToSlug(material.title)}?mode=shadowing`}
                                   className="flex-1 text-center px-2 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
                                 >
                                   {t("topics.shadowing")}

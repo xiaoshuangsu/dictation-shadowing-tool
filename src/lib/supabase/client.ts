@@ -241,6 +241,7 @@ export interface MaterialProgress {
   materialId?: string  // 素材 ID
   slug?: string  // 素材的友好 slug（用于 URL 路由），如果没有则使用 materialId
   sentenceIds?: number[]  // 已完成的句子ID列表（排序后）
+  category?: string  // 素材分类
 }
 
 /**
@@ -300,7 +301,7 @@ export async function getMaterialProgressFallback(
   // 2. 获取所有素材的信息（用于后续匹配）
   const { data: materials } = await supabase
     .from('materials')
-    .select('id, title, transcript, thumbnail_path')
+    .select('id, title, category, transcript, thumbnail_path')
 
   console.log(`📊 [Progress] Materials query:`, { materialsCount: materials?.length || 0 })
 
@@ -314,13 +315,15 @@ export async function getMaterialProgressFallback(
     sentenceCount: number
     thumbnail: string | null
     title: string
+    category: string
   }>()
   for (const material of materials) {
     const sentenceCount = material.transcript?.length || 0
     materialInfo.set(material.id, {
       sentenceCount,
       thumbnail: material.thumbnail_path,
-      title: material.title
+      title: material.title,
+      category: material.category || '未分类'
     })
   }
 
@@ -403,7 +406,8 @@ export async function getMaterialProgressFallback(
       lastPracticedSentenceIndex: lastSentenceIndex,
       materialId: resolvedMaterialId,
       slug: resolvedMaterialId,  // 使用 resolvedMaterialId 作为 slug
-      sentenceIds: Array.from(uniqueSentences).sort((a, b) => a - b)
+      sentenceIds: Array.from(uniqueSentences).sort((a, b) => a - b),
+      category: info?.category || '未分类'
     })
 
     console.log(`✅ [Progress] ${title}: ${completedSentences}/${totalSentences} (${totalSentences > 0 ? Math.round(completedSentences/totalSentences*100) : 0}%)`)
