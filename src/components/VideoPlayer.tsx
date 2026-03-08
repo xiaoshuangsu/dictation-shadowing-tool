@@ -109,9 +109,19 @@ export default function VideoPlayer({
         hasVideoSrc: !!videoSrc,
         hasThumbnailPath: !!thumbnailPath
       })
+      // 重置错误状态
+      setVideoError(null)
       videoRef.current.load()
     }
   }, [videoSrc, thumbnailPath])
+
+  // 当 videoSrc 变化时，重置所有相关状态
+  useEffect(() => {
+    if (videoSrc) {
+      setVideoError(null)
+      setIsLoading(false)
+    }
+  }, [videoSrc])
 
   // 同步视频播放位置（当 currentSentence 变化时）
   useEffect(() => {

@@ -38,14 +38,24 @@ const getCdnUrl = (url: string | null) => {
   }
 
   // 相对路径：使用 R2 Worker 代理
-  const finalUrl = `${R2_WORKER_URL}/${url}`
+  let finalUrl = `${R2_WORKER_URL}/${url}`
+
+  // 🔴 关键修复：强制补全 .mp4 后缀
+  // 如果是视频路径但没有 .mp4 后缀，自动添加
+  if (url.includes('video') && !url.endsWith('.mp4')) {
+    finalUrl = `${finalUrl}.mp4`
+    console.log('🔧 Auto-added .mp4 extension:', {
+      original: url,
+      fixed: finalUrl.replace(R2_WORKER_URL, '')
+    })
+  }
 
   // 验证并记录视频路径
   if (url.includes('.mp4') || url.includes('videos/')) {
     console.log('🎬 Video URL constructed:', {
       original: url,
       final: finalUrl,
-      hasMp4Extension: url.endsWith('.mp4')
+      hasMp4Extension: finalUrl.endsWith('.mp4')
     })
   }
 
@@ -175,8 +185,20 @@ function HomeContent() {
         // 构建视频 URL（如果有）
         if (material.video_path) {
           const videoUrl = getCdnUrl(material.video_path)
+
+          // 🔴 关键验证：确保 videoSrc 以 .mp4 结尾
+          if (!videoUrl.endsWith('.mp4')) {
+            console.error('❌ Video URL missing .mp4 extension:', {
+              original: material.video_path,
+              constructed: videoUrl
+            })
+            // 强制补全
+            videoUrl = `${videoUrl}.mp4`
+            console.log('🔧 Force-fixed video URL:', videoUrl)
+          }
+
           setVideoSrc(videoUrl)
-          console.log('Video URL:', videoUrl?.substring(0, 60))
+          console.log('✅ Final Video URL:', videoUrl?.substring(0, 60))
         } else {
           setVideoSrc(null)
         }

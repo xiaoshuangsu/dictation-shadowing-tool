@@ -33,15 +33,26 @@ iOS Safari 报错 `MEDIA_ERR_SRC_NOT_SUPPORTED (Code 4)`，原因：
 - 将 `r2-proxy-worker-fixed.js` 的内容复制粘贴进去
 - **重要**：确保绑定名称是 `R2_BUCKET`
 
-### 4. 绑定 R2 Bucket（如果还没有）
+### 4. 绑定 R2 Bucket（关键配置）
 在 Worker 设置中添加：
 ```
-Binding name（变量名）：R2
+Binding name（变量名）：R2 ⚠️ 必须是 R2，不是 R2_BUCKET
 类型：R2 Bucket
-Bucket 名称：[你的 R2 bucket 名称]
+Bucket 名称：engnovate-audio（或你的实际 bucket 名称）
 ```
 
-**注意**：Worker 代码中使用的 binding name 是 `env.R2`，所以这里的 Variable name 必须设置为 `R2`
+**🔴 重要说明**：
+- Worker 代码中通过 `env.R2` 访问
+- 所以 Binding name 必须设置为 `R2`
+- 这是最常见的配置错误来源
+
+### 4.1 验证绑定配置
+在 Worker 编辑器的左侧栏，确保看到：
+```
+Bindings
+  R2 (R2 Bucket)
+    → engnovate-audio
+```
 
 ### 5. 部署
 点击 "Deploy" 或 "Save and Deploy"

@@ -1,0 +1,22 @@
+# wrangler.toml - R2 Proxy Worker 配置
+# 绑定名称：R2
+# 用于 A 账号 r2-proxy Worker
+
+name = "r2-proxy"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# R2 Bucket 绑定
+# Variable name: R2 (必须与代码中的 env.R2 一致)
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "engnovate-audio"
+
+# 环境变量（可选）
+# [vars]
+# ENVIRONMENT = "production"
+
+# 路由配置（通过自定义域名）
+# routes = [
+#   { pattern = "media.shadowhub.app/*", zone_name = "shadowhub.app" }
+# ]
