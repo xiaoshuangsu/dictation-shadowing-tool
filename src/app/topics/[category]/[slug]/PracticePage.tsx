@@ -312,24 +312,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
     )
   }
 
-  // Show auth required
-  if (!authLoading && !user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Login Required</h1>
-          <p className="text-gray-600 mb-6">Please login to practice</p>
-          <Link
-            href="/login"
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Login
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   if (!material || !currentSentence) return null
 
   const isLastSentence = currentSentenceIndex === sampleSentences.length - 1
