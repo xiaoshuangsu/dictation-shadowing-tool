@@ -27,18 +27,18 @@ interface Sentence {
 // R2 URL 配置（统一使用 Worker 代理）
 const R2_WORKER_URL = 'https://media.shadowhub.app'
 
-// 根据设备类型选择合适的 CDN URL
+// 根据设备类型选择合适的 CDN URL（使用 R2 Worker 代理）
 const getCdnUrl = (url: string | null) => {
   if (!url) return null
   if (typeof window === 'undefined') return url
 
-  if (!url.startsWith('http')) {
-    // 相对路径，使用 Supabase Storage
-    return `https://cuxotlijjnxbsirpdkgr.supabase.co/storage/v1/object/public/engnovate-audio/${url}`
+  // 完整 URL：直接使用
+  if (url.startsWith('http')) {
+    return url
   }
 
-  // 完整 URL：直接使用
-  return url
+  // 相对路径：使用 R2 Worker 代理
+  return `${R2_WORKER_URL}/${url}`
 }
 
 // 默认音频标题（First Snowfall）
@@ -252,6 +252,7 @@ function HomeContent() {
   const [currentTime, setCurrentTime] = useState(0)
   const [isRevealed, setIsRevealed] = useState(false) // Track if user used "Show Words"
   const [showSignupPrompt, setShowSignupPrompt] = useState(false) // 注册提醒弹窗
+  const [audioLoading, setAudioLoading] = useState(false) // 音频加载状态
   const shouldSkipAutoPlayRef = useRef(false) // 使用 ref 来标记是否跳过自动播放
 
   // 跟踪主播放器的累计播放时间（Shadowing 使用）
@@ -792,6 +793,7 @@ function HomeContent() {
                     onPlayEnd={() => {}}
                     onTimeUpdate={handleTimeUpdate}
                     onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
+                    onLoadingChange={setAudioLoading}
                   />
                 )}
 
@@ -807,7 +809,13 @@ function HomeContent() {
               </div>
 
               {/* Speed Control */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {audioLoading && (
+                  <div className="flex items-center gap-1 text-xs text-blue-600">
+                    <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>加载中...</span>
+                  </div>
+                )}
                 <select
                   value={playbackRate}
                   onChange={(e) => setPlaybackRate(Number(e.target.value))}

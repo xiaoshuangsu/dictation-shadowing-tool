@@ -17,6 +17,7 @@ interface AudioPlayerProps {
   onPlayEnd?: () => void
   onTimeUpdate?: (currentTime: number) => void
   onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void
+  onLoadingChange?: (isLoading: boolean) => void
 }
 
 export default function AudioPlayer({
@@ -26,7 +27,8 @@ export default function AudioPlayer({
   autoPlayTrigger = 0,
   onPlayEnd,
   onTimeUpdate,
-  onPlaybackTimeUpdate
+  onPlaybackTimeUpdate,
+  onLoadingChange
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -36,6 +38,13 @@ export default function AudioPlayer({
   const isPlayingRef = useRef(false)
   const lastUpdateTimeRef = useRef<number>(0)
   const totalPlayedSecondsRef = useRef<number>(0)
+
+  // 通知加载状态
+  const setLoading = (loading: boolean) => {
+    if (onLoadingChange) {
+      onLoadingChange(loading)
+    }
+  }
 
   // 清理函数
   const cleanupRef = useRef<(() => void) | null>(null)
@@ -56,6 +65,9 @@ export default function AudioPlayer({
     // 设置参数
     audio.playbackRate = playbackRate
     audio.volume = 1.0
+
+    // 开始加载
+    setLoading(true)
 
     // 创建事件处理器
     const handleTimeUpdate = () => {
@@ -96,15 +108,36 @@ export default function AudioPlayer({
       isPlayingRef.current = false
     }
 
+    // 音频可以播放时（已缓冲足够数据）
+    const handleCanPlay = () => {
+      setLoading(false)
+    }
+
+    // 音频正在播放时
+    const handlePlaying = () => {
+      setLoading(false)
+    }
+
+    // 音频正在等待数据（缓冲中）
+    const handleWaiting = () => {
+      setLoading(true)
+    }
+
     // 添加监听器
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('play', handlePlay)
     audio.addEventListener('pause', handlePause)
+    audio.addEventListener('canplay', handleCanPlay)
+    audio.addEventListener('playing', handlePlaying)
+    audio.addEventListener('waiting', handleWaiting)
 
     cleanupRef.current = () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('play', handlePlay)
       audio.removeEventListener('pause', handlePause)
+      audio.removeEventListener('canplay', handleCanPlay)
+      audio.removeEventListener('playing', handlePlaying)
+      audio.removeEventListener('waiting', handleWaiting)
     }
 
     // 设置播放位置并播放
