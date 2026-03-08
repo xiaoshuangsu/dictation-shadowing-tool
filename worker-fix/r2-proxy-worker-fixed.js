@@ -18,32 +18,52 @@ export default {
       }
 
       const url = new URL(request.url)
+
+      // 🔴 关键诊断：记录完整的请求信息
+      console.log('===== Worker Request Debug =====')
+      console.log('Full URL:', url.href)
+      console.log('Pathname:', url.pathname)
+
       // 移除前缀，获取 R2 路径（例如：/videos/xxx.mp4 -> videos/xxx.mp4）
       const r2Key = url.pathname.replace(/^\//, '')
+      console.log('R2 Key (extracted):', r2Key)
 
       // 🔴 关键：检查并强制添加 .mp4 后缀
       let finalKey = r2Key
       if (r2Key.includes('video') && !r2Key.endsWith('.mp4')) {
         finalKey = `${r2Key}.mp4`
-        console.log(`🔧 Auto-added .mp4 to key: ${r2Key} -> ${finalKey}`)
+        console.log(`🔧 Auto-added .mp4: ${r2Key} -> ${finalKey}`)
       }
 
       // 检查文件扩展名以确定 MIME 类型（强制设置）
       const mimeType = getMimeType(finalKey)
-      console.log(`📦 Fetching: ${finalKey}, MIME: ${mimeType}`)
+      console.log(`📦 Final Key: ${finalKey}`)
+      console.log(`📦 MIME Type: ${mimeType}`)
 
       // 获取 Range 请求头（完美透传）
       const rangeHeader = request.headers.get('Range')
       console.log(`📍 Range header: ${rangeHeader || 'none'}`)
 
       // 从 R2 获取对象（使用绑定名称 R2）
+      console.log(`🔍 Fetching from R2 bucket: ${finalKey}`)
       const object = await env.R2.get(finalKey, {
         range: rangeHeader || undefined
       })
 
       if (!object) {
-        console.error(`❌ Object not found: ${finalKey}`)
-        return new Response('Object not found', {
+        console.error(`❌ Object not found in R2`)
+        console.error(`❌ Attempted key: "${finalKey}"`)
+        console.error(`❌ Original path: "${r2Key}"`)
+
+        // 🔴 列出一些可能的 R2 keys 帮助调试
+        try {
+          const listed = await env.R2.list({ limit: 10 })
+          console.log('📋 Recent R2 objects:', listed.objects.map(o => o.key))
+        } catch (listError) {
+          console.error('Could not list R2 objects:', listError)
+        }
+
+        return new Response(`Object not found: ${finalKey}`, {
           status: 404,
           headers: corsHeaders()
         })

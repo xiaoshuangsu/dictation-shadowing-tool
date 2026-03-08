@@ -50,6 +50,10 @@ export default function VideoPlayer({
   const [isMuted, setIsMuted] = useState(true) // 🔴 强制静音初始化，绕过自动播放限制
   const videoRef = useRef<HTMLVideoElement>(null)
 
+  // 🔴 关键验证：只有路径完整时才渲染
+  const isValidVideoSrc = videoSrc && videoSrc.endsWith('.mp4')
+  const actualVideoSrc = isValidVideoSrc ? videoSrc : undefined
+
   // 详细的视频错误处理
   const handleVideoError = () => {
     const video = videoRef.current
@@ -189,7 +193,15 @@ export default function VideoPlayer({
     setIsLoading(true)
     onReplay?.()
 
-    // 🔴 Promise 保护：同上
+    // 🔴 关键：检查 videoSrc 是否完整
+  useEffect(() => {
+    if (videoSrc && !videoSrc.endsWith('.mp4')) {
+      console.warn('⚠️ VideoPlayer received incomplete videoSrc:', videoSrc)
+      console.warn('⚠️ Component will NOT render video until path is complete')
+    }
+  }, [videoSrc])
+
+  // 🔴 Promise 保护：同上
     if (videoRef.current) {
       const playPromise = videoRef.current.play()
 
@@ -273,7 +285,7 @@ export default function VideoPlayer({
 
   // 有视频源时，显示实际的视频播放器
   return (
-    <div key={videoSrc || 'video-player'}>
+    <div key={actualVideoSrc || 'video-player'}>
       <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
         {videoError ? (
           // 视频加载失败时显示错误信息
@@ -290,9 +302,9 @@ export default function VideoPlayer({
           </div>
         ) : (
           <video
-            key={videoSrc || 'video-element'}
+            key={actualVideoSrc || 'video-element'}
             ref={videoRef}
-            src={videoSrc || undefined}
+            src={actualVideoSrc}
             className="w-full h-full object-cover"
             controls
             playsInline
