@@ -136,8 +136,9 @@ export default function VideoPlayer({
           className="w-full h-full object-cover"
           controls
           playsInline
-          preload="metadata"
+          preload="auto"
           crossOrigin="anonymous"
+          poster={thumbnailPath}
         />
 
         {isLoading && (
