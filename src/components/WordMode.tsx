@@ -7,8 +7,8 @@ import { useSuccessSound } from "@/hooks/useSuccessSound"
 interface Sentence {
   id: number
   text: string
-  startTime: number
-  endTime: number
+  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
+  endTime: number | string     // 🔴 允许字符串以保留精度
   translation?: string  // 可选的中文翻译字段
 }
 
@@ -138,7 +138,9 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       return 0
     }
 
-    const audioDuration = sentence.endTime - sentence.startTime
+    const sentenceStartTime = typeof sentence.startTime === 'string' ? parseFloat(sentence.startTime) : sentence.startTime
+    const sentenceEndTime = typeof sentence.endTime === 'string' ? parseFloat(sentence.endTime) : sentence.endTime
+    const audioDuration = sentenceEndTime - sentenceStartTime
     const maxSeconds = Math.min(180, audioDuration * 5)
     const effectiveSeconds = Math.min(rawSeconds, maxSeconds)
 

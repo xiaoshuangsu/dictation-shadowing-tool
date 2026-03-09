@@ -8,8 +8,8 @@ import { intelligentMatch } from "@/lib/audio-checker"
 interface Sentence {
   id: number
   text: string
-  startTime: number
-  endTime: number
+  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
+  endTime: number | string     // 🔴 允许字符串以保留精度
   translation?: string  // 可选的中文翻译字段
 }
 
@@ -816,7 +816,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       // 给音频一点时间来暂停
       setTimeout(() => {
         // 设置播放位置
-        audio.currentTime = sentence.startTime
+        const startTime = typeof sentence.startTime === 'string' ? parseFloat(sentence.startTime) : sentence.startTime
+        audio.currentTime = startTime
         setIsPlaying(false)
         lastUpdateTimeRef.current = Date.now()
 
@@ -852,7 +853,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
             setTotalPlayedSeconds(totalPlayedSecondsRef.current)
 
             // 检查是否到达结束时间
-            if (audio.currentTime >= sentence.endTime) {
+            const endTime = typeof sentence.endTime === 'string' ? parseFloat(sentence.endTime) : sentence.endTime
+            if (audio.currentTime >= endTime) {
               audio.pause()
             }
           }
@@ -865,7 +867,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         const verifyAndPlay = () => {
           seekAttempts++
           const currentTime = audio.currentTime
-          const targetTime = sentence.startTime
+          const targetTime = typeof sentence.startTime === 'string' ? parseFloat(sentence.startTime) : sentence.startTime
           const diff = Math.abs(currentTime - targetTime)
 
           console.log(`Seek attempt ${seekAttempts}: current=${currentTime.toFixed(2)}s, target=${targetTime.toFixed(2)}s, diff=${diff.toFixed(2)}s`)
@@ -903,7 +905,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         }
 
         const checkSeek = () => {
-          if (audio.currentTime >= sentence.startTime - 0.5) {
+          const startTime = typeof sentence.startTime === 'string' ? parseFloat(sentence.startTime) : sentence.startTime
+          if (audio.currentTime >= startTime - 0.5) {
             verifyAndPlay()
           }
         }
@@ -939,12 +942,14 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         }
 
         // 初始触发跳转
-        console.log('Setting currentTime to', sentence.startTime)
-        audio.currentTime = sentence.startTime
+        const startTimeValue = typeof sentence.startTime === 'string' ? parseFloat(sentence.startTime) : sentence.startTime
+        console.log('Setting currentTime to', startTimeValue)
+        audio.currentTime = startTimeValue
         setTimeout(verifyAndPlay, 100)  // 100ms 后验证并播放
 
         // 在句子的结束时间停止播放
-        const durationToPlay = (sentence.endTime - sentence.startTime) * 1000
+        const endTimeValue = typeof sentence.endTime === 'string' ? parseFloat(sentence.endTime) : sentence.endTime
+        const durationToPlay = (endTimeValue - startTimeValue) * 1000
         setTimeout(() => {
           audio.pause()
           // 清理事件监听器

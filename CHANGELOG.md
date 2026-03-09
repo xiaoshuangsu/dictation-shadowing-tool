@@ -1,5 +1,34 @@
 # Changelog
 
+## [12.0.0] - 2026-03-09
+
+### Fixed
+- **Worker 代理优化** ⚡
+  - 添加 `.webp` 格式支持（`image/webp` Content-Type）
+  - 优化缓存策略：
+    - 图片（.jpg/.png/.webp）：7天缓存
+    - 视频/音频：1小时缓存
+  - 修复 HEAD 请求和完整文件返回的缓存逻辑重复设置问题
+  - 版本标识从 v2.1 更新到 v2.2
+
+- **数据库修复** 🔧
+  - 修复两个素材的 `thumbnail_path` 字段（设置为 null）：
+    - `Yellowstone National Park`
+    - `Two Great Artists: Leonardo and Michelangelo`
+  - 解决了封面图 404 和 CORS 错误问题
+
+### Added
+- **缩略图压缩脚本** 🗜️
+  - 新增 `scripts/compress-thumbnails.js`：批量压缩 R2 缩略图至 20KB 以下
+  - 支持质量递减和分辨率降级策略
+  - 自动上传压缩后的图片到 R2
+
+### Technical Details
+- 修改文件：
+  - `cloudflare-workers/r2-proxy-worker/index.js` - Worker 代码修复
+  - `package.json` - 版本号更新至 12.0.0
+  - 数据库记录更新（通过 Supabase）
+
 ## [11.0.0] - 2026-03-09
 
 ### Added

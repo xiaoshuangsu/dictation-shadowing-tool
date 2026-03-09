@@ -24,6 +24,18 @@ interface Sentence {
   translation?: string  // 可选的中文翻译
 }
 
+// 素材数据类型（扩展 client.ts 中的 Material 类型）
+interface PracticeMaterial {
+  id: string
+  title: string
+  category: string
+  audio_path: string
+  video_path?: string | null
+  thumbnail_path?: string | null
+  duration?: number | null
+  transcript?: any
+}
+
 // R2 URL 配置（统一使用 Worker 代理）
 const R2_WORKER_URL = 'https://media.shadowhub.app'
 
@@ -171,25 +183,30 @@ function HomeContent() {
           throw new Error('Material not found')
         }
 
-        console.log('Material loaded:', material)
+        // 类型断言
+        const typedMaterial = material as PracticeMaterial
+
+        console.log('Material loaded:', typedMaterial)
 
         // 更新音频标题和分类
-        setAudioTitle(material.title)
-        setMaterialCategory(material.category)
+        setAudioTitle(typedMaterial.title)
+        setMaterialCategory(typedMaterial.category)
 
         // 构建音频 URL
-        const audioUrl = getCdnUrl(material.audio_path)
-        console.log('Audio URL:', audioUrl?.substring(0, 60))
-        setAudioSrc(audioUrl)
+        const audioUrl = getCdnUrl(typedMaterial.audio_path)
+        // 🔴 关键修复：日志中只显示前 60 个字符，但实际使用的是完整 URL
+        console.log('Audio URL:', audioUrl?.substring(0, 60) + ((audioUrl && audioUrl.length > 60) ? '...' : ''))
+        console.log('Full audio URL for verification:', audioUrl) // 记录完整 URL
+        setAudioSrc(audioUrl) // 使用完整的 URL
 
         // 构建视频 URL（如果有）
-        if (material.video_path) {
+        if (typedMaterial.video_path) {
           // 🔴 路径预洗：在进入组件前完成 .mp4 补全
-          let videoUrl = getCdnUrl(material.video_path)
+          let videoUrl = getCdnUrl(typedMaterial.video_path)
 
           // 🔴 空值检查：getCdnUrl 可能返回 null
           if (!videoUrl) {
-            console.error('❌ videoUrl is null after getCdnUrl:', material.video_path)
+            console.error('❌ videoUrl is null after getCdnUrl:', typedMaterial.video_path)
             setVideoSrc(null)
             return
           }
@@ -197,7 +214,7 @@ function HomeContent() {
           // 二次验证：确保以 .mp4 结尾
           if (!videoUrl.endsWith('.mp4')) {
             console.warn('⚠️ Video URL missing .mp4, auto-fixing:', {
-              original: material.video_path,
+              original: typedMaterial.video_path,
               before: videoUrl
             })
             videoUrl = `${videoUrl}.mp4`
@@ -208,27 +225,31 @@ function HomeContent() {
             console.error('❌ CRITICAL: Video URL still missing .mp4:', videoUrl)
           }
 
-          console.log('✅ Final Video URL (pre-washed):', videoUrl.substring(0, 80))
-          setVideoSrc(videoUrl)
+          // 🔴 关键修复：日志中只显示前 80 个字符，但实际使用的是完整 URL
+          console.log('✅ Final Video URL (pre-washed):', videoUrl.substring(0, 80) + (videoUrl.length > 80 ? '...' : ''))
+          console.log('Full video URL for verification:', videoUrl) // 记录完整 URL
+          setVideoSrc(videoUrl) // 使用完整的 URL
         } else {
           setVideoSrc(null)
         }
 
         // 构建缩略图 URL（如果有）
-        if (material.thumbnail_path) {
-          const thumbnailUrl = getCdnUrl(material.thumbnail_path)
+        if (typedMaterial.thumbnail_path) {
+          const thumbnailUrl = getCdnUrl(typedMaterial.thumbnail_path)
           setThumbnailPath(thumbnailUrl)
-          console.log('Thumbnail URL:', thumbnailUrl?.substring(0, 60))
+          // 🔴 关键修复：日志中只显示前 60 个字符，但实际使用的是完整 URL
+          console.log('Thumbnail URL:', thumbnailUrl?.substring(0, 60) + ((thumbnailUrl && thumbnailUrl.length > 60) ? '...' : ''))
+          console.log('Full thumbnail URL for verification:', thumbnailUrl) // 记录完整 URL
         }
 
         // 优先使用数据库中的 transcript 数据
-        if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
-          console.log('Using transcript from database:', material.transcript.length, 'sentences')
-          setSampleSentences(material.transcript)
+        if (typedMaterial.transcript && Array.isArray(typedMaterial.transcript) && typedMaterial.transcript.length > 0) {
+          console.log('Using transcript from database:', typedMaterial.transcript.length, 'sentences')
+          setSampleSentences(typedMaterial.transcript)
         } else {
           // 如果没有 transcript 数据，根据音频时长自动分割成固定长度的句子（每句约 10-15 秒）
           console.log('No transcript data, using auto-segmentation')
-          const duration = material.duration || 60
+          const duration = typedMaterial.duration || 60
           const sentenceDuration = 12 // 每句约 12 秒
           const sentences = []
 
@@ -248,9 +269,9 @@ function HomeContent() {
         }
 
         console.log('Material loaded successfully:', {
-          title: material.title,
+          title: typedMaterial.title,
           audioUrl: audioUrl,
-          duration: material.duration
+          duration: typedMaterial.duration
         })
 
         setIsInitialLoading(false) // 数据加载完成，关闭初始加载状态
@@ -403,18 +424,21 @@ function HomeContent() {
       if (error) throw error
       if (!material) throw new Error('Material not found')
 
+      // 类型断言
+      const typedMaterial = material as PracticeMaterial
+
       // 构建音频 URL（根据设备类型选择 CDN）
-      const audioUrl = getCdnUrl(material.audio_path)
+      const audioUrl = getCdnUrl(typedMaterial.audio_path)
       setAudioSrc(audioUrl)
-      if (material.category) {
-        setMaterialCategory(material.category)
+      if (typedMaterial.category) {
+        setMaterialCategory(typedMaterial.category)
       }
 
       // 使用 transcript 或自动分割
-      if (material.transcript && Array.isArray(material.transcript) && material.transcript.length > 0) {
-        setSampleSentences(material.transcript)
+      if (typedMaterial.transcript && Array.isArray(typedMaterial.transcript) && typedMaterial.transcript.length > 0) {
+        setSampleSentences(typedMaterial.transcript)
       } else {
-        const duration = material.duration || 60
+        const duration = typedMaterial.duration || 60
         const sentenceDuration = 12
         const sentences = []
         for (let i = 0; i < duration; i += sentenceDuration) {
@@ -429,7 +453,7 @@ function HomeContent() {
         setSampleSentences(sentences)
       }
 
-      console.log('Material loaded from saved progress:', material.title)
+      console.log('Material loaded from saved progress:', typedMaterial.title)
     } catch (error) {
       console.error('Failed to load material from saved progress:', error)
     }

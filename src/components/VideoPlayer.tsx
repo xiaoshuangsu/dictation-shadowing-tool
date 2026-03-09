@@ -5,8 +5,8 @@ import { useState, useRef, useEffect } from "react"
 interface Sentence {
   id: number
   text: string
-  startTime: number
-  endTime: number
+  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
+  endTime: number | string     // 🔴 允许字符串以保留精度
 }
 
 interface VideoPlayerProps {
@@ -31,7 +31,8 @@ export default function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // 🔴 关键验证：只有路径完整时才渲染
-  const isValidVideoSrc = videoSrc && videoSrc.endsWith('.mp4')
+  // 放宽检查：只要包含 .mp4 即可（支持各种 URL 格式）
+  const isValidVideoSrc = videoSrc && (videoSrc.includes('.mp4') || videoSrc.startsWith('http'))
   const actualVideoSrc = isValidVideoSrc ? videoSrc : undefined
 
   // 详细的视频错误处理

@@ -160,8 +160,10 @@ def compress_to_mp4(video_path: Path, output_path: Path) -> bool:
 
 
 def extract_webp_thumbnail(video_path: Path, output_path: Path) -> bool:
-    """提取 16:9 WebP 封面"""
-    print(f"  🖼️  生成 WebP 封面 (16:9)...")
+    """提取 16:9 WebP 封面（强制小于 20KB）"""
+    print(f"  🖼️  生成 WebP 封面 (16:9, <20KB)...")
+
+    # 🔴 关键修复：使用更低的 quality 确保小于 20KB
     cmd = [
         'ffmpeg',
         '-i', str(video_path),
@@ -169,7 +171,8 @@ def extract_webp_thumbnail(video_path: Path, output_path: Path) -> bool:
         '-vframes', '1',
         '-vf', 'scale=854:480',  # 16:9 480p
         '-c:v', 'libwebp',
-        '-quality', '85',
+        '-quality', '70',  # 🔴 降低质量到 70（原来是 85）
+        '-method', '6',     # 更好的压缩方法
         '-y',
         str(output_path)
     ]
@@ -177,11 +180,92 @@ def extract_webp_thumbnail(video_path: Path, output_path: Path) -> bool:
     try:
         subprocess.run(cmd, check=True, capture_output=True)
         size_kb = output_path.stat().st_size / 1024
-        print(f"    ✅ 封面生成完成: {size_kb:.2f} KB")
-        return True
+
+        # 🔴 关键修复：检查文件大小，如果超过 20KB 则重新压缩
+        if size_kb > 20:
+            print(f"    ⚠️  文件过大 ({size_kb:.2f} KB)，重新压缩...")
+            return _compress_thumbnail_to_size(output_path, 20)
+        else:
+            print(f"    ✅ 封面生成完成: {size_kb:.2f} KB")
+            return True
+
     except subprocess.CalledProcessError:
         print(f"    ❌ WebP 封面生成失败，将使用 JPG")
         return False
+
+
+def _compress_thumbnail_to_size(input_path: Path, max_kb: int) -> bool:
+    """将缩略图压缩到指定大小以下"""
+    import tempfile
+    import shutil
+
+    # 渐进式压缩，从 quality 50 开始
+    for quality in range(50, 10, -10):
+        with tempfile.NamedTemporaryFile(suffix='.webp', delete=False) as temp_file:
+            temp_path = Path(temp_file.name)
+
+            cmd = [
+                'ffmpeg',
+                '-i', str(input_path),
+                '-vframes', '1',
+                '-c:v', 'libwebp',
+                '-quality', str(quality),
+                '-method', '6',
+                '-y',
+                str(temp_path)
+            ]
+
+            try:
+                subprocess.run(cmd, check=True, capture_output=True)
+                size_kb = temp_path.stat().st_size / 1024
+
+                if size_kb <= max_kb:
+                    shutil.move(str(temp_path), str(input_path))
+                    print(f"    ✅ 压缩成功: {size_kb:.2f} KB (quality: {quality})")
+                    return True
+                else:
+                    temp_path.unlink()
+
+            except subprocess.CalledProcessError:
+                if temp_path.exists():
+                    temp_path.unlink()
+                continue
+
+    # 如果质量压缩还不够，尝试降低分辨率
+    print(f"    ⚠️  质量压缩不足，尝试降低分辨率...")
+    for width in [640, 480, 320]:
+        with tempfile.NamedTemporaryFile(suffix='.webp', delete=False) as temp_file:
+            temp_path = Path(temp_file.name)
+
+            cmd = [
+                'ffmpeg',
+                '-i', str(input_path),
+                '-vf', f'scale={width}:-1',
+                '-vframes', '1',
+                '-c:v', 'libwebp',
+                '-quality', '60',
+                '-y',
+                str(temp_path)
+            ]
+
+            try:
+                subprocess.run(cmd, check=True, capture_output=True)
+                size_kb = temp_path.stat().st_size / 1024
+
+                if size_kb <= max_kb:
+                    shutil.move(str(temp_path), str(input_path))
+                    print(f"    ✅ 压缩成功: {size_kb:.2f} KB (分辨率: {width}w)")
+                    return True
+                else:
+                    temp_path.unlink()
+
+            except subprocess.CalledProcessError:
+                if temp_path.exists():
+                    temp_path.unlink()
+                continue
+
+    print(f"    ❌ 无法压缩到 {max_kb}KB 以下")
+    return False
 
 
 def extract_thumbnail_jpg(video_path: Path, output_path: Path) -> bool:

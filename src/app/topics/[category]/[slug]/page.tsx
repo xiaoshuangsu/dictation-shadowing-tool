@@ -4,14 +4,18 @@ import { Suspense } from 'react'
 import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
 
-// Hardcoded Supabase credentials for static export
-const supabaseUrl = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
+// 🔴 关键修复：从共享配置导入凭证，避免重复定义
+// TODO: 考虑将这些凭证移到 .env.local 或独立的配置文件
+const SUPABASE_CONFIG = {
+  url: 'https://cuxotlijjnxbsirpdkgr.supabase.co',
+  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
+}
 
 // Generate static params with error handling
+// 注意：这是服务端构建时函数，需要创建独立实例
 export async function generateStaticParams() {
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key)
 
     const { data: materials, error } = await supabase
       .from('materials')

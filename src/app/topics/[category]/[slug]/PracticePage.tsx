@@ -23,8 +23,8 @@ type DictationMode = 'word' | 'whole'
 interface Sentence {
   id: number
   text: string
-  startTime: number
-  endTime: number
+  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
+  endTime: number | string     // 🔴 允许字符串以保留精度
   translation?: string
 }
 
@@ -109,8 +109,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
           .from('materials')
           .select('*')
 
-        // Find material by title slug
-        const found = allMaterials?.find((m: Material) => titleToSlug(m.title) === slug)
+        // Find material by title slug（添加类型断言）
+        const found = allMaterials?.find((m: any) => titleToSlug(m.title) === slug) as Material | undefined
 
         if (found) {
           setMaterial(found)
@@ -131,8 +131,11 @@ export default function PracticePage({ category, slug }: { category: string; slu
             const transcript = found.transcript.map((s: any, index: number) => ({
               ...s,
               id: s.id ?? index,
-              startTime: parseFloat(s.startTime),
-              endTime: parseFloat(s.endTime),
+              // 🔴 关键修复：直接使用原始值，保留精度
+              // 如果 startTime 是字符串 "9.10"，不转换以避免精度丢失
+              // 浏览器会自动将字符串转换为数字，并保留 "9.10" 的精度
+              startTime: s.startTime,
+              endTime: s.endTime,
             }))
             setSampleSentences(transcript)
           }

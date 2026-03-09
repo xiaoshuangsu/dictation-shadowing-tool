@@ -9,8 +9,8 @@ import { useSuccessSound } from "@/hooks/useSuccessSound"
 interface Sentence {
   id: number
   text: string
-  startTime: number
-  endTime: number
+  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
+  endTime: number | string     // 🔴 允许字符串以保留精度
   translation?: string  // 可选的中文翻译字段
 }
 
@@ -129,7 +129,9 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     }
 
     // 2. 最大单句上限：min(180秒, 音频时长 × 5)
-    const audioDuration = sentence.endTime - sentence.startTime
+    const sentenceStartTime = typeof sentence.startTime === 'string' ? parseFloat(sentence.startTime) : sentence.startTime
+    const sentenceEndTime = typeof sentence.endTime === 'string' ? parseFloat(sentence.endTime) : sentence.endTime
+    const audioDuration = sentenceEndTime - sentenceStartTime
     const maxSeconds = Math.min(180, audioDuration * 5)
 
     // 3. 异常截断

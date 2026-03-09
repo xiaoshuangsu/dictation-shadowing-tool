@@ -12,6 +12,15 @@ interface Sentence {
   translation?: string
 }
 
+// 素材数据类型
+interface TimestampMaterial {
+  id: string
+  title: string
+  category: string
+  audio_path: string
+  transcript?: any
+}
+
 // 辅助函数：安全地格式化时间戳
 function formatTime(time: number | string): string {
   if (typeof time === 'number') {
@@ -59,9 +68,12 @@ export default function TimestampMarker() {
       if (error) throw error
       if (!data) throw new Error('Material not found')
 
-      setSentences(data.transcript || [])
+      // 类型断言
+      const typedData = data as TimestampMaterial
+
+      setSentences(typedData.transcript || [])
       // audio_path 已经是完整 URL，直接使用
-      const audioPath = data.audio_path || ''
+      const audioPath = typedData.audio_path || ''
       setAudioSrc(audioPath)
       // 检查是否是视频文件
       setIsVideo(audioPath.endsWith('.mp4'))

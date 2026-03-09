@@ -7,7 +7,7 @@ import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
 import { useLanguage } from '@/contexts/LanguageContext'
 import LocalizedLink from '@/components/LocalizedLink'
-import { supabase } from '@/lib/supabase/client'
+import { getSupabase } from '@/lib/supabase/client'  // 🔴 关键修复：使用 getSupabase() 而不是直接导入实例
 
 // 分类映射
 const CATEGORY_MAP = {
@@ -105,6 +105,8 @@ export default function MaterialsPage() {
   })
   // 图片加载状态跟踪
   const [imageLoadedStates, setImageLoadedStates] = useState<Record<string, boolean>>({})
+  // 🔴 关键修复：在组件顶部定义超时状态，避免在 map 循环中使用 useState
+  const [imageTimeoutStates, setImageTimeoutStates] = useState<Record<string, boolean>>({})
 
   // 更新图片加载状态的辅助函数
   const setImageLoaded = (materialId: string, loaded: boolean) => {
@@ -130,8 +132,13 @@ export default function MaterialsPage() {
       try {
         console.log('=== 开始获取素材 ===')
 
+        // 🔴 关键修复：使用单例模式获取 Supabase 客户端
+        // 避免创建多个实例导致 GoTrueClient 冲突和加载卡死
+        const supabaseClient = getSupabase()
+        console.log('[Supabase] Using singleton instance for fetchMaterials')
+
         const result = await fetchWithRetry(async () => {
-          return await supabase
+          return await supabaseClient
             .from('materials')
             .select('*')
             .order('category')
@@ -163,6 +170,14 @@ export default function MaterialsPage() {
         setError(null)
       } catch (err) {
         console.error('获取素材失败:', err)
+
+        // 🔴 关键修复：捕获 TypeError 并提供友好的错误提示
+        if (err instanceof TypeError && err.message.includes('Load failed')) {
+          console.error('❌ TypeError: Load failed - 可能是网络连接或 CORS 问题')
+          setError('网络连接不稳定，请检查网络后重试')
+          return
+        }
+
         // 安全地提取错误信息
         let errorMsg = '未知错误'
         if (err) {
@@ -255,6 +270,29 @@ export default function MaterialsPage() {
 
     return grouped
   }, [filteredMaterials, filters.category])
+
+  // 🔴 关键修复 2：3秒强制解锁 - 全局处理图片超时
+  useEffect(() => {
+    const timeouts: NodeJS.Timeout[] = []
+
+    // 为每个未加载的图片设置 3 秒超时
+    filteredMaterials.forEach(material => {
+      if (!imageLoadedStates[material.id] && !imageTimeoutStates[material.id]) {
+        const timeoutId = setTimeout(() => {
+          console.log('[MaterialCard] Image timeout (3s) for:', material.title)
+          setImageTimeoutStates(prev => ({ ...prev, [material.id]: true }))
+          setImageLoadedStates(prev => ({ ...prev, [material.id]: true })) // 强制停止加载指示器
+        }, 3000)
+
+        timeouts.push(timeoutId)
+      }
+    })
+
+    // 清理所有超时器
+    return () => {
+      timeouts.forEach(clearTimeout)
+    }
+  }, [filteredMaterials, imageLoadedStates, imageTimeoutStates])
 
   // R2 URL 配置（统一使用 Worker 代理）
   const R2_WORKER_URL = 'https://media.shadowhub.app'
@@ -408,15 +446,32 @@ export default function MaterialsPage() {
                   {/* Card Grid - 始终使用网格布局 */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material, index) => {
+                      // 🔴 关键修复 1：三位一体路径匹配 - 确保完整 URL，无截断
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
                       const imageLoaded = imageLoadedStates[material.id] || false
+                      const imageTimedOut = imageTimeoutStates[material.id] || false
 
+                      // 🔴 关键修复 3：立即处理错误，不等 3 秒
                       const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-                        // Worker 加载失败时，隐藏图片显示占位符
-                        console.warn('Image load failed:', material.title, 'URL:', thumbnailUrl?.substring(0, 50))
-                        e.currentTarget.style.display = 'none'
-                        setImageLoaded(material.id, true) // 停止加载指示器
+                        const img = e.currentTarget
+                        console.warn('[MaterialCard] Image load failed:', material.title)
+                        console.warn('  URL:', thumbnailUrl)
+
+                        // 🔴 立即隐藏图片并显示占位符（不等 3 秒超时）
+                        img.style.display = 'none'
+                        setImageLoaded(material.id, true)  // 停止加载指示器
+                        setImageTimeoutStates(prev => ({ ...prev, [material.id]: true }))  // 标记为已超时/错误
                       }
+
+                      // 🔴 关键修复 4：优雅降级占位符 - 显示标题而非空白
+                      const renderPlaceholder = () => (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+                          <svg className="w-12 h-12 text-blue-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                          </svg>
+                          <p className="text-xs text-blue-400 text-center px-2 line-clamp-2">{material.title}</p>
+                        </div>
+                      )
 
                       return (
                         <div
@@ -435,18 +490,23 @@ export default function MaterialsPage() {
                                     alt={material.title}
                                     className="w-full h-full object-cover"
                                     onError={handleImageError}
-                                    onLoad={() => setImageLoaded(material.id, true)}
+                                    onLoad={() => {
+                                      console.log('[MaterialCard] Image loaded:', material.title)
+                                      setImageLoaded(material.id, true)
+                                    }}
                                     decoding="async"
                                     referrerPolicy="no-referrer"
+                                    loading="lazy"
                                     style={{
                                       opacity: imageLoaded ? 1 : 0,
                                       transition: 'opacity 0.3s ease-in'
                                     }}
                                   />
-                                  {/* 加载指示器 */}
-                                  {!imageLoaded && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
-                                      <svg className="w-12 h-12 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                                  {/* 🔴 关键修复：加载指示器仅在未超时且未加载时显示 */}
+                                  {/* 超时后只停止转圈，但图片继续尝试加载 */}
+                                  {!imageLoaded && !imageTimedOut && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                                      <svg className="w-12 h-12 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V8a8 8 0 00-8 8z"></path>
                                       </svg>
@@ -454,11 +514,8 @@ export default function MaterialsPage() {
                                   )}
                                 </>
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <svg className="w-12 h-12 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                                  </svg>
-                                </div>
+                                // 🔴 仅在无图片URL时显示占位符
+                                renderPlaceholder()
                               )}
 
                               {/* 左上角：难度标签 */}
