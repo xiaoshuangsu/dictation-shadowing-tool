@@ -11,9 +11,6 @@
  * 4. 部署此代码
  */
 
-// A 账号 R2 桶的公共域名（直接访问，无需 Worker）
-const R2_PUBLIC_DOMAIN = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev';
-
 // 允许的来源
 const ALLOWED_ORIGINS = [
   'https://shadowhub.app',
@@ -53,50 +50,63 @@ export default {
       const url = new URL(request.url);
       const path = url.pathname;
 
-      // 构造 R2 公共 URL
-      const r2Url = `${R2_PUBLIC_DOMAIN}${path}`;
+      console.log(`Media proxy: ${path}`);
 
-      console.log(`Proxying request to: ${r2Url}`);
+      // 🔴 使用 R2 bucket 直接访问
+      if (env.R2_BUCKET) {
+        console.log(`Accessing R2 bucket directly: ${path}`);
 
-      // 转发请求到 R2 公共域名
-      const r2Request = new Request(r2Url, {
-        method: request.method,
-        headers: request.headers,
-      });
+        const object = await env.R2_BUCKET.get(path);
 
-      const response = await fetch(r2Request);
-
-      // 复制响应并添加 CORS 头
-      const newResponse = new Response(response.body, response);
-
-      // 添加 CORS 头
-      Object.entries(CORS_HEADERS).forEach(([key, value]) => {
-        newResponse.headers.set(key, value);
-      });
-
-      // 确保内容类型正确
-      if (path.match(/\.(mp4|webm|ogg)$/i)) {
-        newResponse.headers.set('Content-Type', 'video/mp4');
-      } else if (path.match(/\.(mp3|wav|m4a)$/i)) {
-        newResponse.headers.set('Content-Type', 'audio/mpeg');
-      } else if (path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-        const ext = path.split('.').pop()?.toLowerCase();
-        const mimeTypes = {
-          'jpg': 'image/jpeg',
-          'jpeg': 'image/jpeg',
-          'png': 'image/png',
-          'gif': 'image/gif',
-          'webp': 'image/webp',
-        };
-        if (ext && mimeTypes[ext]) {
-          newResponse.headers.set('Content-Type', mimeTypes[ext]);
+        if (!object) {
+          console.error(`Object not found: ${path}`);
+          return new Response('Not found', {
+            status: 404,
+            headers: CORS_HEADERS,
+          });
         }
+
+        const headers = new Headers();
+        Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+          headers.set(key, value);
+        });
+
+        // 设置内容类型
+        if (path.match(/\.(mp4|webm|ogg)$/i)) {
+          headers.set('Content-Type', 'video/mp4');
+        } else if (path.match(/\.(mp3|wav|m4a)$/i)) {
+          headers.set('Content-Type', 'audio/mpeg');
+        } else if (path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+          const ext = path.split('.').pop()?.toLowerCase();
+          const mimeTypes = {
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+          };
+          if (ext && mimeTypes[ext]) {
+            headers.set('Content-Type', mimeTypes[ext]);
+          }
+        }
+
+        // 缓存控制
+        headers.set('Cache-Control', 'public, max-age=3600'); // 1 小时缓存，便于更新
+
+        console.log(`Successfully served: ${path}, size: ${object.size}`);
+
+        return new Response(object.body, {
+          status: 200,
+          headers,
+        });
       }
 
-      // 缓存控制
-      newResponse.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-
-      return newResponse;
+      // 如果没有绑定 R2 bucket
+      console.error('R2_BUCKET not bound to worker');
+      return new Response('R2 bucket not configured', {
+        status: 500,
+        headers: CORS_HEADERS,
+      });
 
     } catch (error) {
       console.error('Proxy error:', error);

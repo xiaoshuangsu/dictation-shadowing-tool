@@ -385,12 +385,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
                   currentSentence={currentSentence}
                   currentTime={currentTime}
                   thumbnailPath={thumbnailPath}
-                  hasPlayedCurrent={hasPlayedCurrent}
-                  onPlayNext={handleNext}
-                  onPlay={handlePlayOrNext}
-                  onReplay={() => {
-                    setAutoPlayTrigger(prev => prev + 1)
-                  }}
                 />
               ) : (
                 <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">

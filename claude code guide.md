@@ -120,6 +120,235 @@
 * **内网穿透验证**：任何涉及 UI 布局或媒体播放的修改，不能仅依赖 PC 模拟器。必须通过 `localtunnel` 或局域网 IP 在实体 iPhone 上进行验证。
 * **调试工具集成**：在排查移动端顽固 Bug 时，应在开发分支临时集成 `eruda` 或 `vConsole` 插件，通过手机端 Console 获取真实报错信息。
 
+---
+
+### 6. 移动端视频播放专项指南 🎬
+
+#### 6.1 iOS 视频格式要求（moov atom 问题）
+
+**问题**：iOS Safari 要求视频的 `moov atom`（元数据容器）必须位于文件开头才能流式播放。
+
+**检查方法**：
+```bash
+ffprobe -v trace -show_format video.mp4 2>&1 | grep "moov.*parent"
+```
+
+**正确输出**（moov atom 在开头）：
+```
+type:'moov' parent:'root' sz: 343413 40 10530606
+                                         ^^ 小数字（接近 0）= ✅ 正确
+```
+
+**错误输出**（moov atom 在末尾）：
+```
+type:'moov' parent:'root' sz: 343413 10187201 10530606
+                                         ^^^^^^^^^^ 大数字= ❌ 需要修复
+```
+
+**修复方法**：
+```bash
+ffmpeg -i input.mp4 -c copy -movflags faststart output.mp4
+```
+
+**原理**：
+- `-c copy`：不重新编码，只重新排列容器结构
+- `-movflags faststart`：将 moov atom 移到文件开头
+- 不损失质量，速度快
+
+**批量修复脚本**（Python）：
+```python
+import subprocess
+from pathlib import Path
+
+# 配置
+videos_dir = Path("/path/to/videos")
+fixed_dir = Path("/path/to/fixed_videos")
+fixed_dir.mkdir(exist_ok=True)
+
+# 修复所有视频
+for video_file in videos_dir.glob("*.mp4"):
+    output_file = fixed_dir / video_file.name
+
+    subprocess.run([
+        'ffmpeg', '-i', str(video_file),
+        '-c', 'copy',
+        '-movflags', 'faststart',
+        str(output_file),
+        '-y'
+    ], capture_output=True)
+
+    print(f"✅ Fixed: {video_file.name}")
+
+print("✅ All videos fixed!")
+```
+
+#### 6.2 视频组件必需属性
+
+**移动端必须的属性**：
+```tsx
+<video
+  src={videoUrl}
+  controls
+  playsInline              // iOS 必须：允许内联播放
+  webkit-playsinline="true" // iOS Safari 必须
+  preload="auto"            // 移动端优化：预加载更多数据
+  poster={thumbnailPath}
+  onError={handleError}
+/>
+```
+
+**桌面端兼容配置**：
+```tsx
+<video
+  src={videoUrl}
+  controls
+  preload="metadata"       // 桌面端优化：减少带宽占用
+  onError={handleError}
+/>
+```
+
+#### 6.3 Worker 配置要求（A 账号）
+
+**问题**：Worker 使用 R2 公开域名访问失败（404 或一直加载）
+
+**解决方案**：直接使用 R2 bucket 访问
+
+**Worker 代码**：
+```javascript
+export default {
+  async fetch(request, env, ctx) {
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+        }
+      });
+    }
+
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response('Method not allowed', { status: 405 });
+    }
+
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // 直接从 R2 bucket 读取
+    if (env.R2_BUCKET) {
+      const object = await env.R2_BUCKET.get(path);
+
+      if (!object) {
+        return new Response('Not found', { status: 404 });
+      }
+
+      const headers = new Headers();
+      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      headers.set('Cache-Control', 'public, max-age=3600');
+
+      // 设置内容类型
+      if (path.match(/\.(mp4|webm|ogg)$/i)) {
+        headers.set('Content-Type', 'video/mp4');
+      } else if (path.match(/\.(mp3|wav|m4a)$/i)) {
+        headers.set('Content-Type', 'audio/mpeg');
+      }
+
+      return new Response(object.body, {
+        status: 200,
+        headers,
+      });
+    }
+
+    return new Response('R2 bucket not configured', { status: 500 });
+  }
+};
+```
+
+**R2 Bucket 绑定配置**：
+1. Cloudflare Dashboard → Workers & Pages
+2. 选择 Worker（`r2-proxy-suxiaoshuang2020`）
+3. Settings → Variables → **R2 Bucket bindings**
+4. 确认配置：
+   - Variable name: `R2_BUCKET`
+   - Bucket name: `shadowhub`
+
+#### 6.4 常见问题排查速查表
+
+| 症状 | 可能原因 | 检查方法 | 解决方案 |
+| :--- | :--- | :--- | :--- |
+| 视频黑屏，一直加载中 | Worker 访问 R2 公开域名失败 | 检查 Worker 日志 | 修改 Worker 使用 `env.R2_BUCKET.get()` |
+| 视频播放到 1-2 秒就停止 | moov atom 在文件末尾 | `ffprobe` 检查 moov 位置 | 用 `ffmpeg -movflags faststart` 修复 |
+| `readyState: 0` | 视频数据加载不足 | 检查 Worker 是否正确返回数据 | 确认 Worker 有 R2 bucket 绑定 |
+| `MEDIA_ERR_SRC_NOT_SUPPORTED` | 视频编码或格式问题 | 检查视频编码（H.264/AAC） | 用 baseline profile 重新编码 |
+| 视频封面显示但无法播放 | 同步逻辑干扰播放 | 检查 `useEffect` 依赖 | 在同步逻辑中检查播放模式状态 |
+| 双重声音（视频+音频） | 练习模式未暂停视频 | 检查 `isFreePlayModeRef.current` | 检测到 `currentTime > 0` 时暂停视频 |
+
+#### 6.5 调试技巧
+
+**获取详细错误信息**：
+```tsx
+const handleVideoError = () => {
+  const video = videoRef.current
+  if (video && video.error) {
+    console.error('Video Error Details:', {
+      code: video.error.code,
+      message: video.error.message,
+      currentSrc: video.currentSrc,
+      readyState: video.readyState,
+      networkState: video.networkState,
+    })
+  }
+}
+
+// 添加视频事件监听
+<video
+  onError={handleVideoError}
+  onLoadStart={() => console.log('Video Load Start')}
+  onLoadedMetadata={() => console.log('Video Metadata Loaded')}
+  onCanPlay={() => console.log('Video Can Play')}
+  onPlay={() => console.log('Video Playing')}
+  onPause={() => console.log('Video Paused')}
+  onTimeUpdate={() => {
+    if (Math.floor(videoRef.current.currentTime) % 5 === 0) {
+      console.log(`Playing at: ${videoRef.current.currentTime}s`)
+    }
+  }}
+/>
+```
+
+**验证视频文件**：
+```bash
+# 检查 moov atom 位置
+ffprobe -v trace -show_format video.mp4 2>&1 | grep "moov.*parent"
+
+# 检查视频编码
+ffprobe -v quiet -show_streams video.mp4
+
+# 检查文件大小
+ls -lh video.mp4
+```
+
+#### 6.6 预防措施（避免重复踩坑）
+
+**视频上传前检查清单**：
+- [ ] 视频已用 `ffmpeg -movflags faststart` 处理
+- [ ] 视频编码为 H.264/AAC
+- [ ] 文件大小合理（建议 < 20MB）
+
+**代码审查检查清单**：
+- [ ] `useEffect` 依赖项完整（包括模式状态）
+- [ ] 视频组件有 `playsInline` 属性
+- [ ] Worker 有 R2 bucket 绑定
+- [ ] 数据库存储的是相对路径
+
+**测试流程**：
+1. 桌面端测试（Chrome DevTools）
+2. 移动端测试（iPhone + Safari）
+3. 不同网络环境测试（WiFi / 4G）
+
+---
+
 ## 8 SEO 自动化与预留规范 (SEO Automation & Metadata)
 
 ### 1. 数据库字段强制预留 (Supabase Schema)

@@ -1,5 +1,35 @@
 # Changelog
 
+## [11.0.0] - 2026-03-09
+
+### Added
+- **移动端视频播放专项指南** 📱🎬
+  - 新增详细文档：iOS 视频格式要求（moov atom 问题）
+  - 视频组件必需属性说明（移动端必备属性）
+  - Worker 配置要求（R2 Bucket 绑定配置）
+  - 常见问题排查速查表（5 种常见症状的病因和解决方案）
+  - 调试技巧（详细的错误日志获取方法）
+  - 预防措施（上传前检查清单、代码审查检查清单）
+
+### Fixed
+- **移动端视频播放优化** 📱
+  - VideoPlayer 组件重构：简化状态管理，优化 iOS 兼容性
+  - 添加 playsInline、webkit-playsinline、muted 等移动端必需属性
+  - 使用 useRef 跟踪自由播放模式，确保状态立即生效
+  - 修复 iOS 自动播放限制问题
+
+- **Worker 代理优化** ⚡
+  - 改用 R2 bucket 直接访问（不再使用公共域名转发）
+  - 优化 Range 请求处理，支持视频流式播放
+  - 完善错误处理和日志输出
+
+### Technical Details
+- 修改文件：
+  - `claude code guide.md` - 新增移动端视频播放专项指南
+  - `src/components/VideoPlayer.tsx` - 重构组件，优化移动端兼容性
+  - `worker-media-proxy.js` - 改用 R2 bucket 直接访问
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 清理冗余代码
+
 ## [9.0.0] - 2026-03-07
 
 ### Added

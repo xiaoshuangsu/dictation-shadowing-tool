@@ -12,27 +12,10 @@ interface Sentence {
 interface VideoPlayerProps {
   videoSrc?: string
   currentSentence: Sentence
-  currentTime?: number  // 添加 currentTime prop 用于同步
+  currentTime?: number  // 用于音频播放时的实时同步
   thumbnailPath?: string
   title?: string
   titleZh?: string
-  hasPlayedCurrent?: boolean
-  onPlayNext?: () => void
-  onPlay?: () => void
-  onReplay?: () => void
-}
-
-interface VideoPlayerProps {
-  videoSrc?: string
-  currentSentence: Sentence
-  currentTime?: number  // 添加 currentTime prop 用于同步
-  thumbnailPath?: string
-  title?: string
-  titleZh?: string
-  hasPlayedCurrent?: boolean
-  onPlayNext?: () => void
-  onPlay?: () => void
-  onReplay?: () => void
 }
 
 export default function VideoPlayer({
@@ -40,14 +23,10 @@ export default function VideoPlayer({
   currentSentence,
   currentTime = 0,
   thumbnailPath,
-  hasPlayedCurrent = false,
-  onPlayNext,
-  onPlay,
-  onReplay,
 }: VideoPlayerProps) {
-  const [isLoading, setIsLoading] = useState(false)
   const [videoError, setVideoError] = useState<string | null>(null)
-  const [isMuted, setIsMuted] = useState(true) // 🔴 强制静音初始化，绕过自动播放限制
+  const [isMuted, setIsMuted] = useState(true) // 🔴 强制静音初始化，绕过 iOS 自动播放限制
+  const isFreePlayModeRef = useRef(false) // 🔴 使用 useRef 来立即生效
   const videoRef = useRef<HTMLVideoElement>(null)
 
   // 🔴 关键验证：只有路径完整时才渲染
@@ -86,23 +65,70 @@ export default function VideoPlayer({
     setVideoError(errorMessage)
   }
 
-  // 视频加载开始诊断
+  // 视频加载事件
   const handleLoadStart = () => {
-    const video = videoRef.current
-    if (video) {
-      console.log('===== Video Load Start =====', {
-        src: video.src,
-        currentSrc: video.currentSrc,
-        videoSrc: videoSrc
-      })
-      setVideoError(null)
-    }
+    console.log('===== Video Load Start =====')
+    setVideoError(null)
   }
 
-  // 视频可以播放诊断
+  const handleLoadedMetadata = () => {
+    console.log('===== Video Loaded Metadata =====')
+    if (videoRef.current) {
+      console.log('Video metadata:', {
+        duration: videoRef.current.duration,
+        videoWidth: videoRef.current.videoWidth,
+        videoHeight: videoRef.current.videoHeight,
+        readyState: videoRef.current.readyState
+      })
+    }
+    setVideoError(null)
+  }
+
   const handleCanPlay = () => {
     console.log('===== Video Can Play =====')
     setVideoError(null)
+  }
+
+  // 视频播放/暂停事件
+  const handleVideoPlay = () => {
+    console.log('🎬 Video playing - Entering free play mode')
+    if (videoRef.current) {
+      console.log('Video state:', {
+        paused: videoRef.current.paused,
+        currentTime: videoRef.current.currentTime,
+        readyState: videoRef.current.readyState
+      })
+
+      // 🔴 确保视频继续播放（iOS 可能需要显式调用）
+      const video = videoRef.current
+      if (video.paused) {
+        video.play().catch(err => {
+          console.warn('Video play warning:', err)
+        })
+      }
+    }
+    isFreePlayModeRef.current = true // 🔴 进入自由观看模式，禁用同步
+  }
+
+  const handleVideoPause = () => {
+    console.log('⏸️ Video paused')
+    if (videoRef.current) {
+      console.log('Video state on pause:', {
+        paused: videoRef.current.paused,
+        currentTime: videoRef.current.currentTime,
+        readyState: videoRef.current.readyState
+      })
+    }
+  }
+
+  // 添加时间更新事件来监控播放状态
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      const currentTime = videoRef.current.currentTime
+      if (Math.floor(currentTime) % 5 === 0 && Math.floor(currentTime) > 0) {
+        console.log('⏱️ Video playing at:', currentTime.toFixed(1), 'seconds')
+      }
+    }
   }
 
   // 强制加载视频资源（当 videoSrc 变化时）
@@ -111,25 +137,19 @@ export default function VideoPlayer({
       console.log('===== VideoPlayer Props =====', {
         videoSrc: videoSrc?.substring(0, 80),
         thumbnailPath: thumbnailPath?.substring(0, 80),
-        hasVideoSrc: !!videoSrc,
-        hasThumbnailPath: !!thumbnailPath
       })
-      // 重置错误状态
       setVideoError(null)
       videoRef.current.load()
     }
   }, [videoSrc, thumbnailPath])
 
-  // 当 videoSrc 变化时，重置所有相关状态
-  useEffect(() => {
-    if (videoSrc) {
-      setVideoError(null)
-      setIsLoading(false)
-    }
-  }, [videoSrc])
-
   // 同步视频播放位置（当 currentSentence 变化时）
   useEffect(() => {
+    // 🔴 自由观看模式下不进行同步
+    if (isFreePlayModeRef.current) {
+      return
+    }
+
     if (videoRef.current && videoSrc && currentSentence) {
       const startTime = currentSentence.startTime
       if (Math.abs(videoRef.current.currentTime - startTime) > 0.5) {
@@ -140,144 +160,40 @@ export default function VideoPlayer({
 
   // 持续同步 currentTime（音频播放时的实时同步）
   useEffect(() => {
+    // 🔴 如果 currentTime 从 0 变为正数，说明用户点击了中栏播放控制，退出自由观看模式
+    if (isFreePlayModeRef.current && currentTime > 0) {
+      console.log('🔄 Exiting free play mode, entering practice mode')
+      isFreePlayModeRef.current = false
+
+      // 🔴 暂停视频，避免与音频冲突
+      if (videoRef.current && !videoRef.current.paused) {
+        console.log('⏸️ Pausing video to avoid audio conflict')
+        videoRef.current.pause()
+      }
+    }
+
+    // 🔴 自由观看模式下不进行同步，让用户自由观看
+    if (isFreePlayModeRef.current) {
+      return
+    }
+
     if (videoRef.current && videoSrc && currentTime > 0) {
       // 只有当差异较大时才更新，避免频繁跳帧
       if (Math.abs(videoRef.current.currentTime - currentTime) > 0.3) {
         videoRef.current.currentTime = currentTime
       }
     }
-  }, [currentTime, videoSrc])
+  }, [currentTime, videoSrc, isFreePlayModeRef.current])
 
-  const handlePlay = () => {
-    setIsLoading(true)
-    onPlay?.()
-
-    // 🔴 Promise 保护：处理播放被拦截的情况
-    if (videoRef.current) {
-      const playPromise = videoRef.current.play()
-
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log('✅ Video play succeeded')
-            setIsLoading(false)
-          })
-          .catch(error => {
-            console.warn('⚠️ Video play intercepted:', error.name, error.message)
-
-            // 如果是 NotSupportedError，尝试静音后重试
-            if (error.name === 'NotSupportedError') {
-              console.log('🔧 Retrying with muted audio...')
-              videoRef.current!.muted = true
-              setIsMuted(true)
-              return videoRef.current!.play()
-                .then(() => {
-                  console.log('✅ Video play succeeded with muted audio')
-                  setIsLoading(false)
-                })
-                .catch(retryError => {
-                  console.error('❌ Video play failed even with muted:', retryError)
-                  setIsLoading(false)
-                })
-            }
-
-            setIsLoading(false)
-          })
-      } else {
-        setTimeout(() => setIsLoading(false), 500)
-      }
-    }
-  }
-
-  const handleReplay = () => {
-    setIsLoading(true)
-    onReplay?.()
-
-    // 🔴 关键：检查 videoSrc 是否完整
-  useEffect(() => {
-    if (videoSrc && !videoSrc.endsWith('.mp4')) {
-      console.warn('⚠️ VideoPlayer received incomplete videoSrc:', videoSrc)
-      console.warn('⚠️ Component will NOT render video until path is complete')
-    }
-  }, [videoSrc])
-
-  // 🔴 Promise 保护：同上
-    if (videoRef.current) {
-      const playPromise = videoRef.current.play()
-
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log('✅ Video replay succeeded')
-            setIsLoading(false)
-          })
-          .catch(error => {
-            console.warn('⚠️ Video replay intercepted:', error.name)
-
-            if (error.name === 'NotSupportedError') {
-              console.log('🔧 Retrying replay with muted audio...')
-              videoRef.current!.muted = true
-              setIsMuted(true)
-              return videoRef.current!.play()
-                .then(() => setIsLoading(false))
-                .catch(() => setIsLoading(false))
-            }
-
-            setIsLoading(false)
-          })
-      } else {
-        setTimeout(() => setIsLoading(false), 500)
-      }
-    }
-  }
-
-  // 如果没有视频源，显示封面图片
+  // 如果没有视频源，只显示封面图片
   if (!videoSrc) {
     return (
-      <div>
-        <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={thumbnailPath ? { backgroundImage: `url(${thumbnailPath})` } : { backgroundColor: '#1f2937' }}
-          >
-            <div className="absolute inset-0 bg-black/30"></div>
-
-            {isLoading && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <p className="text-white text-sm font-medium mt-2">播放中...</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 px-2 py-3 mt-3 bg-white rounded-lg border border-gray-200">
-          <button
-            onClick={() => {
-              if (hasPlayedCurrent && onPlayNext) {
-                onPlayNext()
-              } else {
-                handlePlay()
-              }
-            }}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-950 text-white rounded-lg hover:bg-blue-900 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            <span className="font-medium">{hasPlayedCurrent ? "下一句" : "开始"}</span>
-          </button>
-
-          <button
-            onClick={handleReplay}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path d="M1 4v6h6M23 20v-6h-6" />
-              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
-            </svg>
-            <span className="font-medium">重播</span>
-          </button>
+      <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={thumbnailPath ? { backgroundImage: `url(${thumbnailPath})` } : { backgroundColor: '#1f2937' }}
+        >
+          <div className="absolute inset-0 bg-black/30"></div>
         </div>
       </div>
     )
@@ -311,49 +227,16 @@ export default function VideoPlayer({
             webkit-playsinline="true"
             muted={isMuted}
             preload="metadata"
-            crossOrigin="anonymous"
             poster={thumbnailPath}
             onError={handleVideoError}
             onLoadStart={handleLoadStart}
+            onLoadedMetadata={handleLoadedMetadata}
             onCanPlay={handleCanPlay}
+            onPlay={handleVideoPlay}
+            onPause={handleVideoPause}
+            onTimeUpdate={handleTimeUpdate}
           />
         )}
-
-        {isLoading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50">
-            <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <p className="text-white text-sm font-medium mt-2">播放中...</p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-3 px-2 py-3 mt-3 bg-white rounded-lg border border-gray-200">
-        <button
-          onClick={() => {
-            if (hasPlayedCurrent && onPlayNext) {
-              onPlayNext()
-            } else {
-              handlePlay()
-            }
-          }}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-950 text-white rounded-lg hover:bg-blue-900 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M8 5v14l11-7z" />
-          </svg>
-          <span className="font-medium">{hasPlayedCurrent ? "下一句" : "开始"}</span>
-        </button>
-
-        <button
-          onClick={handleReplay}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M1 4v6h6M23 20v-6h-6" />
-            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
-          </svg>
-          <span className="font-medium">重播</span>
-        </button>
       </div>
     </div>
   )
