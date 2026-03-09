@@ -154,7 +154,11 @@ export default function VideoPlayer({
     }
 
     if (videoRef.current && videoSrc && currentSentence) {
-      const startTime = currentSentence.startTime
+      // 🔴 确保 startTime 是数字类型（数据库可能返回字符串）
+      const startTime = typeof currentSentence.startTime === 'string'
+        ? parseFloat(currentSentence.startTime)
+        : currentSentence.startTime
+
       if (Math.abs(videoRef.current.currentTime - startTime) > 0.5) {
         videoRef.current.currentTime = startTime
       }
@@ -227,6 +231,7 @@ export default function VideoPlayer({
             src={actualVideoSrc}
             className="w-full h-full object-cover"
             controls
+            crossOrigin="anonymous"
             playsInline
             webkit-playsinline="true"
             muted={isMuted}

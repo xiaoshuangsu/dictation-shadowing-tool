@@ -56,7 +56,57 @@ export default {
       if (env.R2_BUCKET) {
         console.log(`Accessing R2 bucket directly: ${path}`);
 
-        const object = await env.R2_BUCKET.get(path);
+        // 🔴 处理 Range 请求（视频流式播放必需）
+        const range = request.headers.get('Range');
+        let object;
+
+        if (range) {
+          // 解析 Range 头（格式：bytes=start-end）
+          const rangeMatch = range.match(/bytes=(\d+)?-(\d+)?/);
+          if (rangeMatch) {
+            const start = rangeMatch[1] ? parseInt(rangeMatch[1]) : 0;
+            const end = rangeMatch[2] ? parseInt(rangeMatch[2]) : undefined;
+
+            console.log(`Range request: ${range}, start=${start}, end=${end || 'undefined'}`);
+
+            // 使用 R2 的 range 参数获取部分内容
+            object = await env.R2_BUCKET.get(path, {
+                range: { offset: start, length: end ? (end - start + 1) : undefined }
+            });
+
+            if (!object) {
+              console.error(`Object not found: ${path}`);
+              return new Response('Not found', {
+                status: 404,
+                headers: CORS_HEADERS,
+              });
+            }
+
+            const headers = new Headers();
+            Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+              headers.set(key, value);
+            });
+
+            // 设置内容类型
+            headers.set('Content-Type', 'video/mp4');
+            headers.set('Accept-Ranges', 'bytes');
+
+            // 🔴 返回 206 Partial Content 响应
+            const contentRange = `bytes ${start}-${start + object.size - 1}/${object.size + start}`;
+            headers.set('Content-Range', contentRange);
+            headers.set('Content-Length', String(object.size));
+
+            console.log(`Returning 206 Partial Content: ${contentRange}`);
+
+            return new Response(object.body, {
+              status: 206,
+              headers,
+            });
+          }
+        }
+
+        // 非 Range 请求，返回完整文件
+        object = await env.R2_BUCKET.get(path);
 
         if (!object) {
           console.error(`Object not found: ${path}`);
@@ -89,6 +139,8 @@ export default {
             headers.set('Content-Type', mimeTypes[ext]);
           }
         }
+
+        headers.set('Accept-Ranges', 'bytes');
 
         // 缓存控制
         headers.set('Cache-Control', 'public, max-age=3600'); // 1 小时缓存，便于更新

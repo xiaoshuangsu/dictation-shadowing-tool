@@ -66,6 +66,15 @@ export default function AudioPlayer({
     audio.playbackRate = playbackRate
     audio.volume = 0.25  // 固定音量，与 ShadowingPanel 保持一致
 
+    // 🔴 预先转换时间戳为数字，避免重复转换
+    const startTime = typeof currentSentence.startTime === 'string'
+      ? parseFloat(currentSentence.startTime)
+      : currentSentence.startTime
+
+    const endTime = typeof currentSentence.endTime === 'string'
+      ? parseFloat(currentSentence.endTime)
+      : currentSentence.endTime
+
     // 开始加载
     setLoading(true)
 
@@ -87,8 +96,8 @@ export default function AudioPlayer({
         }
       }
 
-      // 检查是否播放结束
-      if (audio.currentTime >= currentSentence.endTime) {
+      // 🔴 使用预转换的 endTime（数字类型）
+      if (audio.currentTime >= endTime) {
         audio.pause()
         setIsPlaying(false)
         isPlayingRef.current = false
@@ -140,20 +149,40 @@ export default function AudioPlayer({
       audio.removeEventListener('waiting', handleWaiting)
     }
 
-    // 设置播放位置并播放
-    audio.currentTime = currentSentence.startTime
-
-    // 等待seek完成后播放
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        audio.play().then(() => {
-          setIsPlaying(true)
-        }).catch(err => {
-          console.error('Play error:', err)
-          setIsPlaying(false)
-        })
-      })
+    console.log('🎯 AudioPlayer seek:', {
+      sentence: currentSentence.text?.substring(0, 30),
+      startTime,
+      endTime,
+      originalType: typeof currentSentence.startTime
     })
+
+    // 设置播放位置（使用预转换的数字类型 startTime）
+    audio.currentTime = startTime
+
+    // 🔴 移动端关键修复：等待 seeked 事件后再播放
+    // 移动端（特别是 iOS）的 seek 操作是异步的，必须等待完成
+    const handleSeeked = () => {
+      // seek 完成后播放
+      audio.play().then(() => {
+        setIsPlaying(true)
+        console.log('▶️ Playing from:', audio.currentTime)
+      }).catch(err => {
+        console.error('Play error after seek:', err)
+        setIsPlaying(false)
+      })
+      // 移除 seeked 监听器（只需要触发一次）
+      audio.removeEventListener('seeked', handleSeeked)
+    }
+
+    // 添加 seeked 事件监听器
+    audio.addEventListener('seeked', handleSeeked)
+
+    // 更新 cleanup 函数，包含 seeked 监听器
+    const originalCleanup = cleanupRef.current
+    cleanupRef.current = () => {
+      audio.removeEventListener('seeked', handleSeeked)
+      if (originalCleanup) originalCleanup()
+    }
   }
 
   // Auto-play when trigger changes
