@@ -26,6 +26,7 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const [videoError, setVideoError] = useState<string | null>(null)
   const [isMuted, setIsMuted] = useState(true) // 🔴 强制静音初始化，绕过 iOS 自动播放限制
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false) // 🔴 追踪视频是否正在播放
   const isFreePlayModeRef = useRef(false) // 🔴 使用 useRef 来立即生效
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -107,6 +108,7 @@ export default function VideoPlayer({
         })
       }
     }
+    setIsVideoPlaying(true) // 🔴 标记视频正在播放
     isFreePlayModeRef.current = true // 🔴 进入自由观看模式，禁用同步
   }
 
@@ -119,6 +121,7 @@ export default function VideoPlayer({
         readyState: videoRef.current.readyState
       })
     }
+    setIsVideoPlaying(false) // 🔴 标记视频已暂停
   }
 
   // 添加时间更新事件来监控播放状态
@@ -160,8 +163,9 @@ export default function VideoPlayer({
 
   // 持续同步 currentTime（音频播放时的实时同步）
   useEffect(() => {
-    // 🔴 如果 currentTime 从 0 变为正数，说明用户点击了中栏播放控制，退出自由观看模式
-    if (isFreePlayModeRef.current && currentTime > 0) {
+    // 🔴 只有在视频不在播放状态时，才检查是否需要退出自由观看模式
+    // 🔴 如果视频正在播放，说明用户主动点击了视频播放按钮，不应该被打断
+    if (isFreePlayModeRef.current && !isVideoPlaying && currentTime > 0) {
       console.log('🔄 Exiting free play mode, entering practice mode')
       isFreePlayModeRef.current = false
 
@@ -183,7 +187,7 @@ export default function VideoPlayer({
         videoRef.current.currentTime = currentTime
       }
     }
-  }, [currentTime, videoSrc, isFreePlayModeRef.current])
+  }, [currentTime, videoSrc, isFreePlayModeRef.current, isVideoPlaying])
 
   // 如果没有视频源，只显示封面图片
   if (!videoSrc) {
