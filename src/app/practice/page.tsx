@@ -819,12 +819,6 @@ function HomeContent() {
                     videoSrc={videoSrc}
                     currentSentence={currentSentence}
                     thumbnailPath={thumbnailPath || undefined}
-                    onPlay={() => {
-                      setAutoPlayTrigger(prev => prev + 1)
-                    }}
-                    onReplay={() => {
-                      setAutoPlayTrigger(prev => prev + 1)
-                    }}
                   />
                 )}
                 {!videoSrc && audioSrc && currentSentence && (
