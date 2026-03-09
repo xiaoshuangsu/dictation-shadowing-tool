@@ -107,6 +107,8 @@ export default function MaterialsPage() {
   const [imageLoadedStates, setImageLoadedStates] = useState<Record<string, boolean>>({})
   // 🔴 关键修复：在组件顶部定义超时状态，避免在 map 循环中使用 useState
   const [imageTimeoutStates, setImageTimeoutStates] = useState<Record<string, boolean>>({})
+  // 🔴 新增：首屏加载完成状态
+  const [firstScreenLoaded, setFirstScreenLoaded] = useState(false)
 
   // 更新图片加载状态的辅助函数
   const setImageLoaded = (materialId: string, loaded: boolean) => {
@@ -293,6 +295,88 @@ export default function MaterialsPage() {
       timeouts.forEach(clearTimeout)
     }
   }, [filteredMaterials, imageLoadedStates, imageTimeoutStates])
+
+  // 🔴 新增：预加载逻辑 - 首屏加载完成后预加载所有图片
+  useEffect(() => {
+    if (loading || filteredMaterials.length === 0) return
+
+    // 计算首屏可见的图片数量（每个分类前4个）
+    const getFirstScreenCount = () => {
+      if (typeof window === 'undefined') return 4
+      const width = window.innerWidth
+      if (width < 640) return 1   // 移动端
+      if (width < 1024) return 2  // 小屏
+      if (width < 1280) return 3  // 中屏
+      return 4 // 大屏
+    }
+
+    const firstScreenCount = getFirstScreenCount()
+    const firstScreenMaterialIds = new Set<string>()
+
+    // 收集首屏可见的素材 ID
+    Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
+      categoryMaterials.slice(0, firstScreenCount).forEach(m => {
+        firstScreenMaterialIds.add(m.id)
+      })
+    })
+
+    // 检查首屏图片是否都已加载完成
+    const firstScreenLoaded = firstScreenMaterialIds.size > 0 &&
+      Array.from(firstScreenMaterialIds).every(id => imageLoadedStates[id])
+
+    if (firstScreenLoaded && !firstScreenLoaded) {
+      console.log('🖼️ 首屏图片加载完成，开始预加载剩余图片...')
+
+      // 收集所有需要预加载的图片 URL（排除已加载的和没有缩略图的）
+      const preloadUrls: string[] = []
+      filteredMaterials.forEach(material => {
+        if (!firstScreenMaterialIds.has(material.id) && material.thumbnail_path) {
+          const url = getThumbnailUrl(material.thumbnail_path)
+          if (url) preloadUrls.push(url)
+        }
+      })
+
+      // 预加载图片（使用 new Image()）
+      let loadedCount = 0
+      const totalCount = preloadUrls.length
+
+      console.log(`🖼️ 开始预加载 ${totalCount} 张图片...`)
+
+      // 分批预加载，避免一次性抢占太多带宽
+      const batchSize = 5 // 每批预加载5张
+      let currentIndex = 0
+
+      const loadBatch = () => {
+        const batch = preloadUrls.slice(currentIndex, currentIndex + batchSize)
+        currentIndex += batchSize
+
+        batch.forEach(url => {
+          const img = new Image()
+          img.onload = () => {
+            loadedCount++
+            if (loadedCount === totalCount) {
+              console.log(`✅ 预加载完成：${totalCount} 张图片`)
+            }
+          }
+          img.onerror = () => {
+            loadedCount++ // 即使失败也计数，避免阻塞
+          }
+          img.src = url
+        })
+
+        // 如果还有剩余图片，继续加载下一批
+        if (currentIndex < preloadUrls.length) {
+          // 延迟 100ms 再加载下一批，避免抢占带宽
+          setTimeout(loadBatch, 100)
+        }
+      }
+
+      // 启动分批预加载
+      loadBatch()
+      setFirstScreenLoaded(true)
+    }
+  }, [loading, filteredMaterials, materialsByCategory, imageLoadedStates, firstScreenLoaded])
+
 
   // R2 URL 配置（统一使用 Worker 代理）
   const R2_WORKER_URL = 'https://media.shadowhub.app'
