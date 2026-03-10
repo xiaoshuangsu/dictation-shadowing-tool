@@ -274,27 +274,28 @@ export default function MaterialsPage() {
   }, [filteredMaterials, filters.category])
 
   // 🔴 关键修复 2：3秒强制解锁 - 全局处理图片超时
-  useEffect(() => {
-    const timeouts: NodeJS.Timeout[] = []
+  // 🔴 暂时移除超时检查，让浏览器原生加载机制接管
+  // useEffect(() => {
+  //   const timeouts: NodeJS.Timeout[] = []
 
-    // 为每个未加载的图片设置 3 秒超时
-    filteredMaterials.forEach(material => {
-      if (!imageLoadedStates[material.id] && !imageTimeoutStates[material.id]) {
-        const timeoutId = setTimeout(() => {
-          console.log('[MaterialCard] Image timeout (3s) for:', material.title)
-          setImageTimeoutStates(prev => ({ ...prev, [material.id]: true }))
-          setImageLoadedStates(prev => ({ ...prev, [material.id]: true })) // 强制停止加载指示器
-        }, 3000)
+  //   // 为每个未加载的图片设置 3 秒超时
+  //   filteredMaterials.forEach(material => {
+  //     if (!imageLoadedStates[material.id] && !imageTimeoutStates[material.id]) {
+  //       const timeoutId = setTimeout(() => {
+  //         console.log('[MaterialCard] Image timeout (3s) for:', material.title)
+  //         setImageTimeoutStates(prev => ({ ...prev, [material.id]: true }))
+  //         setImageLoadedStates(prev => ({ ...prev, [material.id]: true })) // 强制停止加载指示器
+  //       }, 3000)
 
-        timeouts.push(timeoutId)
-      }
-    })
+  //       timeouts.push(timeoutId)
+  //     }
+  //   })
 
-    // 清理所有超时器
-    return () => {
-      timeouts.forEach(clearTimeout)
-    }
-  }, [filteredMaterials, imageLoadedStates, imageTimeoutStates])
+  //   // 清理所有超时器
+  //   return () => {
+  //     timeouts.forEach(clearTimeout)
+  //   }
+  // }, [filteredMaterials, imageLoadedStates, imageTimeoutStates])
 
   // 🔴 新增：预加载逻辑 - 首屏加载完成后预加载所有图片
   useEffect(() => {
@@ -575,12 +576,22 @@ export default function MaterialsPage() {
                                     className="w-full h-full object-cover"
                                     onError={handleImageError}
                                     onLoad={() => {
+                                      // 🔴 调试：打印第一张图片的URL
+                                      if (index === 0) {
+                                        console.log('🔍 [DEBUG] 第一张图片加载成功:', {
+                                          title: material.title,
+                                          url: thumbnailUrl,
+                                          isProxy: thumbnailUrl?.includes('/api/proxy-media'),
+                                          isHttps: thumbnailUrl?.startsWith('https://')
+                                        })
+                                      }
                                       console.log('[MaterialCard] Image loaded:', material.title)
                                       setImageLoaded(material.id, true)
                                     }}
                                     decoding="async"
                                     referrerPolicy="no-referrer"
                                     loading="lazy"
+                                    importance="low"
                                     style={{
                                       opacity: imageLoaded ? 1 : 0,
                                       transition: 'opacity 0.3s ease-in'

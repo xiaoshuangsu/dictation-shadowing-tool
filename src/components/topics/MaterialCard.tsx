@@ -1,5 +1,8 @@
 import { type Material } from '@/lib/supabase/client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+
+// 🔴 全局计数器，用于标识第一张图片
+let imageCounter = 0
 
 interface MaterialCardProps {
   material: Material
@@ -18,10 +21,22 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [isFirstImage, setIsFirstImage] = useState(false)
+
+  // 🔴 标识第一张图片（用于调试）
+  useEffect(() => {
+    if (imageCounter === 0) {
+      setIsFirstImage(true)
+    }
+    imageCounter++
+  }, [])
 
   // R2 URL 配置（统一使用 Worker 代理）
   const R2_WORKER_URL = 'https://media.shadowhub.app'
   const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
+
+  // 🔴 开发环境检测
+  const isDevelopment = process.env.NODE_ENV === 'development'
 
   // 获取缩略图 URL
   const getThumbnailUrl = (path: string | null) => {
@@ -32,7 +47,8 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
       return path
     }
 
-    // 相对路径：添加 Worker 域名
+    // 🔴 分流策略：图片直接使用 R2 Worker HTTPS 域名，跳过本地代理
+    // 图片不涉及流媒体 Range 请求，直接请求 HTTPS 不会触发 CONNECTION_RESET
     return `${R2_WORKER_URL}/${path}`
   }
 
@@ -96,11 +112,25 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
               alt={material.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               onError={handleImageError}
+              loading="lazy"
+              importance="low"
+              decoding="async"
               style={{
                 opacity: imageLoaded ? 1 : 0,
                 transition: 'opacity 0.3s ease-in'
               }}
-              onLoad={() => setImageLoaded(true)}
+              onLoad={() => {
+                // 🔴 调试：打印第一张图片的URL
+                if (isFirstImage) {
+                  console.log('🔍 [DEBUG] 第一张图片加载成功:', {
+                    title: material.title,
+                    url: thumbnailUrl,
+                    isProxy: thumbnailUrl?.includes('/api/proxy-media'),
+                    isHttps: thumbnailUrl?.startsWith('https://')
+                  })
+                }
+                setImageLoaded(true)
+              }}
             />
             {/* 加载指示器 */}
             {!imageLoaded && (

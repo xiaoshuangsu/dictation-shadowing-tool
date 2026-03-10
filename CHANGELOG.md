@@ -1,5 +1,21 @@
 # Changelog
 
+## [12.0.3] - 2026-03-09
+
+### Fixed
+- **移动端封面图加载优化** 📱
+  - 移除 3 秒强制超时检查，让浏览器原生加载机制接管
+  - 添加 `importance="low"` 属性，降低图片加载优先级
+  - 添加 `decoding="async"` 属性，异步解码图片
+  - 保留 `loading="lazy"` 懒加载，只加载可见区域图片
+  - 添加调试日志：第一张图片加载时打印 URL 信息
+
+### Technical Details
+- 修改文件：
+  - `src/app/topics/page.tsx` - 移除超时检查，添加调试日志
+  - `src/components/topics/MaterialCard.tsx` - 添加 importance="low" 和调试日志
+  - `package.json` - 版本号更新
+
 ## [12.0.2] - 2026-03-09
 
 ### Fixed
