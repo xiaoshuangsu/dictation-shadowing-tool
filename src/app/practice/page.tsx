@@ -39,18 +39,26 @@ interface PracticeMaterial {
 // R2 URL 配置（统一使用 Worker 代理）
 const R2_WORKER_URL = 'https://media.shadowhub.app'
 
+// 🔴 开发环境检测
+const isDevelopment = process.env.NODE_ENV === 'development'
+
 // 根据设备类型选择合适的 CDN URL（使用 R2 Worker 代理）
 const getCdnUrl = (url: string | null) => {
   if (!url) return null
   if (typeof window === 'undefined') return url
 
-  // 完整 URL：直接使用
+  // 完整 URL：检查是否需要添加 .mp4 后缀
   if (url.startsWith('http')) {
+    // 🔴 关键修复：检查完整 URL 是否缺少 .mp4 后缀
+    if (url.includes('/videos/') && !url.endsWith('.mp4')) {
+      return `${url}.mp4`
+    }
     return url
   }
 
-  // 相对路径：使用 R2 Worker 代理
-  let finalUrl = `${R2_WORKER_URL}/${url}`
+  // 🔴 关键修复：开发环境下使用本地代理，避免混合内容警告
+  const workerUrl = isDevelopment ? '/api/proxy-media' : R2_WORKER_URL
+  let finalUrl = `${workerUrl}/${url}`
 
   // 🔴 关键修复：强制补全 .mp4 后缀
   // 如果是视频路径但没有 .mp4 后缀，自动添加
@@ -58,7 +66,7 @@ const getCdnUrl = (url: string | null) => {
     finalUrl = `${finalUrl}.mp4`
     console.log('🔧 Auto-added .mp4 extension:', {
       original: url,
-      fixed: finalUrl.replace(R2_WORKER_URL, '')
+      fixed: finalUrl.replace(workerUrl, '')
     })
   }
 
@@ -67,7 +75,8 @@ const getCdnUrl = (url: string | null) => {
     console.log('🎬 Video URL constructed:', {
       original: url,
       final: finalUrl,
-      hasMp4Extension: finalUrl.endsWith('.mp4')
+      hasMp4Extension: finalUrl.endsWith('.mp4'),
+      isDevelopment
     })
   }
 

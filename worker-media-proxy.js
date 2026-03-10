@@ -5,9 +5,9 @@
  * 确保移动端和跨域请求正常工作
  *
  * 部署说明：
- * 1. 在 B 账号 Cloudflare Dashboard 创建 Worker
+ * 1. 在 A 账号 Cloudflare Dashboard 创建 Worker
  * 2. 绑定域名：media.shadowhub.app
- * 3. 绑定 R2 桶：变量名 R2_BUCKET
+ * 3. 绑定 R2 桶：变量名 R2，桶名 shadowhub
  * 4. 部署此代码
  */
 
@@ -48,12 +48,21 @@ export default {
 
     try {
       const url = new URL(request.url);
-      const path = url.pathname;
+      // 路径纠错：移除前导斜杠，确保传给 R2 的 Key 不带开头斜杠
+      const path = url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname;
 
       console.log(`Media proxy: ${path}`);
 
-      // 🔴 使用 R2 bucket 直接访问
-      if (env.R2_BUCKET) {
+      // 根路径处理：访问主页时返回友好提示
+      if (!path || path === '') {
+        return new Response('ShadowHub Media Proxy is active', {
+          status: 200,
+          headers: CORS_HEADERS,
+        });
+      }
+
+      // 🔴 使用 R2 bucket 直接访问（变量名：R2）
+      if (env.R2) {
         console.log(`Accessing R2 bucket directly: ${path}`);
 
         // 🔴 处理 Range 请求（视频流式播放必需）
@@ -70,7 +79,7 @@ export default {
             console.log(`Range request: ${range}, start=${start}, end=${end || 'undefined'}`);
 
             // 使用 R2 的 range 参数获取部分内容
-            object = await env.R2_BUCKET.get(path, {
+            object = await env.R2.get(path, {
                 range: { offset: start, length: end ? (end - start + 1) : undefined }
             });
 
@@ -90,6 +99,8 @@ export default {
             // 设置内容类型
             headers.set('Content-Type', 'video/mp4');
             headers.set('Accept-Ranges', 'bytes');
+            // 强效缓存
+            headers.set('Cache-Control', 'public, max-age=31536000, immutable');
 
             // 🔴 返回 206 Partial Content 响应
             const contentRange = `bytes ${start}-${start + object.size - 1}/${object.size + start}`;
@@ -106,7 +117,7 @@ export default {
         }
 
         // 非 Range 请求，返回完整文件
-        object = await env.R2_BUCKET.get(path);
+        object = await env.R2.get(path);
 
         if (!object) {
           console.error(`Object not found: ${path}`);
@@ -142,8 +153,8 @@ export default {
 
         headers.set('Accept-Ranges', 'bytes');
 
-        // 缓存控制
-        headers.set('Cache-Control', 'public, max-age=3600'); // 1 小时缓存，便于更新
+        // 强效缓存：永久缓存，方便手机端和 CDN 缓存
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
 
         console.log(`Successfully served: ${path}, size: ${object.size}`);
 
@@ -154,7 +165,7 @@ export default {
       }
 
       // 如果没有绑定 R2 bucket
-      console.error('R2_BUCKET not bound to worker');
+      console.error('R2 not bound to worker');
       return new Response('R2 bucket not configured', {
         status: 500,
         headers: CORS_HEADERS,

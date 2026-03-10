@@ -1,6 +1,9 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
+
+// 🔴 开发环境检测
+const isDevelopment = process.env.NODE_ENV === 'development'
 
 interface Sentence {
   id: number
@@ -24,16 +27,30 @@ export default function VideoPlayer({
   currentTime = 0,
   thumbnailPath,
 }: VideoPlayerProps) {
+  // 🔴 调试日志：组件入口
+  console.log('🎬 [VideoPlayer] Component rendered with props:', { videoSrc, currentSentence: currentSentence.text })
+
   const [videoError, setVideoError] = useState<string | null>(null)
-  const [isMuted, setIsMuted] = useState(true) // 🔴 强制静音初始化，绕过 iOS 自动播放限制
+  const [isMuted, setIsMuted] = useState(false) // 🔴 修复：默认不静音，让用户能听到声音
   const [isVideoPlaying, setIsVideoPlaying] = useState(false) // 🔴 追踪视频是否正在播放
   const isFreePlayModeRef = useRef(false) // 🔴 使用 useRef 来立即生效
   const videoRef = useRef<HTMLVideoElement>(null)
+  const retryCountRef = useRef(0) // 🔴 重试次数计数器
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null) // 🔴 重试超时定时器
 
-  // 🔴 关键验证：只有路径完整时才渲染
-  // 放宽检查：只要包含 .mp4 即可（支持各种 URL 格式）
-  const isValidVideoSrc = videoSrc && (videoSrc.includes('.mp4') || videoSrc.startsWith('http'))
+  // 🔴 调试日志：查看接收到的 props
+  console.log('🎬 [VideoPlayer] Received props.videoSrc:', videoSrc)
+
+  // 🔴 关键验证：必须有 .mp4 后缀才渲染（移动端严格要求）
+  const isValidVideoSrc = videoSrc && videoSrc.includes('.mp4')
   const actualVideoSrc = isValidVideoSrc ? videoSrc : undefined
+
+  console.log('🎬 [VideoPlayer] actualVideoSrc:', actualVideoSrc)
+
+  // 🔴 如果 videoSrc 存在但没有 .mp4 后缀，打印警告
+  if (videoSrc && !videoSrc.includes('.mp4')) {
+    console.warn('⚠️ [VideoPlayer] Invalid videoSrc (missing .mp4 extension):', videoSrc)
+  }
 
   // 详细的视频错误处理
   const handleVideoError = () => {
@@ -70,6 +87,23 @@ export default function VideoPlayer({
   // 视频加载事件
   const handleLoadStart = () => {
     console.log('===== Video Load Start =====')
+    if (videoRef.current) {
+      const video = videoRef.current
+      console.log('Video element state:', {
+        src: video.src?.substring(0, 80),
+        currentSrc: video.currentSrc?.substring(0, 80),
+        readyState: video.readyState,
+        networkState: video.networkState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+      })
+
+      // 🔴 关键检查：如果 currentSrc 为空，说明 src 没有被正确设置
+      if (!video.currentSrc) {
+        console.error('❌ ERROR: video.currentSrc is empty! src was not set correctly!')
+        console.error('Actual src attribute:', video.src)
+      }
+    }
     setVideoError(null)
   }
 
@@ -80,7 +114,7 @@ export default function VideoPlayer({
         duration: videoRef.current.duration,
         videoWidth: videoRef.current.videoWidth,
         videoHeight: videoRef.current.videoHeight,
-        readyState: videoRef.current.readyState
+        readyState: videoRef.current.readyState,
       })
     }
     setVideoError(null)
@@ -88,7 +122,89 @@ export default function VideoPlayer({
 
   const handleCanPlay = () => {
     console.log('===== Video Can Play =====')
+    if (videoRef.current) {
+      console.log('Video can play state:', {
+        readyState: videoRef.current.readyState,
+        currentTime: videoRef.current.currentTime,
+      })
+    }
     setVideoError(null)
+  }
+
+  const handleProgress = () => {
+    if (videoRef.current) {
+      const buffered = videoRef.current.buffered
+      if (buffered.length > 0) {
+        console.log('🔄 Video progress:', {
+          bufferedRanges: buffered.length,
+          firstRangeStart: buffered.start(0),
+          firstRangeEnd: buffered.end(0),
+          readyState: videoRef.current.readyState,
+        })
+      }
+    }
+  }
+
+  const handleWaiting = () => {
+    console.log('⏸️ Video waiting - 数据不足')
+    if (videoRef.current) {
+      console.log('Waiting state:', {
+        readyState: videoRef.current.readyState,
+        currentTime: videoRef.current.currentTime,
+      })
+    }
+  }
+
+  const handleStalled = () => {
+    console.log('⚠️ Video stalled - 网络停止')
+    if (videoRef.current) {
+      const video = videoRef.current
+      console.log('Stalled state:', {
+        readyState: video.readyState,
+        currentTime: video.currentTime,
+        networkState: video.networkState,
+        currentSrc: video.currentSrc?.substring(0, 80),
+      })
+
+      // 🔴 关键诊断：检查是否是混合内容问题
+      if (typeof window !== 'undefined') {
+        const pageProtocol = window.location.protocol
+        const videoProtocol = new URL(video.currentSrc || '').protocol
+        if (pageProtocol === 'http:' && videoProtocol === 'https:') {
+          console.warn('⚠️ 混合内容警告：HTTP 页面加载 HTTPS 视频')
+        }
+      }
+
+      // 🔴 指数退避重试机制（仅开发环境）
+      if (isDevelopment && retryCountRef.current < 5) {
+        const delayMs = Math.min(500 * Math.pow(3, retryCountRef.current), 10000) // 最大 10 秒
+        console.log(`🔄 尝试重试加载视频 (${retryCountRef.current + 1}/5)，${delayMs}ms 后重试...`)
+
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current)
+        }
+
+        retryTimeoutRef.current = setTimeout(() => {
+          const currentVideo = videoRef.current
+          if (currentVideo && actualVideoSrc) {
+            retryCountRef.current++
+            console.log(`🔄 执行重试，当前次数: ${retryCountRef.current}`)
+            currentVideo.load() // 重新加载视频
+          }
+        }, delayMs)
+      }
+    }
+  }
+
+  const handleSuspend = () => {
+    console.log('⏸️ Video suspend - 加载暂停')
+    if (videoRef.current) {
+      console.log('Suspend state:', {
+        readyState: videoRef.current.readyState,
+        currentTime: videoRef.current.currentTime,
+        networkState: videoRef.current.networkState,
+      })
+    }
   }
 
   // 视频播放/暂停事件
@@ -143,7 +259,16 @@ export default function VideoPlayer({
         thumbnailPath: thumbnailPath?.substring(0, 80),
       })
       setVideoError(null)
+      retryCountRef.current = 0 // 重置重试计数器
       videoRef.current.load()
+    }
+
+    // Cleanup function
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current)
+        retryTimeoutRef.current = null
+      }
     }
   }, [videoSrc, thumbnailPath])
 
@@ -236,7 +361,7 @@ export default function VideoPlayer({
             playsInline
             webkit-playsinline="true"
             muted={isMuted}
-            preload="metadata"
+            preload={isDevelopment ? "metadata" : "auto"}
             poster={thumbnailPath}
             onError={handleVideoError}
             onLoadStart={handleLoadStart}
@@ -245,6 +370,10 @@ export default function VideoPlayer({
             onPlay={handleVideoPlay}
             onPause={handleVideoPause}
             onTimeUpdate={handleTimeUpdate}
+            onProgress={handleProgress}
+            onWaiting={handleWaiting}
+            onStalled={handleStalled}
+            onSuspend={handleSuspend}
           />
         )}
       </div>

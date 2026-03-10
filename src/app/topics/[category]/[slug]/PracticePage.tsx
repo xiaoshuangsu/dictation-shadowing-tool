@@ -73,15 +73,39 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const [thumbnailPath, setThumbnailPath] = useState<string | undefined>(undefined)
   const [sampleSentences, setSampleSentences] = useState<Sentence[]>(defaultSentences)
 
+  // 🔴 开发环境检测
+  const isDevelopment = process.env.NODE_ENV === 'development'
+
   // CDN URL helper
   const getCdnUrl = (url: string | null): string | undefined => {
     if (!url) return undefined
+
+    console.log('🔧 getCdnUrl input:', url)
+
     // 如果是完整 URL，直接使用
     if (url.startsWith('http://') || url.startsWith('https://')) {
+      // 🔴 关键修复：检查完整 URL 是否缺少 .mp4 后缀
+      if (url.includes('/videos/') && !url.endsWith('.mp4')) {
+        const result = `${url}.mp4`
+        console.log('🔧 getCdnUrl: Added .mp4 to full URL:', result)
+        return result
+      }
+      console.log('🔧 getCdnUrl: Using full URL as-is:', url)
       return url
     }
-    // 相对路径：添加 R2 Worker 域名（移动端兼容）
-    return `https://media.shadowhub.app/${url}`
+
+    // 🔴 关键修复：开发环境下使用本地代理，避免混合内容警告
+    const workerUrl = isDevelopment ? '/api/proxy-media' : 'https://media.shadowhub.app'
+    let finalUrl = `${workerUrl}/${url}`
+
+    // 🔴 关键修复：确保视频 URL 有 .mp4 后缀
+    if (url.includes('video') && !url.endsWith('.mp4')) {
+      finalUrl = `${finalUrl}.mp4`
+      console.log('🔧 getCdnUrl: Added .mp4 to relative path:', finalUrl)
+    }
+
+    console.log('🔧 getCdnUrl output:', finalUrl)
+    return finalUrl
   }
 
   // Practice state
@@ -120,7 +144,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
             setAudioSrc(getCdnUrl(found.audio_path))
           }
           if (found.video_path) {
-            setVideoUrl(getCdnUrl(found.video_path))
+            console.log('🎬 Raw video_path from DB:', found.video_path)
+            const processedUrl = getCdnUrl(found.video_path)
+            console.log('🎬 Processed videoSrc:', processedUrl)
+            setVideoUrl(processedUrl)
           }
           if (found.thumbnail_path) {
             setThumbnailPath(getCdnUrl(found.thumbnail_path))
@@ -383,12 +410,15 @@ export default function PracticePage({ category, slug }: { category: string; slu
               </div>
 
               {videoUrl ? (
-                <VideoPlayer
-                  videoSrc={videoUrl}
-                  currentSentence={currentSentence}
-                  currentTime={currentTime}
-                  thumbnailPath={thumbnailPath}
-                />
+                <>
+                  {console.log('🎬 About to render VideoPlayer with videoUrl:', videoUrl)}
+                  <VideoPlayer
+                    videoSrc={videoUrl}
+                    currentSentence={currentSentence}
+                    currentTime={currentTime}
+                    thumbnailPath={thumbnailPath}
+                  />
+                </>
               ) : (
                 <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
                   <div className="text-center">

@@ -1,5 +1,36 @@
 # Changelog
 
+## [12.0.2] - 2026-03-09
+
+### Fixed
+- **Worker Media Proxy 路径修复** 🔧
+  - 修复路径纠错：移除 pathname 前导斜杠，确保传给 R2 的 Key 不带开头斜杠
+  - 根路径处理：访问根路径时返回 200 状态和友好提示
+  - 完善 MIME 类型：mp4 → video/mp4，mp3 → audio/mpeg
+  - 强效缓存：所有成功请求使用 `public, max-age=31536000, immutable`（永久缓存）
+  - CORS 兜底：确保所有响应（包括 404）都包含 CORS_HEADERS
+
+### Fixed
+- **开发环境混合内容问题修复** 🌐
+  - VideoPlayer.tsx：
+    - 添加环境检测，开发环境使用 `preload="metadata"` 避免高频 Range 请求
+    - 添加指数退避重试机制：最大延迟 10 秒，最多重试 5 次
+  - next.config.js：
+    - 添加 rewrites 配置：`/api/proxy-media/*` → `https://media.shadowhub.app/*`
+    - 开发环境下通过本地代理转发，避免 HTTP 页面加载 HTTPS 视频的混合内容警告
+  - practice/page.tsx 和 PracticePage.tsx：
+    - 开发环境使用本地代理 `/api/proxy-media/...`
+    - 生产环境直接使用 `https://media.shadowhub.app/...`
+
+### Technical Details
+- 修改文件：
+  - `worker-media-proxy.js` - Worker 代理路径和缓存优化
+  - `src/components/VideoPlayer.tsx` - 环境检测和重试机制
+  - `next.config.js` - 开发环境代理配置
+  - `src/app/practice/page.tsx` - CDN URL 环境判断
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx` - CDN URL 环境判断
+  - `package.json` - 版本号更新
+
 ## [12.0.1] - 2026-03-09
 
 ### Added
