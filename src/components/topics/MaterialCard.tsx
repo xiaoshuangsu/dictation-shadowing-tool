@@ -1,5 +1,5 @@
 import { type Material } from '@/lib/supabase/client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 
 // 🔴 全局计数器，用于标识第一张图片
 let imageCounter = 0
@@ -22,6 +22,9 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [isFirstImage, setIsFirstImage] = useState(false)
+  const [shouldLoadImage, setShouldLoadImage] = useState(false)
+  const cardRef = useRef<HTMLDivElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
 
   // 🔴 标识第一张图片（用于调试）
   useEffect(() => {
@@ -29,6 +32,34 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
       setIsFirstImage(true)
     }
     imageCounter++
+  }, [])
+
+  // 🔴 关键优化：使用 IntersectionObserver 提前触发加载（进入视口前 600px）
+  useEffect(() => {
+    if (!cardRef.current) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting || entry.intersectionRatio > 0) {
+            // 卡片进入预加载区域（视口前 600px）
+            setShouldLoadImage(true)
+            observer.disconnect() // 只需要触发一次
+          }
+        })
+      },
+      {
+        // 🔴 核心优化：rootMargin 让观察区域扩大到视口外 600px
+        rootMargin: '600px',
+        threshold: 0
+      }
+    )
+
+    observer.observe(cardRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
   }, [])
 
   // R2 URL 配置（统一使用 Worker 代理）
@@ -84,6 +115,23 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
   const supabaseUrl = getSupabaseUrl(material.thumbnail_path)
 
+  // 🔴 关键优化：使用回调函数预加载下一批图片
+  const preloadNextBatch = useCallback(() => {
+    if (!thumbnailUrl || !onPlay) return
+
+    // 触发自定义事件，通知父组件预加载下一批
+    window.dispatchEvent(new CustomEvent('materialCardVisible', {
+      detail: { materialId: material.id }
+    }))
+  }, [material.id, thumbnailUrl, onPlay])
+
+  // 🔴 当图片加载完成后，触发预加载下一批的信号
+  useEffect(() => {
+    if (imageLoaded && isFirstImage) {
+      preloadNextBatch()
+    }
+  }, [imageLoaded, isFirstImage, preloadNextBatch])
+
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget
     const currentSrc = img.src
@@ -99,21 +147,25 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
 
   return (
     <div
+      ref={cardRef}
       onClick={handleClick}
       className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
     >
       {/* 封面图 */}
-      <div className="relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
+      <div className="relative aspect-video min-h-[180px] bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
         {thumbnailUrl ? (
           <>
+            {/* 🔴 关键优化：只有当 shouldLoadImage 为 true 时才设置 src，否则使用空字符串 */}
             <img
+              ref={imageRef}
               crossOrigin="anonymous"
-              src={thumbnailUrl}
+              src={shouldLoadImage ? thumbnailUrl : undefined}
               alt={material.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               onError={handleImageError}
-              loading="lazy"
-              importance="low"
+              // 🔴 关键优化：优先使用 fetchpriority，loading="lazy" 仅用于非首屏
+              fetchpriority={isFirstImage ? "high" : "low"}
+              importance={isFirstImage ? "high" : "low"}
               decoding="async"
               style={{
                 opacity: imageLoaded ? 1 : 0,
@@ -133,7 +185,7 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
               }}
             />
             {/* 加载指示器 */}
-            {!imageLoaded && (
+            {!imageLoaded && shouldLoadImage && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-100 animate-pulse">
                 <svg className="w-12 h-12 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

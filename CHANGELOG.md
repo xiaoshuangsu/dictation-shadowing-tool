@@ -1,5 +1,39 @@
 # Changelog
 
+## [12.0.4] - 2026-03-10
+
+### Fixed
+- **移动端素材页面性能优化** 🚀
+  - 修复变量名错误：`totalCategories` → `totalCategoriesCount`
+  - 修复渲染循环错误：使用正确的 `categoryMaterials` 变量
+  - iOS Safari 兼容修复：简化 console.log 错误日志，避免"未能抓取属性"错误
+
+### Optimized
+- **图片加载策略优化** 📱
+  - 每个分类默认只显示 1 个素材（适合移动端一行一卡）
+  - 实现展开/收起切换功能：
+    - 默认状态：显示 1 个素材 + "查看全部 →"按钮
+    - 展开状态：显示所有素材 + "收起 ↑"按钮
+  - 图片懒加载优化：
+    - 第一张封面图：`loading="eager"` + `fetchPriority="high"`（立即加载）
+    - 其他封面图：`loading="lazy"`（进入视口才加载）
+
+### Added
+- **多语言支持** 🌐
+  - 中文：查看全部 → / 收起 ↑
+  - 英文：View More → / Collapse ↑
+
+### Removed
+- **调试工具清理** 🧹
+  - 删除"强制刷新图片"按钮及相关代码
+  - 移除不再使用的状态：`refreshKey`、`handleForceRefresh` 函数
+
+### Technical Details
+- 修改文件：
+  - `src/app/topics/page.tsx` - 性能优化和展开/收起功能
+  - `src/contexts/LanguageContext.tsx` - 添加翻译文本
+  - `package.json` - 版本号更新
+
 ## [12.0.3] - 2026-03-09
 
 ### Fixed
