@@ -1,5 +1,18 @@
 # Changelog
 
+## [12.0.5] - 2026-03-10
+
+### Fixed
+- **修复图片 URL 重复拼接问题** 🔧
+  - 恢复使用 `getThumbnailUrl` 函数正确处理图片 URL
+  - 该函数会检查路径是否为完整 URL，避免重复拼接 Worker 域名
+  - 修复线上环境封面图无法加载的问题
+
+### Technical Details
+- 修改文件：
+  - `src/app/topics/page.tsx` - 使用 getThumbnailUrl 函数
+  - `package.json` - 版本号更新
+
 ## [12.0.4] - 2026-03-10
 
 ### Fixed

@@ -578,10 +578,8 @@ export default function MaterialsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {/* 🔴 使用可见数量限制 */}
                     {categoryMaterials.slice(0, visibleCardCounts[categoryId] || 1).map((material, index) => {
-                      // 🔴 使用绝对路径，不走代理
-                      const thumbnailUrl = material.thumbnail_path
-                        ? `https://media.shadowhub.app/${material.thumbnail_path}`
-                        : null
+                      // 🔴 使用 getThumbnailUrl 函数处理 URL
+                      const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
 
                       // 🔴 图片加载优化：第一张图片优先加载，其他图片懒加载
                       const isFirstImage = index === 0
@@ -604,15 +602,6 @@ export default function MaterialsPage() {
                                   className="w-full h-full object-cover"
                                   loading={shouldLazyLoad ? "lazy" : "eager"}
                                   fetchPriority={isFirstImage ? "high" : "auto"}
-                                  onLoad={() => {
-                                    if (isFirstImage) {
-                                      console.log('🔍 [DEBUG] 第一张图片加载成功:', {
-                                        title: material.title,
-                                        url: thumbnailUrl,
-                                        category: categoryId
-                                      })
-                                    }
-                                  }}
                                 />
                               ) : null}
 
