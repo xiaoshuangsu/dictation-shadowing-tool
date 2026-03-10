@@ -600,7 +600,7 @@ export default function MaterialsPage() {
                                   {/* 🔴 关键修复：加载指示器仅在未超时且未加载时显示 */}
                                   {/* 超时后只停止转圈，但图片继续尝试加载 */}
                                   {!imageLoaded && !imageTimedOut && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm">
                                       <svg className="w-12 h-12 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V8a8 8 0 00-8 8z"></path>

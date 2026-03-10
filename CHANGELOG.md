@@ -1,5 +1,18 @@
 # Changelog
 
+## [12.0.7] - 2026-03-10
+
+### Fixed
+- **加载指示器优化** 🎨
+  - 将加载指示器背景改为半透明 (`bg-white/50`)
+  - 添加背景模糊效果 (`backdrop-blur-sm`)
+  - 确保图片在加载时也能透过加载指示器显示
+
+### Technical Details
+- 修改文件：
+  - `src/app/topics/page.tsx` - 优化加载指示器样式
+  - `package.json` - 版本号更新
+
 ## [12.0.6] - 2026-03-10
 
 ### Fixed
