@@ -1,5 +1,34 @@
 # Changelog
 
+## [15.0.0] - 2026-03-11
+
+### Fixed
+- **修复视频黑屏 + AbortError 问题** 🎥✅
+  - A 账号 Worker (r2-proxy)：修复 Range 参数传递错误
+    - 当没有 Range 请求时，传递了 `{ range: null }` 给 R2，导致 10001 错误
+    - 修复：只有在存在 Range 头时才添加 range 参数
+  - B 账号 Worker (morning-sound-a67b)：跨账号 R2 访问方案
+    - Cloudflare R2 不支持跨账号直接访问
+    - 解决方案：通过 HTTP 访问 A 账号的 R2 公开 URL
+    - 添加完整的 CORS 头和 Range 请求转发支持
+  - 最终架构：用户 → B账号worker → A账号R2公开URL（流式传输，无中间缓存）
+
+### Changed
+- **更新《Claude Code Guide》文档** 📚
+  - 新增《视频黑屏 + AbortError 问题》章节
+  - 包含问题原因分析、修复方案、代码示例、架构图
+  - 更新 Worker 配置说明和跨账号访问解决方案
+
+### Technical Details
+- 修改文件：
+  - `workers/worker-simple-ios-range.js` - A 账号 Worker（Range 参数修复）
+  - `worker-simple-ios.js` - B 账号 Worker（跨账号 HTTP 访问）
+  - `wrangler.toml` - 更新 Worker 配置
+  - `claude code guide.md` - 新增问题排查章节
+  - `package.json` - 版本号更新
+
+---
+
 ## [14.1.0] - 2026-03-11
 
 ### Fixed

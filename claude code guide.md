@@ -745,6 +745,113 @@ Worker 从 A 账号 R2 bucket (shadowhub) 读取文件
 
 ---
 
+# 🎥 视频黑屏 + AbortError 问题（已解决）
+
+## 📋 问题描述
+
+**症状：**
+- 移动端视频黑屏，无法播放
+- 控制台显示 `AbortError` 错误
+- Range 请求失败（10001 错误）
+
+---
+
+## 🔍 根本原因
+
+### 原因 1：Range 参数传递错误
+
+**问题：**
+- 当没有 Range 请求时，传递了 `{ range: null }` 给 R2
+- 导致 R2 返回 10001 错误
+- 视频无法正常加载
+
+**错误代码：**
+```javascript
+// ❌ 错误：rangeHeader 可能是 null
+const object = await env.R2.get(path, {
+  range: rangeHeader
+});
+```
+
+### 原因 2：跨账号 R2 访问问题
+
+**问题：**
+- Cloudflare R2 不支持跨账号直接访问
+- B 账号 Worker 无法绑定 A 账号的 R2 bucket
+
+---
+
+## ✅ 解决方案
+
+### A 账号修复 (Suxiaoshuang2020@gmail.com)
+
+**文件：** `/Users/a/dictation/workers/worker-simple-ios-range.js`
+**Worker：** `r2-proxy`
+
+**修复内容：**
+```javascript
+// ✅ 正确：只有在有 Range 头时才添加 range 参数
+let requestOptions = {};
+if (rangeHeader) {
+  requestOptions = { range: rangeHeader };
+}
+const object = await env.R2.get(path, requestOptions);
+```
+
+**部署命令：**
+```bash
+# 切换到 A 账号
+npx -y wrangler login
+npx -y wrangler deploy worker-simple-ios-range.js --name r2-proxy
+```
+
+---
+
+### B 账号修复 (modongla@3dpea.com)
+
+**文件：** `/Users/a/dictation/worker-simple-ios.js`
+**Worker：** `morning-sound-a67b`
+
+**修复内容：**
+```javascript
+// 通过 HTTP 访问 A 账号的 R2 公开 URL（跨账号解决方案）
+const A_ACCOUNT_R2_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev';
+const r2Url = `${A_ACCOUNT_R2_URL}/${path}`;
+const response = await fetch(r2Request);
+```
+
+**部署命令：**
+```bash
+# 切换到 B 账号
+npx -y wrangler login
+npx -y wrangler deploy worker-simple-ios.js --name morning-sound-a67b
+```
+
+---
+
+## 🏗️ 最终架构
+
+```
+用户 → B账号worker (morning-sound-a67b) → A账号R2公开URL
+```
+
+**特性：**
+- ✅ 流式传输（使用 `response.body`）
+- ✅ 无中间缓存
+- ✅ 支持 Range 请求
+- ✅ 完整 CORS 头
+
+---
+
+## 📌 关键要点
+
+1. **避免传递 null 参数**：R2.get() 的 options 只有在有值时才传递
+2. **跨账号访问方案**：使用 HTTP 访问公开 URL，而非 R2 bucket 绑定
+3. **流式传输**：直接传递 `response.body`，不缓存整个文件
+4. **完整 CORS 头**：确保所有错误响应也包含 CORS 头
+
+---
+
 # 🚀 封面图加载性能优化
 
 ## 📋 优化目标

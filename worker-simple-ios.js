@@ -1,13 +1,21 @@
 /**
- * ShadowHub Media Proxy Worker - 修复版
+ * ShadowHub Media Proxy Worker - HTTP 访问 A 账号 R2 版
  *
- * 关键修复：thumbnails 目录统一返回 image/webp
- * 因为实际上所有封面图都是 WebP 格式
+ * 关键修复：
+ * 1. 通过 HTTP 访问 A 账号的 R2 公开 URL（跨账号访问）
+ * 2. 支持 Range 请求（移动端视频播放必需）
+ * 3. 正确的 CORS 头
  */
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length',
 };
+
+// A 账号 R2 公开 URL
+const A_ACCOUNT_R2_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev';
 
 export default {
   async fetch(request, env, ctx) {
@@ -19,7 +27,7 @@ export default {
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-      return new Response('Method not allowed', { status: 405 });
+      return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
     }
 
     try {
@@ -30,50 +38,62 @@ export default {
         path = path.substring(1);
       }
 
-      console.log(`Request: ${path}`);
+      // 记录 Range 请求
+      const rangeHeader = request.headers.get('Range');
+      if (rangeHeader) {
+        console.log(`[Proxy] Range request: ${path}, Range: ${rangeHeader}`);
+      } else {
+        console.log(`[Proxy] Request: ${path}`);
+      }
 
-      if (env.R2) {
-        const object = await env.R2.get(path);
+      // 构建 A 账号 R2 公开 URL
+      const r2Url = `${A_ACCOUNT_R2_URL}/${path}`;
 
-        if (!object) {
-          console.error(`Not found: ${path}`);
-          return new Response('Not found', { status: 404 });
-        }
+      // 转发请求到 A 账号 R2
+      const r2Request = new Request(r2Url, {
+        method: request.method,
+        headers: request.headers,
+      });
 
-        const headers = new Headers();
+      const response = await fetch(r2Request);
 
-        // 🔴 关键修复：根据路径设置正确的内容类型
-        if (path.startsWith('thumbnails/')) {
-          // 所有封面图实际上都是 WebP 格式
-          headers.set('Content-Type', 'image/webp');
-        } else if (path.match(/\.(jpg|jpeg)$/i)) {
-          headers.set('Content-Type', 'image/jpeg');
-        } else if (path.match(/\.png$/i)) {
-          headers.set('Content-Type', 'image/png');
-        } else if (path.match(/\.webp$/i)) {
-          headers.set('Content-Type', 'image/webp');
-        } else if (path.match(/\.(mp4|webm)$/i)) {
-          headers.set('Content-Type', 'video/mp4');
-        } else if (path.match(/\.(mp3|m4a)$/i)) {
-          headers.set('Content-Type', 'audio/mpeg');
-        }
-
-        headers.set('Content-Length', String(object.size));
-        headers.set('Access-Control-Allow-Origin', '*');
-
-        console.log(`Serving: ${path}, type: ${headers.get('Content-Type')}, size: ${object.size}`);
-
-        return new Response(object.body, {
-          status: 200,
-          headers,
+      if (!response.ok) {
+        console.error(`[Proxy] R2 returned ${response.status}: ${path}`);
+        return new Response('Not found', {
+          status: response.status,
+          headers: CORS_HEADERS,
         });
       }
 
-      return new Response('R2 not configured', { status: 500 });
+      // 构建响应头
+      const headers = new Headers();
+
+      // 复制 R2 的响应头
+      response.headers.forEach((value, key) => {
+        headers.set(key, value);
+      });
+
+      // 覆盖 CORS 头
+      headers.set('Access-Control-Allow-Origin', '*');
+      headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      headers.set('Access-Control-Allow-Headers', '*');
+      headers.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length');
+
+      // 确保正确的 Content-Type
+      if (path.indexOf('thumbnails/') === 0) {
+        headers.set('Content-Type', 'image/webp');
+      }
+
+      console.log(`[Proxy] Serving: ${path}, status: ${response.status}, type: ${headers.get('Content-Type')}`);
+
+      return new Response(response.body, {
+        status: response.status,
+        headers,
+      });
 
     } catch (error) {
-      console.error('Error:', error);
-      return new Response('Error', { status: 500 });
+      console.error('[Proxy] Error:', error);
+      return new Response('Error', { status: 500, headers: CORS_HEADERS });
     }
   },
 };

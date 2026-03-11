@@ -1,8 +1,5 @@
-name = "r2-proxy"
-main = "worker-media-proxy.js"
-compatibility_date = "2026-03-10"
+name = "morning-sound-a67b"
+main = "worker-simple-ios.js"
+compatibility_date = "2024-01-01"
 
-# R2 Bucket 绑定
-[[r2_buckets]]
-binding = "R2"
-bucket_name = "shadowhub"
+# 不需要 R2 Bucket 绑定，因为通过 HTTP 访问 A 账号的 R2 公开 URL
