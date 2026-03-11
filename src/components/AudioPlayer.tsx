@@ -57,9 +57,17 @@ export default function AudioPlayer({
   }
 
   const playSentence = () => {
-    const audio = audioRef.current
-    if (!audio) return
+    console.log('🎵🎵🎵 playSentence() called! 🎵🎵🎵')
+    console.log('🎵 audioSrc:', audioSrc)
+    console.log('🎵 currentSentence:', currentSentence)
 
+    const audio = audioRef.current
+    if (!audio) {
+      console.error('❌ audioRef.current is null!')
+      return
+    }
+
+    console.log('✅ audio element exists, src:', audio.src)
     clearListeners()
 
     // 设置参数
@@ -215,10 +223,14 @@ export default function AudioPlayer({
     // 先添加 seeked 监听器
     audio.addEventListener('seeked', handleSeeked)
 
-    // 🔴 移动端 Safari 修复：添加超时检查（增加到 2 秒）
+    // 🔴 移动端 Safari 修复：添加超时检查
+    // 如果音频正在加载（readyState < 2），给更多时间等待
+    const isLoading = audio.readyState < 2
+    const timeoutMs = isLoading ? 10000 : 2000  // 加载中：10秒，已加载：2秒
+
     const seekTimeout = setTimeout(() => {
       if (!seekComplete) {
-        console.warn('⚠️ Seeked event timeout after 2s')
+        console.warn('⚠️ Seeked event timeout after', timeoutMs / 1000, 's')
         console.log('   Current time:', audio.currentTime, 'target:', startNum)
         console.log('   Audio state:', {
           readyState: audio.readyState,
@@ -227,6 +239,7 @@ export default function AudioPlayer({
           currentTime: audio.currentTime,
           volume: audio.volume,
           seeking: audio.seeking,
+          duration: audio.duration,
           seekable: audio.seekable.length > 0 ? `${audio.seekable.start(0)}-${audio.seekable.end(0)}` : 'none'
         })
         // 检查是否已经接近目标时间（允许 0.5 秒误差）
@@ -257,13 +270,20 @@ export default function AudioPlayer({
             setLoading(false)
           })
         } else {
-          console.error('❌ Seek failed - time not close to target')
-          console.error('   Expected:', startNum, 'Got:', audio.currentTime, 'Diff:', Math.abs(audio.currentTime - startNum))
-          console.error('   This usually means the audio file is not fully loaded or the seek position is beyond the loaded range')
-          setLoading(false)
+          // 🔴 关键修复：如果音频仍在加载，不要报错，继续等待
+          if (audio.readyState < 2) {
+            console.warn('⏳ Audio still loading, extending timeout...')
+            // 继续等待，不设置 seekComplete
+            // canplay 事件最终会触发 performSeek
+          } else {
+            console.error('❌ Seek failed - time not close to target')
+            console.error('   Expected:', startNum, 'Got:', audio.currentTime, 'Diff:', Math.abs(audio.currentTime - startNum))
+            console.error('   This usually means the audio file is not fully loaded or the seek position is beyond the loaded range')
+            setLoading(false)
+          }
         }
       }
-    }, 2000) // 增加到 2 秒
+    }, timeoutMs)
 
     // 设置清理函数
     cleanupRef.current = () => {
@@ -328,7 +348,9 @@ export default function AudioPlayer({
 
   // Auto-play when trigger changes
   useEffect(() => {
+    console.log('🎵 AudioPlayer: autoPlayTrigger changed to:', autoPlayTrigger, 'previous:', prevTriggerRef.current)
     if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
+      console.log('🎵 AudioPlayer: Triggering playSentence()')
       prevTriggerRef.current = autoPlayTrigger
       setTimeout(() => playSentence(), 50)
     }

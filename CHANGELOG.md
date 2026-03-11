@@ -1,5 +1,33 @@
 # Changelog
 
+## [15.1.0] - 2026-03-11
+
+### Fixed
+- **修复视频和音频同时播放问题** 🎵🎬
+  - 问题：点击练习播放按钮时，如果视频正在播放，会导致双重声音
+  - 原因：VideoPlayer 的暂停逻辑条件过于严格（要求 `!isVideoPlaying`）
+  - 修复：移除 `!isVideoPlaying` 条件，只要检测到音频播放就自动暂停视频
+  - 效果：练习模式优先于视频播放，避免双重声音
+
+### Improved
+- **AudioPlayer 超时逻辑优化** ⏱️
+  - 音频加载时：10 秒超时（之前是 2 秒）
+  - 音频已加载：2 秒超时
+  - 超时后不报错，继续等待 canplay 事件
+
+- **音频文件后缀处理** 🔧
+  - PracticePage getCdnUrl 函数添加音频后缀检查
+  - 自动添加 `.mp3` 后缀（如果缺失）
+
+### Technical Details
+- 修改文件：
+  - `src/components/VideoPlayer.tsx` - 修复暂停逻辑
+  - `src/components/AudioPlayer.tsx` - 超时优化
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 音频后缀处理
+  - `package.json` - 版本号更新至 15.1.0
+
+---
+
 ## [15.0.0] - 2026-03-11
 
 ### Fixed

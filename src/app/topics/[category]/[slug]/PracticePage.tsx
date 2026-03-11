@@ -104,6 +104,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
       console.log('🔧 getCdnUrl: Added .mp4 to relative path:', finalUrl)
     }
 
+    // 🔴 关键修复：确保音频 URL 有 .mp3 后缀
+    if (url.includes('audio') && !url.endsWith('.mp3') && !url.endsWith('.m4a')) {
+      finalUrl = `${finalUrl}.mp3`
+      console.log('🔧 getCdnUrl: Added .mp3 to relative path:', finalUrl)
+    }
+
     console.log('🔧 getCdnUrl output:', finalUrl)
     return finalUrl
   }
@@ -138,10 +144,17 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
         if (found) {
           setMaterial(found)
+          console.log('📦 Material found:', found.title)
+          console.log('📦 audio_path:', found.audio_path)
+          console.log('📦 video_path:', found.video_path)
 
           // Set audio/video URLs with CDN transformation
           if (found.audio_path) {
-            setAudioSrc(getCdnUrl(found.audio_path))
+            const audioUrl = getCdnUrl(found.audio_path)
+            console.log('🔊 Setting audioSrc:', audioUrl)
+            setAudioSrc(audioUrl)
+          } else {
+            console.warn('⚠️ No audio_path found in material!')
           }
           if (found.video_path) {
             console.log('🎬 Raw video_path from DB:', found.video_path)
@@ -434,6 +447,19 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
           {/* Middle Column - Practice Area (50%) */}
           <div className="lg:col-span-[2] w-full bg-white rounded-lg shadow-sm p-6">
+            {/* Debug: AudioPlayer render conditions */}
+            {(() => {
+              console.log('🔍 AudioPlayer render check:', {
+                audioSrc: audioSrc ? audioSrc.substring(0, 50) + '...' : 'undefined',
+                hasCurrentSentence: !!currentSentence,
+                currentSentenceText: currentSentence?.text?.substring(0, 30),
+                mode,
+                autoPlayTrigger,
+                shouldRender: !!(audioSrc && currentSentence && (mode === 'dictation' || mode === 'shadowing'))
+              })
+              return null
+            })()}
+
             {/* Hidden Audio Player - The Only Media Source */}
             {audioSrc && currentSentence && (mode === 'dictation' || mode === 'shadowing') && (
               <div style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', pointerEvents: 'none' }}>

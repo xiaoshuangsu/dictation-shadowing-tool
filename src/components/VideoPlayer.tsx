@@ -293,16 +293,17 @@ export default function VideoPlayer({
 
   // 持续同步 currentTime（音频播放时的实时同步）
   useEffect(() => {
-    // 🔴 只有在视频不在播放状态时，才检查是否需要退出自由观看模式
-    // 🔴 如果视频正在播放，说明用户主动点击了视频播放按钮，不应该被打断
-    if (isFreePlayModeRef.current && !isVideoPlaying && currentTime > 0) {
-      console.log('🔄 Exiting free play mode, entering practice mode')
+    // 🔴 关键修复：当检测到音频播放（currentTime > 0）时，自动暂停视频
+    // 无论视频是否在播放，都应该给音频让路（练习模式优先）
+    if (isFreePlayModeRef.current && currentTime > 0) {
+      console.log('🔄 Audio detected playing, pausing video for practice mode')
       isFreePlayModeRef.current = false
 
       // 🔴 暂停视频，避免与音频冲突
       if (videoRef.current && !videoRef.current.paused) {
         console.log('⏸️ Pausing video to avoid audio conflict')
         videoRef.current.pause()
+        setIsVideoPlaying(false)
       }
     }
 
