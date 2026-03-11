@@ -345,17 +345,20 @@ export default function MaterialsPage() {
     if (firstScreenLoaded && preloadedImages.size === 0) {
       console.log('🖼️ 首屏图片加载完成，开始顺序预加载下一批...')
 
-      // 🔴 强制顺序预加载：按索引顺序依次创建 Image 对象
-      const PRELOAD_TOTAL = 16 // 预加载接下来的 16 张图片
-      const START_INDEX = firstScreenCount * Object.keys(materialsByCategory).length // 跳过首屏
+      // 🔴 强制顺序预加载：按分类顺序，每个分类预加载该分类的第二张卡片（索引 1）
+      const preloadTargets: Array<{ id: string; url: string }> = []
 
-      const preloadTargets = allMaterialsInOrder
-        .slice(START_INDEX, START_INDEX + PRELOAD_TOTAL)
-        .filter(({ material }) => material.thumbnail_path)
-        .map(({ material }) => ({
-          id: material.id,
-          url: getThumbnailUrl(material.thumbnail_path)!
-        }))
+      // 🔴 按分类顺序预加载每个分类的第二张卡片
+      Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
+        // 每个分类预加载第二张卡片（索引 1）
+        const secondCard = categoryMaterials[1]
+        if (secondCard && secondCard.thumbnail_path) {
+          preloadTargets.push({
+            id: secondCard.id,
+            url: getThumbnailUrl(secondCard.thumbnail_path)!
+          })
+        }
+      })
 
       if (preloadTargets.length === 0) return
 

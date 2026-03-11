@@ -794,45 +794,59 @@ const getPriorityConfig = () => {
 
 ### 2. 强制顺序预加载
 
-**实现逻辑：** 按索引顺序依次创建 Image 对象，每张图间隔 80ms
+**实现逻辑：** 按分类顺序预加载每个分类的第二张卡片（索引 1）
 
 ```typescript
-// 计算全局索引（跨分类）
-const allMaterialsInOrder = []
-let globalIndex = 0
+// 触发时机：首屏所有图片加载完成后
+if (firstScreenLoaded && preloadedImages.size === 0) {
+  const preloadTargets: Array<{ id: string; url: string }> = []
 
-Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
-  categoryMaterials.forEach((material) => {
-    allMaterialsInOrder.push({
-      material,
-      globalIndex
-    })
-    globalIndex++
+  // 按分类顺序预加载每个分类的第二张卡片
+  Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
+    const secondCard = categoryMaterials[1]  // 索引 1 = 第二张卡片
+    if (secondCard && secondCard.thumbnail_path) {
+      preloadTargets.push({
+        id: secondCard.id,
+        url: getThumbnailUrl(secondCard.thumbnail_path)
+      })
+    }
   })
-})
 
-// 顺序预加载
-const preloadNext = () => {
-  if (currentIndex >= preloadTargets.length) return
+  // 顺序预加载：每次加载一张，间隔 80ms
+  const preloadNext = () => {
+    if (currentIndex >= preloadTargets.length) return
 
-  const { id, url } = preloadTargets[currentIndex]
-  const img = new Image()
+    const { id, url } = preloadTargets[currentIndex]
+    const img = new Image()
 
-  img.onload = () => {
-    setPreloadedImages(prev => new Set([...prev, id]))
-    setTimeout(() => {
-      currentIndex++
-      preloadNext()  // 顺序加载下一张
-    }, 80) // 每张图间隔 80ms
+    img.onload = () => {
+      setPreloadedImages(prev => new Set([...prev, id]))
+      setTimeout(() => {
+        currentIndex++
+        preloadNext()  // 顺序加载下一张
+      }, 80) // 每张图间隔 80ms
+    }
+
+    img.onerror = () => {
+      // 失败也继续下一张
+      setPreloadedImages(prev => new Set([...prev, id]))
+      setTimeout(() => {
+        currentIndex++
+        preloadNext()
+      }, 80)
+    }
+
+    img.src = url
   }
 
-  img.src = url
+  preloadNext()
 }
 ```
 
 **关键点：**
-- 使用 `setTimeout` 人为控制加载顺序
-- 避免浏览器并行请求导致的乱序
+- **预加载目标**：每个分类的第二张卡片（索引 1），而非跨分类全局索引
+- **预加载顺序**：按分类顺序（日常生活 → YouTube Vlog → ...）
+- 使用 `setTimeout` 人为控制加载顺序，避免浏览器并行请求导致的乱序
 - 间隔 80ms，避免抢占带宽
 
 ---
@@ -908,14 +922,21 @@ setTimeout(() => {
 
 | 参数 | 值 | 说明 |
 |------|-----|------|
-| 首屏优先级 | Index 0-7 | `fetchPriority="high"` |
-| 次要优先级 | Index 8-15 | `fetchPriority="low"` |
+| 首屏优先级 | Index 0-7 | `fetchPriority="high"`, `loading="eager"` |
+| 次要优先级 | Index 8-15 | `fetchPriority="low"`, `loading="eager"` |
 | 懒加载阈值 | Index 16+ | `loading="lazy"` |
-| 预加载总量 | 16 张 | 控制内存占用 |
-| 每分类预加载 | 4 张 | 减少预加载总量 |
-| 分批大小 | 4 张/批 | 更快响应 |
-| 预加载间隔 | 80ms | 顺序加载 |
+| 预加载目标 | 每个分类的第 2 张卡片 | 索引 1 |
+| 预加载间隔 | 80ms | 顺序加载，避免乱序 |
 | 分片渲染 | 3 批 | 100ms → 300ms → 600ms |
+
+## 🖥️ 首屏可见数量（响应式）
+
+| 屏幕宽度 | 首屏可见数量 |
+|---------|-------------|
+| < 640px（移动端） | 1 张 |
+| < 1024px（小屏） | 2 张 |
+| < 1280px（中屏） | 3 张 |
+| ≥ 1280px（大屏） | 4 张 |
 
 ---
 
