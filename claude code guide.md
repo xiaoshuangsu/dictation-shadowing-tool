@@ -105,7 +105,7 @@
   - ✅ **B 账号必须设置 `media.shadowhub.app/*` 路由**
   - 路由绑定到 B 账号 Worker（如 `morning-sound-a67b`）
   - 该 Worker 负责从 A 账号 R2 bucket 读取文件并返回
-  - DNS 记录：`media.shadowhub.app` → `morning-sound-a67b.modongla.workers.dev`（**橙色云朵**）
+  - DNS 记录：`media` → `morning-sound-a67b.modongla.workers.dev`（**橙色云朵**）
 
 ### 2. 数据匹配优先级逻辑 (Data Retrieval Priority)
 * **场景**：在动态路由 `[slug]` 页面根据路径查找数据库记录时。
@@ -742,3 +742,209 @@ Worker 从 A 账号 R2 bucket (shadowhub) 读取文件
 2. **Content-Type 必须正确**：thumbnails 目录返回 `image/webp`，不是 `image/jpeg`
 3. **Worker 路由必须配置**：B 账号必须设置 `media.shadowhub.app/*` 路由
 4. **前端必须添加 crossOrigin**：所有 `<img>` 标签需要 `crossOrigin="anonymous"`
+
+---
+
+# 🚀 封面图加载性能优化
+
+## 📋 优化目标
+
+**问题背景：**
+- 点击"查看更多"后，图片出现乱序加载（排在后面的先显示）
+- 一次性渲染所有 DOM，导致性能问题
+- 图片加载缺乏优先级控制，首屏 LCP 性能不佳
+
+**优化效果：**
+- ✅ 按顺序加载图片，避免乱序
+- ✅ 分片渲染，避免 DOM 爆炸
+- ✅ 优先级分层，提升首屏性能
+- ✅ 淡入动画，视觉平滑
+
+---
+
+## 🔧 解决方案
+
+### 1. 优先级分层 (Fetch Priority)
+
+**实现逻辑：** 根据全局索引计算图片优先级
+
+```typescript
+const getPriorityConfig = () => {
+  if (globalIndex < 8) {
+    // 第一梯队：高优先级，立即加载
+    return { fetchPriority: "high", loading: "eager" }
+  } else if (globalIndex < 16) {
+    // 第二梯队：低优先级但立即加载
+    return { fetchPriority: "low", loading: "eager" }
+  } else {
+    // 第三梯队：懒加载
+    return { fetchPriority: "auto", loading: "lazy" }
+  }
+}
+```
+
+**参数说明：**
+| 梯队 | 索引范围 | fetchPriority | loading | 说明 |
+|------|----------|----------------|---------|------|
+| 第一梯队 | 0-7 | high | eager | 最高优先级，确保 LCP |
+| 第二梯队 | 8-15 | low | eager | 次要优先级 |
+| 第三梯队 | 16+ | auto | lazy | 懒加载，节省带宽 |
+
+---
+
+### 2. 强制顺序预加载
+
+**实现逻辑：** 按索引顺序依次创建 Image 对象，每张图间隔 80ms
+
+```typescript
+// 计算全局索引（跨分类）
+const allMaterialsInOrder = []
+let globalIndex = 0
+
+Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
+  categoryMaterials.forEach((material) => {
+    allMaterialsInOrder.push({
+      material,
+      globalIndex
+    })
+    globalIndex++
+  })
+})
+
+// 顺序预加载
+const preloadNext = () => {
+  if (currentIndex >= preloadTargets.length) return
+
+  const { id, url } = preloadTargets[currentIndex]
+  const img = new Image()
+
+  img.onload = () => {
+    setPreloadedImages(prev => new Set([...prev, id]))
+    setTimeout(() => {
+      currentIndex++
+      preloadNext()  // 顺序加载下一张
+    }, 80) // 每张图间隔 80ms
+  }
+
+  img.src = url
+}
+```
+
+**关键点：**
+- 使用 `setTimeout` 人为控制加载顺序
+- 避免浏览器并行请求导致的乱序
+- 间隔 80ms，避免抢占带宽
+
+---
+
+### 3. 分片渲染 (Chunked Rendering)
+
+**实现逻辑：** 展开时分批增加可见图片数量
+
+```typescript
+// 未展开：显示首屏数量
+const defaultCount = getFirstScreenCount()
+const maxVisible = visibleImageCount[categoryId] || defaultCount
+
+const displayedMaterials = isExpanded
+  ? categoryMaterials.slice(0, maxVisible)
+  : categoryMaterials.slice(0, defaultCount)
+
+// 展开后分 3 批增加
+setTimeout(() => {
+  setVisibleImageCount(prev => ({
+    ...prev,
+    [categoryId]: firstScreenCount + 8
+  }))
+}, 100) // 100ms 后显示第一批
+
+setTimeout(() => {
+  setVisibleImageCount(prev => ({
+    ...prev,
+    [categoryId]: firstScreenCount + 16
+  }))
+}, 300) // 300ms 后显示第二批
+
+setTimeout(() => {
+  setVisibleImageCount(prev => ({
+    ...prev,
+    [categoryId]: categoryMaterials.length
+  }))
+}, 600) // 600ms 后显示全部
+```
+
+**效果：**
+- 避免一次性渲染所有 DOM
+- 平滑展开，视觉流畅
+- 减少首屏渲染压力
+
+---
+
+### 4. CSS 占位优化
+
+**实现逻辑：** 固定宽高比 + 淡入动画
+
+```typescript
+// 固定宽高比
+<div className="w-full relative aspect-video ...">
+
+// 淡入动画
+<img
+  className={`w-full h-full object-cover transition-opacity duration-300 ${
+    imageLoaded || isPreloaded ? 'opacity-100' : 'opacity-0'
+  `}
+  ...
+/>
+```
+
+**效果：**
+- 防止布局偏移（CLS）
+- 平滑的淡入效果
+- 即使有加载差异，视觉上也平滑
+
+---
+
+## 📊 优化参数
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| 首屏优先级 | Index 0-7 | `fetchPriority="high"` |
+| 次要优先级 | Index 8-15 | `fetchPriority="low"` |
+| 懒加载阈值 | Index 16+ | `loading="lazy"` |
+| 预加载总量 | 16 张 | 控制内存占用 |
+| 每分类预加载 | 4 张 | 减少预加载总量 |
+| 分批大小 | 4 张/批 | 更快响应 |
+| 预加载间隔 | 80ms | 顺序加载 |
+| 分片渲染 | 3 批 | 100ms → 300ms → 600ms |
+
+---
+
+## 🎯 实施检查清单
+
+**代码实现：**
+- [x] 添加 `visibleImageCount` 状态（分片渲染）
+- [x] 添加 `preloadedImages` 状态（预加载跟踪）
+- [x] 实现优先级分层计算函数
+- [x] 实现顺序预加载逻辑
+- [x] 添加淡入动画 CSS 类
+
+**性能验证：**
+- [ ] 首屏 LCP < 2.5s
+- [ ] 图片按顺序加载（无乱序）
+- [ ] 展开时平滑过渡（无 DOM 爆炸）
+- [ ] 预加载图片瞬间显示
+
+**移动端测试：**
+- [ ] iPhone Safari 访问页面
+- [ ] 首屏图片快速加载
+- [ ] 展开后图片按顺序显示
+- [ ] 淡入动画流畅
+
+---
+
+## 📌 关键要点
+
+1. **优先级必须分层**：首屏图片必须有最高优先级
+2. **预加载必须有序**：使用 setTimeout 控制加载顺序
+3. **渲染必须分片**：避免一次性渲染所有 DOM
+4. **动画必须平滑**：淡入动画提升用户体验

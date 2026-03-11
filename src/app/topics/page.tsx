@@ -107,8 +107,10 @@ export default function MaterialsPage() {
   const [imageLoadedStates, setImageLoadedStates] = useState<Record<string, boolean>>({})
   // 🔴 关键修复：在组件顶部定义超时状态，避免在 map 循环中使用 useState
   const [imageTimeoutStates, setImageTimeoutStates] = useState<Record<string, boolean>>({})
-  // 🔴 新增：首屏加载完成状态
-  const [firstScreenLoaded, setFirstScreenLoaded] = useState(false)
+  // 🔴 新增：分片渲染和预加载状态管理
+  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set())
+  const [visibleImageCount, setVisibleImageCount] = useState<Record<string, number>>({})
+  const [isPreloading, setIsPreloading] = useState(false)
 
   // 更新图片加载状态的辅助函数
   const setImageLoaded = (materialId: string, loaded: boolean) => {
@@ -274,7 +276,7 @@ export default function MaterialsPage() {
   }, [filteredMaterials, filters.category])
 
   // 🔴 关键修复 2：3秒强制解锁 - 全局处理图片超时
-  // 🔴 暂时移除超时检查，让浏览器原生加载机制接管
+  // 🔴 移除超时检查，让浏览器原生加载机制接管
   // useEffect(() => {
   //   const timeouts: NodeJS.Timeout[] = []
 
@@ -297,13 +299,13 @@ export default function MaterialsPage() {
   //   }
   // }, [filteredMaterials, imageLoadedStates, imageTimeoutStates])
 
-  // 🔴 新增：预加载逻辑 - 首屏加载完成后预加载所有图片
+  // 🔴 智能预加载逻辑 - 顺序预加载，避免乱序
   useEffect(() => {
-    if (loading || filteredMaterials.length === 0) return
+    if (loading || filteredMaterials.length === 0 || isPreloading) return
 
-    // 计算首屏可见的图片数量（每个分类前4个）
+    // 计算首屏可见的图片数量
     const getFirstScreenCount = () => {
-      if (typeof window === 'undefined') return 4
+      if (typeof window === 'undefined') return 1
       const width = window.innerWidth
       if (width < 640) return 1   // 移动端
       if (width < 1024) return 2  // 小屏
@@ -313,6 +315,21 @@ export default function MaterialsPage() {
 
     const firstScreenCount = getFirstScreenCount()
     const firstScreenMaterialIds = new Set<string>()
+
+    // 收集所有素材的完整顺序（跨分类）
+    const allMaterialsInOrder: Array<{ material: Material; categoryIndex: number; indexInCategory: number }> = []
+    let globalIndex = 0
+
+    Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
+      categoryMaterials.forEach((material, idx) => {
+        allMaterialsInOrder.push({
+          material,
+          categoryIndex: globalIndex,
+          indexInCategory: idx
+        })
+        globalIndex++
+      })
+    })
 
     // 收集首屏可见的素材 ID
     Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
@@ -325,58 +342,120 @@ export default function MaterialsPage() {
     const firstScreenLoaded = firstScreenMaterialIds.size > 0 &&
       Array.from(firstScreenMaterialIds).every(id => imageLoadedStates[id])
 
-    if (firstScreenLoaded && !firstScreenLoaded) {
-      console.log('🖼️ 首屏图片加载完成，开始预加载剩余图片...')
+    if (firstScreenLoaded && preloadedImages.size === 0) {
+      console.log('🖼️ 首屏图片加载完成，开始顺序预加载下一批...')
 
-      // 收集所有需要预加载的图片 URL（排除已加载的和没有缩略图的）
-      const preloadUrls: string[] = []
-      filteredMaterials.forEach(material => {
-        if (!firstScreenMaterialIds.has(material.id) && material.thumbnail_path) {
-          const url = getThumbnailUrl(material.thumbnail_path)
-          if (url) preloadUrls.push(url)
-        }
-      })
+      // 🔴 强制顺序预加载：按索引顺序依次创建 Image 对象
+      const PRELOAD_TOTAL = 16 // 预加载接下来的 16 张图片
+      const START_INDEX = firstScreenCount * Object.keys(materialsByCategory).length // 跳过首屏
 
-      // 预加载图片（使用 new Image()）
-      let loadedCount = 0
-      const totalCount = preloadUrls.length
+      const preloadTargets = allMaterialsInOrder
+        .slice(START_INDEX, START_INDEX + PRELOAD_TOTAL)
+        .filter(({ material }) => material.thumbnail_path)
+        .map(({ material }) => ({
+          id: material.id,
+          url: getThumbnailUrl(material.thumbnail_path)!
+        }))
 
-      console.log(`🖼️ 开始预加载 ${totalCount} 张图片...`)
+      if (preloadTargets.length === 0) return
 
-      // 分批预加载，避免一次性抢占太多带宽
-      const batchSize = 5 // 每批预加载5张
+      console.log(`🖼️ 顺序预加载 ${preloadTargets.length} 张图片...`)
+      setIsPreloading(true)
+
+      // 🔴 顺序预加载：每次加载一张，间隔 80ms
       let currentIndex = 0
 
-      const loadBatch = () => {
-        const batch = preloadUrls.slice(currentIndex, currentIndex + batchSize)
-        currentIndex += batchSize
-
-        batch.forEach(url => {
-          const img = new Image()
-          img.onload = () => {
-            loadedCount++
-            if (loadedCount === totalCount) {
-              console.log(`✅ 预加载完成：${totalCount} 张图片`)
-            }
-          }
-          img.onerror = () => {
-            loadedCount++ // 即使失败也计数，避免阻塞
-          }
-          img.src = url
-        })
-
-        // 如果还有剩余图片，继续加载下一批
-        if (currentIndex < preloadUrls.length) {
-          // 延迟 100ms 再加载下一批，避免抢占带宽
-          setTimeout(loadBatch, 100)
+      const preloadNext = () => {
+        if (currentIndex >= preloadTargets.length) {
+          console.log(`✅ 预加载完成：${preloadedImages.size} 张图片`)
+          setIsPreloading(false)
+          return
         }
+
+        const { id, url } = preloadTargets[currentIndex]
+        console.log(`🖼️ 预加载 [${currentIndex + 1}/${preloadTargets.length}]`, url)
+
+        const img = new Image()
+        img.onload = () => {
+          setPreloadedImages(prev => new Set([...prev, id]))
+          // 继续预加载下一张
+          setTimeout(() => {
+            currentIndex++
+            preloadNext()
+          }, 80) // 每张图间隔 80ms
+        }
+        img.onerror = () => {
+          // 失败也继续下一张
+          setPreloadedImages(prev => new Set([...prev, id]))
+          setTimeout(() => {
+            currentIndex++
+            preloadNext()
+          }, 80)
+        }
+        img.src = url
       }
 
-      // 启动分批预加载
-      loadBatch()
-      setFirstScreenLoaded(true)
+      // 启动顺序预加载
+      preloadNext()
     }
-  }, [loading, filteredMaterials, materialsByCategory, imageLoadedStates, firstScreenLoaded])
+  }, [loading, filteredMaterials, materialsByCategory, imageLoadedStates, preloadedImages, isPreloading])
+
+  // 🔴 分片渲染：控制每个分类显示的图片数量，避免 DOM 爆炸
+  useEffect(() => {
+    if (loading || filteredMaterials.length === 0) return
+
+    const getFirstScreenCount = () => {
+      if (typeof window === 'undefined') return 1
+      const width = window.innerWidth
+      if (width < 640) return 1
+      if (width < 1024) return 2
+      if (width < 1280) return 3
+      return 4
+    }
+
+    const firstScreenCount = getFirstScreenCount()
+
+    // 为每个分类设置初始可见图片数量
+    const initialCounts: Record<string, number> = {}
+    Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
+      // 未展开：显示首屏数量
+      // 已展开：显示所有（但后续会增加）
+      const isExpanded = expandedCategories.has(categoryId)
+      initialCounts[categoryId] = isExpanded ? Math.min(categoryMaterials.length, firstScreenCount + 8) : firstScreenCount
+    })
+
+    setVisibleImageCount(initialCounts)
+
+    // 🔴 展开时逐步增加可见图片数量，实现平滑展开
+    if (expandedCategories.size > 0) {
+      const expandedCategory = Array.from(expandedCategories)[0] // 简化：只处理第一个展开的分类
+      const categoryMaterials = materialsByCategory[expandedCategory]
+
+      if (categoryMaterials && categoryMaterials.length > firstScreenCount) {
+        // 分 3 批增加可见数量
+        setTimeout(() => {
+          setVisibleImageCount(prev => ({
+            ...prev,
+            [expandedCategory]: firstScreenCount + 8
+          }))
+        }, 100) // 100ms 后显示第一批
+
+        setTimeout(() => {
+          setVisibleImageCount(prev => ({
+            ...prev,
+            [expandedCategory]: firstScreenCount + 16
+          }))
+        }, 300) // 300ms 后显示第二批
+
+        setTimeout(() => {
+          setVisibleImageCount(prev => ({
+            ...prev,
+            [expandedCategory]: categoryMaterials.length
+          }))
+        }, 600) // 600ms 后显示全部
+      }
+    }
+  }, [loading, filteredMaterials, materialsByCategory, expandedCategories])
 
 
   // R2 URL 配置（统一使用 Worker 代理）
@@ -496,8 +575,10 @@ export default function MaterialsPage() {
               }
 
               const defaultCount = getDefaultDisplayCount()
+              // 🔴 分片渲染：根据 visibleImageCount 限制显示数量
+              const maxVisible = visibleImageCount[categoryId] || defaultCount
               const displayedMaterials = isExpanded
-                ? categoryMaterials
+                ? categoryMaterials.slice(0, maxVisible)
                 : categoryMaterials.slice(0, defaultCount)
 
               return (
@@ -531,10 +612,41 @@ export default function MaterialsPage() {
                   {/* Card Grid - 始终使用网格布局 */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {displayedMaterials.map((material, index) => {
+                      // 🔴 计算全局索引用于优先级分层
+                      const getGlobalIndex = () => {
+                        let globalIdx = 0
+                        for (const [catId, catMats] of Object.entries(materialsByCategory)) {
+                          if (catId === categoryId) {
+                            return globalIdx + index
+                          }
+                          globalIdx += catMats.length
+                        }
+                        return globalIdx + index
+                      }
+
+                      const globalIndex = getGlobalIndex()
+
                       // 🔴 关键修复 1：三位一体路径匹配 - 确保完整 URL，无截断
                       const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
                       const imageLoaded = imageLoadedStates[material.id] || false
                       const imageTimedOut = imageTimeoutStates[material.id] || false
+                      const isPreloaded = preloadedImages.has(material.id)
+
+                      // 🔴 优先级分层
+                      const getPriorityConfig = () => {
+                        if (globalIndex < 8) {
+                          // 第一梯队：高优先级
+                          return { fetchPriority: "high", loading: "eager" }
+                        } else if (globalIndex < 16) {
+                          // 第二梯队：低优先级但立即加载
+                          return { fetchPriority: "low", loading: "eager" }
+                        } else {
+                          // 第三梯队：懒加载
+                          return { fetchPriority: "auto", loading: "lazy" }
+                        }
+                      }
+
+                      const priorityConfig = getPriorityConfig()
 
                       // 🔴 关键修复 3：立即处理错误，不等 3 秒
                       const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -575,7 +687,13 @@ export default function MaterialsPage() {
                                     crossOrigin="anonymous"
                                     src={thumbnailUrl}
                                     alt={material.title}
-                                    className="w-full h-full object-cover"
+                                    // 🔴 淡入动画：根据加载状态添加动画类
+                                    className={`w-full h-full object-cover transition-opacity duration-300 ${
+                                      imageLoaded || isPreloaded ? 'opacity-100' : 'opacity-0'
+                                    }`}
+                                    // 🔴 优先级分层
+                                    fetchPriority={priorityConfig.fetchPriority}
+                                    loading={priorityConfig.loading}
                                     onError={handleImageError}
                                     onLoad={() => {
                                       console.log('[MaterialCard] Image loaded:', material.title)
@@ -585,9 +703,9 @@ export default function MaterialsPage() {
                                       console.log('[MaterialCard] Image load start:', material.title, thumbnailUrl)
                                     }}
                                   />
-                                  {/* 🔴 关键修复：加载指示器仅在未超时且未加载时显示 */}
-                                  {/* 超时后只停止转圈，但图片继续尝试加载 */}
-                                  {!imageLoaded && !imageTimedOut && (
+                                  {/* 🔴 关键优化：已预加载的图片不显示加载指示器（瞬间显示） */}
+                                  {/* 未预加载的图片显示加载指示器 */}
+                                  {!imageLoaded && !imageTimedOut && !isPreloaded && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm">
                                       <svg className="w-12 h-12 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
