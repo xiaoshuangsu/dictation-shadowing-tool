@@ -101,9 +101,11 @@
   - ⚠️ **必须包含 `playsInline` 属性**，否则视频无法内联播放
   - ⚠️ **不能缺失 `crossOrigin="anonymous"` 属性**，即使有 Worker 代理，封面依然会黑屏
   - 这是实测中最耗时的发现
-* **路由冲突警示**：
-  - 🔴 **B 账号严禁设置 `media.shadowhub.app/*` 路由**，否则会拦截 A 账号的素材流量
-  - B 账号只负责前端托管，A 账号 Worker 负责资源代理
+* **路由配置要求**：
+  - ✅ **B 账号必须设置 `media.shadowhub.app/*` 路由**
+  - 路由绑定到 B 账号 Worker（如 `morning-sound-a67b`）
+  - 该 Worker 负责从 A 账号 R2 bucket 读取文件并返回
+  - DNS 记录：`media.shadowhub.app` → `morning-sound-a67b.modongla.workers.dev`（**橙色云朵**）
 
 ### 2. 数据匹配优先级逻辑 (Data Retrieval Priority)
 * **场景**：在动态路由 `[slug]` 页面根据路径查找数据库记录时。
@@ -385,15 +387,19 @@ ls -lh video.mp4
    - **职责**：主入口，负责前端代码构建、部署与展示。
 
 2. **A 账号 (素材存储账号)**：
-   - **托管服务**：Cloudflare R2 存储桶 + Worker 代理
-   - **职责**：存放音频、视频、缩略图等大文件。
-   - **访问限制**：素材必须通过 **Worker 代理 URL** (`https://media.shadowhub.app`) 获取。
-   - **Worker 映射关系**：
-     - 实际 Worker 地址：`r2-proxy.suxiaoshuang2020.workers.dev`（A 账号）
-     - 自定义域名映射：`media.shadowhub.app` → `r2-proxy.suxiaoshuang2020.workers.dev`
-     - 前端统一使用 `https://media.shadowhub.app` 访问素材
-   - **CORS 要求**：A 账号的 Worker 必须显式允许来自 `https://shadowhub.app` 的请求，并支持 Range 请求。
-   - **路由冲突警示**：🔴 **B 账号严禁设置 `media.shadowhub.app/*` 路由**，否则会拦截 A 账号的素材流量！
+   - **托管服务**：Cloudflare R2 存储桶
+   - **Bucket 名称**：`shadowhub`
+   - **职责**：存放音频、视频、缩略图等所有素材文件
+   - **访问方式**：通过 B 账号 Worker 跨账号访问
+
+3. **B 账号 Worker (媒体代理)**：
+   - **Worker 名称**：`morning-sound-a67b`（示例）
+   - **Worker URL**：`morning-sound-a67b.modongla.workers.dev`
+   - **职责**：
+     - 接收 `media.shadowhub.app/*` 请求
+     - 从 A 账号 R2 bucket 读取文件
+     - 返回正确的 Content-Type 和 CORS 头
+   - **前端访问**：统一使用 `https://media.shadowhub.app`
 
 3. **Supabase (中枢数据库)**：
    - **项目 ID**：`cuxotlijjnxbsirpdkgr`
@@ -541,3 +547,198 @@ ls -lh video.mp4
 ### 4. 动态生成要求 (SSG)
 - `generateStaticParams` 必须同时返回 `category` 和 `slug`。
 - 必须包含 `try-catch` 容错，构建失败时返回占位路径。
+
+---
+
+# 🔥 iPhone Safari 封面图加载问题（已解决）
+
+## 📋 问题描述
+
+**症状：**
+- iPhone Safari 上素材页面封面图无法加载
+- Network 面板显示状态为空（—）
+- 桌面浏览器正常显示
+
+---
+
+## 🔍 根本原因
+
+### 原因 1：Content-Type 不匹配（主要问题）
+
+**问题：**
+- Worker 根据文件扩展名 `.jpg` 返回 `Content-Type: image/jpeg`
+- 但 R2 中实际存储的是 **WebP 格式**的图片
+- **桌面浏览器**比较宽容，会尝试解析实际格式
+- **iOS Safari** 严格按照 Content-Type 解析，收到 `image/jpeg` 但数据是 WebP 时直接拒绝
+
+**验证方法：**
+```bash
+# 检查 Worker 返回的类型
+curl -I "https://media.shadowhub.app/thumbnails/uWgaabEb_gQ.jpg" | grep content-type
+
+# 检查实际文件格式
+curl -s "https://media.shadowhub.app/thumbnails/uWgaabEb_gQ.jpg" | file -
+```
+
+---
+
+### 原因 2：DNS 配置错误（关键问题）
+
+**问题：**
+- `media.shadowhub.app` 使用**灰色云朵**（DNS Only）
+- 灰色云朵 = 不经过 Cloudflare 代理，直接穿透到源服务器
+- 缺少 Cloudflare 的：
+  - ✅ 正确的 HTTPS/SSL 处理
+  - ✅ CDN 加速
+  - ✅ 跨域请求优化
+  - ✅ 连接稳定性保障
+
+**iOS Safari 限制：**
+- 对 HTTPS 资源的跨域请求有严格要求
+- 必须经过 Cloudflare 代理才能正常工作
+
+---
+
+### 原因 3：前端缺少跨域属性
+
+**问题：**
+- `<img>` 标签缺少 `crossOrigin="anonymous"` 属性
+- 导致浏览器无法正确处理跨域资源
+
+---
+
+## ✅ 解决方案
+
+### 方案 1：修复 Worker Content-Type
+
+**文件：** `worker-simple-ios.js`（B 账号 Worker）
+
+**修改：**
+```javascript
+// 🔴 关键修复：thumbnails 目录统一返回 image/webp
+// 因为实际上所有封面图都是 WebP 格式
+if (path.startsWith('thumbnails/')) {
+  headers.set('Content-Type', 'image/webp');
+}
+```
+
+**部署到 B 账号 Worker：**
+```bash
+npx -y wrangler deploy worker-simple-ios.js --name morning-sound-a67b
+```
+
+---
+
+### 方案 2：修改 DNS 配置（必须！）
+
+**位置：** B 账号 Cloudflare Dashboard → DNS → 记录
+
+**修改：** 把 `media.shadowhub.app` 从**灰色云朵**改成**橙色云朵**
+
+| 字段 | 值 |
+|------|-----|
+| Type | CNAME |
+| Name | media |
+| 内容 | morning-sound-a67b.modongla.workers.dev |
+| 状态 | **橙色云朵** ✅ |
+
+---
+
+### 方案 3：前端添加跨域属性
+
+**文件：** `src/app/topics/page.tsx`
+
+**修改：**
+```tsx
+<img
+  crossOrigin="anonymous"  // ✅ 新增
+  src={thumbnailUrl}
+  alt={material.title}
+  className="w-full h-full object-cover"
+  ...
+/>
+```
+
+---
+
+## 📌 完整配置清单
+
+### B 账号配置（域名账号）
+
+**DNS 记录：**
+```
+Type: CNAME
+Name: media
+内容：morning-sound-a67b.modongla.workers.dev
+状态：橙色云朵 ✅
+```
+
+**Worker 路由：**
+```
+路由：media.shadowhub.app/*
+Zone：shadowhub.app
+绑定 Worker：morning-sound-a67b ✅
+```
+
+**Worker 代码：**
+- 正确返回 `Content-Type: image/webp`（thumbnails 目录）
+- 从 A 账号 R2 bucket 读取文件
+- 添加 CORS 头：`Access-Control-Allow-Origin: *`
+
+---
+
+### A 账号配置（素材账号）
+
+**R2 Bucket：**
+```
+名称：shadowhub
+内容：所有素材文件（thumbnails/, audio/, videos/）
+```
+
+---
+
+## 🔄 请求流程
+
+```
+用户访问：https://media.shadowhub.app/thumbnails/xxx.jpg
+    ↓
+DNS 解析（橙色云朵）：CNAME → morning-sound-a67b.modongla.workers.dev
+    ↓
+Worker 路由匹配：media.shadowhub.app/*
+    ↓
+执行 B 账号 Worker（morning-sound-a67b）
+    ↓
+Worker 从 A 账号 R2 bucket (shadowhub) 读取文件
+    ↓
+返回图片（Content-Type: image/webp + CORS 头）
+```
+
+---
+
+## 🎯 验证检查清单
+
+**桌面端测试：**
+- [ ] Chrome DevTools Network 面板检查图片返回 200
+- [ ] Content-Type 为 `image/webp`（thumbnails）
+
+**移动端测试：**
+- [ ] iPhone Safari 访问页面
+- [ ] 封面图正常显示
+- [ ] Network 面板显示图片返回 200
+
+**DNS 检查（B 账号）：**
+- [ ] `media.shadowhub.app` 是橙色云朵
+- [ ] 不使用灰色云朵（DNS Only）
+
+**配置检查（B 账号）：**
+- [ ] Worker 路由 `media.shadowhub.app/*` 已绑定
+- [ ] Worker 代码正确返回 Content-Type
+
+---
+
+## 📌 关键要点
+
+1. **DNS 必须是橙色云朵**：灰色云朵会导致 iOS Safari 无法加载图片
+2. **Content-Type 必须正确**：thumbnails 目录返回 `image/webp`，不是 `image/jpeg`
+3. **Worker 路由必须配置**：B 账号必须设置 `media.shadowhub.app/*` 路由
+4. **前端必须添加 crossOrigin**：所有 `<img>` 标签需要 `crossOrigin="anonymous"`

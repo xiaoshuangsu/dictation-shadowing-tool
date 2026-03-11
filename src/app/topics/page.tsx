@@ -569,6 +569,8 @@ export default function MaterialsPage() {
                             <div className="w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
                               {thumbnailUrl ? (
                                 <>
+                                  {/* 🔴 调试：确认进入渲染分支 */}
+                                  {index === 0 && console.log('🔍 [DEBUG] Entering render branch, thumbnailUrl:', thumbnailUrl)}
                                   <img
                                     crossOrigin="anonymous"
                                     src={thumbnailUrl}
@@ -576,25 +578,11 @@ export default function MaterialsPage() {
                                     className="w-full h-full object-cover"
                                     onError={handleImageError}
                                     onLoad={() => {
-                                      // 🔴 调试：打印第一张图片的URL
-                                      if (index === 0) {
-                                        console.log('🔍 [DEBUG] 第一张图片加载成功:', {
-                                          title: material.title,
-                                          url: thumbnailUrl,
-                                          isProxy: thumbnailUrl?.includes('/api/proxy-media'),
-                                          isHttps: thumbnailUrl?.startsWith('https://')
-                                        })
-                                      }
                                       console.log('[MaterialCard] Image loaded:', material.title)
                                       setImageLoaded(material.id, true)
                                     }}
-                                    decoding="async"
-                                    referrerPolicy="no-referrer"
-                                    loading="lazy"
-                                    importance="low"
-                                    style={{
-                                      opacity: imageLoaded ? 1 : 0,
-                                      transition: 'opacity 0.3s ease-in'
+                                    onLoadStart={() => {
+                                      console.log('[MaterialCard] Image load start:', material.title, thumbnailUrl)
                                     }}
                                   />
                                   {/* 🔴 关键修复：加载指示器仅在未超时且未加载时显示 */}

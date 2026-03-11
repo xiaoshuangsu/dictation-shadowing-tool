@@ -1,0 +1,8 @@
+name = "r2-proxy"
+main = "worker-media-proxy.js"
+compatibility_date = "2026-03-10"
+
+# R2 Bucket 绑定
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "shadowhub"

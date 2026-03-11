@@ -1,5 +1,36 @@
 # Changelog
 
+## [13.0.0] - 2026-03-11
+
+### Fixed
+- **修复 iPhone Safari 封面图加载问题** 📱✅
+  - 为 `<img>` 标签添加 `crossOrigin="anonymous"` 属性
+  - 更新 Worker 代码，正确返回 `Content-Type: image/webp`（thumbnails 目录）
+  - 完善《Claude Code Guide》文档，添加完整的问题排查和解决方案
+
+### Changed
+- **基础设施配置更新** 🏗️
+  - 修正 DNS 配置：`media.shadowhub.app` 必须使用橙色云朵（Cloudflare 代理）
+  - 更新 Worker 路由配置说明：B 账号必须设置 `media.shadowhub.app/*` 路由
+  - 更新资源架构文档：明确 B 账号 Worker 的职责和跨账号访问方式
+
+### Documentation
+- **新增《iPhone Safari 封面图加载问题》章节** 📚
+  - 问题症状描述
+  - 三大根本原因分析（Content-Type 不匹配、DNS 配置错误、缺少跨域属性）
+  - 完整解决方案和代码示例
+  - 请求流程图和验证检查清单
+  - 关键要点总结
+
+### Technical Details
+- 修改文件：
+  - `src/app/topics/page.tsx` - 添加 `crossOrigin="anonymous"` 属性
+  - `worker-simple-ios.js` - 新增 Worker 代码（修复 Content-Type）
+  - `claude code guide.md` - 完整文档更新
+  - `package.json` - 版本号更新
+
+---
+
 ## [12.0.7] - 2026-03-10
 
 ### Fixed
