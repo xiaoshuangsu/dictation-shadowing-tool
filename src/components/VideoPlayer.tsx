@@ -320,6 +320,14 @@ export default function VideoPlayer({
     }
   }, [currentTime, videoSrc, isFreePlayModeRef.current, isVideoPlaying])
 
+  // 设置视频默认音量为 40%
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = 0.4
+      console.log('🎬 Video volume set to 40% (0.4)')
+    }
+  }, [videoSrc])
+
   // 如果没有视频源，只显示封面图片
   if (!videoSrc) {
     return (

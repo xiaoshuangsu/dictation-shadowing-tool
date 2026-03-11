@@ -19,6 +19,11 @@
   - PracticePage getCdnUrl 函数添加音频后缀检查
   - 自动添加 `.mp3` 后缀（如果缺失）
 
+- **音量统一调整** 🔊
+  - 练习音频：25% → 40% 音量
+  - 视频播放：默认 100% → 40% 音量
+  - 统一听量体验，避免音频和视频音量差异过大
+
 ### Technical Details
 - 修改文件：
   - `src/components/VideoPlayer.tsx` - 修复暂停逻辑
