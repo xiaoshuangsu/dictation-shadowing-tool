@@ -1,6 +1,37 @@
 
 # ShadowHub 项目全流程开发与自动化规范 (Master Guidelines)
 
+## 🚨 移动端视频播放问题修复记录 (2026-03-12)
+
+### 问题
+移动端播放视频时出现 `MEDIA_ERR_SRC_NOT_SUPPORTED` (错误码 4)，视频加载很久后偶尔能播放。
+
+### 根本原因
+1. **开发环境代理失效**：静态导出模式下 `next.config.js` 的 `rewrites` 不生效，`/api/proxy-media` 无法访问
+2. **Range 请求透传失败**：Worker 未正确处理 Range 请求，导致移动端无法分段加载视频
+
+### 解决方案
+1. **统一使用线上 Worker**：开发环境和生产环境都使用 `https://media.shadowhub.app`
+2. **优化 Worker 架构**：
+   - 部署 A 账号 Worker (`r2-proxy`) 直接访问 R2 bucket
+   - B 账号 Worker 代理到 A 账号 Worker（而非 R2 公开域名）
+3. **修复 Range 请求处理**：A 账号 Worker 正确传递 Range 参数并返回准确的 Content-Length
+
+### 架构
+```
+用户 → media.shadowhub.app (B账号Worker)
+     → r2-proxy.suxiaoshuang2020.workers.dev (A账号Worker)
+     → R2 bucket (shadowhub)
+```
+
+### 关键文件
+- `/Users/a/dictation/src/app/practice/page.tsx` - getCdnUrl 函数
+- `/Users/a/dictation/worker-simple-ios.js` - B 账号 Worker
+- `/Users/a/dictation/workers/worker-simple-ios-range.js` - A 账号 Worker
+- `/Users/a/dictation/workers/wrangler.toml` - A 账号 Worker 配置
+
+---
+
 # ⚠️ 重要交互准则 (Sarah's Identity & Interaction)
 * **用户身份**：Sarah（非开发者，不具备代码编写能力）。
 * **沟通语言**：必须全程使用 **中文**。

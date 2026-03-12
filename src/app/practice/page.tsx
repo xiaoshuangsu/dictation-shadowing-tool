@@ -56,8 +56,9 @@ const getCdnUrl = (url: string | null) => {
     return url
   }
 
-  // 🔴 关键修复：开发环境下使用本地代理，避免混合内容警告
-  const workerUrl = isDevelopment ? '/api/proxy-media' : R2_WORKER_URL
+  // ✅ 统一使用 Worker 代理（开发环境和生产环境）
+  // 静态导出模式下本地代理不生效，直接使用线上 Worker
+  const workerUrl = R2_WORKER_URL
   let finalUrl = `${workerUrl}/${url}`
 
   // 🔴 关键修复：强制补全 .mp4 后缀

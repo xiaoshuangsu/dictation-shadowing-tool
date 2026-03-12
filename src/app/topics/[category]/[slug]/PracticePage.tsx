@@ -94,8 +94,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
       return url
     }
 
-    // 🔴 关键修复：开发环境下使用本地代理，避免混合内容警告
-    const workerUrl = isDevelopment ? '/api/proxy-media' : 'https://media.shadowhub.app'
+    // 🔴 关键修复：直接使用生产环境 URL，避免代理重写问题
+    // 开发环境和生产环境都使用同一个 URL
+    const workerUrl = 'https://media.shadowhub.app'
     let finalUrl = `${workerUrl}/${url}`
 
     // 🔴 关键修复：确保视频 URL 有 .mp4 后缀
@@ -240,6 +241,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
     console.log("hasStarted:", hasStarted)
     console.log("sampleSentences.length:", sampleSentences.length)
 
+    // 🔴 移动端优化：点击播放按钮时，滚动到顶部完全隐藏标题
+    // 滚动到页面最顶部，确保标题完全隐藏
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+
     // 场景 A：第一次点击，播放当前第一句
     if (!hasStarted) {
       console.log("场景 A: 第一次点击，播放当前句 (index 0)")
@@ -382,7 +387,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
           </div>
 
           {/* Level 3: Mode Toggle Tabs (Centered) */}
-          <div className="flex justify-center">
+          <div id="mode-toggle-tabs" className="flex justify-center">
             <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => handleModeChange('dictation')}

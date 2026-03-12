@@ -1,5 +1,36 @@
 # Changelog
 
+## [15.2.0] - 2026-03-12
+
+### Fixed
+- **修复移动端视频 Code 4 错误** 📱✅
+  - 问题：移动端播放视频时出现 `MEDIA_ERR_SRC_NOT_SUPPORTED`，视频加载很久后偶尔能播放
+  - 根本原因：
+    1. 开发环境代理失效：静态导出模式下 `next.config.js` 的 `rewrites` 不生效
+    2. Range 请求透传失败：Worker 未正确处理 Range 请求，移动端无法分段加载
+  - 解决方案：
+    1. 统一使用线上 Worker：开发环境和生产环境都使用 `https://media.shadowhub.app`
+    2. 优化 Worker 架构：
+       - 部署 A 账号 Worker (`r2-proxy`) 直接访问 R2 bucket
+       - B 账号 Worker 代理到 A 账号 Worker（而非 R2 公开域名）
+    3. 修复 Range 请求处理：正确传递 Range 参数并返回准确的 Content-Length
+
+### Performance
+- **Range 请求速度提升 5.5 倍** 🚀
+  - Range 请求：110 KB/s → 610 KB/s
+  - 完整下载：2220 KB/s → 2979 KB/s
+  - 14MB 视频下载时间：6.46s → 4.81s
+
+### Technical Details
+- 修改文件：
+  - `src/app/practice/page.tsx` - getCdnUrl 统一使用线上 Worker
+  - `worker-simple-ios.js` - B 账号 Worker 改为代理到 A 账号 Worker
+  - `workers/worker-simple-ios-range.js` - A 账号 Worker 正确处理 Range 请求
+  - `workers/wrangler.toml` - A 账号 Worker 配置（新增）
+  - `claude code guide.md` - 添加问题修复记录
+
+---
+
 ## [15.1.0] - 2026-03-11
 
 ### Fixed

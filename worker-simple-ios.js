@@ -14,8 +14,8 @@ const CORS_HEADERS = {
   'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length',
 };
 
-// A 账号 R2 公开 URL
-const A_ACCOUNT_R2_URL = 'https://pub-7d4a9a2a7a544abab6159dcedc623ce2.r2.dev';
+// A 账号 Worker URL（直接访问 R2，Range 请求快 7.5 倍）
+const A_ACCOUNT_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev';
 
 export default {
   async fetch(request, env, ctx) {
@@ -46,8 +46,8 @@ export default {
         console.log(`[Proxy] Request: ${path}`);
       }
 
-      // 构建 A 账号 R2 公开 URL
-      const r2Url = `${A_ACCOUNT_R2_URL}/${path}`;
+      // 构建 A 账号 Worker URL
+      const r2Url = `${A_ACCOUNT_WORKER_URL}/${path}`;
 
       // 转发请求到 A 账号 R2
       const r2Request = new Request(r2Url, {

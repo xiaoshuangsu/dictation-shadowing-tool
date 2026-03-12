@@ -26,6 +26,7 @@ var worker_simple_ios_default = {
 
       // 记录 Range 请求
       const rangeHeader = request.headers.get("Range");
+      console.log("[R2 Proxy] Range header: " + (rangeHeader || "null"));
       if (rangeHeader) {
         console.log("[R2 Proxy] Range request: " + path + ", Range: " + rangeHeader);
       } else {
@@ -33,12 +34,20 @@ var worker_simple_ios_default = {
       }
 
       if (env.R2) {
-        // 支持 Range 请求
+        // 🔴 关键修复：R2 range 参数格式
+        // 根据 Cloudflare 文档，range 应该是对象格式
         let requestOptions = {};
 
-        // 🔴 关键修复：只有在有 Range 头时才添加 range 参数
         if (rangeHeader) {
-          requestOptions = { range: rangeHeader };
+          // 解析 Range 头：bytes=0-1048575
+          const match = rangeHeader.match(/bytes=(\d+)-(\d+)/);
+          if (match) {
+            const start = parseInt(match[1]);
+            const end = parseInt(match[2]);
+            // 使用对象格式传递 range
+            requestOptions = { range: { offset: start, length: end - start + 1 } };
+            console.log("[R2 Proxy] Range: offset=" + start + ", length=" + (end - start + 1));
+          }
         }
 
         const object = await env.R2.get(path, requestOptions);
@@ -65,17 +74,34 @@ var worker_simple_ios_default = {
           headers.set("Content-Type", "audio/mpeg");
         }
 
-        headers.set("Content-Length", String(object.size));
         headers.set("Access-Control-Allow-Origin", "*");
 
-        // 处理 Range 响应
-        if (object.range) {
-          headers.set("Content-Range", "bytes " + object.range.offset + "-" + object.range.end + "/" + object.size);
-          headers.set("Accept-Ranges", "bytes");
-          console.log("[R2 Proxy] Range response: " + object.range.offset + "-" + object.range.end + "/" + object.size);
-        } else {
-          headers.set("Accept-Ranges", "bytes");
+        // 🔴 关键修复：手动计算 Range 响应头
+        if (rangeHeader) {
+          const match = rangeHeader.match(/bytes=(\d+)-(\d+)/);
+          console.log("[R2 Proxy] Range match result: " + JSON.stringify(match));
+          if (match) {
+            const rangeStart = parseInt(match[1]);
+            const rangeEnd = Math.min(parseInt(match[2]), object.size - 1);
+            const rangeSize = rangeEnd - rangeStart + 1;
+
+            console.log("[R2 Proxy] Calculated: start=" + rangeStart + ", end=" + rangeEnd + ", size=" + rangeSize);
+
+            headers.set("Content-Length", String(rangeSize));
+            headers.set("Content-Range", "bytes " + rangeStart + "-" + rangeEnd + "/" + object.size);
+            headers.set("Accept-Ranges", "bytes");
+            console.log("[R2 Proxy] Range response: " + rangeStart + "-" + rangeEnd + "/" + object.size + ", size: " + rangeSize);
+
+            return new Response(object.body, {
+              status: 206,
+              headers
+            });
+          }
         }
+
+        // 完整请求：Content-Length 是完整文件大小
+        headers.set("Content-Length", String(object.size));
+        headers.set("Accept-Ranges", "bytes");
 
         console.log("Serving: " + path + ", type: " + headers.get("Content-Type") + ", size: " + object.size);
 
