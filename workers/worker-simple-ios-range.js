@@ -1,4 +1,5 @@
-// worker-simple-ios-range.js (大分片优化版)
+// A 账号 Worker (r2-proxy) - R2 原生流式传输方案
+// 🔴 关键修复：废除手动分片，直接透传 Range，回归 R2 原生流
 var worker_simple_ios_default = {
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
@@ -24,37 +25,18 @@ var worker_simple_ios_default = {
       }
 
       const rangeHeader = request.headers.get("Range");
-      console.log("[R2] Request: " + path + (rangeHeader ? ", Range: " + rangeHeader : ""));
+      console.log("[A Worker] Request: " + path + (rangeHeader ? ", Range: " + rangeHeader : ""));
 
       if (env.R2) {
-        // 🔴 关键优化：预取策略 - 强制大分片返回
+        // 🔴 关键修复：直接透传 Range 头，让 R2 原生处理分片
+        // 废除手动计算 MIN_CHUNK_SIZE，回归 R2 标准流式传输
         let requestOptions = undefined;
 
         if (rangeHeader) {
-          // 解析原始 Range 请求
-          const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
-          if (match) {
-            const start = parseInt(match[1]);
-            const endStr = match[2];
-            let length;
-
-            // 🔴 关键修复：强制最小返回 1MB，即使浏览器只请求很小
-            const MIN_CHUNK_SIZE = 1024 * 1024; // 1MB
-            const PREFETCH_MULTIPLIER = 10; // 预取 10 倍
-
-            if (endStr === '') {
-              // bytes=1048576- 格式：请求到末尾
-              length = 10 * 1024 * 1024; // 10MB
-            } else {
-              // bytes=0-1048575 格式
-              const requestedLength = parseInt(endStr) - start + 1;
-              // 返回 max(1MB, 10倍请求大小)
-              length = Math.max(MIN_CHUNK_SIZE, requestedLength * PREFETCH_MULTIPLIER);
-            }
-
-            requestOptions = { range: { offset: start, length: length } };
-            console.log("[R2] Prefetch: original=" + rangeHeader + ", returning " + (length / 1024 / 1024).toFixed(2) + "MB");
-          }
+          // 🔴 核心补丁：直接透传原始 Range 头
+          // R2 会自动计算 Content-Range 和返回正确的分片
+          requestOptions = { range: rangeHeader };
+          console.log("[A Worker] Passthrough Range: " + rangeHeader);
         }
 
         const object = await env.R2.get(path, requestOptions);
@@ -63,35 +45,60 @@ var worker_simple_ios_default = {
           return new Response("Not found", { status: 404 });
         }
 
-        // 🔴 关键：完全使用 R2 的 httpMetadata
-        const headers = new Headers(object.httpMetadata);
+        // 🔴 关键：只保留 5 个核心响应头，删除所有 Cloudflare 自动生成的头
+        const headers = new Headers();
 
-        // 🔴 关键修复：强制添加 ETag 和 Last-Modified
-        // Safari 极其依赖这些 Header 来判断资源一致性
-        if (!headers.has("Accept-Ranges")) {
-          headers.set("Accept-Ranges", "bytes");
+        // 1. Content-Type (必需)
+        if (object.httpMetadata?.contentType) {
+          headers.set("Content-Type", object.httpMetadata.contentType);
+        } else {
+          // 根据文件扩展名设置默认值
+          if (path.match(/\.(mp4|webm|ogg)$/i)) {
+            headers.set("Content-Type", "video/mp4");
+          } else if (path.match(/\.(mp3|m4a|wav)$/i)) {
+            headers.set("Content-Type", "audio/mpeg");
+          } else if (path.match(/\.(jpg|jpeg)$/i)) {
+            headers.set("Content-Type", "image/jpeg");
+          } else if (path.match(/\.webp$/i)) {
+            headers.set("Content-Type", "image/webp");
+          }
         }
 
-        // 添加边缘缓存，但要确保 ETag 一致性
-        headers.set("Cache-Control", "public, max-age=3600, must-revalidate");
+        // 2. Content-Length (必需，Safari 依赖)
+        headers.set("Content-Length", object.size.toString());
 
-        // 添加 CORS 头
+        // 3. Content-Range (Range 请求时必需，格式必须严格)
+        // 🔴 核心补丁：确保 Safari 能正确解析 Range 响应
+        if (object.range && rangeHeader) {
+          const contentRange = `bytes ${object.range.offset}-${object.range.offset + object.range.length - 1}/${object.size}`;
+          headers.set("Content-Range", contentRange);
+          console.log("[A Worker] Content-Range: " + contentRange);
+        }
+
+        // 4. Accept-Ranges (🔴 最关键：Safari 拒绝后续 Range 探测如果没有这个头)
+        headers.set("Accept-Ranges", "bytes");
+
+        // 5. ETag (可选，用于缓存验证)
+        if (object.httpMetadata?.etag) {
+          headers.set("ETag", object.httpMetadata.etag);
+        }
+
+        // 🔴 CORS 透传：确保 Safari 能读取 Content-Range 和 ETag
         headers.set("Access-Control-Allow-Origin", "*");
         headers.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
         headers.set("Access-Control-Allow-Headers", "*");
-        headers.set("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length, ETag, Last-Modified");
+        headers.set("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length, ETag");
 
-        // 移除可能干扰的头
-        headers.delete("Alt-Svc");
+        // 🔴 删除所有其他 Cloudflare 自动生成的头（防止"污染"）
+        // 不设置：cf-cache-status, alt-svc, server, x-* 等头
 
-        // 精确的状态码
+        // 精确的状态码：Range 请求返回 206，否则 200
         const status = (rangeHeader && object.range) ? 206 : 200;
 
-        console.log("[R2] Serving: " + path + ", status: " + status + ", size: " + object.size +
-                   ", ETag: " + headers.get('ETag')?.substring(0, 20) + "..." +
-                   (object.range ? ", range: " + JSON.stringify(object.range) : ""));
+        console.log("[A Worker] Response: status=" + status + ", size=" + object.size +
+                   (object.range ? ", range=" + JSON.stringify(object.range) : ""));
 
-        // 🔴 关键：流式转发，不做任何缓冲限制
+        // 🔴 流式转发，不做任何缓冲
         return new Response(object.body, {
           status: status,
           headers: headers
@@ -100,7 +107,7 @@ var worker_simple_ios_default = {
 
       return new Response("R2 not configured", { status: 500 });
     } catch (error) {
-      console.error("[R2] Error:", error);
+      console.error("[A Worker] Error:", error);
       return new Response("Error: " + error.message, { status: 500 });
     }
   }

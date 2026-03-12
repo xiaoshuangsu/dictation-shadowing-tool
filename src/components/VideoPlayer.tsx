@@ -185,7 +185,7 @@ export default function VideoPlayer({
             })
           }
         }
-      }, 500) // 每 500ms 检查一次
+      }, 2000) // 🔴 被动等待：提高到 2000ms，减少主线程负担
     } else {
       console.log('✅ [Buffer Throttle] Buffer sufficient, allowing playback')
       setIsVideoLoading(false)

@@ -1,10 +1,12 @@
 /**
- * ShadowHub Media Proxy Worker - 管道流优化版
+ * ShadowHub B 账号 Worker (morning-sound-a67b) - 精简 Headers 版本
  *
- * 核心优化：
- * 1. 流式转发，不等待全部下载
- * 2. 移除二次加工的 Header
- * 3. 添加分片大小调试日志
+ * 🔴 关键修复：只保留 5 个核心响应头，删除所有 Cloudflare 自动生成的头
+ * - Content-Type
+ * - Content-Length
+ * - Content-Range
+ * - Accept-Ranges
+ * - ETag
  */
 
 const A_ACCOUNT_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev';
@@ -19,7 +21,7 @@ export default {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
           'Access-Control-Allow-Headers': '*',
-          'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, ETag, Last-Modified',
+          'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, ETag',
         },
       });
     }
@@ -36,12 +38,12 @@ export default {
       }
 
       const rangeHeader = request.headers.get('Range');
-      console.log('[Proxy] Request: ' + path + (rangeHeader ? ', Range: ' + rangeHeader : ''));
+      console.log('[B Worker] Request: ' + path + (rangeHeader ? ', Range: ' + rangeHeader : ''));
 
       // 构建 A Worker URL
       const aWorkerUrl = `${A_ACCOUNT_WORKER_URL}/${path}`;
 
-      // 🔴 关键：透传所有原始请求头
+      // 🔴 透传所有原始请求头（包括 Range）
       const response = await fetch(aWorkerUrl, {
         method: request.method,
         headers: request.headers,
@@ -51,54 +53,75 @@ export default {
         return new Response('Not found', { status: 404 });
       }
 
-      // 🔴 关键：复制所有响应头，移除导致二次加工的头
+      // 🔴 关键修复：只保留 5 个核心响应头，删除所有其他头
       const headers = new Headers();
-      response.headers.forEach((value, key) => {
-        const keyLower = key.toLowerCase();
 
-        // 跳过 Cloudflare 内部头和可能导致二次加工的头
-        if (keyLower.startsWith('x-') ||
-            keyLower === 'cf-ray' ||
-            keyLower === 'cf-cache-status' ||
-            keyLower === 'cf-request-id' ||
-            keyLower === 'server' && value === 'cloudflare') {
-          return;
-        }
-
-        headers.set(key, value);
-      });
-
-      // 确保缓存策略正确
-      if (!headers.has('Cache-Control')) {
-        headers.set('Cache-Control', 'public, max-age=3600');
+      // 1. Content-Type
+      const contentType = response.headers.get('Content-Type');
+      if (contentType) {
+        headers.set('Content-Type', contentType);
       }
 
-      // 添加 CORS 头
+      // 2. Content-Length
+      const contentLength = response.headers.get('Content-Length');
+      if (contentLength) {
+        headers.set('Content-Length', contentLength);
+      }
+
+      // 3. Content-Range (Range 请求时)
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        headers.set('Content-Range', contentRange);
+        console.log('[B Worker] Content-Range: ' + contentRange);
+      }
+
+      // 4. Accept-Ranges (🔴 最关键：Safari 需要这个头来确认支持 Range)
+      const acceptRanges = response.headers.get('Accept-Ranges');
+      if (acceptRanges) {
+        headers.set('Accept-Ranges', acceptRanges);
+      }
+
+      // 5. ETag
+      const etag = response.headers.get('ETag');
+      if (etag) {
+        headers.set('ETag', etag);
+      }
+
+      // 🔴 CORS 透传：确保 Safari 能读取关键头
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       headers.set('Access-Control-Allow-Headers', '*');
-      headers.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, ETag, Last-Modified');
+      headers.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length, ETag');
 
-      // 🔴 关键调试日志：记录分片信息
-      const contentLength = headers.get('Content-Length');
+      // 🔴 删除所有其他头（包括 Cloudflare 自动生成的头）：
+      // - cf-cache-status, cf-ray, cf-request-id
+      // - server (cloudflare)
+      // - x-* (所有 Cloudflare 内部头)
+      // - alt-svc, report-to, nel
+      // - cache-control (由 A Worker 设置)
+
+      // 🔴 调试日志
       if (contentLength) {
         const sizeMB = parseInt(contentLength) / (1024 * 1024);
-        console.log('[Proxy] Serving: ' + path + ' -> ' + response.status +
-                   ', Content-Length: ' + sizeMB.toFixed(2) + 'MB' +
-                   ', ETag: ' + (headers.get('ETag')?.substring(0, 20) || 'N/A'));
+        console.log('[B Worker] Response: status=' + response.status +
+                   ', size=' + sizeMB.toFixed(2) + 'MB' +
+                   (contentRange ? ', Content-Range: ' + contentRange : '') +
+                   (etag ? ', ETag: ' + etag.substring(0, 20) + '...' : ''));
       }
 
-      // 🔴 关键：流式转发，使用 ReadableStream pip
-      // 不等待全部下载，立即开始传输
+      // 🔴 流式转发，不做任何缓冲
       return new Response(response.body, {
         status: response.status,
         headers,
       });
 
     } catch (error) {
-      console.error('[Proxy] Error:', error);
+      console.error('[B Worker] Error:', error);
       return new Response('Error: ' + error.message, { status: 500,
-        headers: { 'Access-Control-Allow-Origin': '*' }
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length, ETag'
+        }
       });
     }
   },
