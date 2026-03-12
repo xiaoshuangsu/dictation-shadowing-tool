@@ -1,10 +1,10 @@
 /**
- * ShadowHub Media Proxy Worker - 透明转发版
+ * ShadowHub Media Proxy Worker - 吞吐量优化版
  *
- * 核心原则：
- * 1. 透传所有请求（包括 Range header）给 A 账号 Worker
- * 2. 透传所有响应头，只添加 CORS
- * 3. 确保不丢失 Content-Range 和 Content-Type
+ * 核心优化：
+ * 1. 透传所有响应头，特别是 Content-Length
+ * 2. 添加边缘缓存，加速分片读取
+ * 3. 零缓冲流式转发，最大化吞吐量
  */
 
 const A_ACCOUNT_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev';
@@ -38,7 +38,7 @@ export default {
       // 构建 A Worker URL
       const aWorkerUrl = `${A_ACCOUNT_WORKER_URL}/${path}`;
 
-      // 🔴 关键：透传所有原始请求头，包括 Range
+      // 🔴 关键：透传所有原始请求头
       const response = await fetch(aWorkerUrl, {
         method: request.method,
         headers: request.headers,
@@ -48,7 +48,7 @@ export default {
         return new Response('Not found', { status: 404 });
       }
 
-      // 🔴 关键：复制 A Worker 的所有响应头
+      // 🔴 关键：复制所有响应头，包括 Content-Length
       const headers = new Headers();
       response.headers.forEach((value, key) => {
         const keyLower = key.toLowerCase();
@@ -61,15 +61,20 @@ export default {
         headers.set(key, value);
       });
 
-      // 🔴 关键：添加 CORS 头
+      // 🔴 关键：确保边缘缓存存在
+      if (!headers.has('Cache-Control')) {
+        headers.set('Cache-Control', 'public, max-age=3600');
+      }
+
+      // 添加 CORS 头
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       headers.set('Access-Control-Allow-Headers', '*');
       headers.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length');
 
-      console.log(`[Proxy] ${path} -> ${response.status}, Content-Type: ${headers.get('Content-Type')}`);
+      console.log(`[Proxy] ${path} -> ${response.status}, Content-Length: ${headers.get('Content-Length')}`);
 
-      // 🔴 关键：零缓冲流式转发
+      // 🔴 关键：零缓冲流式转发，最大化吞吐量
       return new Response(response.body, {
         status: response.status,
         headers,

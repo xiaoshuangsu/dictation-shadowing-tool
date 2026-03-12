@@ -1,4 +1,4 @@
-// worker-simple-ios-range.js (Range 边界修复版)
+// worker-simple-ios-range.js (吞吐量优化版)
 var worker_simple_ios_default = {
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
@@ -27,11 +27,9 @@ var worker_simple_ios_default = {
       console.log("[R2] Request: " + path + (rangeHeader ? ", Range: " + rangeHeader : ""));
 
       if (env.R2) {
-        // 🔴 关键修复 1：精确处理 Range 请求
+        // 🔴 关键：直接传递 Range header 字符串给 R2
         let requestOptions = undefined;
-
         if (rangeHeader) {
-          // 有 Range 头：传递给 R2
           requestOptions = { range: rangeHeader };
         }
 
@@ -41,13 +39,16 @@ var worker_simple_ios_default = {
           return new Response("Not found", { status: 404 });
         }
 
-        // 🔴 关键修复 2：完全使用 R2 的 httpMetadata
+        // 🔴 关键：完全使用 R2 的 httpMetadata
         const headers = new Headers(object.httpMetadata);
 
-        // 🔴 关键修复 3：强制 Accept-Ranges 告诉 Safari 支持断点续传
+        // 🔴 关键修复：强制 Accept-Ranges
         if (!headers.has("Accept-Ranges")) {
           headers.set("Accept-Ranges", "bytes");
         }
+
+        // 🔴 关键修复：添加边缘缓存，加速分片读取
+        headers.set("Cache-Control", "public, max-age=3600");
 
         // 添加 CORS 头
         headers.set("Access-Control-Allow-Origin", "*");
@@ -58,14 +59,13 @@ var worker_simple_ios_default = {
         // 移除可能干扰的头
         headers.delete("Alt-Svc");
 
-        // 🔴 关键修复 4：精确的状态码
-        // 有 Range 请求且 R2 返回了 range 属性 → 206
-        // 无 Range 请求 → 200
+        // 🔴 关键：精确的状态码
         const status = (rangeHeader && object.range) ? 206 : 200;
 
-        console.log("[R2] Serving: " + path + ", status: " + status +
+        console.log("[R2] Serving: " + path + ", status: " + status + ", size: " + object.size +
                    (object.range ? ", range: " + JSON.stringify(object.range) : ""));
 
+        // 🔴 关键：流式转发，不做任何缓冲限制
         return new Response(object.body, {
           status: status,
           headers: headers

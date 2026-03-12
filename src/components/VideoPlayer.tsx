@@ -34,11 +34,13 @@ export default function VideoPlayer({
   const [isMuted, setIsMuted] = useState(false) // 🔴 修复：默认不静音，让用户能听到声音
   const [isVideoPlaying, setIsVideoPlaying] = useState(false) // 🔴 追踪视频是否正在播放
   const [isVideoLoading, setIsVideoLoading] = useState(false) // 🔴 视频缓冲中状态
+  const [isBufferThrottled, setIsBufferThrottled] = useState(false) // 🔴 缓冲节流状态
   const isFreePlayModeRef = useRef(false) // 🔴 使用 useRef 来立即生效
   const videoRef = useRef<HTMLVideoElement>(null)
   const retryCountRef = useRef(0) // 🔴 重试次数计数器
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null) // 🔴 重试超时定时器
   const isMountedRef = useRef(true) // 🔴 组件挂载状态，防止卸载后执行操作
+  const bufferCheckIntervalRef = useRef<NodeJS.Timeout | null>(null) // 🔴 缓冲检查定时器
 
   // 🔴 调试日志：查看接收到的 props
   console.log('🎬 [VideoPlayer] Received props.videoSrc:', videoSrc)
@@ -134,13 +136,68 @@ export default function VideoPlayer({
 
   const handleCanPlay = () => {
     console.log('===== Video Can Play =====')
-    setIsVideoLoading(false) // 🔴 可以播放了，隐藏加载状态
-    if (videoRef.current) {
-      console.log('Video can play state:', {
-        readyState: videoRef.current.readyState,
-        currentTime: videoRef.current.currentTime,
-      })
+    const video = videoRef.current
+    if (!video) return
+
+    // 🔴 关键修复：Buffer Throttling 逻辑
+    // 检查缓冲是否足够（至少领先 2 秒）
+    const checkBufferSufficient = () => {
+      if (!video.buffered.length) return false
+      const bufferedEnd = video.buffered.end(video.buffered.length - 1)
+      const currentTime = video.currentTime
+      const bufferLead = bufferedEnd - currentTime
+      const isSufficient = bufferLead >= 2 // 至少领先 2 秒
+
+      console.log(`🔄 [Buffer Check] Current: ${currentTime.toFixed(2)}s, Buffered: ${bufferedEnd.toFixed(2)}s, Lead: ${bufferLead.toFixed(2)}s${isSufficient ? ' ✅' : ' ❌'}`)
+
+      return isSufficient
     }
+
+    const isSufficient = checkBufferSufficient()
+
+    if (!isSufficient) {
+      console.log('⏳ [Buffer Throttle] Buffer insufficient (< 2s), pausing and waiting...')
+      setIsVideoLoading(true)
+      setIsBufferThrottled(true)
+
+      // 暂停视频，等待更多缓冲
+      if (!video.paused) {
+        video.pause()
+      }
+
+      // 定期检查缓冲状态
+      if (bufferCheckIntervalRef.current) {
+        clearInterval(bufferCheckIntervalRef.current)
+      }
+
+      bufferCheckIntervalRef.current = setInterval(() => {
+        if (checkBufferSufficient()) {
+          console.log('✅ [Buffer Throttle] Buffer sufficient, resuming playback')
+          setIsVideoLoading(false)
+          setIsBufferThrottled(false)
+          clearInterval(bufferCheckIntervalRef.current!)
+          bufferCheckIntervalRef.current = null
+
+          // 恢复播放
+          if (video.paused && video.readyState >= 2) {
+            video.play().catch(err => {
+              console.warn('Failed to resume:', err.name)
+            })
+          }
+        }
+      }, 500) // 每 500ms 检查一次
+    } else {
+      console.log('✅ [Buffer Throttle] Buffer sufficient, allowing playback')
+      setIsVideoLoading(false)
+      setIsBufferThrottled(false)
+    }
+
+    console.log('Video can play state:', {
+      readyState: video.readyState,
+      currentTime: video.currentTime,
+      isThrottled: isBufferThrottled
+    })
+
     setVideoError(null)
   }
 
@@ -300,6 +357,11 @@ export default function VideoPlayer({
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current)
         retryTimeoutRef.current = null
+      }
+      // 🔴 清理缓冲检查定时器
+      if (bufferCheckIntervalRef.current) {
+        clearInterval(bufferCheckIntervalRef.current)
+        bufferCheckIntervalRef.current = null
       }
       // 🔴 清理时只暂停，不修改 src（避免设置当前页面 URL）
       if (videoRef.current) {
