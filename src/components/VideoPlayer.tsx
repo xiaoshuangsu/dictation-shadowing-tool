@@ -37,6 +37,7 @@ export default function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null)
   const retryCountRef = useRef(0) // 🔴 重试次数计数器
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null) // 🔴 重试超时定时器
+  const isMountedRef = useRef(true) // 🔴 组件挂载状态，防止卸载后执行操作
 
   // 🔴 调试日志：查看接收到的 props
   console.log('🎬 [VideoPlayer] Received props.videoSrc:', videoSrc)
@@ -219,9 +220,14 @@ export default function VideoPlayer({
 
       // 🔴 确保视频继续播放（iOS 可能需要显式调用）
       const video = videoRef.current
-      if (video.paused) {
+      if (video.paused && isMountedRef.current) {
         video.play().catch(err => {
-          console.warn('Video play warning:', err)
+          // 🔴 优雅处理 AbortError 和其他播放错误
+          if (err.name === 'AbortError') {
+            console.log('ℹ️ Video play aborted (可忽略，通常是切换视频导致)')
+          } else {
+            console.warn('Video play warning:', err.name, err.message)
+          }
         })
       }
     }
@@ -253,21 +259,51 @@ export default function VideoPlayer({
 
   // 强制加载视频资源（当 videoSrc 变化时）
   useEffect(() => {
+    isMountedRef.current = true // 标记组件已挂载
+
     if (videoRef.current && videoSrc) {
       console.log('===== VideoPlayer Props =====', {
         videoSrc: videoSrc?.substring(0, 80),
         thumbnailPath: thumbnailPath?.substring(0, 80),
       })
-      setVideoError(null)
-      retryCountRef.current = 0 // 重置重试计数器
-      videoRef.current.load()
+
+      const video = videoRef.current
+
+      // 🔴 关键修复：在设置新 src 之前，先清理旧的 video 状态
+      // 这样可以避免 AbortError 和旧的挂起请求干扰新的加载
+      try {
+        video.pause()
+        video.src = ""
+        video.load()
+
+        // 短暂延迟后加载新视频，确保清理完成
+        setTimeout(() => {
+          if (isMountedRef.current && videoRef.current) {
+            setVideoError(null)
+            retryCountRef.current = 0
+            videoRef.current.load()
+          }
+        }, 50)
+      } catch (error) {
+        console.warn('清理 video 状态时出错（可忽略）:', error)
+      }
     }
 
     // Cleanup function
     return () => {
+      isMountedRef.current = false // 标记组件已卸载
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current)
         retryTimeoutRef.current = null
+      }
+      // 清理 video 资源
+      if (videoRef.current) {
+        try {
+          videoRef.current.pause()
+          videoRef.current.src = ""
+        } catch (e) {
+          // 忽略清理时的错误
+        }
       }
     }
   }, [videoSrc, thumbnailPath])

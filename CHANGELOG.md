@@ -1,5 +1,27 @@
 # Changelog
 
+## [15.2.1] - 2026-03-12
+
+### Fixed
+- **修复移动端视频 AbortError 问题** 📱✅
+  - 问题：移动端视频播放时出现 `AbortError: The operation was aborted`
+  - 前端修复（VideoPlayer.tsx）：
+    1. 添加 `isMountedRef` 标志位，防止组件卸载后执行操作
+    2. 在 useEffect 设置新 src 之前，先清理旧状态：
+       - `video.pause()`
+       - `video.src = ""`
+       - `video.load()`
+    3. 优雅处理 play() promise：使用 `.catch()` 捕获并静默处理 AbortError
+  - 后端修复（worker-simple-ios.js）：
+    - 添加 `Connection: keep-alive` 响应头，避免连接意外关闭
+
+### Technical Details
+- 修改文件：
+  - `src/components/VideoPlayer.tsx` - 视频组件优化
+  - `worker-simple-ios.js` - 添加 Connection: keep-alive 头
+
+---
+
 ## [15.2.0] - 2026-03-12
 
 ### Fixed

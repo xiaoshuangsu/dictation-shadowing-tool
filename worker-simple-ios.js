@@ -79,6 +79,9 @@ export default {
       headers.set('Access-Control-Allow-Headers', '*');
       headers.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length');
 
+      // 🔴 关键修复：确保 Connection: keep-alive，避免 AbortError
+      headers.set('Connection', 'keep-alive');
+
       // 确保正确的 Content-Type
       if (path.indexOf('thumbnails/') === 0) {
         headers.set('Content-Type', 'image/webp');
