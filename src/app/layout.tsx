@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import Script from "next/script"
 import "./globals.css"
 import Navigation from "@/components/Navigation"
 import { LanguageProvider } from "@/contexts/LanguageContext"
@@ -21,17 +20,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <Script
-          src="https://unpkg.com/vconsole@3.15.0/dist/vconsole.min.js"
-          strategy="afterInteractive"
-        />
-        <Script id="vconsole-init" strategy="afterInteractive">
-          {`if (typeof window !== 'undefined' && window.VConsole) {
-            new window.VConsole({
-              theme: 'dark',
-            });
-          }`}
-        </Script>
         <LanguageProvider>
           <Navigation />
           <main className="pt-16">{children}</main>
