@@ -8,7 +8,6 @@ export default {
     }
 
     const rangeHeader = request.headers.get("Range");
-    const testTimestamp = Date.now().toString();
 
     // OPTIONS 预检
     if (request.method === "OPTIONS") {
@@ -81,10 +80,6 @@ export default {
 
         // CORS
         headers.set("Access-Control-Allow-Origin", "*");
-        // 🔴 调试头
-        headers.set("X-Debug-Timestamp", testTimestamp);
-        headers.set("X-Debug-RangeHeader", rangeHeader || "null");
-        headers.set("X-Debug-ObjectRange", object.range ? JSON.stringify(object.range) : "null");
 
         // 状态码
         const status = (rangeHeader && object.range) ? 206 : 200;
