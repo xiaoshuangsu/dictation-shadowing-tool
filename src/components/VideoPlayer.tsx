@@ -177,43 +177,8 @@ export default function VideoPlayer({
         currentSrc: video.currentSrc?.substring(0, 80),
       })
 
-      // 🔴 关键诊断：检查是否是混合内容问题
-      if (typeof window !== 'undefined') {
-        const pageProtocol = window.location.protocol
-        const videoProtocol = new URL(video.currentSrc || '').protocol
-        if (pageProtocol === 'http:' && videoProtocol === 'https:') {
-          console.warn('⚠️ 混合内容警告：HTTP 页面加载 HTTPS 视频')
-        }
-      }
-
-      // 🔴 关键修复：生产环境和开发环境都启用重试机制
-      // 如果持续 stalled 超过 3 秒，尝试重新加载视频
-      if (retryCountRef.current < 3) {
-        const delayMs = 3000 // 固定 3 秒后重试
-        console.log(`🔄 Stalled 检测到，${delayMs}ms 后重试加载视频 (${retryCountRef.current + 1}/3)`)
-
-        if (retryTimeoutRef.current) {
-          clearTimeout(retryTimeoutRef.current)
-        }
-
-        retryTimeoutRef.current = setTimeout(() => {
-          const currentVideo = videoRef.current
-          if (currentVideo && actualVideoSrc && isMountedRef.current) {
-            retryCountRef.current++
-            console.log(`🔄 执行 stalled 重试，当前次数: ${retryCountRef.current}`)
-            const currentTime = currentVideo.currentTime
-            currentVideo.load()
-            // 尝试恢复播放位置
-            currentVideo.addEventListener('loadedmetadata', () => {
-              if (currentTime > 0) {
-                currentVideo.currentTime = currentTime
-              }
-            }, { once: true })
-          }
-        }, delayMs)
-      } else {
-        console.warn('⚠️ 已达到最大重试次数 (3)，停止重试')
-      }
+      // 🔴 移除重试机制：stalled 是正常的缓冲行为
+      // 浏览器会自动恢复，不要打断正常的缓冲链路
     }
   }
 

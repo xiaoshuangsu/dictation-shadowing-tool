@@ -1,105 +1,66 @@
 /**
- * ShadowHub Media Proxy Worker - HTTP 访问 A 账号 R2 版
+ * ShadowHub Media Proxy Worker - 最简化版
  *
- * 关键修复：
- * 1. 通过 HTTP 访问 A 账号的 R2 公开 URL（跨账号访问）
- * 2. 支持 Range 请求（移动端视频播放必需）
- * 3. 正确的 CORS 头
+ * 只做两件事：
+ * 1. 透传请求（包括 Range header）给 A 账号 Worker
+ * 2. 在响应上添加 CORS 头
  */
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-  'Access-Control-Allow-Headers': '*',
-  'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length',
-};
-
-// A 账号 Worker URL（直接访问 R2，Range 请求快 7.5 倍）
 const A_ACCOUNT_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev';
 
 export default {
   async fetch(request, env, ctx) {
+    // OPTIONS 预检
     if (request.method === 'OPTIONS') {
       return new Response(null, {
         status: 204,
-        headers: CORS_HEADERS,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': '*',
+        },
       });
     }
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
-      return new Response('Method not allowed', { status: 405, headers: CORS_HEADERS });
+      return new Response('Method not allowed', { status: 405 });
     }
 
     try {
       const url = new URL(request.url);
       let path = url.pathname;
-
       if (path.startsWith('/')) {
         path = path.substring(1);
       }
 
-      // 记录 Range 请求
-      const rangeHeader = request.headers.get('Range');
-      if (rangeHeader) {
-        console.log(`[Proxy] Range request: ${path}, Range: ${rangeHeader}`);
-      } else {
-        console.log(`[Proxy] Request: ${path}`);
-      }
+      // 构建 A Worker URL
+      const aWorkerUrl = `${A_ACCOUNT_WORKER_URL}/${path}`;
 
-      // 构建 A 账号 Worker URL
-      const r2Url = `${A_ACCOUNT_WORKER_URL}/${path}`;
-
-      // 转发请求到 A 账号 R2
-      const r2Request = new Request(r2Url, {
+      // 🔴 关键：透传所有原始请求头，包括 Range
+      const response = await fetch(aWorkerUrl, {
         method: request.method,
         headers: request.headers,
       });
 
-      const response = await fetch(r2Request);
-
       if (!response.ok) {
-        console.error(`[Proxy] R2 returned ${response.status}: ${path}`);
-        return new Response('Not found', {
-          status: response.status,
-          headers: CORS_HEADERS,
-        });
+        return new Response('Not found', { status: response.status });
       }
 
-      // 构建响应头
+      // 🔴 关键：复制 A Worker 的所有响应头，只添加 CORS
       const headers = new Headers();
-
-      // 复制 R2 的响应头（排除 Alt-Svc，强制使用稳定的 HTTP/2）
       response.headers.forEach((value, key) => {
-        if (key.toLowerCase() !== 'alt-svc') {
-          headers.set(key, value);
-        }
+        headers.set(key, value);
       });
 
-      // 覆盖 CORS 头
+      // 添加 CORS 头
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       headers.set('Access-Control-Allow-Headers', '*');
       headers.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length');
 
-      // 🔴 关键修复：确保 Connection: keep-alive，避免 AbortError
-      headers.set('Connection', 'keep-alive');
+      console.log(`[Proxy] ${path} -> ${response.status}`);
 
-      // 🔴 关键修复：禁用缓存，确保总是获取最新的内容
-      headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-      headers.set('Pragma', 'no-cache');
-      headers.set('Expires', '0');
-
-      // 🔴 关键修复：确保正确的 Content-Type
-      if (path.indexOf('thumbnails/') === 0) {
-        headers.set('Content-Type', 'image/webp');
-      } else if (path.indexOf('videos/') === 0) {
-        headers.set('Content-Type', 'video/mp4');
-      } else if (path.indexOf('audio/') === 0) {
-        headers.set('Content-Type', 'audio/mpeg');
-      }
-
-      console.log(`[Proxy] Serving: ${path}, status: ${response.status}, type: ${headers.get('Content-Type')}`);
-
+      // 流式转发
       return new Response(response.body, {
         status: response.status,
         headers,
@@ -107,7 +68,7 @@ export default {
 
     } catch (error) {
       console.error('[Proxy] Error:', error);
-      return new Response('Error', { status: 500, headers: CORS_HEADERS });
+      return new Response('Error: ' + error.message, { status: 500 });
     }
   },
 };
