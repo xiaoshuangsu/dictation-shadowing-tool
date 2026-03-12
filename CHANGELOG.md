@@ -1,5 +1,24 @@
 # Changelog
 
+## [15.3.5] - 2026-03-12
+
+### Fixed
+- **修复 Safari Code 4 错误 - 优化 Range 处理和被动恢复** 🎬🔧
+  - 问题：数据流不稳定触发 Safari 保护机制，导致 MEDIA_ERR_SRC_NOT_SUPPORTED (Code 4)
+  - 解决：
+    - A 账号 Worker：精确 Range 边界（有 Range → 206，无 Range → 200）
+    - A 账号 Worker：强制 Accept-Ranges: bytes，明确支持断点续传
+    - B 账号 Worker：透明转发所有响应头
+    - B 账号 Worker：CORS 补充，暴露 Content-Range 给 Safari
+    - 前端：移除强制缓冲策略（暂停会触发 Code 4）
+    - 前端：被动激活策略，stalled 时静默恢复而非重载
+
+### Removed
+- **移除有害的强制缓冲策略** ⚠️
+  - 删除播放前检查 5 秒缓冲的逻辑
+  - 删除暂停视频等待缓冲的逻辑
+  - 这些策略会触发 Safari 的保护机制导致 Code 4 错误
+
 ## [15.3.4] - 2026-03-12
 
 ### Added
