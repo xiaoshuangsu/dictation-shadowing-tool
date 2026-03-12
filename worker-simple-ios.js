@@ -1,10 +1,10 @@
 /**
- * ShadowHub Media Proxy Worker - 零干扰流式转发版
+ * ShadowHub Media Proxy Worker - 透明转发版
  *
  * 核心原则：
- * 1. 透传请求（包括 Range header）给 A 账号 Worker
- * 2. 流式转发 response.body，零缓冲
- * 3. 只添加 CORS 头，删除所有 Cloudflare 内部头
+ * 1. 透传所有请求（包括 Range header）给 A 账号 Worker
+ * 2. 透传所有响应头，只添加 CORS
+ * 3. 确保不丢失 Content-Range 和 Content-Type
  */
 
 const A_ACCOUNT_WORKER_URL = 'https://r2-proxy.suxiaoshuang2020.workers.dev';
@@ -19,6 +19,7 @@ export default {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
           'Access-Control-Allow-Headers': '*',
+          'Access-Control-Expose-Headers': 'Content-Range, Accept-Ranges, Content-Length',
         },
       });
     }
@@ -43,35 +44,32 @@ export default {
         headers: request.headers,
       });
 
-      // 🔴 关键：即使是非 2xx 状态也继续，让 R2 的错误直接透传
-      // 这样可以保留原始的 404 等状态码
       if (response.status === 404) {
         return new Response('Not found', { status: 404 });
       }
 
-      // 🔴 关键：只保留 R2 的原始头，删除所有 Cloudflare 内部头
+      // 🔴 关键：复制 A Worker 的所有响应头
       const headers = new Headers();
       response.headers.forEach((value, key) => {
         const keyLower = key.toLowerCase();
-        // 跳过所有 Cloudflare 内部头（x- 开头）和可能干扰的头
+        // 只跳过 Cloudflare 内部头
         if (keyLower.startsWith('x-') ||
             keyLower === 'cf-ray' ||
             keyLower === 'server' && value === 'cloudflare') {
-          return; // 跳过这些头
+          return;
         }
         headers.set(key, value);
       });
 
-      // 🔴 关键：只添加 CORS 头，不修改任何 R2 的头
+      // 🔴 关键：添加 CORS 头
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
       headers.set('Access-Control-Allow-Headers', '*');
       headers.set('Access-Control-Expose-Headers', 'Content-Range, Accept-Ranges, Content-Length');
 
-      console.log(`[Proxy] ${path} -> ${response.status} (streaming)`);
+      console.log(`[Proxy] ${path} -> ${response.status}, Content-Type: ${headers.get('Content-Type')}`);
 
-      // 🔴 关键：零缓冲流式转发，response.body 直接传递给用户
-      // 不经过任何内存缓冲，确保大视频流式传输不中断
+      // 🔴 关键：零缓冲流式转发
       return new Response(response.body, {
         status: response.status,
         headers,

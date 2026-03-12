@@ -1,4 +1,4 @@
-// worker-simple-ios-range.js (完全简化版 - 让 R2 处理一切)
+// worker-simple-ios-range.js (Range 边界修复版)
 var worker_simple_ios_default = {
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
@@ -27,19 +27,29 @@ var worker_simple_ios_default = {
       console.log("[R2] Request: " + path + (rangeHeader ? ", Range: " + rangeHeader : ""));
 
       if (env.R2) {
-        // 🔴 关键：直接传递 Range header 字符串给 R2
-        // R2 会自动解析并返回正确的 httpMetadata
-        const object = await env.R2.get(path, rangeHeader ? { range: rangeHeader } : undefined);
+        // 🔴 关键修复 1：精确处理 Range 请求
+        let requestOptions = undefined;
+
+        if (rangeHeader) {
+          // 有 Range 头：传递给 R2
+          requestOptions = { range: rangeHeader };
+        }
+
+        const object = await env.R2.get(path, requestOptions);
 
         if (!object) {
           return new Response("Not found", { status: 404 });
         }
 
-        // 🔴 关键：完全使用 R2 的 httpMetadata，不做任何修改
-        // R2 已经设置了正确的 Content-Type, Content-Range, Content-Length, Accept-Ranges
+        // 🔴 关键修复 2：完全使用 R2 的 httpMetadata
         const headers = new Headers(object.httpMetadata);
 
-        // 只添加 CORS 头，其他全部由 R2 控制
+        // 🔴 关键修复 3：强制 Accept-Ranges 告诉 Safari 支持断点续传
+        if (!headers.has("Accept-Ranges")) {
+          headers.set("Accept-Ranges", "bytes");
+        }
+
+        // 添加 CORS 头
         headers.set("Access-Control-Allow-Origin", "*");
         headers.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
         headers.set("Access-Control-Allow-Headers", "*");
@@ -48,10 +58,13 @@ var worker_simple_ios_default = {
         // 移除可能干扰的头
         headers.delete("Alt-Svc");
 
-        // 🔴 关键：状态码也由 R2 range 属性决定
-        const status = object.range ? 206 : 200;
+        // 🔴 关键修复 4：精确的状态码
+        // 有 Range 请求且 R2 返回了 range 属性 → 206
+        // 无 Range 请求 → 200
+        const status = (rangeHeader && object.range) ? 206 : 200;
 
-        console.log("[R2] Serving: " + path + ", status: " + status);
+        console.log("[R2] Serving: " + path + ", status: " + status +
+                   (object.range ? ", range: " + JSON.stringify(object.range) : ""));
 
         return new Response(object.body, {
           status: status,

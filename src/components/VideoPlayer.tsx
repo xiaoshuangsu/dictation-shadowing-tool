@@ -171,18 +171,33 @@ export default function VideoPlayer({
 
   const handleStalled = () => {
     console.log('⚠️ Video stalled - 网络停止')
-    // 🔴 如果 readyState < 4，说明数据不足，显示加载状态
-    if (videoRef.current && videoRef.current.readyState < 4) {
+    const video = videoRef.current
+    if (!video) return
+
+    console.log('Stalled state:', {
+      readyState: video.readyState,
+      currentTime: video.currentTime,
+      networkState: video.networkState,
+    })
+
+    // 🔴 关键修复：被动激活策略
+    // 如果 readyState > 0（已有数据），尝试静默恢复播放
+    // 不要重载视频，不要打断缓冲链路
+    if (video.readyState > 0 && !video.paused) {
+      console.log('🔄 [Stalled] Attempting silent recovery...')
       setIsVideoLoading(true)
-    }
-    if (videoRef.current) {
-      const video = videoRef.current
-      console.log('Stalled state:', {
-        readyState: video.readyState,
-        currentTime: video.currentTime,
-        networkState: video.networkState,
-        currentSrc: video.currentSrc?.substring(0, 80),
-      })
+
+      // 短暂延迟后尝试恢复播放
+      setTimeout(() => {
+        if (video.readyState > 0 && isMountedRef.current) {
+          video.play().catch(err => {
+            console.log('ℹ️ [Stalled] Play failed:', err.name, '- will retry on next event')
+          })
+        }
+      }, 500)
+    } else if (video.readyState < 4) {
+      // readyState < 4 说明确实没有足够数据
+      setIsVideoLoading(true)
     }
   }
 
@@ -318,60 +333,8 @@ export default function VideoPlayer({
 
   // 持续同步 currentTime（音频播放时的实时同步）
 
-  // 🔴 关键优化：强制缓冲策略 - 确保播放前至少有 5 秒缓冲数据
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const checkBufferBeforePlay = async () => {
-      // 检查是否有足够的缓冲数据
-      const hasEnoughBuffer = () => {
-        if (!video.buffered.length) return false
-        const bufferedEnd = video.buffered.end(video.buffered.length - 1)
-        const currentTime = video.currentTime
-        const bufferLead = bufferedEnd - currentTime
-        console.log(`🔄 [Buffer Check] Current: ${currentTime.toFixed(1)}s, Buffered: ${bufferedEnd.toFixed(1)}s, Lead: ${bufferLead.toFixed(1)}s`)
-        return bufferLead >= 5 // 至少领先 5 秒
-      }
-
-      // 监听播放事件
-      const handlePlayAttempt = () => {
-        console.log('🎬 [Buffer] Play attempt detected')
-        setIsVideoLoading(true)
-
-        // 定期检查缓冲状态
-        const checkInterval = setInterval(() => {
-          if (hasEnoughBuffer()) {
-            console.log('✅ [Buffer] Enough data buffered, starting playback')
-            clearInterval(checkInterval)
-            setIsVideoLoading(false)
-          } else {
-            console.log('⏳ [Buffer] Waiting for more data...')
-            // 暂停视频，等待缓冲
-            if (!video.paused) {
-              video.pause()
-            }
-          }
-        }, 200) // 每 200ms 检查一次
-
-        // 10 秒后超时，强制播放
-        setTimeout(() => {
-          clearInterval(checkInterval)
-          if (!video.paused) {
-            setIsVideoLoading(false)
-          }
-        }, 10000)
-      }
-
-      video.addEventListener('play', handlePlayAttempt)
-
-      return () => {
-        video.removeEventListener('play', handlePlayAttempt)
-      }
-    }
-
-    checkBufferBeforePlay()
-  }, [videoSrc])
+  // 🔴 关键修复：移除强制缓冲策略，让浏览器自然缓冲
+  // 强制暂停会触发 Safari 的保护机制导致 Code 4 错误
 
   useEffect(() => {
     // 🔴 关键修复：当检测到音频播放（currentTime > 0）时，自动暂停视频
