@@ -1,5 +1,31 @@
 # Changelog
 
+## [15.3.7] - 2026-03-12
+
+### Added
+- **大分片预取策略** 🚀
+  - A 账号 Worker：最小返回 1MB，即使浏览器请求很小
+  - 预取倍数 10x：浏览器请求 100KB，Worker 返回 1MB
+  - 目的：最大化单次吞吐量，减少频繁的 Range 请求
+
+### Fixed
+- **彻底禁用 Stalled 干扰** 🎬
+  - readyState >= 3 时只显示 Loading UI
+  - 绝不调用 video.load()，不重设 src
+  - 不打断 MediaSource，让浏览器自然恢复
+
+### Changed
+- **Worker 调试优化** 🔍
+  - A 账号 Worker：记录 ETag、返回大小（MB）
+  - B 账号 Worker：记录分片大小日志
+  - 移除导致二次加工的 Header
+
+### Improved
+- **减少极小分片循环** 📈
+  - 单次分片从 0.1s 提升到 MB 级别
+  - ETag 一致性确保 Safari 不会频繁切断连接
+  - 流式转发，不等待全部下载
+
 ## [15.3.6] - 2026-03-12
 
 ### Added
