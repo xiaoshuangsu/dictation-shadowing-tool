@@ -1,5 +1,44 @@
 # Changelog
 
+## [15.3.0] - 2026-03-12
+
+### Fixed
+- **修复多个移动端视频播放问题** 📱✅
+  - **问题 1 - Code 4 错误**：
+    - 原因：开发环境代理失效，Range 请求透传失败
+    - 解决：统一使用线上 Worker，优化 Worker 架构（B → A Worker → R2）
+  - **问题 2 - AbortError**：
+    - 原因：组件卸载后执行操作，手动修改 video.src
+    - 解决：添加 isMountedRef，移除手动修改 src 的逻辑
+  - **问题 3 - src 错误赋值**：
+    - 原因：video.src 被设置为页面 URL
+    - 解决：强化 actualVideoSrc 验证，移除手动修改 src
+  - **问题 4 - 页面格式错乱**：
+    - 原因：dev server 只绑定 IPv6，CSS 404
+    - 解决：使用 `-H 0.0.0.0` 参数启动，同时绑定 IPv4 和 IPv6
+
+### Performance
+- **Range 请求速度提升 5.5 倍** 🚀
+  - Range 请求：110 KB/s → 610 KB/s
+  - 完整下载：2220 KB/s → 2979 KB/s
+  - 14MB 视频下载时间：6.46s → 4.81s
+
+### Changed
+- **更新《Claude Code Guide》** 📚
+  - 添加移动端视频播放问题修复记录
+  - 添加 dev server 启动命令说明
+
+### Technical Details
+- 修改文件：
+  - `src/app/practice/page.tsx` - getCdnUrl 统一使用线上 Worker
+  - `worker-simple-ios.js` - B 账号 Worker 代理到 A 账号 Worker，添加 Connection: keep-alive
+  - `workers/worker-simple-ios-range.js` - A 账号 Worker 正确处理 Range 请求
+  - `workers/wrangler.toml` - A 账号 Worker 配置（新增）
+  - `src/components/VideoPlayer.tsx` - 移除手动修改 src，添加 isMountedRef
+  - `claude code guide.md` - 添加完整的问题修复记录
+
+---
+
 ## [15.2.3] - 2026-03-12
 
 ### Fixed
