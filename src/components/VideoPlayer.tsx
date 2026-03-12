@@ -237,25 +237,18 @@ export default function VideoPlayer({
       networkState: video.networkState,
     })
 
-    // 🔴 关键修复：被动激活策略
-    // 如果 readyState > 0（已有数据），尝试静默恢复播放
-    // 不要重载视频，不要打断缓冲链路
-    if (video.readyState > 0 && !video.paused) {
-      console.log('🔄 [Stalled] Attempting silent recovery...')
+    // 🔴 关键修复：彻底禁用 Stalled 干扰
+    // 只要 readyState >= 3 (HAVE_FUTURE_DATA)，就只显示 Loading UI
+    // 绝对不调用 video.load()，不重设 src，不打断 MediaSource
+    if (video.readyState >= 3) {
+      console.log('🔄 [Stalled] readyState=' + video.readyState + ' (HAVE_FUTURE_DATA), showing loading only')
       setIsVideoLoading(true)
-
-      // 短暂延迟后尝试恢复播放
-      setTimeout(() => {
-        if (video.readyState > 0 && isMountedRef.current) {
-          video.play().catch(err => {
-            console.log('ℹ️ [Stalled] Play failed:', err.name, '- will retry on next event')
-          })
-        }
-      }, 500)
-    } else if (video.readyState < 4) {
-      // readyState < 4 说明确实没有足够数据
-      setIsVideoLoading(true)
+      // 🔴 不做任何其他操作，让浏览器自动恢复
+      return
     }
+
+    // readyState < 3 的情况，显示加载状态
+    setIsVideoLoading(true)
   }
 
   const handleSuspend = () => {

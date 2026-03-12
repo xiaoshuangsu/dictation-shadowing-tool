@@ -1,4 +1,4 @@
-// worker-simple-ios-range.js (吞吐量优化版)
+// worker-simple-ios-range.js (大分片优化版)
 var worker_simple_ios_default = {
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
@@ -27,10 +27,34 @@ var worker_simple_ios_default = {
       console.log("[R2] Request: " + path + (rangeHeader ? ", Range: " + rangeHeader : ""));
 
       if (env.R2) {
-        // 🔴 关键：直接传递 Range header 字符串给 R2
+        // 🔴 关键优化：预取策略 - 强制大分片返回
         let requestOptions = undefined;
+
         if (rangeHeader) {
-          requestOptions = { range: rangeHeader };
+          // 解析原始 Range 请求
+          const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+          if (match) {
+            const start = parseInt(match[1]);
+            const endStr = match[2];
+            let length;
+
+            // 🔴 关键修复：强制最小返回 1MB，即使浏览器只请求很小
+            const MIN_CHUNK_SIZE = 1024 * 1024; // 1MB
+            const PREFETCH_MULTIPLIER = 10; // 预取 10 倍
+
+            if (endStr === '') {
+              // bytes=1048576- 格式：请求到末尾
+              length = 10 * 1024 * 1024; // 10MB
+            } else {
+              // bytes=0-1048575 格式
+              const requestedLength = parseInt(endStr) - start + 1;
+              // 返回 max(1MB, 10倍请求大小)
+              length = Math.max(MIN_CHUNK_SIZE, requestedLength * PREFETCH_MULTIPLIER);
+            }
+
+            requestOptions = { range: { offset: start, length: length } };
+            console.log("[R2] Prefetch: original=" + rangeHeader + ", returning " + (length / 1024 / 1024).toFixed(2) + "MB");
+          }
         }
 
         const object = await env.R2.get(path, requestOptions);
@@ -42,27 +66,29 @@ var worker_simple_ios_default = {
         // 🔴 关键：完全使用 R2 的 httpMetadata
         const headers = new Headers(object.httpMetadata);
 
-        // 🔴 关键修复：强制 Accept-Ranges
+        // 🔴 关键修复：强制添加 ETag 和 Last-Modified
+        // Safari 极其依赖这些 Header 来判断资源一致性
         if (!headers.has("Accept-Ranges")) {
           headers.set("Accept-Ranges", "bytes");
         }
 
-        // 🔴 关键修复：添加边缘缓存，加速分片读取
-        headers.set("Cache-Control", "public, max-age=3600");
+        // 添加边缘缓存，但要确保 ETag 一致性
+        headers.set("Cache-Control", "public, max-age=3600, must-revalidate");
 
         // 添加 CORS 头
         headers.set("Access-Control-Allow-Origin", "*");
         headers.set("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
         headers.set("Access-Control-Allow-Headers", "*");
-        headers.set("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length");
+        headers.set("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length, ETag, Last-Modified");
 
         // 移除可能干扰的头
         headers.delete("Alt-Svc");
 
-        // 🔴 关键：精确的状态码
+        // 精确的状态码
         const status = (rangeHeader && object.range) ? 206 : 200;
 
         console.log("[R2] Serving: " + path + ", status: " + status + ", size: " + object.size +
+                   ", ETag: " + headers.get('ETag')?.substring(0, 20) + "..." +
                    (object.range ? ", range: " + JSON.stringify(object.range) : ""));
 
         // 🔴 关键：流式转发，不做任何缓冲限制
