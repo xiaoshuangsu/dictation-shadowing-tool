@@ -293,30 +293,10 @@ export default function VideoPlayer({
         thumbnailPath: thumbnailPath?.substring(0, 80),
       })
 
-      const video = videoRef.current
-
-      // 🔴 关键修复：在设置新 src 之前，先清理旧的 video 状态
-      // 这样可以避免 AbortError 和旧的挂起请求干扰新的加载
-      try {
-        video.pause()
-        video.src = ""
-        video.load()
-
-        // 短暂延迟后加载新视频，确保清理完成
-        setTimeout(() => {
-          if (isMountedRef.current && videoRef.current) {
-            setVideoError(null)
-            retryCountRef.current = 0
-            videoRef.current.load()
-
-            // 🔴 调试：验证加载后的 src
-            console.log('✅ [VideoPlayer] Video src set to:', videoRef.current.src?.substring(0, 100))
-            console.log('✅ [VideoPlayer] Video currentSrc:', videoRef.current.currentSrc?.substring(0, 100))
-          }
-        }, 50)
-      } catch (error) {
-        console.warn('清理 video 状态时出错（可忽略）:', error)
-      }
+      // 🔴 关键修复：不要手动修改 video.src，让 React 完全控制
+      // 只调用 load() 来触发重新加载
+      setVideoError(null)
+      retryCountRef.current = 0
     }
 
     // Cleanup function
@@ -326,11 +306,10 @@ export default function VideoPlayer({
         clearTimeout(retryTimeoutRef.current)
         retryTimeoutRef.current = null
       }
-      // 清理 video 资源
+      // 🔴 清理时只暂停，不修改 src（避免设置当前页面 URL）
       if (videoRef.current) {
         try {
           videoRef.current.pause()
-          videoRef.current.src = ""
         } catch (e) {
           // 忽略清理时的错误
         }

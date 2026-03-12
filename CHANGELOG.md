@@ -1,5 +1,20 @@
 # Changelog
 
+## [15.2.3] - 2026-03-12
+
+### Fixed
+- **修复 video src 被设置为页面 URL 的 Bug** 🐛✅
+  - 问题：useEffect 中手动修改 `video.src = ""`，导致浏览器使用当前页面 URL 作为视频 src
+  - 错误表现：`src` 属性显示为 `http://10.104.15.185:3000/topics/...` 而非视频 URL
+  - 解决方案：移除手动修改 src 的逻辑，让 React 完全控制 src 属性
+  - 清理函数：只调用 `pause()`，不修改 `src` 属性
+
+### Technical Details
+- 修改文件：
+  - `src/components/VideoPlayer.tsx` - 移除手动修改 video.src 的逻辑
+
+---
+
 ## [15.2.2] - 2026-03-12
 
 ### Fixed
