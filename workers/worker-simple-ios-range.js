@@ -76,6 +76,10 @@ var worker_simple_ios_default = {
 
         headers.set("Access-Control-Allow-Origin", "*");
 
+        // 🔴 关键修复：移除可能由 Cloudflare 自动添加的 Alt-Svc 头
+        // 强制使用稳定的 HTTP/2，防止 HTTP/3 (QUIC) 导致连接中断
+        headers.delete("Alt-Svc");
+
         // 🔴 关键修复：手动计算 Range 响应头
         if (rangeHeader) {
           const match = rangeHeader.match(/bytes=(\d+)-(\d+)/);

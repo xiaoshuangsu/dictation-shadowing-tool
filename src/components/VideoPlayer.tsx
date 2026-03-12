@@ -186,10 +186,11 @@ export default function VideoPlayer({
         }
       }
 
-      // 🔴 指数退避重试机制（仅开发环境）
-      if (isDevelopment && retryCountRef.current < 5) {
-        const delayMs = Math.min(500 * Math.pow(3, retryCountRef.current), 10000) // 最大 10 秒
-        console.log(`🔄 尝试重试加载视频 (${retryCountRef.current + 1}/5)，${delayMs}ms 后重试...`)
+      // 🔴 关键修复：生产环境和开发环境都启用重试机制
+      // 如果持续 stalled 超过 3 秒，尝试重新加载视频
+      if (retryCountRef.current < 3) {
+        const delayMs = 3000 // 固定 3 秒后重试
+        console.log(`🔄 Stalled 检测到，${delayMs}ms 后重试加载视频 (${retryCountRef.current + 1}/3)`)
 
         if (retryTimeoutRef.current) {
           clearTimeout(retryTimeoutRef.current)
@@ -197,12 +198,21 @@ export default function VideoPlayer({
 
         retryTimeoutRef.current = setTimeout(() => {
           const currentVideo = videoRef.current
-          if (currentVideo && actualVideoSrc) {
+          if (currentVideo && actualVideoSrc && isMountedRef.current) {
             retryCountRef.current++
-            console.log(`🔄 执行重试，当前次数: ${retryCountRef.current}`)
-            currentVideo.load() // 重新加载视频
+            console.log(`🔄 执行 stalled 重试，当前次数: ${retryCountRef.current}`)
+            const currentTime = currentVideo.currentTime
+            currentVideo.load()
+            // 尝试恢复播放位置
+            currentVideo.addEventListener('loadedmetadata', () => {
+              if (currentTime > 0) {
+                currentVideo.currentTime = currentTime
+              }
+            }, { once: true })
           }
         }, delayMs)
+      } else {
+        console.warn('⚠️ 已达到最大重试次数 (3)，停止重试')
       }
     }
   }

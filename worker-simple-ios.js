@@ -68,9 +68,11 @@ export default {
       // 构建响应头
       const headers = new Headers();
 
-      // 复制 R2 的响应头
+      // 复制 R2 的响应头（排除 Alt-Svc，强制使用稳定的 HTTP/2）
       response.headers.forEach((value, key) => {
-        headers.set(key, value);
+        if (key.toLowerCase() !== 'alt-svc') {
+          headers.set(key, value);
+        }
       });
 
       // 覆盖 CORS 头
@@ -82,9 +84,18 @@ export default {
       // 🔴 关键修复：确保 Connection: keep-alive，避免 AbortError
       headers.set('Connection', 'keep-alive');
 
-      // 确保正确的 Content-Type
+      // 🔴 关键修复：禁用缓存，确保总是获取最新的内容
+      headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      headers.set('Pragma', 'no-cache');
+      headers.set('Expires', '0');
+
+      // 🔴 关键修复：确保正确的 Content-Type
       if (path.indexOf('thumbnails/') === 0) {
         headers.set('Content-Type', 'image/webp');
+      } else if (path.indexOf('videos/') === 0) {
+        headers.set('Content-Type', 'video/mp4');
+      } else if (path.indexOf('audio/') === 0) {
+        headers.set('Content-Type', 'audio/mpeg');
       }
 
       console.log(`[Proxy] Serving: ${path}, status: ${response.status}, type: ${headers.get('Content-Type')}`);
