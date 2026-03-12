@@ -1,5 +1,26 @@
 # Changelog
 
+## [15.3.6] - 2026-03-12
+
+### Added
+- **Buffer Throttling 缓冲节流机制** 🎬⏳
+  - 检查缓冲是否领先当前时间 ≥ 2 秒
+  - 缓冲不足时暂停视频并显示加载状态
+  - 每 500ms 检查一次，直到缓冲足够再播放
+  - 避免极小分片循环（0.04s）导致的频繁卡顿
+
+### Changed
+- **Worker 吞吐量优化** ⚡
+  - A 账号 Worker：添加 Cache-Control: public, max-age=3600
+  - 利用 Cloudflare 边缘缓存加速分片读取
+  - B 账号 Worker：确保 Content-Length 被显式透传
+
+### Improved
+- **减少卡顿和极小分片循环** 📈
+  - 缓存命中后，Range 请求更快响应
+  - 缓冲节流确保播放连贯性
+  - 加载状态明确提示缓冲进度
+
 ## [15.3.5] - 2026-03-12
 
 ### Fixed
