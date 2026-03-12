@@ -1,5 +1,23 @@
 # Changelog
 
+## [15.3.2] - 2026-03-12
+
+### Fixed
+- **修复视频播放 stalled 问题** 🎬🔄
+  - 问题：视频播放几秒后报 stalled，Range 请求不稳定
+  - 原因：
+    - Worker 响应包含 Alt-Svc 头，导致手机尝试不稳定的 HTTP/3 (QUIC)
+    - 前端重试机制只在开发环境启用
+  - 解决：
+    - 移除 B/A 账号 Worker 的 Alt-Svc 头，强制使用稳定的 HTTP/2
+    - 生产环境也启用 stalled 重试机制（最多 3 次，每次 3 秒）
+    - 添加播放位置恢复逻辑，重试后继续从原位置播放
+
+### Changed
+- **Worker 优化** ⚡
+  - B 账号 Worker: 过滤掉 Alt-Svc 响应头
+  - A 账号 Worker: 删除 Alt-Svc 响应头
+
 ## [15.3.1] - 2026-03-12
 
 ### Fixed
