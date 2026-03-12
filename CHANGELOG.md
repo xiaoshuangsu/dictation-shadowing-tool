@@ -1,5 +1,21 @@
 # Changelog
 
+## [15.3.3] - 2026-03-12
+
+### Fixed
+- **重构 Worker Range 处理 - 完全使用 R2 原生能力** 🎬🔧
+  - 问题：手动计算 Content-Range 导致 Safari 拒收响应，视频在 5.94 秒卡死
+  - 解决：
+    - A 账号 Worker：直接传递 Range header 字符串给 R2，完全使用 httpMetadata
+    - B 账号 Worker：透传所有头，只添加 CORS
+    - 前端：移除 stalled 重试机制，避免打断缓冲链路
+
+### Changed
+- **Worker 大幅简化** ⚡
+  - 代码量减少 180+ 行
+  - 移除所有手动 Range 计算
+  - 让 R2 处理所有 Range 逻辑
+
 ## [15.3.2] - 2026-03-12
 
 ### Fixed
