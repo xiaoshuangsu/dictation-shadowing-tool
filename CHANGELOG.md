@@ -1,5 +1,23 @@
 # Changelog
 
+## [15.2.2] - 2026-03-12
+
+### Fixed
+- **修复 VideoPlayer src 错误赋值 Bug** 🐛✅
+  - 问题：video 标签的 src 被错误地赋值为当前网页 URL，而非视频文件 URL
+  - 根本原因：actualVideoSrc 验证不足，允许了非 media.shadowhub.app 的 URL
+  - 防御性修复：
+    1. 强化 actualVideoSrc 验证：必须包含 `.mp4` 和 `media.shadowhub.app`
+    2. 在 useEffect 中添加阻尼检查：拒绝加载无效的 videoSrc
+    3. 添加详细的错误日志，便于调试
+  - 影响范围：仅 VideoPlayer.tsx 组件
+
+### Technical Details
+- 修改文件：
+  - `src/components/VideoPlayer.tsx` - 添加防御性验证逻辑
+
+---
+
 ## [15.2.1] - 2026-03-12
 
 ### Fixed

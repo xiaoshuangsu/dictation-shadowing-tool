@@ -42,8 +42,18 @@ export default function VideoPlayer({
   // 🔴 调试日志：查看接收到的 props
   console.log('🎬 [VideoPlayer] Received props.videoSrc:', videoSrc)
 
-  // 🔴 关键验证：必须有 .mp4 后缀才渲染（移动端严格要求）
-  const isValidVideoSrc = videoSrc && videoSrc.includes('.mp4')
+  // 🔴 关键验证：必须有 .mp4 后缀且来自 media.shadowhub.app
+  const isValidVideoSrc = videoSrc &&
+    videoSrc.includes('.mp4') &&
+    videoSrc.includes('media.shadowhub.app')
+
+  // 🔴 防御性编程：如果 videoSrc 不是来自 media.shadowhub.app，打印严重警告
+  if (videoSrc && !videoSrc.includes('media.shadowhub.app')) {
+    console.error('❌❌❌ [VideoPlayer] CRITICAL: videoSrc is NOT from media.shadowhub.app!')
+    console.error('Invalid videoSrc:', videoSrc)
+    console.error('This will cause the video tag to use the current page URL!')
+  }
+
   const actualVideoSrc = isValidVideoSrc ? videoSrc : undefined
 
   console.log('🎬 [VideoPlayer] actualVideoSrc:', actualVideoSrc)
@@ -262,6 +272,22 @@ export default function VideoPlayer({
     isMountedRef.current = true // 标记组件已挂载
 
     if (videoRef.current && videoSrc) {
+      // 🔴 防御性检查：确保 videoSrc 是有效的视频 URL
+      if (!videoSrc.includes('media.shadowhub.app')) {
+        console.error('❌❌❌ [VideoPlayer] useEffect: Rejecting invalid videoSrc!')
+        console.error('videoSrc must be from media.shadowhub.app, got:', videoSrc)
+        console.error('This prevents the browser from using the current page URL as video src')
+        setVideoError('视频地址错误，请刷新页面重试')
+        return // 🔴 阻止加载无效的视频源
+      }
+
+      if (!videoSrc.includes('.mp4')) {
+        console.error('❌❌❌ [VideoPlayer] useEffect: videoSrc missing .mp4 extension!')
+        console.error('Got:', videoSrc)
+        setVideoError('视频格式错误，请刷新页面重试')
+        return // 🔴 阻止加载无效的视频源
+      }
+
       console.log('===== VideoPlayer Props =====', {
         videoSrc: videoSrc?.substring(0, 80),
         thumbnailPath: thumbnailPath?.substring(0, 80),
@@ -282,6 +308,10 @@ export default function VideoPlayer({
             setVideoError(null)
             retryCountRef.current = 0
             videoRef.current.load()
+
+            // 🔴 调试：验证加载后的 src
+            console.log('✅ [VideoPlayer] Video src set to:', videoRef.current.src?.substring(0, 100))
+            console.log('✅ [VideoPlayer] Video currentSrc:', videoRef.current.currentSrc?.substring(0, 100))
           }
         }, 50)
       } catch (error) {
