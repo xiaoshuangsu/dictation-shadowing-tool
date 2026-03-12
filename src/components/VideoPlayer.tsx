@@ -33,6 +33,7 @@ export default function VideoPlayer({
   const [videoError, setVideoError] = useState<string | null>(null)
   const [isMuted, setIsMuted] = useState(false) // 🔴 修复：默认不静音，让用户能听到声音
   const [isVideoPlaying, setIsVideoPlaying] = useState(false) // 🔴 追踪视频是否正在播放
+  const [isVideoLoading, setIsVideoLoading] = useState(false) // 🔴 视频缓冲中状态
   const isFreePlayModeRef = useRef(false) // 🔴 使用 useRef 来立即生效
   const videoRef = useRef<HTMLVideoElement>(null)
   const retryCountRef = useRef(0) // 🔴 重试次数计数器
@@ -133,6 +134,7 @@ export default function VideoPlayer({
 
   const handleCanPlay = () => {
     console.log('===== Video Can Play =====')
+    setIsVideoLoading(false) // 🔴 可以播放了，隐藏加载状态
     if (videoRef.current) {
       console.log('Video can play state:', {
         readyState: videoRef.current.readyState,
@@ -158,6 +160,7 @@ export default function VideoPlayer({
 
   const handleWaiting = () => {
     console.log('⏸️ Video waiting - 数据不足')
+    setIsVideoLoading(true) // 🔴 显示加载状态
     if (videoRef.current) {
       console.log('Waiting state:', {
         readyState: videoRef.current.readyState,
@@ -168,6 +171,10 @@ export default function VideoPlayer({
 
   const handleStalled = () => {
     console.log('⚠️ Video stalled - 网络停止')
+    // 🔴 如果 readyState < 4，说明数据不足，显示加载状态
+    if (videoRef.current && videoRef.current.readyState < 4) {
+      setIsVideoLoading(true)
+    }
     if (videoRef.current) {
       const video = videoRef.current
       console.log('Stalled state:', {
@@ -176,9 +183,6 @@ export default function VideoPlayer({
         networkState: video.networkState,
         currentSrc: video.currentSrc?.substring(0, 80),
       })
-
-      // 🔴 移除重试机制：stalled 是正常的缓冲行为
-      // 浏览器会自动恢复，不要打断正常的缓冲链路
     }
   }
 
@@ -196,6 +200,7 @@ export default function VideoPlayer({
   // 视频播放/暂停事件
   const handleVideoPlay = () => {
     console.log('🎬 Video playing - Entering free play mode')
+    setIsVideoLoading(false) // 🔴 开始播放了，隐藏加载状态
     if (videoRef.current) {
       console.log('Video state:', {
         paused: videoRef.current.paused,
@@ -312,6 +317,62 @@ export default function VideoPlayer({
   }, [currentSentence, videoSrc])
 
   // 持续同步 currentTime（音频播放时的实时同步）
+
+  // 🔴 关键优化：强制缓冲策略 - 确保播放前至少有 5 秒缓冲数据
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const checkBufferBeforePlay = async () => {
+      // 检查是否有足够的缓冲数据
+      const hasEnoughBuffer = () => {
+        if (!video.buffered.length) return false
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1)
+        const currentTime = video.currentTime
+        const bufferLead = bufferedEnd - currentTime
+        console.log(`🔄 [Buffer Check] Current: ${currentTime.toFixed(1)}s, Buffered: ${bufferedEnd.toFixed(1)}s, Lead: ${bufferLead.toFixed(1)}s`)
+        return bufferLead >= 5 // 至少领先 5 秒
+      }
+
+      // 监听播放事件
+      const handlePlayAttempt = () => {
+        console.log('🎬 [Buffer] Play attempt detected')
+        setIsVideoLoading(true)
+
+        // 定期检查缓冲状态
+        const checkInterval = setInterval(() => {
+          if (hasEnoughBuffer()) {
+            console.log('✅ [Buffer] Enough data buffered, starting playback')
+            clearInterval(checkInterval)
+            setIsVideoLoading(false)
+          } else {
+            console.log('⏳ [Buffer] Waiting for more data...')
+            // 暂停视频，等待缓冲
+            if (!video.paused) {
+              video.pause()
+            }
+          }
+        }, 200) // 每 200ms 检查一次
+
+        // 10 秒后超时，强制播放
+        setTimeout(() => {
+          clearInterval(checkInterval)
+          if (!video.paused) {
+            setIsVideoLoading(false)
+          }
+        }, 10000)
+      }
+
+      video.addEventListener('play', handlePlayAttempt)
+
+      return () => {
+        video.removeEventListener('play', handlePlayAttempt)
+      }
+    }
+
+    checkBufferBeforePlay()
+  }, [videoSrc])
+
   useEffect(() => {
     // 🔴 关键修复：当检测到音频播放（currentTime > 0）时，自动暂停视频
     // 无论视频是否在播放，都应该给音频让路（练习模式优先）
@@ -380,30 +441,41 @@ export default function VideoPlayer({
             <p className="text-gray-400 text-xs mt-3">请使用封面图练习</p>
           </div>
         ) : (
-          <video
-            key={actualVideoSrc || 'video-element'}
-            ref={videoRef}
-            src={actualVideoSrc}
-            className="w-full h-full object-cover"
-            controls
-            crossOrigin="anonymous"
-            playsInline
-            webkit-playsinline="true"
-            muted={isMuted}
-            preload="metadata"
-            poster={thumbnailPath}
-            onError={handleVideoError}
-            onLoadStart={handleLoadStart}
-            onLoadedMetadata={handleLoadedMetadata}
-            onCanPlay={handleCanPlay}
-            onPlay={handleVideoPlay}
-            onPause={handleVideoPause}
-            onTimeUpdate={handleTimeUpdate}
-            onProgress={handleProgress}
-            onWaiting={handleWaiting}
-            onStalled={handleStalled}
-            onSuspend={handleSuspend}
-          />
+          <>
+            <video
+              key={actualVideoSrc || 'video-element'}
+              ref={videoRef}
+              src={actualVideoSrc}
+              className="w-full h-full object-cover"
+              controls
+              crossOrigin="anonymous"
+              playsInline
+              webkit-playsinline="true"
+              muted={isMuted}
+              preload="metadata"
+              poster={thumbnailPath}
+              onError={handleVideoError}
+              onLoadStart={handleLoadStart}
+              onLoadedMetadata={handleLoadedMetadata}
+              onCanPlay={handleCanPlay}
+              onPlay={handleVideoPlay}
+              onPause={handleVideoPause}
+              onTimeUpdate={handleTimeUpdate}
+              onProgress={handleProgress}
+              onWaiting={handleWaiting}
+              onStalled={handleStalled}
+              onSuspend={handleSuspend}
+            />
+            {/* 🔴 加载状态图标 - 当视频缓冲中时显示 */}
+            {isVideoLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="flex flex-col items-center">
+                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-white text-sm mt-3">缓冲中...</p>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
