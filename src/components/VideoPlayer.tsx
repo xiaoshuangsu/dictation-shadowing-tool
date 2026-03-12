@@ -415,7 +415,7 @@ export default function VideoPlayer({
             playsInline
             webkit-playsinline="true"
             muted={isMuted}
-            preload={isDevelopment ? "metadata" : "auto"}
+            preload="metadata"
             poster={thumbnailPath}
             onError={handleVideoError}
             onLoadStart={handleLoadStart}
