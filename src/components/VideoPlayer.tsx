@@ -247,7 +247,44 @@ export default function VideoPlayer({
       return
     }
 
-    // readyState < 3 的情况，显示加载状态
+    // 🔴 弱网环境智能重试机制
+    // readyState < 3 表示没有足够数据，可能需要重试
+    const stalledTime = video.currentTime
+    const maxRetries = 3
+    const currentRetry = retryCountRef.current
+
+    if (currentRetry < maxRetries) {
+      console.log(`🔄 [Stalled] Attempting retry ${currentRetry + 1}/${maxRetries} at ${stalledTime.toFixed(2)}s`)
+      setIsVideoLoading(true)
+
+      // 等待 3 秒后检查是否恢复
+      setTimeout(() => {
+        if (!videoRef.current || !isMountedRef.current) return
+
+        // 检查是否还在卡顿状态（currentTime 没有变化）
+        if (Math.abs(videoRef.current.currentTime - stalledTime) < 0.1 && videoRef.current.readyState < 3) {
+          console.log(`🔄 [Stalled] Still stuck, triggering retry ${currentRetry + 1}/${maxRetries}`)
+          retryCountRef.current = currentRetry + 1
+
+          // 🔴 智能重试：先暂停，然后从卡顿位置前 0.5s 开始重新加载
+          const retryPosition = Math.max(0, stalledTime - 0.5)
+          videoRef.current.currentTime = retryPosition
+
+          // 尝试恢复播放
+          videoRef.current.play().catch(err => {
+            console.warn('[Stalled] Auto-play failed after retry:', err.name)
+          })
+        } else {
+          console.log('✅ [Stalled] Recovered automatically')
+          setIsVideoLoading(false)
+        }
+      }, 3000)
+    } else {
+      console.log('❌ [Stalled] Max retries reached, showing error')
+      setVideoError('网络不稳定，视频加载卡住。请刷新页面重试，或使用封面图练习')
+    }
+
+    // 显示加载状态
     setIsVideoLoading(true)
   }
 
@@ -470,7 +507,7 @@ export default function VideoPlayer({
               playsInline
               webkit-playsinline="true"
               muted={isMuted}
-              preload="metadata"
+              preload="auto"
               poster={thumbnailPath}
               onError={handleVideoError}
               onLoadStart={handleLoadStart}
