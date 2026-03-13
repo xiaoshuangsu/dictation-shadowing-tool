@@ -137,10 +137,15 @@ export default function VideoPlayer({
 
   // 视频播放/暂停事件
   const handleVideoPlay = () => {
-    throttledLog('🎬 Video playing')
-    setIsVideoLoading(false)
+    throttledLog('🎬 Video play event')
     setIsVideoPlaying(true)
     isFreePlayModeRef.current = true
+  }
+
+  const handleVideoPlaying = () => {
+    // 🔴 关键修复：当视频真正开始播放时，清除加载状态
+    setIsVideoLoading(false)
+    setIsVideoPlaying(true)
   }
 
   const handleVideoPause = () => {
@@ -298,13 +303,14 @@ export default function VideoPlayer({
               playsInline
               webkit-playsinline="true"
               muted={isMuted}
-              preload="auto"
+              preload="metadata"
               poster={thumbnailPath}
               onError={handleVideoError}
               onLoadStart={handleLoadStart}
               onLoadedMetadata={handleLoadedMetadata}
               onCanPlay={handleCanPlay}
               onPlay={handleVideoPlay}
+              onPlaying={handleVideoPlaying}
               onPause={handleVideoPause}
               onTimeUpdate={handleTimeUpdate}
               onProgress={handleProgress}
