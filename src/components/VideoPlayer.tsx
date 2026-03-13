@@ -111,8 +111,19 @@ export default function VideoPlayer({
     setVideoError(errorMessage)
   }
 
-  // 🔴 视频降级检测函数
+  // 🔴 检测是否为移动端
+  const isMobile = () => {
+    if (typeof window === 'undefined') return false
+    return window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+  }
+
+  // 🔴 视频降级检测函数（仅移动端）
   const startLoadingTimeout = () => {
+    // 🔴 只在移动端启用降级策略
+    if (!isMobile() || !onDegraded) {
+      return
+    }
+
     // 清除之前的计时器
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current)
@@ -142,7 +153,7 @@ export default function VideoPlayer({
 
       // 如果 5 秒内没有明显进展，触发降级
       if (!hasProgress && onDegraded) {
-        console.log('🚨 [Video Degradation] 5秒超时，触发降级')
+        console.log('🚨 [Video Degradation] 移动端 5秒超时，触发降级')
         // 彻底释放视频资源
         video.pause()
         video.src = ""
