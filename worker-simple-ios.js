@@ -67,6 +67,13 @@ export default {
       const etag = response.headers.get('ETag');
       if (etag) headers.set('ETag', etag);
 
+      // 🔴 关键修复：强制协议降压与加固缓存
+      // 移除 Alt-Svc，强制使用 TCP 而非 QUIC（弱网环境 QUIC 不稳定）
+      headers.delete('alt-svc');
+
+      // 加固缓存：1 年 immutable 缓存
+      headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+
       // CORS 头
       headers.set('Access-Control-Allow-Origin', '*');
       headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');

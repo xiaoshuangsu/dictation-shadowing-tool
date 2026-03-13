@@ -37,6 +37,16 @@ export default function VideoPlayer({
   const isFreePlayModeRef = useRef(false) // 🔴 使用 useRef 来立即生效
   const videoRef = useRef<HTMLVideoElement>(null)
   const isMountedRef = useRef(true) // 🔴 组件挂载状态，防止卸载后执行操作
+  const lastLogTimeRef = useRef(0) // 🔴 日志节流器
+
+  // 🔴 日志节流函数（每 5000ms 一次）
+  const throttledLog = (message: string, force = false) => {
+    const now = Date.now()
+    if (force || now - lastLogTimeRef.current > 5000) {
+      console.log(message)
+      lastLogTimeRef.current = now
+    }
+  }
 
   // 🔴 调试日志：查看接收到的 props
   console.log('🎬 [VideoPlayer] Received props.videoSrc:', videoSrc)
@@ -94,39 +104,12 @@ export default function VideoPlayer({
     setVideoError(errorMessage)
   }
 
-  // 视频加载事件
   const handleLoadStart = () => {
-    console.log('===== Video Load Start =====')
-    if (videoRef.current) {
-      const video = videoRef.current
-      console.log('Video element state:', {
-        src: video.src?.substring(0, 80),
-        currentSrc: video.currentSrc?.substring(0, 80),
-        readyState: video.readyState,
-        networkState: video.networkState,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-      })
-
-      // 🔴 关键检查：如果 currentSrc 为空，说明 src 没有被正确设置
-      if (!video.currentSrc) {
-        console.error('❌ ERROR: video.currentSrc is empty! src was not set correctly!')
-        console.error('Actual src attribute:', video.src)
-      }
-    }
     setVideoError(null)
   }
 
   const handleLoadedMetadata = () => {
-    console.log('===== Video Loaded Metadata =====')
-    if (videoRef.current) {
-      console.log('Video metadata:', {
-        duration: videoRef.current.duration,
-        videoWidth: videoRef.current.videoWidth,
-        videoHeight: videoRef.current.videoHeight,
-        readyState: videoRef.current.readyState,
-      })
-    }
+    throttledLog('🎬 Video metadata loaded', true)
     setVideoError(null)
   }
 
@@ -141,71 +124,27 @@ export default function VideoPlayer({
   }
 
   const handleWaiting = () => {
-    console.log('⏸️ Video waiting - 数据不足')
-    setIsVideoLoading(true) // 🔴 显示加载状态
-    if (videoRef.current) {
-      console.log('Waiting state:', {
-        readyState: videoRef.current.readyState,
-        currentTime: videoRef.current.currentTime,
-      })
-    }
+    setIsVideoLoading(true)
   }
 
   const handleStalled = () => {
-    console.log('⚠️ Video stalled - 网络停止')
-    // 🔴 断舍离：仅显示加载状态，不做任何自动重试或干预
     setIsVideoLoading(true)
   }
 
   const handleSuspend = () => {
-    console.log('⏸️ Video suspend - 加载暂停')
-    if (videoRef.current) {
-      console.log('Suspend state:', {
-        readyState: videoRef.current.readyState,
-        currentTime: videoRef.current.currentTime,
-        networkState: videoRef.current.networkState,
-      })
-    }
+    // 仅用于状态追踪，不执行任何操作
   }
 
   // 视频播放/暂停事件
   const handleVideoPlay = () => {
-    console.log('🎬 Video playing - Entering free play mode')
-    setIsVideoLoading(false) // 🔴 开始播放了，隐藏加载状态
-    if (videoRef.current) {
-      console.log('Video state:', {
-        paused: videoRef.current.paused,
-        currentTime: videoRef.current.currentTime,
-        readyState: videoRef.current.readyState
-      })
-
-      // 🔴 确保视频继续播放（iOS 可能需要显式调用）
-      const video = videoRef.current
-      if (video.paused && isMountedRef.current) {
-        video.play().catch(err => {
-          // 🔴 优雅处理 AbortError 和其他播放错误
-          if (err.name === 'AbortError') {
-            console.log('ℹ️ Video play aborted (可忽略，通常是切换视频导致)')
-          } else {
-            console.warn('Video play warning:', err.name, err.message)
-          }
-        })
-      }
-    }
-    setIsVideoPlaying(true) // 🔴 标记视频正在播放
-    isFreePlayModeRef.current = true // 🔴 进入自由观看模式，禁用同步
+    throttledLog('🎬 Video playing')
+    setIsVideoLoading(false)
+    setIsVideoPlaying(true)
+    isFreePlayModeRef.current = true
   }
 
   const handleVideoPause = () => {
-    console.log('⏸️ Video paused')
-    if (videoRef.current) {
-      console.log('Video state on pause:', {
-        paused: videoRef.current.paused,
-        currentTime: videoRef.current.currentTime,
-        readyState: videoRef.current.readyState
-      })
-    }
-    setIsVideoPlaying(false) // 🔴 标记视频已暂停
+    setIsVideoPlaying(false)
   }
 
   // 添加时间更新事件来监控播放状态
