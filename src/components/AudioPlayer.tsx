@@ -18,6 +18,7 @@ interface AudioPlayerProps {
   onTimeUpdate?: (currentTime: number) => void
   onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void
   onLoadingChange?: (isLoading: boolean) => void
+  onReady?: (audioElement: HTMLAudioElement) => void  // 🔴 新增：audio 元素就绪回调
 }
 
 export default function AudioPlayer({
@@ -28,11 +29,22 @@ export default function AudioPlayer({
   onPlayEnd,
   onTimeUpdate,
   onPlaybackTimeUpdate,
-  onLoadingChange
+  onLoadingChange,
+  onReady
 }: AudioPlayerProps) {
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const audioRefInternal = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const prevTriggerRef = useRef(0)
+  const hasCalledReadyRef = useRef(false)  // 🔴 确保只调用一次
+
+  // 🔴 当 audio 元素就绪时，通知父组件（用于激活 Safari 播放权限）
+  useEffect(() => {
+    if (audioRefInternal.current && onReady && !hasCalledReadyRef.current) {
+      hasCalledReadyRef.current = true
+      onReady(audioRefInternal.current)
+      console.log('🎵 AudioPlayer: onReady called, audio element passed to parent')
+    }
+  }, [audioSrc, onReady])
 
   // 播放时间跟踪
   const isPlayingRef = useRef(false)
@@ -61,7 +73,7 @@ export default function AudioPlayer({
     console.log('🎵 audioSrc:', audioSrc)
     console.log('🎵 currentSentence:', currentSentence)
 
-    const audio = audioRef.current
+    const audio = audioRefInternal.current
     if (!audio) {
       console.error('❌ audioRef.current is null!')
       return
@@ -361,5 +373,5 @@ export default function AudioPlayer({
     return () => clearListeners()
   }, [])
 
-  return <audio ref={audioRef} src={audioSrc} preload="auto" crossOrigin="anonymous" />
+  return <audio ref={audioRefInternal} src={audioSrc} preload="auto" crossOrigin="anonymous" />
 }

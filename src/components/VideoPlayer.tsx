@@ -390,10 +390,24 @@ export default function VideoPlayer({
     )
   }
 
-  // 🔴 如果已降级，不渲染任何内容（让父组件隐藏视频区域）
+  // 🔴 如果已降级，保留 video 元素但隐藏它（维持用户交互上下文）
+  // 关键修复：不能返回 null，否则 Safari 会失去用户交互上下文，导致音频无法播放
   if (isDegraded) {
-    console.log('🚫 [Video Degradation] 组件已降级，隐藏视频区域')
-    return null
+    console.log('🚫 [Video Degradation] 组件已降级，隐藏视频区域但保留 video 元素')
+    return (
+      <div key={actualVideoSrc || 'video-player-degraded'} className="hidden">
+        {/* 🔴 关键：保留隐藏的 video 元素以维持 Safari 的用户交互上下文 */}
+        <video
+          ref={videoRef}
+          src={actualVideoSrc}
+          crossOrigin="anonymous"
+          playsInline
+          webkit-playsinline="true"
+          preload="none"
+          style={{ display: 'none' }}
+        />
+      </div>
+    )
   }
 
   // 有视频源时，显示实际的视频播放器

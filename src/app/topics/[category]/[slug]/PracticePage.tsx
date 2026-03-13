@@ -115,6 +115,16 @@ export default function PracticePage({ category, slug }: { category: string; slu
     return finalUrl
   }
 
+  // 🔴 Audio ref - 用于在用户点击时直接激活音频播放权限
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const handleAudioReady = (audioElement: HTMLAudioElement) => {
+    console.log('🎵🎵🎵 handleAudioReady called! 🎵🎵🎵')
+    console.log('🎵 Audio element:', audioElement)
+    console.log('🎵 Audio src:', audioElement.src)
+    audioRef.current = audioElement
+    console.log('🎵 Audio element ready, saved ref for play activation')
+  }
+
   // Practice state
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)  // 初始值为 0
   const [hasStarted, setHasStarted] = useState(false)  // 新增：跟踪是否已开始播放
@@ -240,6 +250,33 @@ export default function PracticePage({ category, slug }: { category: string; slu
     console.log("Button Clicked, current index:", currentSentenceIndex)
     console.log("hasStarted:", hasStarted)
     console.log("sampleSentences.length:", sampleSentences.length)
+    console.log("🎵 audioRef.current:", audioRef.current)
+    console.log("🎵 audioSrc:", audioSrc)
+
+    // 🔴 关键修复：在用户点击事件的同步调用栈中直接激活音频播放权限
+    // 通过调用 AudioPlayer 的 audio 元素的 play() 方法，告诉 Safari 这是用户授权的播放
+    if (audioRef.current) {
+      console.log("🎵 audioRef.current exists, activating Safari play permission...")
+      const audio = audioRef.current
+      const wasPaused = audio.paused
+      const originalTime = audio.currentTime
+      const originalVolume = audio.volume
+
+      // 静音播放（激活权限）
+      audio.volume = 0
+      audio.play().then(() => {
+        // 立即暂停并恢复状态
+        audio.pause()
+        audio.currentTime = originalTime
+        audio.volume = originalVolume
+        console.log('🔓 Safari 音频播放权限已激活')
+      }).catch(err => {
+        console.log('⚠️ 激活音频权限时出错（可忽略）:', err.message)
+        // 恢复状态（即使播放失败）
+        audio.currentTime = originalTime
+        audio.volume = originalVolume
+      })
+    }
 
     // 🔴 移动端优化：点击播放按钮时，滚动到顶部完全隐藏标题
     // 滚动到页面最顶部，确保标题完全隐藏
@@ -476,6 +513,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                   onPlayEnd={() => {}}
                   onTimeUpdate={handleTimeUpdate}
                   onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
+                  onReady={handleAudioReady}
                 />
               </div>
             )}
