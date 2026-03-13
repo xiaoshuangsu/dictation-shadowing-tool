@@ -872,13 +872,21 @@ function HomeContent() {
                 </button>
 
                 {videoSrc && currentSentence && !videoDegraded && (
-                  <VideoPlayer
-                    key="video-player"
-                    videoSrc={videoSrc}
-                    currentSentence={currentSentence}
-                    thumbnailPath={thumbnailPath || undefined}
-                    onDegraded={handleVideoDegraded}
-                  />
+                  <>
+                    {console.log('🎬 [Practice Page] 准备渲染 VideoPlayer', {
+                      hasVideoSrc: !!videoSrc,
+                      hasCurrentSentence: !!currentSentence,
+                      hasHandleVideoDegraded: typeof handleVideoDegraded === 'function',
+                      videoDegraded: videoDegraded
+                    })}
+                    <VideoPlayer
+                      key="video-player"
+                      videoSrc={videoSrc}
+                      currentSentence={currentSentence}
+                      thumbnailPath={thumbnailPath || undefined}
+                      onDegraded={handleVideoDegraded}
+                    />
+                  </>
                 )}
                 {!videoSrc && audioSrc && currentSentence && (
                   <AudioPlayer
