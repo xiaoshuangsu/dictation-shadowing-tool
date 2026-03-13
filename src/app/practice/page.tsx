@@ -142,6 +142,23 @@ function HomeContent() {
   const [toastMessage, setToastMessage] = useState<string | null>(null)
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  // 🔴 监听视频降级事件
+  useEffect(() => {
+    const handleVideoDegraded = (event: Event) => {
+      console.log('🎬收到视频降级事件:', event)
+      setVideoDegraded(true)
+      showToast('检测到网络较慢，已自动为您隐藏视频并切换至纯音频学习模式')
+    }
+
+    // 添加事件监听
+    window.addEventListener('videoDegraded', handleVideoDegraded)
+
+    // 清理函数
+    return () => {
+      window.removeEventListener('videoDegraded', handleVideoDegraded)
+    }
+  }, [])
+
   // 练习模式状态（需要在 useEffect 之前声明）
   const [mode, setMode] = useState<PracticeMode>("dictation")
 
@@ -154,12 +171,6 @@ function HomeContent() {
     toastTimeoutRef.current = setTimeout(() => {
       setToastMessage(null)
     }, duration)
-  }
-
-  // 🔴 处理视频降级
-  const handleVideoDegraded = () => {
-    setVideoDegraded(true)
-    showToast('检测到网络较慢，已自动为您隐藏视频并切换至纯音频学习模式')
   }
 
   // Debug: Log user state
@@ -872,25 +883,12 @@ function HomeContent() {
                 </button>
 
                 {videoSrc && currentSentence && !videoDegraded && (
-                  <>
-                    {(() => {
-                      console.log('🎬 [Practice Page] 准备渲染 VideoPlayer', {
-                        hasVideoSrc: !!videoSrc,
-                        hasCurrentSentence: !!currentSentence,
-                        hasHandleVideoDegraded: typeof handleVideoDegraded === 'function',
-                        videoDegraded: videoDegraded,
-                        handleVideoDegradedExists: 'handleVideoDegraded' in window || 'N/A'
-                      })
-                      return null
-                    })()}
-                    <VideoPlayer
-                      key="video-player"
-                      videoSrc={videoSrc}
-                      currentSentence={currentSentence}
-                      thumbnailPath={thumbnailPath || undefined}
-                      onDegraded={handleVideoDegraded}
-                    />
-                  </>
+                  <VideoPlayer
+                    key="video-player"
+                    videoSrc={videoSrc}
+                    currentSentence={currentSentence}
+                    thumbnailPath={thumbnailPath || undefined}
+                  />
                 )}
                 {!videoSrc && audioSrc && currentSentence && (
                   <AudioPlayer

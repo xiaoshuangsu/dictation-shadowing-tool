@@ -19,7 +19,6 @@ interface VideoPlayerProps {
   thumbnailPath?: string
   title?: string
   titleZh?: string
-  onDegraded?: () => void  // 🔴 视频降级回调
 }
 
 export default function VideoPlayer({
@@ -40,6 +39,7 @@ export default function VideoPlayer({
   const [isMuted, setIsMuted] = useState(false) // 🔴 修复：默认不静音，让用户能听到声音
   const [isVideoPlaying, setIsVideoPlaying] = useState(false) // 🔴 追踪视频是否正在播放
   const [isVideoLoading, setIsVideoLoading] = useState(false) // 🔴 视频缓冲中状态
+  const [isDegraded, setIsDegraded] = useState(false) // 🔴 视频降级状态（内部管理）
   const isFreePlayModeRef = useRef(false) // 🔴 使用 useRef 来立即生效
   const videoRef = useRef<HTMLVideoElement>(null)
   const isMountedRef = useRef(true) // 🔴 组件挂载状态，防止卸载后执行操作
@@ -121,20 +121,14 @@ export default function VideoPlayer({
     return window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   }
 
-  // 🔴 视频降级检测函数（仅移动端）
+  // 🔴 视频降级检测函数（仅移动端，内部管理）
   const startLoadingTimeout = () => {
     // 🔴 只在移动端启用降级策略
     const mobile = isMobile()
-    console.log('🔍 [Video Degradation] 检测环境:', {
-      isMobile: mobile,
-      hasCallback: !!onDegraded,
-      userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'SSR',
-      width: typeof window !== 'undefined' ? window.innerWidth : 'SSR'
-    })
 
-    if (!mobile || !onDegraded) {
+    if (!mobile || isDegraded) {
       console.log('⏸️ [Video Degradation] 跳过降级检测:', {
-        reason: !mobile ? '非移动端' : '无回调函数'
+        reason: !mobile ? '非移动端' : '已降级'
       })
       return
     }
@@ -176,13 +170,23 @@ export default function VideoPlayer({
       }
 
       // 如果 5 秒内没有明显进展，触发降级
-      if (!hasProgress && onDegraded) {
+      if (!hasProgress) {
         console.log('🚨 [Video Degradation] 移动端 5秒超时，触发降级')
-        // 彻底释放视频资源
+
+        // 🔴 彻底释放视频资源
         video.pause()
         video.src = ""
-        // 触发降级回调
-        onDegraded()
+
+        // 🔴 内部状态设置为已降级
+        setIsDegraded(true)
+
+        // 🔴 派发自定义事件通知父组件
+        const event = new CustomEvent('videoDegraded', {
+          detail: { reason: '5秒超时，缓冲无进展' }
+        })
+        window.dispatchEvent(event)
+
+        console.log('📢 [Video Degradation] 已派发 videoDegraded 事件')
       } else {
         console.log('✅ [Video Degradation] 缓冲有进展，继续等待')
       }
@@ -385,6 +389,12 @@ export default function VideoPlayer({
         </div>
       </div>
     )
+  }
+
+  // 🔴 如果已降级，不渲染任何内容（让父组件隐藏视频区域）
+  if (isDegraded) {
+    console.log('🚫 [Video Degradation] 组件已降级，隐藏视频区域')
+    return null
   }
 
   // 有视频源时，显示实际的视频播放器
