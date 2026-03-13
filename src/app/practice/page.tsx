@@ -137,8 +137,30 @@ function HomeContent() {
   const [materialError, setMaterialError] = useState<string | null>(null)
   const [materialCategory, setMaterialCategory] = useState<string | null>(null)
 
+  // 🔴 视频降级状态
+  const [videoDegraded, setVideoDegraded] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   // 练习模式状态（需要在 useEffect 之前声明）
   const [mode, setMode] = useState<PracticeMode>("dictation")
+
+  // 🔴 显示 Toast 提示
+  const showToast = (message: string, duration = 5000) => {
+    setToastMessage(message)
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null)
+    }, duration)
+  }
+
+  // 🔴 处理视频降级
+  const handleVideoDegraded = () => {
+    setVideoDegraded(true)
+    showToast('检测到网络较慢，已自动为您隐藏视频并切换至纯音频学习模式')
+  }
 
   // Debug: Log user state
   useEffect(() => {
@@ -847,12 +869,13 @@ function HomeContent() {
                   </svg>
                 </button>
 
-                {videoSrc && currentSentence && (
+                {videoSrc && currentSentence && !videoDegraded && (
                   <VideoPlayer
                     key="video-player"
                     videoSrc={videoSrc}
                     currentSentence={currentSentence}
                     thumbnailPath={thumbnailPath || undefined}
+                    onDegraded={handleVideoDegraded}
                   />
                 )}
                 {!videoSrc && audioSrc && currentSentence && (
@@ -1138,6 +1161,15 @@ function HomeContent() {
 
       {/* Debug Logger - shows on all pages during testing */}
       <DebugLogger />
+
+      {/* 🔴 Toast 提示 */}
+      {toastMessage && (
+        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+          <div className="bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg max-w-md text-center">
+            <p className="text-sm">{toastMessage}</p>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

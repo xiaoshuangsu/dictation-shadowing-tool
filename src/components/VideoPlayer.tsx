@@ -19,6 +19,7 @@ interface VideoPlayerProps {
   thumbnailPath?: string
   title?: string
   titleZh?: string
+  onDegraded?: () => void  // 🔴 视频降级回调
 }
 
 export default function VideoPlayer({
@@ -26,6 +27,7 @@ export default function VideoPlayer({
   currentSentence,
   currentTime = 0,
   thumbnailPath,
+  onDegraded,
 }: VideoPlayerProps) {
   // 🔴 调试日志：组件入口
   console.log('🎬 [VideoPlayer] Component rendered with props:', { videoSrc, currentSentence: currentSentence.text })
@@ -38,6 +40,11 @@ export default function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null)
   const isMountedRef = useRef(true) // 🔴 组件挂载状态，防止卸载后执行操作
   const lastLogTimeRef = useRef(0) // 🔴 日志节流器
+
+  // 🔴 视频降级检测
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const loadingStartTimeRef = useRef<number>(0)
+  const initialBufferedRef = useRef<number>(0)
 
   // 🔴 日志节流函数（每 5000ms 一次）
   const throttledLog = (message: string, force = false) => {
@@ -104,8 +111,58 @@ export default function VideoPlayer({
     setVideoError(errorMessage)
   }
 
+  // 🔴 视频降级检测函数
+  const startLoadingTimeout = () => {
+    // 清除之前的计时器
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current)
+    }
+
+    // 记录开始时间和初始缓冲量
+    loadingStartTimeRef.current = Date.now()
+    if (videoRef.current && videoRef.current.buffered.length > 0) {
+      initialBufferedRef.current = videoRef.current.buffered.end(videoRef.current.buffered.length - 1)
+    } else {
+      initialBufferedRef.current = 0
+    }
+
+    // 5 秒后检查是否触发降级
+    loadingTimeoutRef.current = setTimeout(() => {
+      if (!videoRef.current || !isMountedRef.current) return
+
+      const video = videoRef.current
+      let hasProgress = false
+
+      // 检查缓冲进度是否有明显增长
+      if (video.buffered.length > 0) {
+        const currentBuffered = video.buffered.end(video.buffered.length - 1)
+        const progress = currentBuffered - initialBufferedRef.current
+        hasProgress = progress > 0.5 // 缓冲增长超过 0.5 秒视为有进展
+      }
+
+      // 如果 5 秒内没有明显进展，触发降级
+      if (!hasProgress && onDegraded) {
+        console.log('🚨 [Video Degradation] 5秒超时，触发降级')
+        // 彻底释放视频资源
+        video.pause()
+        video.src = ""
+        // 触发降级回调
+        onDegraded()
+      }
+    }, 5000)
+  }
+
+  const clearLoadingTimeout = () => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current)
+      loadingTimeoutRef.current = null
+    }
+  }
+
   const handleLoadStart = () => {
     setVideoError(null)
+    // 🔴 开始超时检测
+    startLoadingTimeout()
   }
 
   const handleLoadedMetadata = () => {
@@ -117,14 +174,29 @@ export default function VideoPlayer({
     console.log('===== Video Can Play =====')
     setVideoError(null)
     setIsVideoLoading(false)
+    // 🔴 清除超时检测
+    clearLoadingTimeout()
   }
 
   const handleProgress = () => {
     // 🔴 性能脱敏：移除高频日志，减少控制台输出
+    // 🔴 如果有缓冲进展，重置超时检测
+    if (videoRef.current && videoRef.current.buffered.length > 0) {
+      const currentTime = videoRef.current.currentTime
+      const bufferedEnd = videoRef.current.buffered.end(videoRef.current.buffered.length - 1)
+      const bufferLead = bufferedEnd - currentTime
+
+      // 如果缓冲领先超过 2 秒，清除超时检测
+      if (bufferLead > 2) {
+        clearLoadingTimeout()
+      }
+    }
   }
 
   const handleWaiting = () => {
     setIsVideoLoading(true)
+    // 🔴 开始超时检测
+    startLoadingTimeout()
   }
 
   const handleStalled = () => {
@@ -191,6 +263,8 @@ export default function VideoPlayer({
     // Cleanup function
     return () => {
       isMountedRef.current = false // 标记组件已卸载
+      // 🔴 清理超时检测计时器
+      clearLoadingTimeout()
       // 🔴 清理时只暂停，不修改 src（避免设置当前页面 URL）
       if (videoRef.current) {
         try {
@@ -200,7 +274,7 @@ export default function VideoPlayer({
         }
       }
     }
-  }, [videoSrc, thumbnailPath])
+  }, [videoSrc, thumbnailPath, onDegraded])
 
   // 同步视频播放位置（当 currentSentence 变化时）
   useEffect(() => {
