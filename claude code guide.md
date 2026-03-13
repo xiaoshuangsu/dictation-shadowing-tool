@@ -1,119 +1,9 @@
 
 # ShadowHub 项目全流程开发与自动化规范 (Master Guidelines)
 
-## 🚨 移动端视频播放问题修复记录 (2026-03-12)
+## 🚨 移动端视频播放问题修复记录
 
-### 问题 1：Code 4 错误
-**症状**：移动端播放视频时出现 `MEDIA_ERR_SRC_NOT_SUPPORTED` (错误码 4)，视频加载很久后偶尔能播放。
-
-**根本原因**：
-1. **开发环境代理失效**：静态导出模式下 `next.config.js` 的 `rewrites` 不生效，`/api/proxy-media` 无法访问
-2. **Range 请求透传失败**：Worker 未正确处理 Range 请求，导致移动端无法分段加载视频
-
-**解决方案**：
-1. **统一使用线上 Worker**：开发环境和生产环境都使用 `https://media.shadowhub.app`
-2. **优化 Worker 架构**：
-   - 部署 A 账号 Worker (`r2-proxy`) 直接访问 R2 bucket
-   - B 账号 Worker 代理到 A 账号 Worker（而非 R2 公开域名）
-3. **修复 Range 请求处理**：A 账号 Worker 正确传递 Range 参数并返回准确的 Content-Length
-
-### 问题 2：AbortError 错误
-**症状**：移动端视频播放时出现 `AbortError: The operation was aborted`。
-
-**根本原因**：
-- 组件卸载后仍执行操作
-- useEffect 中手动修改 `video.src = ""`
-
-**解决方案**：
-1. 添加 `isMountedRef` 标志位，防止组件卸载后执行操作
-2. 移除手动修改 `video.src` 的逻辑，让 React 完全控制 src 属性
-
-### 问题 3：VideoPlayer src 错误赋值
-**症状**：video 标签的 src 属性被设置为当前页面 URL，导致浏览器尝试加载页面本身作为视频。
-
-**根本原因**：
-- useEffect 中执行 `video.src = ""` 清理旧状态
-- 当 `actualVideoSrc` 是 `undefined` 时，浏览器使用当前页面 URL
-
-**解决方案**：
-- 强化 `actualVideoSrc` 验证：必须包含 `.mp4` 和 `media.shadowhub.app`
-- useEffect 中添加阻尼检查，拒绝加载无效的 videoSrc
-- 移除所有手动修改 `video.src` 的逻辑
-
-### 问题 4：手机端页面格式错乱
-**症状**：手机端页面显示格式错乱，CSS 无法加载。
-
-**根本原因**：
-1. **dev server 只绑定 IPv6**：手机端（IPv4）无法访问
-2. **CSS 文件 404**：dev server 采用按需编译，需要先访问页面才会编译 CSS
-
-**解决方案**：
-- 启动 dev server 时使用 `-H 0.0.0.0` 参数，确保同时绑定 IPv4 和 IPv6
-- 先访问页面触发编译，然后再加载 CSS
-
-### 问题 5：桌面端视频频繁显示"加载中"（2026-03-13）
-**症状**：桌面端播放视频时频繁弹出"缓冲中..."提示，播放断断续续，严重影响用户体验。
-
-**根本原因**：
-1. **缺少 onPlaying 事件绑定**：
-   - `onWaiting` 事件设置 `isVideoLoading = true`（显示加载动画）
-   - 但没有对应的事件来清除状态
-   - `handleCanPlay` 不够及时，导致加载状态残留
-
-2. **事件触发时序问题**：
-   ```
-   视频播放 → 缓冲不足 → onWaiting → 显示"加载中"
-   视频恢复 → ❌ 没有 onPlaying → 加载状态残留
-   ```
-
-**解决方案**：
-
-1. **添加 onPlaying 事件处理器**：
-```typescript
-const handleVideoPlaying = () => {
-  // 🔴 关键修复：当视频真正开始播放时，清除加载状态
-  setIsVideoLoading(false)
-  setIsVideoPlaying(true)
-}
-```
-
-2. **绑定到 video 元素**：
-```tsx
-<video
-  onPlaying={handleVideoPlaying}  // ✅ 必须绑定
-  onWaiting={handleWaiting}
-  onCanPlay={handleCanPlay}
-/>
-```
-
-3. **事件流程**：
-```
-缓冲不足 → onWaiting → setIsVideoLoading(true) → 显示"加载中"
-恢复播放 → onPlaying → setIsVideoLoading(false) → 隐藏"加载中"
-```
-
-**关键要点**：
-- ✅ `onWaiting` 和 `onPlaying` 必须成对使用
-- ✅ `onPlaying` 是视频真正开始播放时触发，比 `onPlay` 更可靠
-- ✅ 绝不在这些事件中调用 `video.play()` 或 `video.pause()`，只修改 UI 状态
-
-**文件位置**：
-- `/Users/a/dictation/src/components/VideoPlayer.tsx`
-
-### 问题 6：QUIC 协议导致页面加载失败（2026-03-13）
-**症状**：桌面端进入练习页面空白，控制台显示 `ERR_QUIC_PROTOCOL_ERROR`。
-
-**根本原因**：
-- Cloudflare 自动启用 HTTP/3 (QUIC)
-- 浏览器尝试 QUIC 连接时协议握手失败
-- 浏览器等待超时后才回退到 HTTP/2，导致页面长时间白屏
-
-**解决方案**：
-1. **临时方案**：强制刷新页面（Cmd+Shift+R）清除缓存
-2. **长期方案**：在 Cloudflare Dashboard → Pages → Network 中禁用 HTTP/3
-3. **用户端方案**：在浏览器中禁用 QUIC（`chrome://flags/#enable-quic`）
-
-### 架构
+### 核心架构
 ```
 用户 → media.shadowhub.app (B账号Worker)
      → r2-proxy.suxiaoshuang2020.workers.dev (A账号Worker)
@@ -121,17 +11,69 @@ const handleVideoPlaying = () => {
 ```
 
 ### 关键文件
-- `/Users/a/dictation/src/app/practice/page.tsx` - getCdnUrl 函数
-- `/Users/a/dictation/worker-simple-ios.js` - B 账号 Worker
-- `/Users/a/dictation/workers/worker-simple-ios-range.js` - A 账号 Worker
-- `/Users/a/dictation/workers/wrangler.toml` - A 账号 Worker 配置
-- `/Users/a/dictation/src/components/VideoPlayer.tsx` - 视频组件修复
+- `src/components/VideoPlayer.tsx` - 视频组件
+- `src/app/practice/page.tsx` - getCdnUrl 函数
+- `worker-simple-ios.js` - B 账号 Worker
+- `workers/worker-simple-ios-range.js` - A 账号 Worker
 
-### 开发服务器启动命令
-```bash
-# 正确的启动方式（绑定 IPv4 和 IPv6）
-npx next dev -p 3000 -H 0.0.0.0
+---
+
+## 📋 视频播放问题速查表
+
+| 问题 | 症状 | 解决方案 |
+|------|------|----------|
+| **Code 4 错误** | 移动端视频无法播放 | Worker 返回准确的 Content-Length 和 Content-Range |
+| **AbortError** | 组件卸载后操作 | 添加 `isMountedRef` 标志位 |
+| **src 错误赋值** | video.src 是页面 URL | 验证 `actualVideoSrc` 必须包含 `.mp4` 和 `media.shadowhub.app` |
+| **频繁显示加载中** | 桌面端"缓冲中..."不断弹出 | 添加 `onPlaying` 事件清除加载状态 |
+| **QUIC 协议错误** | 页面空白，`ERR_QUIC_PROTOCOL_ERROR` | 强制刷新（Cmd+Shift+R）或在 Cloudflare 禁用 HTTP/3 |
+
+---
+
+## 🎯 VideoPlayer 核心原则
+
+### 1. 事件成对绑定
+```tsx
+<video
+  onWaiting={() => setIsVideoLoading(true)}   // 显示加载
+  onPlaying={() => setIsVideoLoading(false)}  // 隐藏加载
+/>
 ```
+
+### 2. 零干预原则
+- ✅ 只修改 React 状态
+- ❌ 绝不调用 `video.play()` 或 `video.pause()`
+- ❌ 绝不修改 `video.src`
+
+### 3. 预加载策略
+```tsx
+preload="metadata"  // 弱网环境稳定
+preload="auto"      // 桌面端快速加载（慎用）
+```
+
+---
+
+## 🛠️ 常见修复
+
+### 频繁显示"加载中"
+**原因**：`onWaiting` 设置状态，但没有 `onPlaying` 清除
+
+**修复**：
+```typescript
+const handleVideoPlaying = () => {
+  setIsVideoLoading(false)
+  setIsVideoPlaying(true)
+}
+
+<video onPlaying={handleVideoPlaying} />
+```
+
+### QUIC 协议错误
+**原因**：Cloudflare 自动启用 HTTP/3，浏览器握手失败
+
+**修复**：
+1. 临时：强制刷新（Cmd+Shift+R）
+2. 长期：Cloudflare Dashboard → Pages → Network → 禁用 HTTP/3
 
 ---
 
