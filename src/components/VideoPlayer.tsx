@@ -30,7 +30,11 @@ export default function VideoPlayer({
   onDegraded,
 }: VideoPlayerProps) {
   // 🔴 调试日志：组件入口
-  console.log('🎬 [VideoPlayer] Component rendered with props:', { videoSrc, currentSentence: currentSentence.text })
+  console.log('🎬 [VideoPlayer] Component rendered with props:', {
+    videoSrc,
+    currentSentence: currentSentence.text,
+    hasOnDegraded: !!onDegraded  // 🔴 检查回调是否存在
+  })
 
   const [videoError, setVideoError] = useState<string | null>(null)
   const [isMuted, setIsMuted] = useState(false) // 🔴 修复：默认不静音，让用户能听到声音
