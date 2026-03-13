@@ -3,7 +3,7 @@
 
 ## 🚨 移动端视频播放问题修复记录
 
-### 核心架构
+### 架构
 ```
 用户 → media.shadowhub.app (B账号Worker)
      → r2-proxy.suxiaoshuang2020.workers.dev (A账号Worker)
@@ -16,64 +16,20 @@
 - `worker-simple-ios.js` - B 账号 Worker
 - `workers/worker-simple-ios-range.js` - A 账号 Worker
 
----
-
-## 📋 视频播放问题速查表
-
+### 问题速查表
 | 问题 | 症状 | 解决方案 |
 |------|------|----------|
 | **Code 4 错误** | 移动端视频无法播放 | Worker 返回准确的 Content-Length 和 Content-Range |
 | **AbortError** | 组件卸载后操作 | 添加 `isMountedRef` 标志位 |
 | **src 错误赋值** | video.src 是页面 URL | 验证 `actualVideoSrc` 必须包含 `.mp4` 和 `media.shadowhub.app` |
+| **CSS 无法加载** | 手机端页面格式错乱 | 启动 dev server: `npx next dev -p 3000 -H 0.0.0.0` |
 | **频繁显示加载中** | 桌面端"缓冲中..."不断弹出 | 添加 `onPlaying` 事件清除加载状态 |
 | **QUIC 协议错误** | 页面空白，`ERR_QUIC_PROTOCOL_ERROR` | 强制刷新（Cmd+Shift+R）或在 Cloudflare 禁用 HTTP/3 |
 
----
-
-## 🎯 VideoPlayer 核心原则
-
-### 1. 事件成对绑定
-```tsx
-<video
-  onWaiting={() => setIsVideoLoading(true)}   // 显示加载
-  onPlaying={() => setIsVideoLoading(false)}  // 隐藏加载
-/>
-```
-
-### 2. 零干预原则
-- ✅ 只修改 React 状态
-- ❌ 绝不调用 `video.play()` 或 `video.pause()`
-- ❌ 绝不修改 `video.src`
-
-### 3. 预加载策略
-```tsx
-preload="metadata"  // 弱网环境稳定
-preload="auto"      // 桌面端快速加载（慎用）
-```
-
----
-
-## 🛠️ 常见修复
-
-### 频繁显示"加载中"
-**原因**：`onWaiting` 设置状态，但没有 `onPlaying` 清除
-
-**修复**：
-```typescript
-const handleVideoPlaying = () => {
-  setIsVideoLoading(false)
-  setIsVideoPlaying(true)
-}
-
-<video onPlaying={handleVideoPlaying} />
-```
-
-### QUIC 协议错误
-**原因**：Cloudflare 自动启用 HTTP/3，浏览器握手失败
-
-**修复**：
-1. 临时：强制刷新（Cmd+Shift+R）
-2. 长期：Cloudflare Dashboard → Pages → Network → 禁用 HTTP/3
+### VideoPlayer 核心原则
+1. **事件成对绑定**：`onWaiting` + `onPlaying` 必须同时存在
+2. **零干预原则**：只修改 React 状态，绝不调用 `video.play()` 或 `video.pause()`
+3. **预加载策略**：弱网用 `preload="metadata"`，桌面端可用 `preload="auto"`
 
 ---
 
