@@ -873,12 +873,16 @@ function HomeContent() {
 
                 {videoSrc && currentSentence && !videoDegraded && (
                   <>
-                    {console.log('🎬 [Practice Page] 准备渲染 VideoPlayer', {
-                      hasVideoSrc: !!videoSrc,
-                      hasCurrentSentence: !!currentSentence,
-                      hasHandleVideoDegraded: typeof handleVideoDegraded === 'function',
-                      videoDegraded: videoDegraded
-                    })}
+                    {(() => {
+                      console.log('🎬 [Practice Page] 准备渲染 VideoPlayer', {
+                        hasVideoSrc: !!videoSrc,
+                        hasCurrentSentence: !!currentSentence,
+                        hasHandleVideoDegraded: typeof handleVideoDegraded === 'function',
+                        videoDegraded: videoDegraded,
+                        handleVideoDegradedExists: 'handleVideoDegraded' in window || 'N/A'
+                      })
+                      return null
+                    })()}
                     <VideoPlayer
                       key="video-player"
                       videoSrc={videoSrc}
