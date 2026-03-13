@@ -138,14 +138,12 @@ export default function VideoPlayer({
   // 视频播放/暂停事件
   const handleVideoPlay = () => {
     throttledLog('🎬 Video play event')
-    // 🔴 关键修复：播放开始时清除加载状态（兼容 Safari）
-    setIsVideoLoading(false)
     setIsVideoPlaying(true)
     isFreePlayModeRef.current = true
   }
 
   const handleVideoPlaying = () => {
-    // 🔴 确保加载状态被清除（备用）
+    // 🔴 关键修复：当视频真正开始播放时，清除加载状态
     setIsVideoLoading(false)
     setIsVideoPlaying(true)
   }
