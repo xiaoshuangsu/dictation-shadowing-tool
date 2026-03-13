@@ -120,9 +120,22 @@ export default function VideoPlayer({
   // 🔴 视频降级检测函数（仅移动端）
   const startLoadingTimeout = () => {
     // 🔴 只在移动端启用降级策略
-    if (!isMobile() || !onDegraded) {
+    const mobile = isMobile()
+    console.log('🔍 [Video Degradation] 检测环境:', {
+      isMobile: mobile,
+      hasCallback: !!onDegraded,
+      userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'SSR',
+      width: typeof window !== 'undefined' ? window.innerWidth : 'SSR'
+    })
+
+    if (!mobile || !onDegraded) {
+      console.log('⏸️ [Video Degradation] 跳过降级检测:', {
+        reason: !mobile ? '非移动端' : '无回调函数'
+      })
       return
     }
+
+    console.log('⏱️ [Video Degradation] 启动 5 秒超时检测...')
 
     // 清除之前的计时器
     if (loadingTimeoutRef.current) {
@@ -149,6 +162,13 @@ export default function VideoPlayer({
         const currentBuffered = video.buffered.end(video.buffered.length - 1)
         const progress = currentBuffered - initialBufferedRef.current
         hasProgress = progress > 0.5 // 缓冲增长超过 0.5 秒视为有进展
+
+        console.log('📊 [Video Degradation] 缓冲进度检查:', {
+          initial: initialBufferedRef.current.toFixed(2),
+          current: currentBuffered.toFixed(2),
+          progress: progress.toFixed(2),
+          hasProgress: hasProgress
+        })
       }
 
       // 如果 5 秒内没有明显进展，触发降级
@@ -159,6 +179,8 @@ export default function VideoPlayer({
         video.src = ""
         // 触发降级回调
         onDegraded()
+      } else {
+        console.log('✅ [Video Degradation] 缓冲有进展，继续等待')
       }
     }, 5000)
   }
