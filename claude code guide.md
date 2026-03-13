@@ -51,6 +51,68 @@
 - 启动 dev server 时使用 `-H 0.0.0.0` 参数，确保同时绑定 IPv4 和 IPv6
 - 先访问页面触发编译，然后再加载 CSS
 
+### 问题 5：桌面端视频频繁显示"加载中"（2026-03-13）
+**症状**：桌面端播放视频时频繁弹出"缓冲中..."提示，播放断断续续，严重影响用户体验。
+
+**根本原因**：
+1. **缺少 onPlaying 事件绑定**：
+   - `onWaiting` 事件设置 `isVideoLoading = true`（显示加载动画）
+   - 但没有对应的事件来清除状态
+   - `handleCanPlay` 不够及时，导致加载状态残留
+
+2. **事件触发时序问题**：
+   ```
+   视频播放 → 缓冲不足 → onWaiting → 显示"加载中"
+   视频恢复 → ❌ 没有 onPlaying → 加载状态残留
+   ```
+
+**解决方案**：
+
+1. **添加 onPlaying 事件处理器**：
+```typescript
+const handleVideoPlaying = () => {
+  // 🔴 关键修复：当视频真正开始播放时，清除加载状态
+  setIsVideoLoading(false)
+  setIsVideoPlaying(true)
+}
+```
+
+2. **绑定到 video 元素**：
+```tsx
+<video
+  onPlaying={handleVideoPlaying}  // ✅ 必须绑定
+  onWaiting={handleWaiting}
+  onCanPlay={handleCanPlay}
+/>
+```
+
+3. **事件流程**：
+```
+缓冲不足 → onWaiting → setIsVideoLoading(true) → 显示"加载中"
+恢复播放 → onPlaying → setIsVideoLoading(false) → 隐藏"加载中"
+```
+
+**关键要点**：
+- ✅ `onWaiting` 和 `onPlaying` 必须成对使用
+- ✅ `onPlaying` 是视频真正开始播放时触发，比 `onPlay` 更可靠
+- ✅ 绝不在这些事件中调用 `video.play()` 或 `video.pause()`，只修改 UI 状态
+
+**文件位置**：
+- `/Users/a/dictation/src/components/VideoPlayer.tsx`
+
+### 问题 6：QUIC 协议导致页面加载失败（2026-03-13）
+**症状**：桌面端进入练习页面空白，控制台显示 `ERR_QUIC_PROTOCOL_ERROR`。
+
+**根本原因**：
+- Cloudflare 自动启用 HTTP/3 (QUIC)
+- 浏览器尝试 QUIC 连接时协议握手失败
+- 浏览器等待超时后才回退到 HTTP/2，导致页面长时间白屏
+
+**解决方案**：
+1. **临时方案**：强制刷新页面（Cmd+Shift+R）清除缓存
+2. **长期方案**：在 Cloudflare Dashboard → Pages → Network 中禁用 HTTP/3
+3. **用户端方案**：在浏览器中禁用 QUIC（`chrome://flags/#enable-quic`）
+
 ### 架构
 ```
 用户 → media.shadowhub.app (B账号Worker)
