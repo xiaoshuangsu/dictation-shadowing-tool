@@ -173,9 +173,8 @@ export default function VideoPlayer({
       if (!hasProgress) {
         console.log('🚨 [Video Degradation] 移动端 5秒超时，触发降级')
 
-        // 🔴 彻底释放视频资源
+        // 🔴 关键修复：只暂停视频，不销毁 src（保持用户交互上下文）
         video.pause()
-        video.src = ""
 
         // 🔴 内部状态设置为已降级
         setIsDegraded(true)
