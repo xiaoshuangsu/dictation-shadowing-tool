@@ -34,13 +34,9 @@ export default function VideoPlayer({
   const [isMuted, setIsMuted] = useState(false) // 🔴 修复：默认不静音，让用户能听到声音
   const [isVideoPlaying, setIsVideoPlaying] = useState(false) // 🔴 追踪视频是否正在播放
   const [isVideoLoading, setIsVideoLoading] = useState(false) // 🔴 视频缓冲中状态
-  const [isBufferThrottled, setIsBufferThrottled] = useState(false) // 🔴 缓冲节流状态
   const isFreePlayModeRef = useRef(false) // 🔴 使用 useRef 来立即生效
   const videoRef = useRef<HTMLVideoElement>(null)
-  const retryCountRef = useRef(0) // 🔴 重试次数计数器
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null) // 🔴 重试超时定时器
   const isMountedRef = useRef(true) // 🔴 组件挂载状态，防止卸载后执行操作
-  const bufferCheckIntervalRef = useRef<NodeJS.Timeout | null>(null) // 🔴 缓冲检查定时器
 
   // 🔴 调试日志：查看接收到的 props
   console.log('🎬 [VideoPlayer] Received props.videoSrc:', videoSrc)
@@ -136,83 +132,12 @@ export default function VideoPlayer({
 
   const handleCanPlay = () => {
     console.log('===== Video Can Play =====')
-    const video = videoRef.current
-    if (!video) return
-
-    // 🔴 关键修复：Buffer Throttling 逻辑
-    // 检查缓冲是否足够（至少领先 2 秒）
-    const checkBufferSufficient = () => {
-      if (!video.buffered.length) return false
-      const bufferedEnd = video.buffered.end(video.buffered.length - 1)
-      const currentTime = video.currentTime
-      const bufferLead = bufferedEnd - currentTime
-      const isSufficient = bufferLead >= 2 // 至少领先 2 秒
-
-      console.log(`🔄 [Buffer Check] Current: ${currentTime.toFixed(2)}s, Buffered: ${bufferedEnd.toFixed(2)}s, Lead: ${bufferLead.toFixed(2)}s${isSufficient ? ' ✅' : ' ❌'}`)
-
-      return isSufficient
-    }
-
-    const isSufficient = checkBufferSufficient()
-
-    if (!isSufficient) {
-      console.log('⏳ [Buffer Throttle] Buffer insufficient (< 2s), pausing and waiting...')
-      setIsVideoLoading(true)
-      setIsBufferThrottled(true)
-
-      // 暂停视频，等待更多缓冲
-      if (!video.paused) {
-        video.pause()
-      }
-
-      // 定期检查缓冲状态
-      if (bufferCheckIntervalRef.current) {
-        clearInterval(bufferCheckIntervalRef.current)
-      }
-
-      bufferCheckIntervalRef.current = setInterval(() => {
-        if (checkBufferSufficient()) {
-          console.log('✅ [Buffer Throttle] Buffer sufficient, resuming playback')
-          setIsVideoLoading(false)
-          setIsBufferThrottled(false)
-          clearInterval(bufferCheckIntervalRef.current!)
-          bufferCheckIntervalRef.current = null
-
-          // 恢复播放
-          if (video.paused && video.readyState >= 2) {
-            video.play().catch(err => {
-              console.warn('Failed to resume:', err.name)
-            })
-          }
-        }
-      }, 2000) // 🔴 被动等待：提高到 2000ms，减少主线程负担
-    } else {
-      console.log('✅ [Buffer Throttle] Buffer sufficient, allowing playback')
-      setIsVideoLoading(false)
-      setIsBufferThrottled(false)
-    }
-
-    console.log('Video can play state:', {
-      readyState: video.readyState,
-      currentTime: video.currentTime,
-      isThrottled: isBufferThrottled
-    })
-
     setVideoError(null)
+    setIsVideoLoading(false)
   }
 
   const handleProgress = () => {
-    if (videoRef.current) {
-      const buffered = videoRef.current.buffered
-      if (buffered.length > 0) {
-        console.log('🔄 Video progress:', {
-          bufferedRanges: buffered.length,
-          firstRangeStart: buffered.start(0),
-          firstRangeEnd: buffered.end(0),
-          readyState: videoRef.current.readyState,
-        })
-      }
-    }
+    // 🔴 性能脱敏：移除高频日志，减少控制台输出
   }
 
   const handleWaiting = () => {
@@ -228,63 +153,7 @@ export default function VideoPlayer({
 
   const handleStalled = () => {
     console.log('⚠️ Video stalled - 网络停止')
-    const video = videoRef.current
-    if (!video) return
-
-    console.log('Stalled state:', {
-      readyState: video.readyState,
-      currentTime: video.currentTime,
-      networkState: video.networkState,
-    })
-
-    // 🔴 关键修复：彻底禁用 Stalled 干扰
-    // 只要 readyState >= 3 (HAVE_FUTURE_DATA)，就只显示 Loading UI
-    // 绝对不调用 video.load()，不重设 src，不打断 MediaSource
-    if (video.readyState >= 3) {
-      console.log('🔄 [Stalled] readyState=' + video.readyState + ' (HAVE_FUTURE_DATA), showing loading only')
-      setIsVideoLoading(true)
-      // 🔴 不做任何其他操作，让浏览器自动恢复
-      return
-    }
-
-    // 🔴 弱网环境智能重试机制
-    // readyState < 3 表示没有足够数据，可能需要重试
-    const stalledTime = video.currentTime
-    const maxRetries = 3
-    const currentRetry = retryCountRef.current
-
-    if (currentRetry < maxRetries) {
-      console.log(`🔄 [Stalled] Attempting retry ${currentRetry + 1}/${maxRetries} at ${stalledTime.toFixed(2)}s`)
-      setIsVideoLoading(true)
-
-      // 等待 3 秒后检查是否恢复
-      setTimeout(() => {
-        if (!videoRef.current || !isMountedRef.current) return
-
-        // 检查是否还在卡顿状态（currentTime 没有变化）
-        if (Math.abs(videoRef.current.currentTime - stalledTime) < 0.1 && videoRef.current.readyState < 3) {
-          console.log(`🔄 [Stalled] Still stuck, triggering retry ${currentRetry + 1}/${maxRetries}`)
-          retryCountRef.current = currentRetry + 1
-
-          // 🔴 智能重试：先暂停，然后从卡顿位置前 0.5s 开始重新加载
-          const retryPosition = Math.max(0, stalledTime - 0.5)
-          videoRef.current.currentTime = retryPosition
-
-          // 尝试恢复播放
-          videoRef.current.play().catch(err => {
-            console.warn('[Stalled] Auto-play failed after retry:', err.name)
-          })
-        } else {
-          console.log('✅ [Stalled] Recovered automatically')
-          setIsVideoLoading(false)
-        }
-      }, 3000)
-    } else {
-      console.log('❌ [Stalled] Max retries reached, showing error')
-      setVideoError('网络不稳定，视频加载卡住。请刷新页面重试，或使用封面图练习')
-    }
-
-    // 显示加载状态
+    // 🔴 断舍离：仅显示加载状态，不做任何自动重试或干预
     setIsVideoLoading(true)
   }
 
@@ -341,12 +210,7 @@ export default function VideoPlayer({
 
   // 添加时间更新事件来监控播放状态
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const currentTime = videoRef.current.currentTime
-      if (Math.floor(currentTime) % 5 === 0 && Math.floor(currentTime) > 0) {
-        console.log('⏱️ Video playing at:', currentTime.toFixed(1), 'seconds')
-      }
-    }
+    // 🔴 性能脱敏：移除高频日志
   }
 
   // 强制加载视频资源（当 videoSrc 变化时）
@@ -375,24 +239,12 @@ export default function VideoPlayer({
         thumbnailPath: thumbnailPath?.substring(0, 80),
       })
 
-      // 🔴 关键修复：不要手动修改 video.src，让 React 完全控制
-      // 只调用 load() 来触发重新加载
       setVideoError(null)
-      retryCountRef.current = 0
     }
 
     // Cleanup function
     return () => {
       isMountedRef.current = false // 标记组件已卸载
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current)
-        retryTimeoutRef.current = null
-      }
-      // 🔴 清理缓冲检查定时器
-      if (bufferCheckIntervalRef.current) {
-        clearInterval(bufferCheckIntervalRef.current)
-        bufferCheckIntervalRef.current = null
-      }
       // 🔴 清理时只暂停，不修改 src（避免设置当前页面 URL）
       if (videoRef.current) {
         try {
