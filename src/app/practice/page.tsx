@@ -719,12 +719,14 @@ function HomeContent() {
         </div>
       </div>
 
-      {/* Material Title */}
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 py-6 text-center">
-          <h1 className="text-4xl font-bold text-slate-800">{audioTitle}</h1>
+      {/* Material Title - 降级时隐藏 */}
+      {!videoDegraded && (
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-4 py-6 text-center">
+            <h1 className="text-4xl font-bold text-slate-800">{audioTitle}</h1>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Mode Toggle */}
       <div className="bg-white border-b border-gray-200">
