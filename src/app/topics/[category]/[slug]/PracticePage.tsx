@@ -145,6 +145,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
   // Audio playback tracking
   const audioPlaybackSecondsRef = useRef(0)
 
+  // 🔴 移动端优化：练习区域 ref，用于切换句子时确保可见
+  const practiceAreaRef = useRef<HTMLDivElement>(null)
+
   // Fetch material data
   useEffect(() => {
     async function findMaterial() {
@@ -375,6 +378,30 @@ export default function PracticePage({ category, slug }: { category: string; slu
     // Don't reset hasPlayedCurrent here - it's controlled by user clicks
   }, [currentSentenceIndex])
 
+  // 🔴 移动端优化：切换句子后确保练习区域可见
+  useLayoutEffect(() => {
+    if (!hasStarted) return // 只在播放后才执行
+
+    // 检测是否为移动端
+    const isMobile = window.innerWidth < 1024
+    if (!isMobile) return
+
+    // 确保练习区域可见
+    // 使用 setTimeout 确保在 DOM 更新后执行
+    const timer = setTimeout(() => {
+      if (practiceAreaRef.current) {
+        // 滚动到练习区域中心，确保播放按钮和输入框都可见
+        // 使用 'center' 而不是 'start'，避免滚动过多
+        practiceAreaRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        })
+      }
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [currentSentenceIndex, hasStarted])
+
   // Dictation completion handlers
   const handleDictationComplete = (isCorrect: boolean, usedShowWords?: boolean, duration?: number) => {
     const newCompleted = new Set(completedSentences)
@@ -548,7 +575,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
           )}
 
           {/* Middle Column - Practice Area (50%) - 🔴 播放后占据全宽 */}
-          <div className={`${hasStarted ? 'lg:col-span-3' : 'lg:col-span-[2]'} w-full bg-white rounded-lg shadow-sm p-6 transition-all duration-300`}>
+          <div
+            ref={practiceAreaRef}
+            className={`${hasStarted ? 'lg:col-span-3' : 'lg:col-span-[2]'} w-full bg-white rounded-lg shadow-sm p-6 transition-all duration-300`}
+          >
             {/* Debug: AudioPlayer render conditions */}
             {(() => {
               console.log('🔍 AudioPlayer render check:', {
