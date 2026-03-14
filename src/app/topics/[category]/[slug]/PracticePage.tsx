@@ -323,13 +323,14 @@ export default function PracticePage({ category, slug }: { category: string; slu
       console.log('⚠️ audioRef.current is null')
     }
 
-    // 🔴 移动端优化：点击播放按钮时，滚动到顶部完全隐藏标题
-    // 滚动到页面最顶部，确保标题完全隐藏
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-
     // 场景 A：第一次点击，播放当前第一句
     if (!hasStarted) {
       console.log("场景 A: 第一次点击，播放当前句 (index 0)")
+
+      // 🔴 移动端优化：只在第一次点击时滚动到顶部隐藏标题
+      // 后续点击"下一句"时不滚动，避免播放组件被隐藏
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+
       flushSync(() => {
         setHasStarted(true)
         setAutoPlayTrigger(prev => prev + 1)
@@ -338,7 +339,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
       return
     }
 
-    // 场景 B：后续点击，先递增索引，再播放
+    // 场景 B：后续点击，先递增索引，再播放（不滚动页面）
     if (currentSentenceIndex < sampleSentences.length - 1) {
       console.log("场景 B: 切换到下一句")
       console.log("当前索引:", currentSentenceIndex, "< 总数:", sampleSentences.length - 1)
