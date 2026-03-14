@@ -153,8 +153,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
           .from('materials')
           .select('*')
 
-        // Find material by title slug（添加类型断言）
-        const found = allMaterials?.find((m: any) => titleToSlug(m.title) === slug) as Material | undefined
+        // Find material by slug - 优先使用数据库中的 slug 字段
+        // 如果没有 slug 字段，则从 title 生成
+        const found = allMaterials?.find((m: any) => {
+          const materialSlug = m.slug || titleToSlug(m.title)
+          return materialSlug === slug
+        }) as Material | undefined
 
         if (found) {
           setMaterial(found)

@@ -19,7 +19,7 @@ export async function generateStaticParams() {
 
     const { data: materials, error } = await supabase
       .from('materials')
-      .select('id, title, category')
+      .select('id, title, category, slug')
       .limit(1000)
 
     if (error) {
@@ -27,10 +27,11 @@ export async function generateStaticParams() {
       return [{ category: 'daily-life', slug: 'placeholder' }]
     }
 
-    // Generate routes using category slug and title slug
+    // Generate routes using category slug and material slug
+    // 优先使用数据库中存储的 slug，如果没有则从 title 生成
     return (materials || []).map((material) => ({
       category: categoryToSlug(material.category),
-      slug: titleToSlug(material.title),
+      slug: material.slug || titleToSlug(material.title),
     }))
   } catch (error) {
     console.error('Error in generateStaticParams:', error)
