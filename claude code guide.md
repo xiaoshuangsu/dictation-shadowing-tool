@@ -554,6 +554,7 @@ ls -lh video.mp4
 | `CORS policy` / `Failed to fetch` | Worker 缺少 CORS 头 | 在 A 账号 Worker 添加 `Access-Control-Allow-Origin` |
 | `useSearchParams() ... suspense` | 缺少渲染边界 | 在页面组件层级补充 `<Suspense>` |
 | `404 Not Found` (练习页) | Slug 格式不匹配 | 统一使用 `titleToSlug()` 处理 |
+| `404 Not Found` (topics 链接) | topics 页面用 `titleToSlug()` 生成链接，但数据库存储完整 `slug` | 3 处统一使用 `material.slug \|\| titleToSlug(material.title)` |
 | `Export encountered errors` | 预渲染失败 | 为 `generateStaticParams` 增加 try-catch |
 
 ---
@@ -628,8 +629,17 @@ ls -lh video.mp4
 - **技术实现**：使用 `useSearchParams` 监听模式，并在页面内通过 `Tab` 组件切换 UI，严禁创建物理上的新页面。
 
 ### 3. Slug 生成规范
-- 必须调用 `titleToSlug()` 函数处理标题。
+- 🔴 **核心原则**：优先使用数据库中存储的 `slug` 字段，没有时才从 `title` 生成
+- ❌ **禁止**：在任何地方直接使用 `titleToSlug(material.title)` 生成链接
+- ✅ **正确写法**：`material.slug || titleToSlug(material.title)`
 - 路径末尾必须带有斜杠 `/`（配合 `trailingSlash: true` 配置）。
+
+**适用范围**：
+- `src/app/topics/[category]/[slug]/page.tsx`：`generateStaticParams()` 必须查询 `slug` 字段
+- `src/app/topics/[category]/[slug]/PracticePage.tsx`：材料查找逻辑必须优先用 `slug` 匹配
+- `src/app/topics/page.tsx`：链接生成必须使用 `material.slug || titleToSlug(material.title)`
+
+**原因**：数据库中的 `slug` 是完整且唯一的标识符（如 `telephone-conversations-can-i-speak-to-sally-easy-dialogue-role-play`），而从 `title` 生成的 slug 可能不完整或格式不同，导致 404 错误。
 
 ### 4. 动态生成要求 (SSG)
 - `generateStaticParams` 必须同时返回 `category` 和 `slug`。

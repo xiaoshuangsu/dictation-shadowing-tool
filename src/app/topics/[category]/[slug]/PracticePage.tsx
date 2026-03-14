@@ -218,8 +218,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }, [modeParam])
 
-  // 🔴 显示 Toast 提示
-  const showToast = (message: string, duration = 5000) => {
+  // 🔴 显示 Toast 提示（默认 3 秒后自动消失）
+  const showToast = (message: string, duration = 3000) => {
     setToastMessage(message)
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current)
@@ -451,9 +451,20 @@ export default function PracticePage({ category, slug }: { category: string; slu
     <div className="min-h-screen bg-gray-50">
       {/* 🔴 Toast 提示 */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg">
-          {toastMessage}
-        </div>
+        <>
+          {/* 🔴 半透明黑色背景遮罩 */}
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50"></div>
+
+          {/* 🔴 垂直居中的 Toast 提示 */}
+          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white px-6 py-4 rounded-lg shadow-xl max-w-sm mx-auto text-center">
+            <div className="flex items-center justify-center gap-2 text-gray-800">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{toastMessage}</span>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Header - Three Level Navigation */}
@@ -516,8 +527,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
                 </div>
               </div>
 
-              {/* 🔴 视频降级时隐藏视频区域 */}
-              {videoUrl && !videoDegraded ? (
+              {/* 🔴 视频降级时隐藏视频区域（不显示占位符，让练习区域向上移动） */}
+              {videoUrl && !videoDegraded && (
                 <>
                   {console.log('🎬 About to render VideoPlayer with videoUrl:', videoUrl)}
                   <VideoPlayer
@@ -527,15 +538,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     thumbnailPath={thumbnailPath}
                   />
                 </>
-              ) : (
-                <div className="aspect-video bg-gray-100 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <svg className="w-16 h-16 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A9 9 0 0121 2.012 9 9 0 0118.455 5.788z" />
-                    </svg>
-                    <p className="text-gray-500">No video available</p>
-                  </div>
-                </div>
               )}
             </div>
           </div>

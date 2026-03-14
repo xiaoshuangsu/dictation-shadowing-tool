@@ -64,6 +64,7 @@ type Material = {
   created_at: string
   updated_at: string
   video_path?: string | null
+  slug?: string  // 🔴 添加 slug 字段
 }
 
 // 分类顺序和配置
@@ -747,13 +748,13 @@ export default function MaterialsPage() {
                               {/* 操作按钮 */}
                               <div className="flex gap-2">
                                 <LocalizedLink
-                                  href={`/topics/${categoryToSlug(material.category)}/${titleToSlug(material.title)}?mode=dictation`}
+                                  href={`/topics/${categoryToSlug(material.category)}/${material.slug || titleToSlug(material.title)}?mode=dictation`}
                                   className="flex-1 text-center px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
                                 >
                                   {t("topics.dictation")}
                                 </LocalizedLink>
                                 <LocalizedLink
-                                  href={`/topics/${categoryToSlug(material.category)}/${titleToSlug(material.title)}?mode=shadowing`}
+                                  href={`/topics/${categoryToSlug(material.category)}/${material.slug || titleToSlug(material.title)}?mode=shadowing`}
                                   className="flex-1 text-center px-2 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
                                 >
                                   {t("topics.shadowing")}
