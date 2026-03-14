@@ -509,12 +509,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
             <span className="text-gray-600">{slugToCategory(category)}</span>
           </div>
 
-          {/* Level 2: Material Title - 🔴 播放后隐藏 */}
-          {!hasStarted && (
-            <div className="text-center transition-all duration-300 overflow-hidden">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{material.title}</h1>
-            </div>
-          )}
+          {/* Level 2: Material Title - 🔴 移动端播放后隐藏，桌面端始终显示 */}
+          <div className={`${hasStarted ? 'max-lg:hidden' : ''} text-center transition-all duration-300 overflow-hidden`}>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{material.title}</h1>
+          </div>
 
           {/* Level 3: Mode Toggle Tabs (Centered) */}
           <div id="mode-toggle-tabs" className="flex justify-center">
@@ -547,37 +545,35 @@ export default function PracticePage({ category, slug }: { category: string; slu
       {/* Main Content - Three Column Layout */}
       <div className="max-w-[1920px] mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Video Player (25%) - 🔴 播放后隐藏 */}
-          {!hasStarted && (
-            <div className="lg:col-span-1 w-full transition-all duration-300">
-              <div className="bg-white rounded-lg shadow-sm p-4 sticky top-40">
-                {/* Progress Indicator - Moved Here */}
-                <div className="text-center mb-3 pb-3 border-b border-gray-200">
-                  <div className="text-xs text-gray-900">
-                    {currentSentenceIndex + 1} <span className="text-gray-400">/</span> {sampleSentences.length}
-                  </div>
+          {/* Left Column - Video Player (25%) - 🔴 移动端播放后隐藏，桌面端始终显示 */}
+          <div className={`${hasStarted ? 'max-lg:hidden' : ''} lg:col-span-1 w-full transition-all duration-300`}>
+            <div className="bg-white rounded-lg shadow-sm p-4 sticky top-40">
+              {/* Progress Indicator - Moved Here */}
+              <div className="text-center mb-3 pb-3 border-b border-gray-200">
+                <div className="text-xs text-gray-900">
+                  {currentSentenceIndex + 1} <span className="text-gray-400">/</span> {sampleSentences.length}
                 </div>
-
-                {/* 🔴 视频降级时隐藏视频区域（不显示占位符，让练习区域向上移动） */}
-                {videoUrl && !videoDegraded && (
-                  <>
-                    {console.log('🎬 About to render VideoPlayer with videoUrl:', videoUrl)}
-                    <VideoPlayer
-                      videoSrc={videoUrl}
-                      currentSentence={currentSentence}
-                      currentTime={currentTime}
-                      thumbnailPath={thumbnailPath}
-                    />
-                  </>
-                )}
               </div>
-            </div>
-          )}
 
-          {/* Middle Column - Practice Area (50%) - 🔴 播放后占据全宽 */}
+              {/* 🔴 视频降级时隐藏视频区域（不显示占位符，让练习区域向上移动） */}
+              {videoUrl && !videoDegraded && (
+                <>
+                  {console.log('🎬 About to render VideoPlayer with videoUrl:', videoUrl)}
+                  <VideoPlayer
+                    videoSrc={videoUrl}
+                    currentSentence={currentSentence}
+                    currentTime={currentTime}
+                    thumbnailPath={thumbnailPath}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Middle Column - Practice Area (50%) - 🔴 移动端播放后占据全宽，桌面端保持三栏 */}
           <div
             ref={practiceAreaRef}
-            className={`${hasStarted ? 'lg:col-span-3' : 'lg:col-span-[2]'} w-full bg-white rounded-lg shadow-sm p-6 transition-all duration-300`}
+            className={`lg:col-span-[2] w-full bg-white rounded-lg shadow-sm p-6 transition-all duration-300`}
           >
             {/* Debug: AudioPlayer render conditions */}
             {(() => {
