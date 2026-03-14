@@ -654,6 +654,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     onNext={handleNext}
                     onComplete={handleDictationComplete}
                     dictationMode={dictationMode}
+                    onDictationModeChange={setDictationMode}
                   />
                 )
               ) : audioSrc ? (
