@@ -108,12 +108,18 @@ export default function TimestampMarker() {
     const endTime = audioRef.current.currentTime
     const newSentences = [...sentences]
 
-    // Update current sentence's end time
-    newSentences[currentIndex].endTime = endTime
+    // Update current sentence's end time (保留所有字段)
+    newSentences[currentIndex] = {
+      ...newSentences[currentIndex],
+      endTime: endTime
+    }
 
-    // Set next sentence's start time
+    // Set next sentence's start time (保留所有字段)
     if (currentIndex < sentences.length - 1) {
-      newSentences[currentIndex + 1].startTime = endTime
+      newSentences[currentIndex + 1] = {
+        ...newSentences[currentIndex + 1],
+        startTime: endTime
+      }
     }
 
     setSentences(newSentences)

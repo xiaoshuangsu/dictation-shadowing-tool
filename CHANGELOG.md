@@ -1,5 +1,31 @@
 # Changelog
 
+## [15.3.8] - 2026-03-13
+
+### Fixed
+- **修复词尾辅音截断问题** 🎯
+  - 实现动态冲突检测算法，解决吞音现象
+  - 动态后扩：句子结束时间延长 `min(300ms, 间隙/2)`
+  - 静音裁剪：使用 Whisper 停顿作为切割点
+  - 首部锁定：起始时间最多前移 30ms
+  - 优化 Whisper VAD 参数：`no_speech_threshold=0.05`
+
+- **修复 timestamp-marker 数据丢失 bug** 🐛
+  - 修复 `markEndTime` 函数直接修改对象属性导致翻译丢失
+  - 使用展开运算符保留所有字段：`{ ...sentence, endTime: time }`
+
+### Added
+- **新增转录脚本** 📝
+  - `scripts/retranscribe_empty_your_mind.py`：针对单个素材的重新转录脚本
+  - 支持动态冲突检测算法
+  - 支持自动翻译恢复
+
+### Changed
+- **更新开发指南** 📚
+  - 添加"吞音问题解决方案"章节
+  - 详细记录动态冲突检测算法
+  - 记录 VAD 参数优化配置
+
 ## [15.3.7] - 2026-03-12
 
 ### Added

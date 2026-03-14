@@ -137,6 +137,11 @@ export default function AudioPlayer({
 
       // 使用数字类型的 endTime
       if (audio.currentTime >= endNum) {
+        console.log('⏹️ [AudioPlayer] 达到结束时间，停止播放:', {
+          currentTime: audio.currentTime.toFixed(2),
+          endNum: endNum,
+          sentence: currentSentence.text?.substring(0, 30)
+        })
         audio.pause()
         setIsPlaying(false)
         isPlayingRef.current = false

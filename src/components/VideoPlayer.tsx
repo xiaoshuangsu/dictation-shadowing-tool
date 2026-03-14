@@ -88,7 +88,7 @@ export default function VideoPlayer({
     const video = videoRef.current
     if (!video) return
 
-    let errorMessage = '视频无法加载，请使用封面图练习'
+    let errorMessage = '视频加载失败，请直接开始听写/影子跟读练习'
 
     // 获取详细错误信息
     if (video.error) {
@@ -109,21 +109,44 @@ export default function VideoPlayer({
         currentSrc: video.currentSrc
       }
       console.error('===== Video Error Details =====', errorInfo)
-      errorMessage = `${errorDetails[errorCode as keyof typeof errorDetails] || '加载失败'}，请使用封面图练习`
+      errorMessage = '视频加载失败，请直接开始听写/影子跟读练习'
     }
 
     setVideoError(errorMessage)
   }
 
-  // 🔴 检测是否为移动端
+  // 🔴 检测是否为移动端（改进的检测逻辑）
   const isMobile = () => {
     if (typeof window === 'undefined') return false
-    return window.innerWidth < 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+    // 方法1：检查 User Agent（更全面的关键字）
+    const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera || ''
+    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|iP(hone|od)|Android.*Mobile|Windows Phone/i
+    if (mobileRegex.test(userAgent)) {
+      console.log('📱 [Mobile Detection] 通过 UserAgent 检测为移动端:', userAgent)
+      return true
+    }
+
+    // 方法2：检查屏幕宽度（大屏手机可能 >= 768px）
+    const width = window.innerWidth
+    if (width < 768) {
+      console.log('📱 [Mobile Detection] 通过屏幕宽度检测为移动端:', width)
+      return true
+    }
+
+    // 方法3：检查触摸能力（移动端通常支持触摸）
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      console.log('📱 [Mobile Detection] 通过触摸能力检测为移动端')
+      return true
+    }
+
+    console.log('💻 [Mobile Detection] 检测为桌面端')
+    return false
   }
 
   // 🔴 视频降级检测函数（仅移动端，内部管理）
   const startLoadingTimeout = () => {
-    // 🔴 只在移动端启用降级策略
+    // 🔴 只在移动端启用降级策略（桌面端网络较稳定，不需要降级）
     const mobile = isMobile()
 
     if (!mobile || isDegraded) {
@@ -150,9 +173,43 @@ export default function VideoPlayer({
 
     // 5 秒后检查是否触发降级
     loadingTimeoutRef.current = setTimeout(() => {
-      if (!videoRef.current || !isMountedRef.current) return
+      console.log('⏰ [Video Degradation] 5秒超时检查触发')
+      console.log('   videoRef.current:', !!videoRef.current)
+      console.log('   isMountedRef.current:', isMountedRef.current)
+
+      if (!videoRef.current || !isMountedRef.current) {
+        console.log('⚠️ [Video Degradation] 组件已卸载或 video 不存在，跳过降级')
+        return
+      }
 
       const video = videoRef.current
+      const mobile = isMobile()
+
+      // 🔴 移动端：如果 5 秒后还在 loading/waiting 状态，直接降级
+      if (mobile && isVideoLoading) {
+        console.log('🚨 [Video Degradation] 移动端 5秒超时，视频仍在加载中，触发降级')
+
+        // 🔴 彻底释放视频带宽
+        video.pause()
+        video.src = ""
+        video.load()
+
+        console.log('🗑️ [Video Degradation] 已清空 video.src，释放带宽')
+
+        // 🔴 内部状态设置为已降级
+        setIsDegraded(true)
+
+        // 🔴 派发自定义事件通知父组件
+        const event = new CustomEvent('videoDegraded', {
+          detail: { reason: '5秒超时，视频仍在加载中' }
+        })
+        window.dispatchEvent(event)
+
+        console.log('📢 [Video Degradation] 已派发 videoDegraded 事件')
+        return
+      }
+
+      // 桌面端和移动端（已加载）：检查缓冲进度
       let hasProgress = false
 
       // 检查缓冲进度是否有明显增长
@@ -167,14 +224,20 @@ export default function VideoPlayer({
           progress: progress.toFixed(2),
           hasProgress: hasProgress
         })
+      } else {
+        console.log('📊 [Video Degradation] video.buffered.length = 0，没有任何缓冲数据')
       }
 
       // 如果 5 秒内没有明显进展，触发降级
       if (!hasProgress) {
-        console.log('🚨 [Video Degradation] 移动端 5秒超时，触发降级')
+        console.log('🚨 [Video Degradation] 5秒超时，缓冲无进展，触发降级')
 
-        // 🔴 关键修复：只暂停视频，不销毁 src（保持用户交互上下文）
+        // 🔴 彻底释放视频带宽
         video.pause()
+        video.src = ""
+        video.load()
+
+        console.log('🗑️ [Video Degradation] 已清空 video.src，释放带宽')
 
         // 🔴 内部状态设置为已降级
         setIsDegraded(true)
@@ -200,6 +263,7 @@ export default function VideoPlayer({
   }
 
   const handleLoadStart = () => {
+    console.log('🎬 [Video Events] onLoadStart 触发')
     setVideoError(null)
     // 🔴 开始超时检测
     startLoadingTimeout()
@@ -212,28 +276,28 @@ export default function VideoPlayer({
 
   const handleCanPlay = () => {
     console.log('===== Video Can Play =====')
+    console.log('🎬 [Video Events] onCanPlay 触发')
     setVideoError(null)
     setIsVideoLoading(false)
-    // 🔴 清除超时检测
-    clearLoadingTimeout()
+
+    // 🔴 移动端不清除超时检测，让5秒完整执行
+    const mobile = isMobile()
+    if (!mobile) {
+      console.log('💻 桌面端：清除超时检测')
+      clearLoadingTimeout()
+    } else {
+      console.log('📱 移动端：不清除超时检测，继续等待5秒判断')
+    }
   }
 
   const handleProgress = () => {
     // 🔴 性能脱敏：移除高频日志，减少控制台输出
-    // 🔴 如果有缓冲进展，重置超时检测
-    if (videoRef.current && videoRef.current.buffered.length > 0) {
-      const currentTime = videoRef.current.currentTime
-      const bufferedEnd = videoRef.current.buffered.end(videoRef.current.buffered.length - 1)
-      const bufferLead = bufferedEnd - currentTime
-
-      // 如果缓冲领先超过 2 秒，清除超时检测
-      if (bufferLead > 2) {
-        clearLoadingTimeout()
-      }
-    }
+    // 🔴 不再清除超时检测，让5秒超时逻辑完整执行
+    // 只有真正可以播放时（handleCanPlay）才清除超时
   }
 
   const handleWaiting = () => {
+    console.log('🎬 [Video Events] onWaiting 触发（视频缓冲中）')
     setIsVideoLoading(true)
     // 🔴 开始超时检测
     startLoadingTimeout()

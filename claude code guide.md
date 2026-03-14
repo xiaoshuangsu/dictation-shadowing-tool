@@ -64,12 +64,67 @@
 ---
 
 ## 2. 转录核心算法逻辑 (Precision Transcription)
+
+### 2.1 基础规则
 * **毫秒级对齐**：Whisper `word_timestamps=True`。
 * **物理断句**：
     - 标点 `?.!` 强制切分。
     - 逗号 `,` + 停顿 `> 0.8s` 强制切分。
     - 任何停顿 `> 0.8s` 强制切分。
 * **翻译**：指定调用 **GLM API**，确保结合整篇内容进行准确翻译，表达地道。
+
+### 2.2 吞音问题解决方案 (Tail Sound Preservation)
+
+#### 问题现象
+- 词尾辅音被截断（如 hills 的 /s/、visitors 的 /s/、working 的 /ing/）
+- 句子结束太早，导致发音不完整
+- 用户体验差，影响影子跟读
+
+#### 根本原因
+1. **Whisper 词级时间戳不精确**：词的 `end` 时间可能不包含完整的词尾辅音
+2. **零时长词标记错误**：某些词被标记为 `start == end`（如 "hills."）
+3. **VAD 静音判定过严**：微弱摩擦音被误判为背景噪音
+
+#### 解决方案：动态冲突检测算法
+
+**核心原则**：
+- **动态后扩**：句子结束时间向后延长 `min(300ms, 间隙/2)`
+- **静音裁剪**：使用 Whisper 已识别的停顿作为切割点
+- **首部锁定**：起始时间最多向前 30ms（防止爆音）
+
+**关键参数**：
+```python
+PAUSE_THRESHOLD = 0.8        # 停顿阈值（秒）
+TAIL_BUFFER = 0.3            # 默认尾部缓冲 300ms
+START_BUFFER = 0.03          # 起始时间最多前移 30ms
+```
+
+**断句逻辑**：
+1. 遇到 `?!.` → 强制断句，应用动态后扩
+2. 逗号 + 停顿 > 0.8s → 断句，应用动态后扩
+3. 任何停顿 > 0.8s → 断句，在停顿中间位置结束
+
+**VAD 优化参数**：
+```python
+model.transcribe(
+    word_timestamps=True,
+    fp16=False,
+    no_speech_threshold=0.05,      # 降低静音阈值（默认0.6），保留微弱摩擦音
+    logprob_threshold=-2.0,         # 降低概率阈值
+    compression_ratio_threshold=3.0, # 提高压缩比容忍度
+    condition_on_previous_text=False, # 减少对前文依赖
+)
+```
+
+#### 实现文件
+- 脚本：`scripts/retranscribe_empty_your_mind.py`
+- 断句函数：`split_words_to_sentences()`
+
+#### 注意事项
+- ❌ 不要盲目加固定缓冲（如 500ms），会导致句子重叠
+- ❌ 不要大幅前移起始时间（如 100ms），会听到上一句尾音
+- ✅ 使用动态冲突检测，确保每句之间有微小间隙
+- ✅ 保留所有字段（如 `translation`），避免数据丢失
 
 ---
 

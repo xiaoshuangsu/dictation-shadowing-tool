@@ -128,6 +128,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
   // Practice state
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)  // 初始值为 0
   const [hasStarted, setHasStarted] = useState(false)  // 新增：跟踪是否已开始播放
+  const [videoDegraded, setVideoDegraded] = useState(false)  // 🔴 视频降级状态
+  const [toastMessage, setToastMessage] = useState<string | null>(null)  // 🔴 Toast 提示消息
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [completedSentences, setCompletedSentences] = useState<Set<number>>(new Set())
   const [correctSentences, setCorrectSentences] = useState<Set<number>>(new Set())
   const [incorrectSentences, setIncorrectSentences] = useState<Set<number>>(new Set())
@@ -211,6 +214,40 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }, [modeParam])
 
+  // 🔴 显示 Toast 提示
+  const showToast = (message: string, duration = 5000) => {
+    setToastMessage(message)
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null)
+    }, duration)
+  }
+
+  // 🔴 监听视频降级事件
+  useEffect(() => {
+    console.log('🎬 [PracticePage] 添加 videoDegraded 事件监听器')
+    const handleVideoDegraded = (event: Event) => {
+      console.log('🎬 [PracticePage] 收到视频降级事件:', event)
+      setVideoDegraded(true)
+      showToast('检测到网络较慢，已自动为您隐藏视频并切换至纯音频学习模式')
+      console.log('🎬 [PracticePage] videoDegraded 状态已设置为 true')
+    }
+
+    // 添加事件监听
+    window.addEventListener('videoDegraded', handleVideoDegraded)
+
+    // 清理函数
+    return () => {
+      console.log('🎬 [PracticePage] 移除 videoDegraded 事件监听器')
+      window.removeEventListener('videoDegraded', handleVideoDegraded)
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current)
+      }
+    }
+  }, [])
+
   // Handle mode toggle
   const handleModeChange = (newMode: PracticeMode) => {
     // Update URL without triggering navigation
@@ -256,13 +293,15 @@ export default function PracticePage({ category, slug }: { category: string; slu
     // 🔴 关键修复：在用户点击事件的同步调用栈中直接激活音频播放权限
     // 通过调用 AudioPlayer 的 audio 元素的 play() 方法，告诉 Safari 这是用户授权的播放
     if (audioRef.current) {
-      console.log("🎵 audioRef.current exists, activating Safari play permission...")
       const audio = audioRef.current
-      const wasPaused = audio.paused
+      console.log("🎵 audioRef.current exists, readyState:", audio.readyState)
+      console.log("🎵 Activating Safari play permission...")
+
       const originalTime = audio.currentTime
       const originalVolume = audio.volume
 
-      // 静音播放（激活权限）
+      // 🔴 不管 readyState 是多少，都尝试调用 play() 激活权限
+      // 即使失败也没关系，关键是告诉 Safari 这是用户授权的播放
       audio.volume = 0
       audio.play().then(() => {
         // 立即暂停并恢复状态
@@ -276,6 +315,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
         audio.currentTime = originalTime
         audio.volume = originalVolume
       })
+    } else {
+      console.log('⚠️ audioRef.current is null')
     }
 
     // 🔴 移动端优化：点击播放按钮时，滚动到顶部完全隐藏标题
@@ -404,6 +445,13 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* 🔴 Toast 提示 */}
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg">
+          {toastMessage}
+        </div>
+      )}
+
       {/* Header - Three Level Navigation */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 space-y-3">
@@ -464,7 +512,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
                 </div>
               </div>
 
-              {videoUrl ? (
+              {/* 🔴 视频降级时隐藏视频区域 */}
+              {videoUrl && !videoDegraded ? (
                 <>
                   {console.log('🎬 About to render VideoPlayer with videoUrl:', videoUrl)}
                   <VideoPlayer
@@ -545,7 +594,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     </svg>
                   </button>
                   <button
-                    onClick={handlePlayOrNext}
+                    onClick={() => {
+                      console.log('🔴🔴🔴 播放按钮被点击了！🔴🔴🔴')
+                      handlePlayOrNext()
+                    }}
                     className="p-2 rounded-lg hover:bg-gray-200"
                     title={hasPlayedCurrent ? "下一句" : "播放"}
                   >

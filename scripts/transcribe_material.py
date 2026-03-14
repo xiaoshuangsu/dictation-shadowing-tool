@@ -42,16 +42,15 @@ def split_words_to_sentences(words, title: str):
     """
     将词级时间戳转换为句子
 
-    智能分句规则（针对连贯说话优化）：
-    1. 长停顿优先：停顿 > 1.5 秒 → 必须断句
-    2. 句号+短停顿：句号/问号/感叹号 + 停顿 > 0.6 秒 → 断句
-    3. 句子长度限制：当前句子 > 30 秒 或 > 50 个词时，
-       遇到句号/问号/感叹号就断句（不管停顿多短）
+    动态冲突检测算法（解决吞音问题）：
+    1. 标点强制切分：遇到 ?.! 就断句（不管停顿多长）
+    2. 逗号+停顿切分：逗号 , + 停顿 > 0.8s → 断句
+    3. 长停顿切分：任何停顿 > 0.8s → 断句
 
-    这样可以：
-    - 避免分割连贯的短句
-    - 防止产生超长句子（> 30秒）
-    - 在语流转换点自然断句
+    关键修复：
+    - 动态后扩：延长 min(300ms, 间隙/2)，绝不占用下一句
+    - 静音裁剪：使用 Whisper 已识别的停顿作为切割点
+    - 首部锁定：起始时间最多向前 30ms，避免听到上一句尾音
     """
     if not words:
         return []
@@ -60,60 +59,81 @@ def split_words_to_sentences(words, title: str):
     current_sentence_words = []
     sentence_start = words[0]['start']
 
-    LONG_PAUSE_THRESHOLD = 1.5  # 长停顿阈值（秒）
-    SHORT_PAUSE_THRESHOLD = 0.6  # 句号后的短停顿阈值（秒）
-    MAX_SENTENCE_DURATION = 30  # 最大句子时长（秒）
-    MAX_SENTENCE_WORDS = 50     # 最大句子词数
+    PAUSE_THRESHOLD = 0.8    # 停顿阈值（秒）
+    TAIL_BUFFER = 0.3        # 默认尾部缓冲 300ms
+    START_BUFFER = 0.03      # 起始时间最多向前 30ms
 
     for i, word in enumerate(words):
         current_sentence_words.append(word)
         word_text = word['word'].strip()
         should_end = False
+        sentence_end_time = word['end']  # 默认使用词的结束时间
 
         # 只有在不是最后一个词时才检查停顿
         if i < len(words) - 1:
             next_word = words[i + 1]
             pause = next_word['start'] - word['end']
 
-            # 计算当前句子的时长和词数
-            current_duration = word['end'] - sentence_start
-            current_word_count = len(current_sentence_words)
-            is_long_sentence = current_duration > MAX_SENTENCE_DURATION or current_word_count > MAX_SENTENCE_WORDS
-
-            # 规则1: 长停顿 → 必须断句
-            if pause > LONG_PAUSE_THRESHOLD:
+            # 规则1: 遇到 ?.! 强制断句（不管停顿多长）
+            if word_text.endswith(('.', '?', '!')):
                 should_end = True
+                # 动态后扩：计算与下一句的间隙
+                gap_to_next = next_word['start'] - word['end']
+                # 实际延长量 = min(300ms, 间隙/2)
+                # 这样既能保住尾音，又不会占用下一句的时间
+                if gap_to_next > 0:
+                    dynamic_extension = min(TAIL_BUFFER, gap_to_next / 2)
+                    sentence_end_time = word['end'] + dynamic_extension
+                else:
+                    # 如果间隙为负（重叠），使用词的结束时间
+                    sentence_end_time = word['end']
 
-            # 规则2: 句号 + 短停顿 → 断句
-            elif word_text.endswith(('.', '?', '!')) and pause > SHORT_PAUSE_THRESHOLD:
+            # 规则2: 逗号 + 停顿 > 0.8s → 断句
+            elif word_text.endswith(',') and pause > PAUSE_THRESHOLD:
                 should_end = True
+                # 对于逗号断句，也应用动态后扩
+                gap_to_next = next_word['start'] - word['end']
+                if gap_to_next > 0:
+                    dynamic_extension = min(TAIL_BUFFER, gap_to_next / 2)
+                    sentence_end_time = word['end'] + dynamic_extension
+                else:
+                    sentence_end_time = word['end']
 
-            # 规则3: 句子太长 + 遇到句号 → 强制断句
-            elif is_long_sentence and word_text.endswith(('.', '?', '!')):
+            # 规则3: 任何停顿 > 0.8s → 断句（即使没有标点）
+            elif pause > PAUSE_THRESHOLD:
                 should_end = True
+                # 对于长停顿，在停顿的中间位置结束（静音裁剪）
+                # 这样既不会太早切断尾音，也不会占用下一句
+                sentence_end_time = word['end'] + pause * 0.5
 
         if should_end and current_sentence_words:
             text = ''.join([w['word'] for w in current_sentence_words]).strip()
             if text and len(text) > 2:
+                # 首部锁定：起始时间最多向前 30ms
+                actual_start = max(0, sentence_start - START_BUFFER)
+
                 sentences.append({
                     'id': len(sentences) + 1,
                     'text': text,
-                    'start': sentence_start,
-                    'end': word['end']
+                    'start': actual_start,
+                    'end': sentence_end_time
                 })
                 current_sentence_words = []
                 if i < len(words) - 1:
+                    # 下一句的起始时间锁定在原始识别点（不再前移）
                     sentence_start = words[i + 1]['start']
 
     # 处理最后一句
     if current_sentence_words:
         text = ''.join([w['word'] for w in current_sentence_words]).strip()
         if text and len(text) > 2:
+            actual_start = max(0, sentence_start - START_BUFFER)
+            # 最后一句向后延长 300ms（没有下一句冲突）
             sentences.append({
                 'id': len(sentences) + 1,
                 'text': text,
-                'start': sentence_start,
-                'end': current_sentence_words[-1]['end']
+                'start': actual_start,
+                'end': current_sentence_words[-1]['end'] + TAIL_BUFFER
             })
 
     return sentences
