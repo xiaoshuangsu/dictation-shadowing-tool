@@ -25,7 +25,7 @@ interface ShadowingPanelProps {
 // 单词对比结果类型
 interface WordDiff {
   word: string           // 单词原文
-  status: 'match' | 'insertion' | 'deletion' | 'weak_link'  // 匹配 | 多读 | 漏读 | 连读弱读
+  status: 'match' | 'insertion' | 'deletion' | 'weak_link' | 'partial_match'  // 匹配 | 多读 | 漏读 | 连读弱读 | 整句通过但该词读错
   originalIndex?: number // 在原句中的位置（用于漏读词）
 }
 
@@ -223,6 +223,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
   const [showResult, setShowResult] = useState(false)
   const [micError, setMicError] = useState<string | null>(null)
   const [wordDiffs, setWordDiffs] = useState<WordDiff[]>([])  // 单词对比结果
+  const [sentenceSimilarity, setSentenceSimilarity] = useState<number>(0)  // 句子相似度
+  const [wordMatchRate, setWordMatchRate] = useState<number>(0)  // 单词匹配率
 
   // 显示控制模式
   type DisplayMode = 'full' | 'translation-only' | 'blind'
@@ -296,6 +298,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
     setRecordedAudioUrl(null)
     setMicError(null)
     setWordDiffs([])  // 重置单词对比结果
+    setSentenceSimilarity(0)  // 重置句子相似度
+    setWordMatchRate(0)  // 重置单词匹配率
     // 不重置 displayMode，保持用户选择
     recordedChunksRef.current = []
     resultProcessedRef.current = false  // Reset result processed flag
@@ -323,210 +327,336 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
   }, [sentence.id])
 
   /**
-   * 单词级对比算法
-   * 使用简化的 diff 算法：双指针遍历
+   * 文本预处理标准化（增强版）
+   * - 全部转为小写
+   * - 移除所有标点符号
+   * - 连字符替换为空格
+   * - 数字统一转换为数字形式（0-9）
+   * - 移除首尾空格，合并连续空格
+   */
+  const normalizeText = (text: string): string => {
+    // 数字转换单词映射
+    const numberWords: Record<string, string> = {
+      'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+      'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+      'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13',
+      'fourteen': '14', 'fifteen': '15', 'sixteen': '16', 'seventeen': '17',
+      'eighteen': '18', 'nineteen': '19', 'twenty': '20'
+    }
+
+    let normalized = text
+      .toLowerCase()
+      .replace(/-/g, ' ')        // 连字符替换为空格
+      .replace(/[^\w\s]/g, '')   // 移除所有标点符号
+      .replace(/\s+/g, ' ')      // 合并连续空格
+      .trim()
+
+    // 转换数字单词为数字
+    const words = normalized.split(' ')
+    const convertedWords = words.map(word => {
+      if (numberWords[word]) {
+        return numberWords[word]
+      }
+      return word
+    })
+
+    return convertedWords.join(' ')
+  }
+
+  /**
+   * 计算 Levenshtein Distance（编辑距离）
+   * 返回两个字符串之间的编辑距离
+   */
+  const calculateLevenshteinDistance = (str1: string, str2: string): number => {
+    const m = str1.length
+    const n = str2.length
+    const dp: number[][] = []
+
+    for (let i = 0; i <= m; i++) {
+      dp[i] = []
+      for (let j = 0; j <= n; j++) {
+        if (i === 0) dp[i][j] = j
+        else if (j === 0) dp[i][j] = i
+        else {
+          const cost = str1[i - 1] === str2[j - 1] ? 0 : 1
+          dp[i][j] = Math.min(
+            dp[i - 1][j] + 1,       // 删除
+            dp[i][j - 1] + 1,       // 插入
+            dp[i - 1][j - 1] + cost // 替换
+          )
+        }
+      }
+    }
+
+    return dp[m][n]
+  }
+
+  /**
+   * 计算两个文本的相似度（基于 Levenshtein Distance）
+   * 返回 0-1 之间的相似度分数
+   */
+  const calculateSimilarity = (text1: string, text2: string): number => {
+    const normalized1 = normalizeText(text1)
+    const normalized2 = normalizeText(text2)
+
+    if (normalized1.length === 0 && normalized2.length === 0) return 1.0
+    if (normalized1.length === 0 || normalized2.length === 0) return 0.0
+
+    const distance = calculateLevenshteinDistance(normalized1, normalized2)
+    const maxLen = Math.max(normalized1.length, normalized2.length)
+    const similarity = (maxLen - distance) / maxLen
+
+    console.log(`[SIMILARITY] "${normalized1}" vs "${normalized2}": distance=${distance}, similarity=${(similarity * 100).toFixed(1)}%`)
+
+    return similarity
+  }
+
+  /**
+   * 检测专有名词（人名、地名等）
+   * 规则：首字母大写 且 不在常用词表中
+   */
+  const isProperNoun = (word: string): boolean => {
+    if (!word || word.length < 2) return false
+
+    // 检查是否首字母大写
+    const isFirstCapital = word[0] === word[0].toUpperCase() && word[0] !== word[0].toLowerCase()
+
+    // 常用非专有名词列表（句首可能大写但不是专有名词）
+    const commonWords = new Set([
+      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+      'with', 'by', 'from', 'of', 'is', 'are', 'was', 'were', 'be', 'been',
+      'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+      'should', 'may', 'might', 'must', 'can', 'this', 'that', 'these', 'those',
+      'i', 'you', 'he', 'she', 'it', 'we', 'they', 'my', 'your', 'his', 'her',
+      'its', 'our', 'their', 'me', 'him', 'them', 'us'
+    ])
+
+    const lowerWord = word.toLowerCase()
+
+    // 如果是常用词，不是专有名词
+    if (commonWords.has(lowerWord)) return false
+
+    // 首字母大写，且长度 > 1，很可能是专有名词
+    return isFirstCapital
+  }
+
+  /**
+   * 从句子中提取专有名词列表
+   */
+  const extractProperNouns = (sentence: string): Set<string> => {
+    const words = sentence.split(/\s+/)
+    const properNouns = new Set<string>()
+
+    for (const word of words) {
+      // 清理标点
+      const cleanWord = word.replace(/[^\w\s]/g, '')
+      if (isProperNoun(cleanWord)) {
+        properNouns.add(cleanWord.toLowerCase())
+      }
+    }
+
+    return properNouns
+  }
+
+  /**
+   * 单词级对比算法 - 贪婪匹配/锚点对齐版本
+   *
+   * 核心改进：
+   * 1. 不再使用死板的 A[i] vs B[i] 索引比对
+   * 2. 对每个原文单词，在识别结果中全局搜索匹配
+   * 3. 允许跳跃匹配（跳过脏数据）
+   * 4. 关键词保护（核心词必须匹配）
    */
   const compareWords = (originalText: string, recognizedText: string): WordDiff[] => {
-    console.log("===== compareWords called =====")
+    console.log("===== compareWords called (Greedy Matching) =====")
     console.log("Original text:", originalText)
     console.log("Recognized text:", recognizedText)
 
-    // 预处理：转小写，去除标点，拆分为单词数组
-    const normalize = (text: string) => {
-      return text
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')  // 去除所有非字母数字字符
-        .replace(/\s+/g, ' ')
-        .trim()
-    }
+    const originalWords = normalizeText(originalText).split(' ').filter(w => w.length > 0)
+    const recognizedWords = normalizeText(recognizedText).split(' ').filter(w => w.length > 0)
 
-    const originalWords = normalize(originalText).split(' ').filter(w => w.length > 0)
-    const recognizedWords = normalize(recognizedText).split(' ').filter(w => w.length > 0)
+    // 提取专有名词白名单
+    const properNounWhitelist = extractProperNouns(originalText)
+    console.log("Proper noun whitelist:", Array.from(properNounWhitelist))
+
+    // 核心词列表（长度 >= 4 的名词、动词、形容词）
+    const contentWords = originalWords.filter(w => w.length >= 4 && !LINKING_WORDS.has(w.toLowerCase()))
+    console.log("Content words (keywords):", contentWords)
 
     console.log("Normalized original words:", originalWords)
     console.log("Normalized recognized words:", recognizedWords)
     console.log("==============================")
 
-    const diffs: WordDiff[] = []
-    let i = 0  // 原句指针
-    let j = 0  // 识别文本指针
+    // 初始化所有原文单词为未匹配状态
+    const matchStatus: Array<'match' | 'weak_link' | 'deletion'> = new Array(originalWords.length).fill('deletion')
+    const matchedOriginalIndices = new Set<number>()  // 已匹配的原文单词索引
+    const matchedRecognizedIndices = new Set<number>()  // 已匹配的识别单词索引
 
-    while (i < originalWords.length || j < recognizedWords.length) {
-      if (i >= originalWords.length) {
-        // 原句已结束，剩余的都是多读的词
-        diffs.push({
-          word: recognizedWords[j],
-          status: 'insertion'
-        })
-        j++
-      } else if (j >= recognizedWords.length) {
-        // 识别文本已结束，剩余的都是漏读的词
-        diffs.push({
-          word: originalWords[i],
-          status: 'deletion',
-          originalIndex: i
-        })
-        i++
-      } else {
-        // 使用智能匹配算法（Metaphone + 上下文感知）- "口语优先"容错版本
+    // 第一轮：核心词优先匹配（锚点对齐）
+    console.log("\n=== Round 1: Keyword Matching (Anchor Alignment) ===")
+    for (let i = 0; i < originalWords.length; i++) {
+      if (matchedOriginalIndices.has(i)) continue  // 已匹配，跳过
+
+      const originalWord = originalWords[i]
+      const isKeyword = contentWords.includes(originalWord)
+      const isProperNoun = properNounWhitelist.has(originalWord.toLowerCase())
+
+      // 优先匹配核心词和专有名词
+      if (!isKeyword && !isProperNoun) continue
+
+      console.log(`[KEYWORD] Looking for "${originalWord}" (index ${i})`)
+
+      // 在识别结果中全局搜索这个词
+      let bestMatchIndex = -1
+      let bestMatchScore = 0
+
+      for (let j = 0; j < recognizedWords.length; j++) {
+        if (matchedRecognizedIndices.has(j)) continue  // 已匹配，跳过
+
+        const recognizedWord = recognizedWords[j]
         const context = originalWords.slice(Math.max(0, i - 1), i + 2)
-        const matchResult = intelligentMatch(originalWords[i], recognizedWords[j], context)
+        const matchResult = intelligentMatch(originalWord, recognizedWord, context)
 
-        console.log(`[COMPARE] "${originalWords[i]}" vs "${recognizedWords[j]}"`, {
-          i, j,
-          isMatch: matchResult.isMatch,
-          confidence: matchResult.confidence,
-          type: matchResult.matchType,
-          reason: matchResult.reason
-        })
-
-        if (matchResult.isMatch && matchResult.confidence >= 0.50) {
-          // 匹配成功（包括近音词、STT误判修正、常见发音变体）
-          if (matchResult.confidence >= 0.85) {
-            // 高置信度：完全匹配（绿色）
-            diffs.push({
-              word: originalWords[i],
-              status: 'match',
-              originalIndex: i
-            })
-          } else {
-            // 中等置信度：接近匹配（灰色/weak_link）- 容忍发音差异
-            diffs.push({
-              word: originalWords[i],
-              status: 'weak_link',
-              originalIndex: i
-            })
-          }
-          i++
-          j++
-        } else {
-          // 不匹配 - 尝试对齐
-          // 策略：双向查找，找到最佳匹配点
-          let foundMatch = false
-          let lookAhead = 1
-          const maxLookAhead = 3
-
-          // 先在原句中向前查找（用户可能漏读了原句的词）
-          while (lookAhead <= maxLookAhead && i + lookAhead < originalWords.length) {
-            if (originalWords[i + lookAhead] === recognizedWords[j] ||
-                areSimilarSounding(originalWords[i + lookAhead], recognizedWords[j])) {
-              // 找到匹配：原句漏了 i 到 i+lookAhead-1 的词
-              for (let k = 0; k < lookAhead; k++) {
-                const missedWord = originalWords[i + k]
-                const isWeakWord = LINKING_WORDS.has(missedWord.toLowerCase())
-
-                // 检查是否是连读弱读情况
-                let isWeakLink = false
-                if (isWeakWord && k === 0) {
-                  // 检查前一个词（如果存在）
-                  const prevWord = i > 0 ? originalWords[i - 1] : null
-                  // 检查下一个词
-                  const nextWord = i + lookAhead < originalWords.length ? originalWords[i + lookAhead] : null
-
-                  // 如果是辅音结尾 + 弱读词 + 元音开头，可能是连读弱读
-                  if (prevWord && nextWord && isConsonantEnd(prevWord) && isVowelStart(nextWord)) {
-                    isWeakLink = true
-                  }
-                }
-
-                diffs.push({
-                  word: missedWord,
-                  status: isWeakLink ? 'weak_link' : 'deletion',
-                  originalIndex: i + k
-                })
-              }
-              // 匹配当前词
-              diffs.push({
-                word: recognizedWords[j],
-                status: 'match',
-                originalIndex: i + lookAhead
-              })
-              i += lookAhead + 1
-              j++
-              foundMatch = true
-              break
-            }
-            lookAhead++
-          }
-
-          // 如果原句中没找到，尝试在识别文本中向前查找（用户可能多读了词）
-          if (!foundMatch) {
-            lookAhead = 1
-            while (lookAhead <= maxLookAhead && j + lookAhead < recognizedWords.length) {
-              if (originalWords[i] === recognizedWords[j + lookAhead] ||
-                  areSimilarSounding(originalWords[i], recognizedWords[j + lookAhead])) {
-              // 找到匹配：识别文本多了 j 到 j+lookAhead-1 的词
-              for (let k = 0; k < lookAhead; k++) {
-                diffs.push({
-                  word: recognizedWords[j + k],
-                  status: 'insertion'
-                })
-              }
-              // 匹配当前词
-              diffs.push({
-                word: originalWords[i],
-                status: 'match',
-                originalIndex: i
-              })
-              j += lookAhead + 1
-              i++
-              foundMatch = true
-              break
-            }
-            lookAhead++
-          }
-        }
-
-        // 如果都没找到，标记为替换（读错）
-        if (!foundMatch) {
-          const recognizedWord = recognizedWords[j]
-          const originalWord = originalWords[i]
-
-          // 检查是否是弱读词的连读替换（如 a → the）
-          const isWeakWord = LINKING_WORDS.has(originalWord.toLowerCase())
-          const isRecognizedWeakWord = LINKING_WORDS.has(recognizedWord.toLowerCase())
-          const isPrevConsonantEnd = i > 0 && isConsonantEnd(originalWords[i - 1])
-          const isNextVowelStart = i + 1 < originalWords.length && isVowelStart(originalWords[i + 1])
-
-          // 如果原词是弱读词，且前后构成连读环境
-          if (isWeakWord && isPrevConsonantEnd && isNextVowelStart) {
-            // 如果识别出的词也是弱读词，视为正确匹配
-            if (isRecognizedWeakWord) {
-              diffs.push({
-                word: originalWord,
-                status: 'match',
-                originalIndex: i
-              })
-            } else {
-              // 识别出的不是弱读词，标记为 weak_link
-              diffs.push({
-                word: recognizedWord,
-                status: 'insertion'
-              })
-              diffs.push({
-                word: originalWord,
-                status: 'weak_link',
-                originalIndex: i
-              })
-            }
-          } else {
-            // 普通读错
-            diffs.push({
-              word: recognizedWord,
-              status: 'insertion'
-            })
-            diffs.push({
-              word: originalWord,
-              status: 'deletion',
-              originalIndex: i
-            })
-          }
-          i++
-          j++
+        if (matchResult.isMatch && matchResult.confidence > bestMatchScore) {
+          bestMatchIndex = j
+          bestMatchScore = matchResult.confidence
         }
       }
+
+      // 如果找到匹配（置信度 >= 40%）
+      if (bestMatchIndex !== -1 && bestMatchScore >= 0.40) {
+        console.log(`[KEYWORD] ✓ Matched "${originalWord}" with "${recognizedWords[bestMatchIndex]}" (confidence: ${(bestMatchScore * 100).toFixed(0)}%)`)
+
+        matchStatus[i] = bestMatchScore >= 0.85 ? 'match' : 'weak_link'
+        matchedOriginalIndices.add(i)
+        matchedRecognizedIndices.add(bestMatchIndex)
+      } else {
+        console.log(`[KEYWORD] ✗ No match found for "${originalWord}"`)
       }
     }
+
+    // 第二轮：剩余词贪婪匹配（允许跳跃）
+    console.log("\n=== Round 2: Greedy Matching (Skip Allowed) ===")
+    for (let i = 0; i < originalWords.length; i++) {
+      if (matchedOriginalIndices.has(i)) continue  // 已匹配，跳过
+
+      const originalWord = originalWords[i]
+      console.log(`[GREEDY] Looking for "${originalWord}" (index ${i})`)
+
+      // 在识别结果中搜索这个词（只看未匹配的）
+      let bestMatchIndex = -1
+      let bestMatchScore = 0
+      let bestPosition = Infinity  // 位置接近度
+
+      for (let j = 0; j < recognizedWords.length; j++) {
+        if (matchedRecognizedIndices.has(j)) continue  // 已匹配，跳过
+
+        const recognizedWord = recognizedWords[j]
+        const context = originalWords.slice(Math.max(0, i - 1), i + 2)
+        const matchResult = intelligentMatch(originalWord, recognizedWord, context)
+
+        if (matchResult.isMatch && matchResult.confidence >= 0.40) {
+          // 计算位置接近度（优先匹配位置相近的）
+          const positionDiff = Math.abs(j - i)
+
+          // 选择最佳匹配：优先高置信度，其次位置接近
+          const isBetter = matchResult.confidence > bestMatchScore ||
+                         (matchResult.confidence === bestMatchScore && positionDiff < bestPosition)
+
+          if (isBetter) {
+            bestMatchIndex = j
+            bestMatchScore = matchResult.confidence
+            bestPosition = positionDiff
+          }
+        }
+      }
+
+      // 如果找到匹配
+      if (bestMatchIndex !== -1) {
+        console.log(`[GREEDY] ✓ Matched "${originalWord}" with "${recognizedWords[bestMatchIndex]}" (confidence: ${(bestMatchScore * 100).toFixed(0)}%, position: ${bestPosition})`)
+
+        matchStatus[i] = bestMatchScore >= 0.85 ? 'match' : 'weak_link'
+        matchedOriginalIndices.add(i)
+        matchedRecognizedIndices.add(bestMatchIndex)
+      } else {
+        console.log(`[GREEDY] ✗ No match found for "${originalWord}"`)
+        matchStatus[i] = 'deletion'  // 暂时标记为漏读，可能在连读合并中匹配
+      }
+    }
+
+    // 第三轮：连读合并探测（Linking Merge Detection）
+    console.log("\n=== Round 3: Linking Merge Detection ===")
+    const SHORT_WORD_MAX_LENGTH = 3  // 短词定义：长度 ≤ 3
+
+    // 找出所有未匹配的短词
+    const unmatchedShortWords: Array<{ word: string; index: number }> = []
+    for (let i = 0; i < originalWords.length; i++) {
+      if (!matchedOriginalIndices.has(i) && originalWords[i].length <= SHORT_WORD_MAX_LENGTH) {
+        unmatchedShortWords.push({ word: originalWords[i], index: i })
+      }
+    }
+
+    console.log("Unmatched short words:", unmatchedShortWords)
+
+    // 检测相邻的未匹配短词对，尝试合并匹配
+    for (let k = 0; k < unmatchedShortWords.length - 1; k++) {
+      const first = unmatchedShortWords[k]
+      const second = unmatchedShortWords[k + 1]
+
+      // 检查是否相邻（索引差为 1）
+      if (second.index - first.index !== 1) continue
+
+      // 合并两个词
+      const mergedWord = first.word + second.word
+      console.log(`[LINKING MERGE] Trying merged word: "${first.word}" + "${second.word}" → "${mergedWord}"`)
+
+      // 在识别结果中搜索合并后的词
+      let bestMatchIndex = -1
+      let bestMatchScore = 0
+
+      for (let j = 0; j < recognizedWords.length; j++) {
+        if (matchedRecognizedIndices.has(j)) continue
+
+        const recognizedWord = recognizedWords[j]
+        const context = originalWords.slice(Math.max(0, first.index - 1), second.index + 2)
+        const matchResult = intelligentMatch(mergedWord, recognizedWord, context)
+
+        if (matchResult.isMatch && matchResult.confidence >= 0.50) {
+          if (matchResult.confidence > bestMatchScore) {
+            bestMatchIndex = j
+            bestMatchScore = matchResult.confidence
+          }
+        }
+      }
+
+      // 如果找到匹配
+      if (bestMatchIndex !== -1) {
+        console.log(`[LINKING MERGE] ✓ Found merged word "${mergedWord}" → "${recognizedWords[bestMatchIndex]}" (confidence: ${(bestMatchScore * 100).toFixed(0)}%)`)
+
+        // 标记两个词为匹配
+        matchStatus[first.index] = bestMatchScore >= 0.85 ? 'match' : 'weak_link'
+        matchStatus[second.index] = bestMatchScore >= 0.85 ? 'match' : 'weak_link'
+        matchedOriginalIndices.add(first.index)
+        matchedOriginalIndices.add(second.index)
+        matchedRecognizedIndices.add(bestMatchIndex)
+      }
+    }
+
+    // 生成 diffs：只显示原文，读错的词变色
+    const diffs: WordDiff[] = []
+    for (let i = 0; i < originalWords.length; i++) {
+      diffs.push({
+        word: originalWords[i],
+        status: matchStatus[i],
+        originalIndex: i
+      })
+    }
+
+    console.log("\n=== Final Results ===")
+    console.log("Matched original indices:", Array.from(matchedOriginalIndices))
+    console.log("Match status:", matchStatus)
+    console.log("Word diffs:", diffs)
+    console.log("==============================\n")
 
     return diffs
   }
@@ -674,6 +804,8 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       setUserTranscript("")
       setShowResult(false)
       setWordDiffs([])  // 重置单词对比
+      setSentenceSimilarity(0)  // 重置句子相似度
+      setWordMatchRate(0)  // 重置单词匹配率
       setRecordedAudioUrl(null)
       recordedChunksRef.current = []
       resultProcessedRef.current = false  // Reset result processed flag
@@ -730,9 +862,32 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       console.log("Word diffs result:", diffs)
       setWordDiffs(diffs)
 
-      // 计算整体正确性
-      const hasErrors = diffs.some(d => d.status !== 'match')
-      const isCorrect = !hasErrors
+      // 计算整体正确性（使用句子级别的模糊匹配）
+      // 1. 计算句子级别的相似度（Levenshtein Distance）
+      const sentenceSimilarity = calculateSimilarity(sentenceRef.current.text, transcript)
+      console.log("Sentence similarity:", sentenceSimilarity)
+
+      // 2. 统计单词级别的匹配情况
+      const totalWords = diffs.length
+      const matchedWords = diffs.filter(d => d.status === 'match' || d.status === 'weak_link').length
+      const wordMatchRate = totalWords > 0 ? matchedWords / totalWords : 0
+      console.log("Word match rate:", wordMatchRate, `(${matchedWords}/${totalWords})`)
+
+      // 3. 综合判断（句子相似度 >= 70% 或 单词匹配率 >= 70%）
+      const SIMILARITY_THRESHOLD = 0.70
+      const LOW_THRESHOLD = 0.50
+      const isCorrect = sentenceSimilarity >= SIMILARITY_THRESHOLD || wordMatchRate >= SIMILARITY_THRESHOLD
+
+      // 更新 state 以便渲染时使用
+      setSentenceSimilarity(sentenceSimilarity)
+      setWordMatchRate(wordMatchRate)
+
+      console.log("Final judgment:", {
+        sentenceSimilarity: `${(sentenceSimilarity * 100).toFixed(1)}%`,
+        wordMatchRate: `${(wordMatchRate * 100).toFixed(1)}%`,
+        isCorrect,
+        threshold: `${(SIMILARITY_THRESHOLD * 100).toFixed(0)}%`
+      })
 
       console.log("Pronunciation correct:", isCorrect)
 
@@ -973,46 +1128,56 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
   }
 
   /**
-   * 渲染单词级对比结果
+   * 渲染单词级对比结果（友好反馈版 + 视觉精准反馈）
+   * - 不再使用红色表示"错误"
+   * - 使用淡橙色/灰色暗示"可以更精准"
+   * - 即使整句通过，也高亮显示读错的单词（橙色 + 下划线）
    */
   const renderWordDiffs = () => {
     return wordDiffs.map((diff, index) => {
       const key = `${diff.word}-${index}-${diff.status}`
 
       if (diff.status === 'match') {
-        // 正常匹配：灰色
+        // 正确匹配：深灰色
         return (
           <span key={key} className="text-gray-800">
             {diff.word}{' '}
           </span>
         )
       } else if (diff.status === 'insertion') {
-        // 多读/读错：红色加粗下划线
+        // 多读/读错：橙色 + 下划线（表示读错，需要改进）
         return (
-          <span key={key} className="text-red-500 font-bold underline">
+          <span key={key} className="text-orange-500 font-semibold underline decoration-2 underline-offset-2">
             {diff.word}{' '}
           </span>
         )
       } else if (diff.status === 'deletion') {
-        // 漏读：浅红色方框
+        // 漏读：淡橙色 + 下划线（提示可以更完整）
         return (
           <span
             key={key}
-            className="inline-block bg-red-50 text-red-400 border border-dashed border-red-300 px-1 rounded mr-1"
+            className="inline-block bg-orange-50 text-orange-400 border border-orange-200 px-1 rounded mr-1 underline decoration-2 underline-offset-2"
             title={`漏读: ${diff.word}`}
           >
-            [{diff.word}]
+            {diff.word}
           </span>
         )
       } else if (diff.status === 'weak_link') {
-        // 连读弱读：灰色括号提示
+        // 连读弱读：灰色括号提示（中性）
         return (
           <span
             key={key}
             className="inline-block bg-gray-100 text-gray-400 border border-gray-200 px-1 rounded mr-1 text-sm"
             title={`连读弱读: ${diff.word}`}
           >
-            ({diff.word})
+            {diff.word}
+          </span>
+        )
+      } else if (diff.status === 'partial_match') {
+        // 整句通过但该词读错：橙色 + 下划线（视觉精准反馈）
+        return (
+          <span key={key} className="text-orange-500 underline decoration-2 underline-offset-2" title={`发音可以更精准: ${diff.word}`}>
+            {diff.word}{' '}
           </span>
         )
       }
@@ -1020,9 +1185,15 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
     })
   }
 
-  // 判断读音正确性（基于单词级对比）
-  // weak_link 不算错误，因为它表示连读弱读，是正常的发音现象
-  const isCorrect = wordDiffs.length > 0 ? wordDiffs.every(d => d.status === 'match' || d.status === 'weak_link') : false
+  // 判断读音正确性（使用句子级别的模糊匹配）
+  // 阈值：70% 及以上 = 正确（绿色），50% 以下 = 需要改进（红色）
+  const SIMILARITY_THRESHOLD = 0.70
+  const LOW_THRESHOLD = 0.50
+
+  // 计算最佳匹配度
+  const bestMatch = Math.max(sentenceSimilarity, wordMatchRate)
+  const isCorrect = showResult && bestMatch >= SIMILARITY_THRESHOLD
+  const isPoor = showResult && bestMatch < LOW_THRESHOLD
 
   return (
     <div>
@@ -1135,10 +1306,25 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
             </div>
           )}
 
-          {/* 单词对比结果 */}
+          {/* 单词对比结果 - 优化版：即使整句通过，也显示读错的单词 */}
           <div className="mb-3 text-base leading-relaxed">
             {wordDiffs.length > 0 ? (
-              renderWordDiffs()
+              (() => {
+                // 检查是否有读错的单词（insertion 或 deletion）
+                const hasErrors = wordDiffs.some(d => d.status === 'insertion' || d.status === 'deletion')
+
+                // 如果相似度 >= 70% 且没有读错的单词，只显示绿色原文
+                if (bestMatch >= 0.7 && !hasErrors) {
+                  return (
+                    <div className="text-green-700 font-medium">
+                      {sentenceRef.current.text}
+                    </div>
+                  )
+                }
+
+                // 否则显示详细的单词对比（高亮读错的单词）
+                return renderWordDiffs()
+              })()
             ) : (
               <div className="text-gray-600">
                 {userTranscript || t('practice.shadowing.noRecognition')}
@@ -1170,23 +1356,84 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
             )
           })()}
 
-          {/* 整体正确性判断 */}
+          {/* 整体正确性判断 - 文案分级矩阵（修正版） */}
           <div className="mt-3 pt-3 border-t border-gray-200">
-            {isCorrect ? (
-              <div className="flex items-center gap-2 text-green-600">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                <span className="font-medium">{t('practice.shadowing.perfectPronunciation')}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-blue-600">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <span className="font-medium">继续加油！多练习能让发音更自然</span>
-              </div>
-            )}
+            {(() => {
+              // 计算单词匹配情况
+              const totalWords = wordDiffs.length
+              const matchedWords = wordDiffs.filter(d => d.status === 'match' || d.status === 'weak_link').length
+              const wordMatchRate = totalWords > 0 ? matchedWords / totalWords : 0
+
+              // 计算单词错误数量
+              const errorCount = wordDiffs.filter(d => d.status === 'deletion').length
+
+              console.log("文案分级计算:", {
+                totalWords,
+                matchedWords,
+                errorCount,
+                wordMatchRate: `${(wordMatchRate * 100).toFixed(1)}%`,
+                sentenceSimilarity: `${(sentenceSimilarity * 100).toFixed(1)}%`,
+                bestMatch: `${(bestMatch * 100).toFixed(1)}%`
+              })
+
+              // 第一级：Perfect (全对)
+              if (wordMatchRate === 1.0) {
+                return (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <span className="text-2xl">🌟</span>
+                    <span className="font-medium">太棒了！发音非常完美</span>
+                  </div>
+                )
+              }
+
+              // 第二级：Good (有少量瑕疵) - 单词匹配率 >= 80%
+              if (wordMatchRate >= 0.8) {
+                return (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <span className="text-2xl">👍</span>
+                    <span className="font-medium">很不错！部分单词发音可以更精准</span>
+                  </div>
+                )
+              }
+
+              // 第三级：Medium (中等) - 单词匹配率 >= 50%
+              if (wordMatchRate >= 0.5) {
+                return (
+                  <div className="flex items-center gap-2 text-yellow-600">
+                    <span className="text-2xl">✨</span>
+                    <span className="font-medium">大部分词都读对了，继续加油！</span>
+                  </div>
+                )
+              }
+
+              // 第四级：Keep Trying (勉强通过) - 句子相似度 >= 70% 但单词匹配率 < 50%
+              if (bestMatch >= 0.7) {
+                return (
+                  <div className="flex items-center gap-2 text-orange-500">
+                    <span className="text-2xl">💪</span>
+                    <span className="font-medium">读得不错，建议针对橙色单词多加练习</span>
+                  </div>
+                )
+              }
+
+              // 第五级：Fail (未通过) - 句子相似度 < 50%
+              if (isPoor) {
+                return (
+                  <div className="flex items-center gap-2 text-red-500">
+                    <span className="text-2xl">😅</span>
+                    <span className="font-medium">没关系，再试一次，你可以的！</span>
+                  </div>
+                )
+              }
+
+              // 默认状态
+              return (
+                <div className="flex items-center gap-2 text-orange-500">
+                  <span className="text-2xl">✨</span>
+                  <span className="font-medium">继续加油！多练习能让发音更自然</span>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}

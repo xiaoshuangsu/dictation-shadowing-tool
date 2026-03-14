@@ -39,8 +39,8 @@ const MERGED_WORD_EQUIVALENTS: Record<string, string[]> = {
   "till": ['until'],
 }
 
-// ============ Metaphone 算法实现（简化版）============
-// 将单词转换为语音编码，忽略发音差异
+// ============ Metaphone 算法实现（增强版）============
+// 将单词转换为语音编码，专门处理 lived/left 这类发音相似的词
 function metaphone(word: string): string {
   const w = word.toLowerCase().replace(/[^a-z]/g, '')
   if (w.length === 0) return ''
@@ -57,6 +57,7 @@ function metaphone(word: string): string {
   while (i < w.length) {
     const ch = w[i]
     const nextCh = w[i + 1] || ''
+    const nextNextCh = w[i + 2] || ''
 
     // 特殊规则
     if (ch === 'c' && nextCh === 'h') {
@@ -98,7 +99,7 @@ function metaphone(word: string): string {
     } else if (ch === 't' && nextCh === 'h') {
       result += '0'  // TH → θ (用0表示)
       i += 2
-    } else if (ch === 't' && nextCh === 'c' && (w[i + 2] || '') === 'h') {
+    } else if (ch === 't' && nextCh === 'c' && nextNextCh === 'h') {
       result += '0'  // TCH → θ
       i += 3
     } else if (ch === 'w' && i > 0 && 'aeiou'.includes(w[i - 1])) {
@@ -171,9 +172,14 @@ const HIGH_FREQUENCY_MISHEARS: Record<string, string[]> = {
   'they': ['', 'them', 'their', 'there'],
   'them': ['', 'they', 'their'],
   'their': ['', 'there', 'them', 'they'],
-  'there': ['', 'their', 'where', 'were'],
+  'there': ['', 'their', 'where', 'were', 'dear'],
   'where': ['', 'were', 'there', 'were'],
   'were': ['', 'are', 'was', 'their', 'there'],
+  'dear': ['', 'there', 'deer'],
+  'his': [],  // ❌ 移除混淆词，his 和 her 发音明显不同
+  'her': [],  // ❌ 移除混淆词，her 和 his 发音明显不同
+  'him': [],  // ❌ 发音明显不同
+  'she': [],  // ❌ 发音明显不同
 
   // 助动词（可以省略）
   'was': ['', 'were', 'is', 'are'],
@@ -210,6 +216,89 @@ const HIGH_FREQUENCY_MISHEARS: Record<string, string[]> = {
   'first': [''],
   'second': [''],
   'third': [''],
+
+  // 新增：近音词对（发音相似但拼写不同）
+  'hear': ['here', 'hair'],
+  'here': ['hear', 'her'],
+  'hair': ['here', 'hear', 'hare'],
+  'hare': ['here', 'hair'],
+  'their': ['there', 'deer', 'dear'],
+  'deer': ['dear', 'there'],
+  'piece': ['peace', 'peas'],
+  'peace': ['piece'],
+  'break': ['brake'],
+  'brake': ['break'],
+  'write': ['right', 'ride'],
+  'right': ['write', 'ride'],
+  'ride': ['right', 'write'],
+  'whole': ['hole'],
+  'hole': ['whole'],
+  'know': ['no', 'now'],
+  'no': ['know', 'now'],
+  'now': ['know', 'no'],
+  'son': ['sun'],
+  'sun': ['son'],
+  'see': ['sea', 'she'],
+  'sea': ['see', 'she'],
+  'she': ['see', 'sea'],
+  'buy': ['by', 'bye'],
+  'by': ['buy', 'bye'],
+  'bye': ['buy', 'by'],
+  'hour': ['our'],
+  'our': ['hour', 'are'],
+  'male': ['mail'],
+  'mail': ['male'],
+  'female': ['fe-mail'],
+  'sail': ['sale'],
+  'sale': ['sail'],
+  'cell': ['sell'],
+  'sell': ['cell'],
+  'one': ['won'],
+  'won': ['one'],
+  'two': ['to', 'too'],
+  'too': ['to', 'two'],
+  'four': ['for', 'fore'],
+  'for': ['four', 'fore'],
+  'fore': ['for', 'four'],
+  'eight': ['ate'],
+  'ate': ['eight'],
+  'new': ['knew', 'nu'],
+  'knew': ['new'],
+  'knight': ['night'],
+  'night': ['knight'],
+  'not': ['knot'],
+  'knot': ['not'],
+  'plain': ['plane'],
+  'plane': ['plain'],
+  'road': ['rowed'],
+  'rose': ['rows'],
+  'rows': ['rose', 'roux'],
+  'sight': ['site', 'cite'],
+  'site': ['sight', 'cite'],
+  'cite': ['sight', 'site'],
+  'stare': ['stair'],
+  'stair': ['stare'],
+  'steal': ['steel'],
+  'steel': ['steal'],
+  'tail': ['tale'],
+  'tale': ['tail'],
+  'their': ['there'],
+  'there': ['their'],
+  'to': ['too', 'two'],
+  'two': ['to', 'too'],
+  'too': ['to', 'two'],
+  'vary': ['very'],
+  'very': ['vary'],
+  'wait': ['weight'],
+  'weight': ['wait'],
+  'waste': ['waist'],
+  'waist': ['waste'],
+  'weak': ['week'],
+  'week': ['weak'],
+  'wear': ['ware'],
+  'ware': ['wear'],
+  'wood': ['would'],
+  'would': ['wood', 'wood'],
 }
 
 // 上下文感知的高频词对（基于 N-gram 概率）
@@ -229,6 +318,38 @@ const CONTEXTUAL_PAIRS: Array<[string, string, number]> = [
   ['where', 'were', 0.70],
   ['your', 'you\'re', 0.70],
 ]
+
+// ============ 发音明显不同的词对黑名单 ============
+// 这些词对发音完全不同，绝对不能通过模糊匹配
+const PRONUNCIATION_BLACKLIST: Set<string> = new Set([
+  // 代词（发音完全不同）
+  'his-her', 'her-his', 'him-her', 'her-him',
+  'he-her', 'her-he', 'she-he', 'he-she',
+  'it-his', 'his-it',
+
+  // 常见动词（发音完全不同）
+  'is-are', 'are-is', 'was-were', 'were-was',
+  'have-has', 'has-have', 'do-does', 'does-do',
+
+  // 名词（发音完全不同）
+  'mind-thought', 'thought-mind',
+  'man-men', 'men-man',
+  'woman-women', 'women-woman',
+
+  // 形容词（发音完全不同）
+  'good-bad', 'bad-good',
+  'big-small', 'small-big',
+  'hot-cold', 'cold-hot',
+])
+
+/**
+ * 检查两个词是否在发音黑名单中（发音完全不同）
+ */
+function isInPronunciationBlacklist(word1: string, word2: string): boolean {
+  const key1 = `${word1.toLowerCase()}-${word2.toLowerCase()}`
+  const key2 = `${word2.toLowerCase()}-${word1.toLowerCase()}`
+  return PRONUNCIATION_BLACKLIST.has(key1) || PRONUNCIATION_BLACKLIST.has(key2)
+}
 
 /**
  * 智能匹配两个单词 - "口语优先"容错版本
@@ -302,6 +423,17 @@ export function intelligentMatch(
     }
   }
 
+  // 1.5. 检查发音黑名单（发音完全不同的词对）
+  if (isInPronunciationBlacklist(target, spoken)) {
+    console.log(`[MATCH] ✗ BLACKLIST match: "${target}" vs "${spoken}" - 发音完全不同`)
+    return {
+      isMatch: false,
+      confidence: 0,
+      matchType: 'no_match',
+      reason: 'Pronunciation completely different (blacklisted)'
+    }
+  }
+
   // 2. 检查高频误判词表（扩展版，包含更多常见混淆）
   const mishears = HIGH_FREQUENCY_MISHEARS[target] || []
   console.log(`[MATCH] Checking HIGH_FREQUENCY_MISHEARS for "${target}":`, mishears)
@@ -328,14 +460,25 @@ export function intelligentMatch(
     }
   }
 
-  // 3. Metaphone 语音相似度检测（降低阈值，提高容错）
+  // 3. Metaphone 语音相似度检测（增强版 - lived vs left 应该匹配）
   const targetMetaphone = metaphone(target)
   const spokenMetaphone = metaphone(spoken)
   const metaphoneSimilarity = calculateMetaphoneSimilarity(targetMetaphone, spokenMetaphone)
 
   console.log(`[MATCH] Metaphone: "${target}"→"${targetMetaphone}", "${spoken}"→"${spokenMetaphone}", similarity=${(metaphoneSimilarity * 100).toFixed(0)}%`)
 
-  // 降低阈值从 0.6 → 0.4，接受更多语音相似的词
+  // 高相似度（>= 70%）：直接判定为完全匹配（绿色显示）
+  if (metaphoneSimilarity >= 0.7) {
+    console.log(`[MATCH] ✓ METAPHONE EXACT match: ${(metaphoneSimilarity * 100).toFixed(0)}% >= 70%`)
+    return {
+      isMatch: true,
+      confidence: 1.0,  // 完全置信度，UI 显示为绿色
+      matchType: 'exact',  // 标记为 exact，不是 metaphone
+      reason: `Phonetic match ${(metaphoneSimilarity * 100).toFixed(0)}%`
+    }
+  }
+
+  // 中等相似度（40% - 70%）：部分匹配
   if (metaphoneSimilarity >= 0.4) {
     console.log(`[MATCH] ✓ METAPHONE match: ${(metaphoneSimilarity * 100).toFixed(0)}% >= 40%`)
     return {
@@ -480,8 +623,43 @@ export function intelligentMatch(
     }
   }
 
-  // 最后的兜底：如果长度差异 <= 1 且有 50% 字符相同，算部分正确
-  if (Math.abs(target.length - spoken.length) <= 1 && similarity >= 0.5) {
+  // 9.5. 检查是否是基础词 + ed 的误读（如 pig → picked, pick → picked）
+  if (spoken.endsWith('ed') && target === spoken.slice(0, -2)) {
+    console.log(`[MATCH] ✓ Base + ed match: "${target}" ← "${spoken}"`)
+    return {
+      isMatch: true,
+      confidence: 0.82,
+      matchType: 'fuzzy',
+      reason: 'Base word with extra -ed (common STT error)'
+    }
+  }
+
+  if (target.endsWith('ed') && spoken === target.slice(0, -2)) {
+    console.log(`[MATCH] ✓ Base + ed match: "${target}" → "${spoken}"`)
+    return {
+      isMatch: true,
+      confidence: 0.82,
+      matchType: 'fuzzy',
+      reason: 'Base word with -ed dropped'
+    }
+  }
+
+  // 10. 增强的编辑距离容错：允许 1-2 个字母的误差
+  const allowedErrors = maxLen <= 4 ? 1 : 2  // 短词允许 1 个误差，长词允许 2 个
+
+  // 只要相似度 >= 0.6（60%）就判定为匹配
+  if (editDistance <= allowedErrors && similarity >= 0.6) {
+    console.log(`[MATCH] ✓ ENHANCED FUZZY match: distance=${editDistance}, similarity=${(similarity * 100).toFixed(0)}%, allowedErrors=${allowedErrors}`)
+    return {
+      isMatch: true,
+      confidence: 0.70 + (similarity * 0.2),  // 0.70-0.90 范围
+      matchType: 'fuzzy',
+      reason: `Enhanced fuzzy match (${editDistance} letter${editDistance > 1 ? 's' : ''} difference, ${(similarity * 100).toFixed(0)}% similar)`
+    }
+  }
+
+  // 最后的兜底：如果长度差异 <= 2 且有 50% 字符相同，算部分正确
+  if (Math.abs(target.length - spoken.length) <= 2 && similarity >= 0.5) {
     console.log(`[MATCH] ✓ PARTIAL match: len diff=${Math.abs(target.length - spoken.length)}, similarity=${(similarity * 100).toFixed(0)}%`)
     return {
       isMatch: true,
