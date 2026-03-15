@@ -148,6 +148,16 @@ export default function PracticePage({ category, slug }: { category: string; slu
   // 🔴 移动端优化：练习区域 ref，用于切换句子时确保可见
   const practiceAreaRef = useRef<HTMLDivElement>(null)
 
+  // 🔴 桌面端优化：页面加载时确保滚动到顶部，避免面包屑和标题被隐藏
+  useEffect(() => {
+    // 检测是否为桌面端
+    const isDesktop = window.innerWidth >= 1024
+    if (isDesktop) {
+      // 桌面端：滚动到顶部，确保面包屑和标题完全可见
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    }
+  }, []) // 只在组件挂载时执行一次
+
   // Fetch material data
   useEffect(() => {
     async function findMaterial() {
