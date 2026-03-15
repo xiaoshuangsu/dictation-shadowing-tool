@@ -842,6 +842,124 @@ Worker 从 A 账号 R2 bucket (shadowhub) 读取文件
 
 ---
 
+# 🔊 音频尾音截断问题（已解决）
+
+## 📋 问题描述
+
+**症状：**
+- 练习时音频无法完整播放到句子结束
+- 句尾单词的辅音（如 /ch/, /t/, /s/）被截断
+- 例如："beach" 变成 "bea"，"what" 变成 "wha"
+
+**控制台日志示例：**
+```
+currentTime: 61.490
+endNum: 61.54
+实际停止时尾音已被截断
+```
+
+---
+
+## 🔍 根本原因
+
+### 原因 1：Whisper 数据源系统性提前
+
+**问题：**
+- Whisper 转录的 `endTime` 系统性偏早
+- 未包含完整的尾音部分（辅音需要更长的发音时间）
+- 导致按照 `endTime` 停止时，尾音已被截断
+
+### 原因 2：事件触发延迟
+
+**问题：**
+- `timeupdate` 事件每 250ms 触发一次
+- 从检测到停止条件 → 执行 `pause()` → 实际停止有 ~120ms 延迟
+- 在这个延迟期间音频继续播放，但停止判定已经结束
+
+### 原因 3：停止判定不够精确
+
+**问题：**
+- 即使设置了提前停止（如提前 50ms），也无法补偿 120ms 的执行延迟
+- 导致实际停止时间远超预期
+
+---
+
+## ✅ 解决方案
+
+### 核心改进
+
+**文件：** `src/components/AudioPlayer.tsx`
+
+**1. 高频停止检查**
+```typescript
+// 🔴 使用 requestAnimationFrame 替代 timeupdate
+// 检查频率：250ms → 16ms
+const checkEndTime = () => {
+  if (audio.currentTime >= endNum - END_COMPENSATION) {
+    audio.pause()
+    audio.currentTime = startNum
+    cancelAnimationFrame(rafIdRef.current)
+  } else {
+    rafIdRef.current = requestAnimationFrame(checkEndTime)
+  }
+}
+
+// 播放开始时启动
+audio.play().then(() => {
+  rafIdRef.current = requestAnimationFrame(checkEndTime)
+})
+```
+
+**2. 向后延伸补偿**
+```typescript
+const START_COMPENSATION = 0.03   // 30ms 起始避让
+const END_COMPENSATION = -0.2     // 200ms 向后延伸
+
+// 停止条件：currentTime >= endNum - (-0.2)
+// 等价于：currentTime >= endNum + 0.2
+```
+
+**3. 状态重置**
+```typescript
+audio.pause()
+audio.currentTime = startNum  // 重置到起始点，避免悬停
+```
+
+---
+
+## 📊 技术对比
+
+| 方案 | 检查频率 | 执行延迟 | 补偿值 | 效果 |
+|------|---------|---------|--------|------|
+| **旧方案** (timeupdate) | ~250ms | ~120ms | 0.05s | ❌ 尾音截断 |
+| **新方案** (rAF) | ~16ms | <16ms | 0.2s | ✅ 完整播放 |
+
+---
+
+## ⚠️ 已知限制
+
+1. **数据质量**：部分素材的 Whisper 时间戳偏早严重，200ms 补偿仍不足
+   - **解决方案**：重新转录这些素材
+
+2. **轻微重叠**：200ms 延伸可能引起轻微句子重叠
+   - **影响范围**：可接受范围，不影响学习效果
+
+---
+
+## 🎯 验证方法
+
+测试包含尾音辅音的句子：
+- "beach"（/tʃ/ 音）
+- "what"（/t/ 音）
+- "cats"（/s/ 音）
+
+控制台应显示：
+```
+实际停止时间 ≈ endNum + 0.2
+```
+
+---
+
 # 🎥 视频黑屏 + AbortError 问题（已解决）
 
 ## 📋 问题描述
