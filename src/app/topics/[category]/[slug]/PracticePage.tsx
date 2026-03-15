@@ -330,9 +330,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
     if (!hasStarted) {
       console.log("场景 A: 第一次点击，播放当前句 (index 0)")
 
-      // 🔴 移动端优化：只在第一次点击时滚动到顶部隐藏标题
-      // 后续点击"下一句"时不滚动，避免播放组件被隐藏
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      // 🔴 移动端优化：只在移动端滚动到顶部隐藏标题
+      // 桌面端不执行滚动操作，保持三栏格局
+      const isMobile = window.innerWidth < 1024
+      if (isMobile) {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
 
       flushSync(() => {
         setHasStarted(true)
@@ -384,17 +387,21 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
     // 检测是否为移动端
     const isMobile = window.innerWidth < 1024
-    if (!isMobile) return
+    if (!isMobile) return // 桌面端不执行，保持三栏格局
 
     // 确保练习区域可见
     // 使用 setTimeout 确保在 DOM 更新后执行
     const timer = setTimeout(() => {
       if (practiceAreaRef.current) {
-        // 滚动到练习区域中心，确保播放按钮和输入框都可见
-        // 使用 'center' 而不是 'start'，避免滚动过多
-        practiceAreaRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
+        // 手动计算滚动位置，确保播放组件完全可见
+        // Header 的高度大约是 120px（面包屑 + 切换按钮）
+        const headerHeight = 120
+        const elementTop = practiceAreaRef.current.getBoundingClientRect().top
+        const scrollTop = window.pageYOffset + elementTop - headerHeight
+
+        window.scrollTo({
+          top: scrollTop,
+          behavior: 'smooth'
         })
       }
     }, 100)
