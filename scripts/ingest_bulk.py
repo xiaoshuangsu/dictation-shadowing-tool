@@ -162,7 +162,26 @@ def parse_transcript(html: str) -> Optional[List[Dict]]:
         end = round(start + duration, 3)
 
         words_spans = line.find_all('span', class_='word')
-        text = ' '.join([w.get_text() for w in words_spans]).strip()
+
+        # 🔴 关键修复：正确处理标点符号，避免产生空格
+        # 将所有词组合成一个字符串，但标点符号前不留空格
+        text_parts = []
+        for span in words_spans:
+            word_text = span.get_text().strip()
+            if not word_text:
+                continue
+            # 如果是标点符号（.,!?等），直接拼接到前一个词
+            if word_text in ['.', ',', '!', '?', ';', ':', "'", '"', ')', ']', '}', '⟩']:
+                if text_parts:
+                    # 将标点符号拼接到前一个词（移除末尾的空格）
+                    text_parts[-1] = text_parts[-1] + word_text
+                else:
+                    text_parts.append(word_text)
+            else:
+                # 普通单词，添加空格分隔
+                text_parts.append(word_text)
+
+        text = ' '.join(text_parts).strip()
 
         if text:
             sentences.append({
