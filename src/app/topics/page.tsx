@@ -146,7 +146,7 @@ export default function MaterialsPage() {
       </div>
 
       {/* 素材列表（按分类分组） */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-8">
           {loading ? (
             <div className="text-center py-12">
