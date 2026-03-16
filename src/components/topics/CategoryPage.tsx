@@ -6,6 +6,7 @@ import { getCategoryMetadataBySlug, categoryToSlug, slugToCategory } from '@/lib
 import { getSupabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
 import DifficultySelector from './DifficultySelector'
+import DurationSelector from './DurationSelector'
 
 type Material = {
   id: string
@@ -40,6 +41,8 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
+  const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const categoryMetadata = getCategoryMetadataBySlug(categorySlug)
 
@@ -73,11 +76,39 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
     fetchMaterials()
   }, [categorySlug, categoryMetadata])
 
-  // Filter materials by difficulty
+  // Filter materials by search, difficulty and duration
   const filteredMaterials = useMemo(() => {
-    if (!selectedDifficulty) return materials
-    return materials.filter(m => m.difficulty === selectedDifficulty)
-  }, [materials, selectedDifficulty])
+    return materials.filter(material => {
+      // 搜索筛选（素材标题）
+      if (searchQuery && !material.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false
+      }
+
+      // 难度筛选
+      if (selectedDifficulty && material.difficulty !== selectedDifficulty) {
+        return false
+      }
+
+      // 时长筛选
+      if (selectedDuration && material.duration) {
+        const durationMinutes = material.duration / 60
+        if (selectedDuration === 'short' && durationMinutes >= 1) {
+          return false
+        }
+        if (selectedDuration === 'medium' && (durationMinutes < 1 || durationMinutes > 3)) {
+          return false
+        }
+        if (selectedDuration === 'long' && durationMinutes <= 3) {
+          return false
+        }
+      } else if (selectedDuration && !material.duration) {
+        // 如果选择了时长筛选但素材没有时长数据，则过滤掉
+        return false
+      }
+
+      return true
+    })
+  }, [materials, searchQuery, selectedDifficulty, selectedDuration])
 
   // Pagination
   const totalPages = Math.ceil(filteredMaterials.length / ITEMS_PER_PAGE)
@@ -88,7 +119,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
   // Reset to page 1 when filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedDifficulty])
+  }, [searchQuery, selectedDifficulty, selectedDuration])
 
   // Format helpers
   const formatFileSize = (bytes: number) => {
@@ -174,10 +205,26 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
               <span className="font-semibold text-gray-900">{filteredMaterials.length}</span>
               <span>materials</span>
             </div>
+            {searchQuery && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-900">"{searchQuery}"</span>
+                <span>search</span>
+              </div>
+            )}
             {selectedDifficulty && (
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900">{filteredMaterials.length}</span>
-                <span>with {selectedDifficulty} difficulty</span>
+                <span className="font-semibold text-gray-900">{selectedDifficulty}</span>
+                <span>difficulty</span>
+              </div>
+            )}
+            {selectedDuration && (
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-900">
+                  {selectedDuration === 'short' ? '< 1min' :
+                   selectedDuration === 'medium' ? '1-3min' :
+                   selectedDuration === 'long' ? '> 3min' : ''}
+                </span>
+                <span>duration</span>
               </div>
             )}
           </div>
@@ -187,10 +234,53 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
       {/* Filter Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
-          <DifficultySelector
-            value={selectedDifficulty}
-            onChange={setSelectedDifficulty}
-          />
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            {/* Search Box - 左侧，占据剩余空间 */}
+            <div className="flex-1 w-full md:w-auto">
+              <div className="relative">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search materials..."
+                  className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Filters - 右侧，固定宽度 */}
+            <div className="flex gap-3 flex-shrink-0">
+              {/* Difficulty Filter */}
+              <DifficultySelector
+                value={selectedDifficulty}
+                onChange={setSelectedDifficulty}
+              />
+
+              {/* Duration Filter */}
+              <DurationSelector
+                value={selectedDuration}
+                onChange={setSelectedDuration}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Materials Grid */}
@@ -200,7 +290,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h3 className="text-lg font-medium text-gray-700 mb-2">No materials found</h3>
-            <p className="text-gray-500">Try changing the difficulty filter</p>
+            <p className="text-gray-500">Try changing search or filters</p>
           </div>
         ) : (
           <>

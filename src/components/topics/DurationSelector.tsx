@@ -2,35 +2,31 @@
 
 import { useState, useRef, useEffect } from 'react'
 
-interface DifficultyOption {
+interface DurationOption {
   value: string | null
   label: string
   icon: string
-  color: string
 }
 
-interface DifficultySelectorProps {
+interface DurationSelectorProps {
   value: string | null
   onChange: (value: string | null) => void
 }
 
-export default function DifficultySelector({ value, onChange }: DifficultySelectorProps) {
+export default function DurationSelector({ value, onChange }: DurationSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // 难度选项配置（使用英文）
-  const DIFFICULTY_OPTIONS: DifficultyOption[] = [
-    { value: null, label: "All Levels", icon: '🎓', color: 'text-gray-700' },
-    { value: 'A1', label: "Beginner (A1)", icon: '⭐', color: 'text-green-600' },
-    { value: 'A2', label: "Elementary (A2)", icon: '👑', color: 'text-blue-600' },
-    { value: 'B1', label: "Intermediate (B1)", icon: '🏆', color: 'text-yellow-600' },
-    { value: 'B2', label: "Upper Intermediate (B2)", icon: '🏅', color: 'text-orange-600' },
-    { value: 'C1', label: "Advanced (C1)", icon: '🔮', color: 'text-purple-600' },
-    { value: 'C2', label: "Proficiency (C2)", icon: '💎', color: 'text-cyan-600' },
+  // 时长选项配置
+  const DURATION_OPTIONS: DurationOption[] = [
+    { value: null, label: "All Durations", icon: '⏱️' },
+    { value: 'short', label: "Short (< 1min)", icon: '⚡' },
+    { value: 'medium', label: "Medium (1-3min)", icon: '⏰' },
+    { value: 'long', label: "Long (> 3min)", icon: '⏳' },
   ]
 
   // 获取当前选中的选项
-  const selectedOption = DIFFICULTY_OPTIONS.find(opt => opt.value === value) || DIFFICULTY_OPTIONS[0]
+  const selectedOption = DURATION_OPTIONS.find(opt => opt.value === value) || DURATION_OPTIONS[0]
 
   // 点击外部关闭下拉菜单
   useEffect(() => {
@@ -44,7 +40,7 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleSelect = (option: DifficultyOption) => {
+  const handleSelect = (option: DurationOption) => {
     onChange(option.value)
     setIsOpen(false)
   }
@@ -59,7 +55,7 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
       >
         <span className="flex items-center gap-2 whitespace-nowrap">
           <span className="text-base flex-shrink-0">{selectedOption.icon}</span>
-          <span className={selectedOption.color}>{selectedOption.label}</span>
+          <span className="text-gray-700">{selectedOption.label}</span>
         </span>
         <svg
           className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
@@ -74,7 +70,7 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
       {/* 下拉菜单 */}
       {isOpen && (
         <div className="absolute z-[100] w-full min-w-[180px] mt-1 bg-white border border-gray-200 rounded-lg shadow-xl">
-          {DIFFICULTY_OPTIONS.map((option) => (
+          {DURATION_OPTIONS.map((option) => (
             <button
               key={option.value || 'all'}
               type="button"
@@ -86,7 +82,7 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
               }`}
             >
               <span className="text-base flex-shrink-0">{option.icon}</span>
-              <span className={value === option.value ? 'text-white' : option.color}>{option.label}</span>
+              <span>{option.label}</span>
               {value === option.value && (
                 <svg className="w-4 h-4 ml-auto text-white flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path
