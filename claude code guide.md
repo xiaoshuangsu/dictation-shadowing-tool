@@ -712,6 +712,7 @@ ls -lh video.mp4
 所有页面必须遵循以下层级，无语言前缀：
 - **首页**：`/`
 - **素材列表**：`/topics/`
+- **分类详情页**：/topics/[category-slug] （显示该分类所有素材）
 - **素材练习页**：`/topics/[category-slug]/[material-slug]/`
 - **个人中心**：`/profile/`
 

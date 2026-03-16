@@ -521,7 +521,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <span className="text-gray-600">{slugToCategory(category)}</span>
+            <Link href={`/topics/${category}`} className="text-blue-600 hover:text-blue-700">
+              {slugToCategory(category)}
+            </Link>
           </div>
 
           {/* Level 2: Material Title - 🔴 移动端播放后隐藏，桌面端始终显示 */}
