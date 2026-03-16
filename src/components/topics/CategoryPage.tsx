@@ -337,13 +337,9 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
 
                     {/* Content */}
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-3 line-clamp-2 min-h-[2.5rem]">
+                      <h3 className="font-semibold text-gray-900 mb-4 line-clamp-2 min-h-[2.5rem]">
                         {material.title}
                       </h3>
-
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                        <span>{formatFileSize(material.audio_size)} MB</span>
-                      </div>
 
                       {/* Action Buttons */}
                       <div className="flex gap-2">
