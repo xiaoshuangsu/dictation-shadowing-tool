@@ -1,53 +1,10 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import FilterBar, { FilterOptions } from '@/components/topics/FilterBar'
-import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
-import { getSupabase } from '@/lib/supabase/client'  // 🔴 关键修复：使用 getSupabase() 而不是直接导入实例
-
-// 分类映射（仅英文）
-const CATEGORY_MAP: Record<string, string> = {
-  '日常生活': 'Daily Life',
-  '历史演讲': 'Historical Speeches',
-  '文化历史': 'Culture & History',
-  '心灵故事': 'Heart & Soul Stories',
-  '艺术文化': 'Arts & Culture',
-  'YouTube Vlog': 'YouTube Vlog',
-  '故事': 'Stories',
-  '人物访谈': 'Interviews',
-  'BBC Learning English': 'BBC Learning English',
-  'VOA Learning English': 'VOA Learning English',
-  'TED演讲': 'TED Talks',
-  '动画片': 'Cartoons',
-}
-
-// 带重试的获取素材函数
-async function fetchWithRetry<T>(
-  fn: () => Promise<T>,
-  maxRetries = 3,
-  delayMs = 1000
-): Promise<T> {
-  let lastError: Error | null = null
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn()
-    } catch (error) {
-      lastError = error as Error
-      console.warn(`第 ${attempt} 次尝试失败:`, error)
-
-      if (attempt < maxRetries) {
-        const delay = delayMs * attempt // 指数退避
-        console.log(`等待 ${delay}ms 后重试...`)
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
-    }
-  }
-
-  throw lastError
-}
+import { getSupabase } from '@/lib/supabase/client'
+import { titleToSlug } from '@/lib/utils/slug'
 
 type Material = {
   id: string
@@ -59,10 +16,7 @@ type Material = {
   audio_size: number
   duration: number | null
   play_count: number
-  created_at: string
-  updated_at: string
-  video_path?: string | null
-  slug?: string  // 🔴 添加 slug 字段
+  slug?: string
 }
 
 // 分类顺序和配置
@@ -92,112 +46,41 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export default function MaterialsPage() {
-  const [materials, setMaterials] = useState<Material[]>([])
+  const [materialsByCategory, setMaterialsByCategory] = useState<Record<string, Material[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
-  const [filters, setFilters] = useState<FilterOptions>({
-    difficulty: null,
-    duration: null,
-    category: null,
-  })
-  // 图片加载状态跟踪
   const [imageLoadedStates, setImageLoadedStates] = useState<Record<string, boolean>>({})
-  // 🔴 关键修复：在组件顶部定义超时状态，避免在 map 循环中使用 useState
-  const [imageTimeoutStates, setImageTimeoutStates] = useState<Record<string, boolean>>({})
-  // 🔴 新增：分片渲染和预加载状态管理
-  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set())
-  const [visibleImageCount, setVisibleImageCount] = useState<Record<string, number>>({})
-  const [isPreloading, setIsPreloading] = useState(false)
 
-  // 更新图片加载状态的辅助函数
-  const setImageLoaded = (materialId: string, loaded: boolean) => {
-    setImageLoadedStates(prev => ({ ...prev, [materialId]: loaded }))
-  }
-
-  // 获取英文分类名称
-  const getLocalizedCategory = (categoryId: string) => {
-    return CATEGORY_MAP[categoryId] || categoryId
-  }
-
-  // 动态获取所有不重复的分类
-  const uniqueCategories = useMemo(() => {
-    const categories = new Set(materials.map(m => m.category))
-    return Array.from(categories).sort()
-  }, [materials])
-
+  // 获取每个分类的前4个素材（性能优化）
   useEffect(() => {
-    // Skip data fetching during build time
     if (typeof window === 'undefined') return
 
     async function fetchMaterials() {
       try {
-        console.log('=== 开始获取素材 ===')
-
-        // 🔴 关键修复：使用单例模式获取 Supabase 客户端
-        // 避免创建多个实例导致 GoTrueClient 冲突和加载卡死
         const supabaseClient = getSupabase()
-        console.log('[Supabase] Using singleton instance for fetchMaterials')
+        const result: Record<string, Material[]> = {}
 
-        const result = await fetchWithRetry(async () => {
-          return await supabaseClient
+        // 并行获取所有分类的素材（每个分类最多4个）
+        const promises = CATEGORIES.map(async (category) => {
+          const { data, error } = await supabaseClient
             .from('materials')
             .select('*')
-            .order('category')
+            .eq('category', category.id)
             .order('title')
+            .limit(4)  // 🔴 关键优化：每个分类只取4个
+
+          if (!error && data) {
+            result[category.id] = data
+          }
         })
 
-        const { data, error, status, statusText } = result
+        await Promise.all(promises)
 
-        console.log('=== API 响应 ===')
-        console.log('状态码:', status)
-        console.log('状态文本:', statusText)
-        console.log('错误:', error)
-        console.log('数据数量:', data?.length || 0)
-
-        if (error) {
-          console.error('Supabase 错误详情:', {
-            message: error.message || '未知错误',
-            details: error.details || null,
-            hint: error.hint || null,
-            code: error.code || null,
-            name: error.name || null,
-          })
-          setError(`错误: ${error.message || '未知错误'} ${error.code ? `(${error.code})` : ''}`)
-          throw error
-        }
-
-        console.log('获取到素材数量:', data?.length || 0)
-        setMaterials(data || [])
+        setMaterialsByCategory(result)
         setError(null)
       } catch (err) {
         console.error('获取素材失败:', err)
-
-        // 🔴 关键修复：捕获 TypeError 并提供友好的错误提示
-        if (err instanceof TypeError && err.message.includes('Load failed')) {
-          console.error('❌ TypeError: Load failed - 可能是网络连接或 CORS 问题')
-          setError('网络连接不稳定，请检查网络后重试')
-          return
-        }
-
-        // 安全地提取错误信息
-        let errorMsg = '未知错误'
-        if (err) {
-          if (typeof err === 'string') {
-            errorMsg = err
-          } else if (err instanceof Error) {
-            errorMsg = err.message
-          } else if ((err as any).message) {
-            errorMsg = (err as any).message
-          } else {
-            try {
-              errorMsg = JSON.stringify(err)
-            } catch {
-              errorMsg = '无法解析的错误'
-            }
-          }
-        }
-        setError(`加载失败: ${errorMsg}`)
+        setError('加载失败，请检查网络连接')
       } finally {
         setLoading(false)
       }
@@ -206,273 +89,22 @@ export default function MaterialsPage() {
     fetchMaterials()
   }, [])
 
-  // 处理 URL hash 滚动到对应分类
-  useEffect(() => {
-    if (!loading && materials.length > 0) {
-      const hash = window.location.hash.slice(1) // 移除 # 号
-      if (hash) {
-        // 等待 DOM 渲染完成
-        setTimeout(() => {
-          const element = document.getElementById(hash)
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
-        }, 100)
-      }
-    }
-  }, [loading, materials])
-
-  // 多维度过滤素材
-  const filteredMaterials = useMemo(() => {
-    return materials.filter(material => {
-      // 难度筛选
-      if (filters.difficulty && material.difficulty !== filters.difficulty) {
-        return false
-      }
-
-      // 时长筛选
-      if (filters.duration && material.duration) {
-        const durationMinutes = material.duration / 60
-        if (filters.duration === 'short' && durationMinutes >= 1) {
-          return false
-        }
-        if (filters.duration === 'medium' && (durationMinutes < 1 || durationMinutes > 3)) {
-          return false
-        }
-        if (filters.duration === 'long' && durationMinutes <= 3) {
-          return false
-        }
-      } else if (filters.duration && !material.duration) {
-        // 如果选择了时长筛选但素材没有时长数据，则过滤掉
-        return false
-      }
-
-      // 话题筛选
-      if (filters.category && material.category !== filters.category) {
-        return false
-      }
-
-      return true
-    })
-  }, [materials, filters])
-
-  // 按分类分组（根据筛选结果动态调整）
-  const materialsByCategory = useMemo(() => {
-    const grouped: Record<string, Material[]> = {}
-
-    // 如果选择了特定话题，只显示该分类
-    if (filters.category) {
-      grouped[filters.category] = filteredMaterials.filter(m => m.category === filters.category)
-    } else {
-      // 否则显示所有分类
-      for (const category of CATEGORIES) {
-        grouped[category.id] = filteredMaterials.filter(m => m.category === category.id)
-      }
-    }
-
-    return grouped
-  }, [filteredMaterials, filters.category])
-
-  // 🔴 关键修复 2：3秒强制解锁 - 全局处理图片超时
-  // 🔴 移除超时检查，让浏览器原生加载机制接管
-  // useEffect(() => {
-  //   const timeouts: NodeJS.Timeout[] = []
-
-  //   // 为每个未加载的图片设置 3 秒超时
-  //   filteredMaterials.forEach(material => {
-  //     if (!imageLoadedStates[material.id] && !imageTimeoutStates[material.id]) {
-  //       const timeoutId = setTimeout(() => {
-  //         console.log('[MaterialCard] Image timeout (3s) for:', material.title)
-  //         setImageTimeoutStates(prev => ({ ...prev, [material.id]: true }))
-  //         setImageLoadedStates(prev => ({ ...prev, [material.id]: true })) // 强制停止加载指示器
-  //       }, 3000)
-
-  //       timeouts.push(timeoutId)
-  //     }
-  //   })
-
-  //   // 清理所有超时器
-  //   return () => {
-  //     timeouts.forEach(clearTimeout)
-  //   }
-  // }, [filteredMaterials, imageLoadedStates, imageTimeoutStates])
-
-  // 🔴 智能预加载逻辑 - 顺序预加载，避免乱序
-  useEffect(() => {
-    if (loading || filteredMaterials.length === 0 || isPreloading) return
-
-    // 计算首屏可见的图片数量
-    const getFirstScreenCount = () => {
-      if (typeof window === 'undefined') return 1
-      const width = window.innerWidth
-      if (width < 640) return 1   // 移动端
-      if (width < 1024) return 2  // 小屏
-      if (width < 1280) return 3  // 中屏
-      return 4 // 大屏
-    }
-
-    const firstScreenCount = getFirstScreenCount()
-    const firstScreenMaterialIds = new Set<string>()
-
-    // 收集所有素材的完整顺序（跨分类）
-    const allMaterialsInOrder: Array<{ material: Material; categoryIndex: number; indexInCategory: number }> = []
-    let globalIndex = 0
-
-    Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
-      categoryMaterials.forEach((material, idx) => {
-        allMaterialsInOrder.push({
-          material,
-          categoryIndex: globalIndex,
-          indexInCategory: idx
-        })
-        globalIndex++
-      })
-    })
-
-    // 收集首屏可见的素材 ID
-    Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
-      categoryMaterials.slice(0, firstScreenCount).forEach(m => {
-        firstScreenMaterialIds.add(m.id)
-      })
-    })
-
-    // 检查首屏图片是否都已加载完成
-    const firstScreenLoaded = firstScreenMaterialIds.size > 0 &&
-      Array.from(firstScreenMaterialIds).every(id => imageLoadedStates[id])
-
-    if (firstScreenLoaded && preloadedImages.size === 0) {
-      console.log('🖼️ 首屏图片加载完成，开始顺序预加载下一批...')
-
-      // 🔴 强制顺序预加载：按分类顺序，每个分类预加载该分类的第二张卡片（索引 1）
-      const preloadTargets: Array<{ id: string; url: string }> = []
-
-      // 🔴 按分类顺序预加载每个分类的第二张卡片
-      Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
-        // 每个分类预加载第二张卡片（索引 1）
-        const secondCard = categoryMaterials[1]
-        if (secondCard && secondCard.thumbnail_path) {
-          preloadTargets.push({
-            id: secondCard.id,
-            url: getThumbnailUrl(secondCard.thumbnail_path)!
-          })
-        }
-      })
-
-      if (preloadTargets.length === 0) return
-
-      console.log(`🖼️ 顺序预加载 ${preloadTargets.length} 张图片...`)
-      setIsPreloading(true)
-
-      // 🔴 顺序预加载：每次加载一张，间隔 80ms
-      let currentIndex = 0
-
-      const preloadNext = () => {
-        if (currentIndex >= preloadTargets.length) {
-          console.log(`✅ 预加载完成：${preloadedImages.size} 张图片`)
-          setIsPreloading(false)
-          return
-        }
-
-        const { id, url } = preloadTargets[currentIndex]
-        console.log(`🖼️ 预加载 [${currentIndex + 1}/${preloadTargets.length}]`, url)
-
-        const img = new Image()
-        img.onload = () => {
-          setPreloadedImages(prev => new Set([...prev, id]))
-          // 继续预加载下一张
-          setTimeout(() => {
-            currentIndex++
-            preloadNext()
-          }, 80) // 每张图间隔 80ms
-        }
-        img.onerror = () => {
-          // 失败也继续下一张
-          setPreloadedImages(prev => new Set([...prev, id]))
-          setTimeout(() => {
-            currentIndex++
-            preloadNext()
-          }, 80)
-        }
-        img.src = url
-      }
-
-      // 启动顺序预加载
-      preloadNext()
-    }
-  }, [loading, filteredMaterials, materialsByCategory, imageLoadedStates, preloadedImages, isPreloading])
-
-  // 🔴 分片渲染：控制每个分类显示的图片数量，避免 DOM 爆炸
-  useEffect(() => {
-    if (loading || filteredMaterials.length === 0) return
-
-    const getFirstScreenCount = () => {
-      if (typeof window === 'undefined') return 1
-      const width = window.innerWidth
-      if (width < 640) return 1
-      if (width < 1024) return 2
-      if (width < 1280) return 3
-      return 4
-    }
-
-    const firstScreenCount = getFirstScreenCount()
-
-    // 为每个分类设置初始可见图片数量
-    const initialCounts: Record<string, number> = {}
-    Object.entries(materialsByCategory).forEach(([categoryId, categoryMaterials]) => {
-      // 未展开：显示首屏数量
-      // 已展开：显示所有（但后续会增加）
-      const isExpanded = expandedCategories.has(categoryId)
-      initialCounts[categoryId] = isExpanded ? Math.min(categoryMaterials.length, firstScreenCount + 8) : firstScreenCount
-    })
-
-    setVisibleImageCount(initialCounts)
-
-    // 🔴 展开时逐步增加可见图片数量，实现平滑展开
-    if (expandedCategories.size > 0) {
-      const expandedCategory = Array.from(expandedCategories)[0] // 简化：只处理第一个展开的分类
-      const categoryMaterials = materialsByCategory[expandedCategory]
-
-      if (categoryMaterials && categoryMaterials.length > firstScreenCount) {
-        // 分 3 批增加可见数量
-        setTimeout(() => {
-          setVisibleImageCount(prev => ({
-            ...prev,
-            [expandedCategory]: firstScreenCount + 8
-          }))
-        }, 100) // 100ms 后显示第一批
-
-        setTimeout(() => {
-          setVisibleImageCount(prev => ({
-            ...prev,
-            [expandedCategory]: firstScreenCount + 16
-          }))
-        }, 300) // 300ms 后显示第二批
-
-        setTimeout(() => {
-          setVisibleImageCount(prev => ({
-            ...prev,
-            [expandedCategory]: categoryMaterials.length
-          }))
-        }, 600) // 600ms 后显示全部
-      }
-    }
-  }, [loading, filteredMaterials, materialsByCategory, expandedCategories])
-
-
-  // R2 URL 配置（统一使用 Worker 代理）
+  // R2 URL 配置
   const R2_WORKER_URL = 'https://media.shadowhub.app'
 
   // 获取缩略图 URL
   const getThumbnailUrl = (path: string | null) => {
     if (!path) return null
-
-    // 如果是完整 URL，直接使用
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return path
     }
-
-    // 相对路径：添加 Worker 域名
     return `${R2_WORKER_URL}/${path}`
+  }
+
+  // 格式化文件大小
+  const formatFileSize = (bytes: number) => {
+    const mb = bytes / 1024 / 1024
+    return mb.toFixed(1)
   }
 
   // 格式化时长
@@ -483,11 +115,9 @@ export default function MaterialsPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // 计算总素材数（过滤后）
-  const totalFilteredCount = filteredMaterials.length
-  const totalCategories = Object.keys(materialsByCategory).filter(
-    key => materialsByCategory[key].length > 0
-  ).length
+  // 计算总素材数和分类数
+  const totalMaterials = Object.values(materialsByCategory).reduce((sum, materials) => sum + materials.length, 0)
+  const totalCategories = Object.keys(materialsByCategory).length
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -495,229 +125,102 @@ export default function MaterialsPage() {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {"English Dictation & Shadowing"}
+            English Dictation & Shadowing
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl">
-            {"Curated English learning materials covering daily life, culture & history, historical speeches, and more. Choose content that matches your level and start practicing!"}
+            Curated English learning materials covering daily life, culture & history, historical speeches, and more. Choose content that matches your level and start practicing!
           </p>
 
           {/* 统计信息 */}
           <div className="mt-6 flex flex-wrap gap-6 text-sm text-gray-600">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{totalFilteredCount}</span>
-              <span>{"materials"}</span>
+              <span className="font-semibold text-gray-900">{totalMaterials}+</span>
+              <span>materials</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900">{totalCategories}</span>
-              <span>{"categories"}</span>
+              <span>categories</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 筛选栏 + 素材列表：共用同一个容器 */}
+      {/* 素材列表（按分类分组） */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-20">
-        {/* 筛选栏 */}
-        {!loading && (
-          <div className="mt-12 mb-10">
-            <FilterBar
-              categories={uniqueCategories}
-              onFilterChange={setFilters}
-            />
-          </div>
-        )}
-
-        {/* 素材列表（按分类分组） */}
         <div className="py-8">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">{"Loading..."}</p>
-          </div>
-        ) : error ? (
-          /* 错误提示 */
-          <div className="text-center py-16">
-            <svg className="mx-auto h-16 w-16 text-red-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">{"Failed to load materials"}</h3>
-            <p className="text-gray-500 mb-4">{error}</p>
-            <p className="text-sm text-gray-400 max-w-md mx-auto">
-              {"Check the browser console for detailed error information. Possible causes: Supabase connection failed, CORS restrictions, or RLS policy blocking access."}
-            </p>
-          </div>
-        ) : totalFilteredCount === 0 ? (
-          /* 无结果提示 */
-          <div className="text-center py-16">
-            <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">{"No materials found"}</h3>
-            <p className="text-gray-500">{"Try changing the filter conditions"}</p>
-          </div>
-        ) : (
-          <div className="space-y-12">
-            {Object.entries(materialsByCategory).map(([categoryId, categoryMaterials]) => {
-              if (categoryMaterials.length === 0) return null
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-16">
+              <svg className="mx-auto h-16 w-16 text-red-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="text-lg font-medium text-gray-700 mb-2">Failed to load materials</h3>
+              <p className="text-gray-500">{error}</p>
+            </div>
+          ) : (
+            <div className="space-y-12">
+              {CATEGORIES.map((category) => {
+                const categoryMaterials = materialsByCategory[category.id] || []
 
-              const categoryConfig = CATEGORIES.find(c => c.id === categoryId)
-              const categoryLabel = categoryConfig?.label || categoryId
+                if (categoryMaterials.length === 0) return null
 
-              const isExpanded = expandedCategories.has(categoryId)
-
-              // 根据屏幕大小决定默认显示数量
-              const getDefaultDisplayCount = () => {
-                if (typeof window === 'undefined') return 4
-                const width = window.innerWidth
-                if (width < 640) return 1  // 移动端
-                if (width < 1024) return 2 // 小屏
-                if (width < 1280) return 3 // 中屏
-                return 4 // 大屏
-              }
-
-              const defaultCount = getDefaultDisplayCount()
-              // 🔴 分片渲染：根据 visibleImageCount 限制显示数量
-              const maxVisible = visibleImageCount[categoryId] || defaultCount
-              const displayedMaterials = isExpanded
-                ? categoryMaterials.slice(0, maxVisible)
-                : categoryMaterials.slice(0, defaultCount)
-
-              return (
-                <section key={categoryId} id={categoryId} className="scroll-mt-4">
-                  {/* Section Header */}
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {getLocalizedCategory(categoryId)}
-                      <span className="ml-2 text-sm font-normal text-gray-500">
-                        ({categoryMaterials.length} {"lessons"})
-                      </span>
-                    </h2>
-                    {categoryMaterials.length > defaultCount && (
-                      <button
-                        onClick={() => {
-                          const newExpanded = new Set(expandedCategories)
-                          if (newExpanded.has(categoryId)) {
-                            newExpanded.delete(categoryId)
-                          } else {
-                            newExpanded.add(categoryId)
-                          }
-                          setExpandedCategories(newExpanded)
-                        }}
+                return (
+                  <section key={category.id} className="scroll-mt-4">
+                    {/* Section Header - 点击分类标题跳转到分类页面 */}
+                    <div className="flex items-center justify-between mb-6">
+                      <Link
+                        href={`/topics/${categoryToSlug(category.id)}`}
+                        className="text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
+                      >
+                        {category.label}
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                          (Preview)
+                        </span>
+                      </Link>
+                      <Link
+                        href={`/topics/${categoryToSlug(category.id)}`}
                         className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                       >
-                        {isExpanded ? "Collapse ↑" : "View All →"}
-                      </button>
-                    )}
-                  </div>
+                        View All →
+                      </Link>
+                    </div>
 
-                  {/* Card Grid - 始终使用网格布局 */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {displayedMaterials.map((material, index) => {
-                      // 🔴 计算全局索引用于优先级分层
-                      const getGlobalIndex = () => {
-                        let globalIdx = 0
-                        for (const [catId, catMats] of Object.entries(materialsByCategory)) {
-                          if (catId === categoryId) {
-                            return globalIdx + index
-                          }
-                          globalIdx += catMats.length
-                        }
-                        return globalIdx + index
-                      }
+                    {/* Card Grid - 显示前4个素材 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {categoryMaterials.map((material, index) => {
+                        const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
+                        const imageLoaded = imageLoadedStates[material.id] || false
 
-                      const globalIndex = getGlobalIndex()
-
-                      // 🔴 关键修复 1：三位一体路径匹配 - 确保完整 URL，无截断
-                      const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
-                      const imageLoaded = imageLoadedStates[material.id] || false
-                      const imageTimedOut = imageTimeoutStates[material.id] || false
-                      const isPreloaded = preloadedImages.has(material.id)
-
-                      // 🔴 优先级分层
-                      const getPriorityConfig = () => {
-                        if (globalIndex < 8) {
-                          // 第一梯队：高优先级
-                          return { fetchPriority: "high", loading: "eager" }
-                        } else if (globalIndex < 16) {
-                          // 第二梯队：低优先级但立即加载
-                          return { fetchPriority: "low", loading: "eager" }
-                        } else {
-                          // 第三梯队：懒加载
-                          return { fetchPriority: "auto", loading: "lazy" }
-                        }
-                      }
-
-                      const priorityConfig = getPriorityConfig()
-
-                      // 🔴 关键修复 3：立即处理错误，不等 3 秒
-                      const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-                        const img = e.currentTarget
-                        console.warn('[MaterialCard] Image load failed:', material.title)
-                        console.warn('  URL:', thumbnailUrl)
-
-                        // 🔴 立即隐藏图片并显示占位符（不等 3 秒超时）
-                        img.style.display = 'none'
-                        setImageLoaded(material.id, true)  // 停止加载指示器
-                        setImageTimeoutStates(prev => ({ ...prev, [material.id]: true }))  // 标记为已超时/错误
-                      }
-
-                      // 🔴 关键修复 4：优雅降级占位符 - 显示标题而非空白
-                      const renderPlaceholder = () => (
-                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-                          <svg className="w-12 h-12 text-blue-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                          </svg>
-                          <p className="text-xs text-blue-400 text-center px-2 line-clamp-2">{material.title}</p>
-                        </div>
-                      )
-
-                      return (
-                        <div
-                          key={material.id}
-                          className="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group"
-                        >
-                          {/* 统一纵向卡片布局，支持弹性缩放 */}
-                          <div className="flex flex-col">
+                        return (
+                          <div
+                            key={material.id}
+                            className="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group"
+                          >
                             {/* 缩略图 */}
                             <div className="w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
                               {thumbnailUrl ? (
-                                <>
-                                  {/* 🔴 调试：确认进入渲染分支 */}
-                                  {index === 0 && console.log('🔍 [DEBUG] Entering render branch, thumbnailUrl:', thumbnailUrl)}
-                                  <img
-                                    crossOrigin="anonymous"
-                                    src={thumbnailUrl}
-                                    alt={material.title}
-                                    // 🔴 淡入动画：根据加载状态添加动画类
-                                    className={`w-full h-full object-cover transition-opacity duration-300 ${
-                                      imageLoaded || isPreloaded ? 'opacity-100' : 'opacity-0'
-                                    }`}
-                                    // 🔴 优先级分层
-                                    fetchPriority={priorityConfig.fetchPriority}
-                                    loading={priorityConfig.loading}
-                                    onError={handleImageError}
-                                    onLoad={() => {
-                                      console.log('[MaterialCard] Image loaded:', material.title)
-                                      setImageLoaded(material.id, true)
-                                    }}
-                                    onLoadStart={() => {
-                                      console.log('[MaterialCard] Image load start:', material.title, thumbnailUrl)
-                                    }}
-                                  />
-                                  {/* 🔴 关键优化：已预加载的图片不显示加载指示器（瞬间显示） */}
-                                  {/* 未预加载的图片显示加载指示器 */}
-                                  {!imageLoaded && !imageTimedOut && !isPreloaded && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-                                      <svg className="w-12 h-12 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V8a8 8 0 00-8 8z"></path>
-                                      </svg>
-                                    </div>
-                                  )}
-                                </>
+                                <img
+                                  crossOrigin="anonymous"
+                                  src={thumbnailUrl}
+                                  alt={material.title}
+                                  className={`w-full h-full object-cover transition-opacity duration-300 ${
+                                    imageLoaded ? 'opacity-100' : 'opacity-0'
+                                  }`}
+                                  loading="lazy"
+                                  onLoad={() => {
+                                    setImageLoadedStates(prev => ({ ...prev, [material.id]: true }))
+                                  }}
+                                />
                               ) : (
-                                // 🔴 仅在无图片URL时显示占位符
-                                renderPlaceholder()
+                                <div className="w-full h-full flex flex-col items-center justify-center">
+                                  <svg className="w-12 h-12 text-blue-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                                  </svg>
+                                </div>
                               )}
 
                               {/* 左上角：难度标签 */}
@@ -738,7 +241,7 @@ export default function MaterialsPage() {
                             {/* 内容区域 */}
                             <div className="p-3 flex flex-col justify-between">
                               {/* 标题 */}
-                              <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-2 md:mb-3 line-clamp-1">
+                              <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-2 md:mb-3 line-clamp-2 min-h-[2.5rem]">
                                 {material.title}
                               </h3>
 
@@ -759,16 +262,15 @@ export default function MaterialsPage() {
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </section>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                        )
+                      })}
+                    </div>
+                  </section>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
