@@ -199,6 +199,31 @@ cat error.log
 - `category`：固定为"日常生活"
 - `difficulty`：固定为 A2
 
+### ⚠️ 标点符号解析问题（已修复）
+
+**问题现象**：挖空练习显示错误
+```
+❌ 修复前：The sky is blue and water is blue [     ]
+✅ 修复后：The sky is [     ] and water is blue.
+```
+
+**根本原因**：
+- Engnovate HTML 中每个 `<span>` 之间有空格
+- 脚本用 `' '.join()` 连接，标点前产生空格：`"blue ."`
+- 前端将 `"blue"` 和 `"."` 当作两个独立词
+
+**修复方案**（提交 1c5ab89）：
+- 更新 `parse_transcript` 函数
+- 标点符号（`.`, `,`, `!`, `?`）直接拼接到前一个单词
+- 移除标点前的空格：`"blue ."` → `"blue."`
+
+**修复效果**：
+| 修复前 | 修复后 |
+|--------|--------|
+| `"blue ."`（2 个 token） | `"blue."`（1 个 token） |
+| 9 个词 | 8 个词 |
+| 挖空位置错误 | 挖空位置正确 |
+
 ---
 
 ## 4. 路径处理与前端规范 (404 Prevention)
