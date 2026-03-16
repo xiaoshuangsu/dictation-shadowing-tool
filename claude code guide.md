@@ -140,6 +140,67 @@ model.transcribe(
 
 ---
 
+## 3.1 批量素材导入 (Engnovate Bulk Import)
+
+**脚本**：`scripts/ingest_bulk.py`
+**输入**：`urls.txt`（每行一个 Engnovate URL）
+**数据源**：https://engnovate.com/dictation-shadowing-exercises/
+
+### 完整流程（10 步）
+
+| 步骤 | 操作 | 数据来源 |
+|------|------|----------|
+| 0 | **查重优先** | Supabase `source_url` 字段 |
+| 1 | 抓取页面 | Engnovate |
+| 2 | 解析标题 | `<h1>` 标签 |
+| 3 | 生成 slug | 标题转换（小写+连字符）|
+| 4 | 解析音频 | `<audio>` 标签 |
+| 5 | 解析时间戳 | `data-start`/`data-duration` ✅ |
+| 6 | 下载音频 | 远程 URL |
+| 7 | GLM 翻译 | GLM-4-Flash API |
+| 8 | 上传 R2 | `audio/{category}/{slug}.mp3` |
+| 9 | 存 Supabase | `materials` 表 |
+| 10 | 容错记录 | `error.log` |
+
+### 关键特性
+
+**🔍 查重机制**
+- 根据 `source_url` 查重，跳过已处理链接
+- 优先执行，避免重复工作
+
+**📁 R2 存储结构**
+```
+audio/
+  ├─ daily-life/{slug}.mp3
+  ├─ historical-speeches/{slug}.mp3
+  └─ ...
+```
+
+**⚠️ 容错机制**
+- 单个失败不中断整体
+- 错误记录到 `error.log`
+- 最终统计：成功/失败/总计
+
+### 使用示例
+```bash
+# 1. 添加 URL
+echo "https://engnovate.com/.../radio-stations/" >> urls.txt
+
+# 2. 运行脚本
+python scripts/ingest_bulk.py
+
+# 3. 查看错误日志
+cat error.log
+```
+
+### 数据库字段
+- `source_url`：查重依据（Engnovate 原链接）
+- `audio_path`：`audio/{category}/{slug}.mp3`
+- `category`：固定为"日常生活"
+- `difficulty`：固定为 A2
+
+---
+
 ## 4. 路径处理与前端规范 (404 Prevention)
 * **禁止拼接**：前端 `practice/page.tsx` 必须通过 `getCdnUrl()` 函数处理数据库中的相对路径。
 * **Worker 代理强制要求**：所有素材（视频、音频、缩略图）必须通过 A 账号的 Worker 代理（`https://media.shadowhub.app`）获取。
