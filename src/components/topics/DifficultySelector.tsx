@@ -50,12 +50,12 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
   }
 
   return (
-    <div ref={containerRef} className="relative min-w-[180px]">
+    <div ref={containerRef} className="relative w-full md:min-w-[180px]">
       {/* 触发按钮 */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors flex items-center justify-between"
+        className="w-full px-4 py-2.5 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors flex items-center justify-between"
       >
         <span className="flex items-center gap-2 whitespace-nowrap">
           <span className="text-base flex-shrink-0">{selectedOption.icon}</span>
@@ -73,13 +73,13 @@ export default function DifficultySelector({ value, onChange }: DifficultySelect
 
       {/* 下拉菜单 */}
       {isOpen && (
-        <div className="absolute z-[100] w-full min-w-[180px] mt-1 bg-white border border-gray-200 rounded-lg shadow-xl">
+        <div className="absolute z-[100] w-full md:min-w-[180px] mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-[60vh] overflow-y-auto">
           {DIFFICULTY_OPTIONS.map((option) => (
             <button
               key={option.value || 'all'}
               type="button"
               onClick={() => handleSelect(option)}
-              className={`w-full px-4 py-2.5 text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
+              className={`w-full px-4 py-3 text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
                 value === option.value
                   ? 'bg-blue-500 text-white'
                   : 'text-gray-700 hover:bg-blue-50'
