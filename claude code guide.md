@@ -617,9 +617,15 @@ ls -lh video.mp4
 
 # 🌐 路由与 SEO 规范 (Routing & SEO Specs)
 
-### 1. 标准 URL 结构
-所有页面必须遵循以下层级，严禁使用扁平化路径：
-- **分类页**：`/topics/[category-slug]/`
+### 0. 语言与本地化
+- **纯英文站点**：项目不再支持多语言，所有 UI 文本为硬编码英文
+- **已移除**：LanguageContext、LocalizedLink、LanguageSwitcher 等多语言组件（v16.0.0）
+- **路由说明**：无语言前缀，所有页面使用英文路径
+
+### 1. 标准 URL 结构（纯英文）
+所有页面必须遵循以下层级，无语言前缀：
+- **首页**：`/`
+- **素材列表**：`/topics/`
 - **素材练习页**：`/topics/[category-slug]/[material-slug]/`
 - **个人中心**：`/profile/`
 
