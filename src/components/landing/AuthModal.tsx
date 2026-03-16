@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { X, Mail, Lock, User, ArrowRight } from "lucide-react"
-import { useLanguage } from "@/contexts/LanguageContext"
-import LocalizedLink from "@/components/LocalizedLink"
+import Link from "next/link"
 
 interface AuthModalProps {
   isOpen: boolean
@@ -11,7 +10,6 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { t } = useLanguage()
   const [isClosing, setIsClosing] = useState(false)
 
   useEffect(() => {
@@ -58,10 +56,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <User className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">
-              {t("auth.title")}
+              Sign In Required
             </h2>
             <p className="text-white/90">
-              {t("auth.subtitle")}
+              Create an account to track your progress
             </p>
           </div>
         </div>
@@ -76,8 +74,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">{t("auth.feature1.title")}</h3>
-                <p className="text-sm text-gray-600">{t("auth.feature1.desc")}</p>
+                <h3 className="font-semibold text-slate-900">Track Progress</h3>
+                <p className="text-sm text-gray-600">Monitor your learning journey</p>
               </div>
             </div>
 
@@ -88,8 +86,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">{t("auth.feature2.title")}</h3>
-                <p className="text-sm text-gray-600">{t("auth.feature2.desc")}</p>
+                <h3 className="font-semibold text-slate-900">Save Statistics</h3>
+                <p className="text-sm text-gray-600">Keep your practice history</p>
               </div>
             </div>
 
@@ -100,35 +98,35 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">{t("auth.feature3.title")}</h3>
-                <p className="text-sm text-gray-600">{t("auth.feature3.desc")}</p>
+                <h3 className="font-semibold text-slate-900">Sync Across Devices</h3>
+                <p className="text-sm text-gray-600">Access from anywhere</p>
               </div>
             </div>
           </div>
 
           <div className="space-y-3">
-            <LocalizedLink
+            <Link
               href="/register"
               onClick={handleClose}
               className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
             >
               <Mail className="w-5 h-5" />
-              <span>{t("auth.signup")}</span>
+              <span>Sign Up</span>
               <ArrowRight className="w-5 h-5" />
-            </LocalizedLink>
+            </Link>
 
-            <LocalizedLink
+            <Link
               href="/login"
               onClick={handleClose}
               className="flex items-center justify-center gap-2 w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
             >
               <Lock className="w-5 h-5" />
-              <span>{t("auth.login")}</span>
-            </LocalizedLink>
+              <span>Log In</span>
+            </Link>
           </div>
 
           <p className="text-center text-xs text-gray-500 mt-4">
-            {t("auth.noCredit")}
+            No credit card required
           </p>
         </div>
       </div>

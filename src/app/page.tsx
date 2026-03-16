@@ -12,13 +12,11 @@ import FAQ from "@/components/landing/FAQ"
 import CTA from "@/components/landing/CTA"
 import AuthModal from "@/components/landing/AuthModal"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { useLanguage } from "@/contexts/LanguageContext"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth()
-  const { t } = useLanguage()
   const [showAuthModal, setShowAuthModal] = useState(false)
 
   useEffect(() => {
@@ -77,30 +75,30 @@ export default function Home() {
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
-              <h3 className="text-white font-semibold mb-4">{t("footer.about")}</h3>
+              <h3 className="text-white font-semibold mb-4">{"About"}</h3>
               <p className="text-sm leading-relaxed">
-                {t("footer.aboutDesc")}
+                {"A professional English dictation and shadowing practice tool to help you efficiently improve your listening and speaking skills."}
               </p>
             </div>
             <div>
-              <h3 className="text-white font-semibold mb-4">{t("footer.features")}</h3>
+              <h3 className="text-white font-semibold mb-4">{"Features"}</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/practice" className="hover:text-white transition-colors">{t("footer.dictation")}</Link></li>
-                <li><Link href="/practice" className="hover:text-white transition-colors">{t("footer.shadowing")}</Link></li>
-                <li><Link href="/topics" className="hover:text-white transition-colors">{t("footer.materials")}</Link></li>
-                <li><Link href="/profile" className="hover:text-white transition-colors">{t("nav.profile")}</Link></li>
+                <li><Link href="/practice" className="hover:text-white transition-colors">{"Dictation Practice"}</Link></li>
+                <li><Link href="/practice" className="hover:text-white transition-colors">{"Shadowing Practice"}</Link></li>
+                <li><Link href="/topics" className="hover:text-white transition-colors">{"Materials"}</Link></li>
+                <li><Link href="/profile" className="hover:text-white transition-colors">{"Profile"}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-white font-semibold mb-4">{t("footer.resources")}</h3>
+              <h3 className="text-white font-semibold mb-4">{"Resources"}</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="https://github.com/xiaoshuangsu/dictation-shadowing-tool" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{t("footer.github")}</a></li>
-                <li><a href="mailto:support@example.com" className="hover:text-white transition-colors">{t("footer.contact")}</a></li>
+                <li><a href="https://github.com/xiaoshuangsu/dictation-shadowing-tool" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{"GitHub"}</a></li>
+                <li><a href="mailto:support@example.com" className="hover:text-white transition-colors">{"Contact Us"}</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; {new Date().getFullYear()} ShadowHub. {t("footer.rights")}</p>
+            <p>&copy; {new Date().getFullYear()} ShadowHub. {"All rights reserved."}</p>
           </div>
         </div>
       </footer>

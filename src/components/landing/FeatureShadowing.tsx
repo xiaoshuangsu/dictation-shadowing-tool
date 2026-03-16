@@ -2,12 +2,9 @@
 
 import { motion } from "framer-motion"
 import { Mic, Volume2, Waves, ArrowRight } from "lucide-react"
-import { useLanguage } from "@/contexts/LanguageContext"
-import LocalizedLink from "@/components/LocalizedLink"
+import Link from "next/link"
 
 export default function FeatureShadowing() {
-  const { t } = useLanguage()
-
   return (
     <section className="py-20 bg-white">
       <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -45,15 +42,15 @@ export default function FeatureShadowing() {
             >
               <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <Mic className="w-4 h-4" />
-                {t("footer.shadowing")}
+                Shadowing
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
-                {t("feature.shadowing.title2")}
+                Speak Like a Native
               </h2>
 
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                {t("feature.shadowing.desc2")}
+                Practice speaking by shadowing native speakers. Improve your rhythm, intonation, and natural flow.
               </p>
 
               <ul className="space-y-4 mb-8">
@@ -64,8 +61,8 @@ export default function FeatureShadowing() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.shadowing.sync")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.shadowing.syncDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Sync with Audio</h4>
+                    <p className="text-gray-600 text-sm">Practice speaking in sync with native audio timing</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -75,8 +72,8 @@ export default function FeatureShadowing() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.shadowing.linking")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.shadowing.linkingDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Linking Sounds</h4>
+                    <p className="text-gray-600 text-sm">Master natural word connections and flow</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -86,32 +83,32 @@ export default function FeatureShadowing() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.shadowing.intonation")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.shadowing.intonationDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Intonation Patterns</h4>
+                    <p className="text-gray-600 text-sm">Learn natural pitch and stress patterns</p>
                   </div>
                 </li>
               </ul>
 
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="bg-purple-50 px-4 py-2 rounded-lg border border-purple-200 text-sm text-purple-700">
-                  🎯 {t("feature.shadowing.fluency")}
+                  🎯 Fluency
                 </div>
                 <div className="bg-purple-50 px-4 py-2 rounded-lg border border-purple-200 text-sm text-purple-700">
-                  🗣️ {t("feature.shadowing.pronunciation")}
+                  🗣️ Pronunciation
                 </div>
                 <div className="bg-purple-50 px-4 py-2 rounded-lg border border-purple-200 text-sm text-purple-700">
-                  📊 {t("feature.shadowing.scoring")}
+                  📊 AI Scoring
                 </div>
               </div>
 
               {/* Try now button */}
-              <LocalizedLink
+              <Link
                 href="/topics"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg hover:shadow-xl"
               >
-                {t("feature.shadowing.try")}
+                Try Now
                 <ArrowRight className="w-5 h-5" />
-              </LocalizedLink>
+              </Link>
             </motion.div>
           </div>
         </motion.div>

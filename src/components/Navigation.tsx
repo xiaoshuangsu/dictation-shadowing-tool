@@ -5,28 +5,15 @@ import { usePathname, useRouter } from "next/navigation"
 import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/hooks/useAuth"
-import { useLanguage } from "@/contexts/LanguageContext"
-import LanguageSwitcher from "@/components/LanguageSwitcher"
 
 export default function Navigation() {
   const pathname = usePathname()
   const router = useRouter()
-  const { t, language } = useLanguage()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { user, logout } = useAuth()
   const userMenuRef = useRef<HTMLDivElement>(null)
-
-  // Helper function to get localized path
-  // 注意：Next.js 的 basePath 配置会自动添加 /dictation-shadowing-tool，我们只需要处理语言前缀
-  const getLocalizedPath = (path: string) => {
-    // 中文是默认/权威语言，不加前缀；英文加 /en 前缀
-    if (language === "en") {
-      return `/en${path === "/" ? "" : path}`
-    }
-    return path
-  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,16 +37,15 @@ export default function Navigation() {
   const handleLogout = async () => {
     await logout()
     setIsUserMenuOpen(false)
-    router.push(getLocalizedPath("/"))
+    router.push("/")
   }
 
   const navItems = [
-    { href: "/topics", label: t("nav.topics"), icon: BookOpen },
+    { href: "/topics", label: "Topics", icon: BookOpen },
   ]
 
   const isActive = (href: string) => {
-    const localizedHref = getLocalizedPath(href)
-    return pathname === localizedHref || pathname.startsWith(localizedHref + "/")
+    return pathname === href || pathname.startsWith(href + "/")
   }
 
   return (
@@ -74,7 +60,7 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo + Nav Items */}
           <div className="flex items-center gap-1">
-            <Link href={getLocalizedPath("/")} className="flex items-center gap-2 group mr-4">
+            <Link href="/" className="flex items-center gap-2 group mr-4">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
@@ -87,12 +73,11 @@ export default function Navigation() {
             <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const localizedHref = getLocalizedPath(item.href)
-                const active = isActive(localizedHref)
+                const active = isActive(item.href)
                 return (
                   <Link
                     key={item.href}
-                    href={localizedHref}
+                    href={item.href}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                       active
                         ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
@@ -109,28 +94,23 @@ export default function Navigation() {
 
           {/* Auth Section */}
           <div className="flex items-center gap-2">
-            {/* Language Switcher */}
-            <div className="hidden md:block">
-              <LanguageSwitcher />
-            </div>
-
             {/* Desktop Auth */}
             <div className="hidden md:block">
               {!user ? (
                 <div className="flex items-center gap-2">
                   <Link
-                    href={getLocalizedPath("/login")}
+                    href="/login"
                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
                   >
                     <LogIn className="w-4 h-4" />
-                    <span>{t("nav.login")}</span>
+                    <span>Login</span>
                   </Link>
                   <Link
-                    href={getLocalizedPath("/register")}
+                    href="/register"
                     className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md hover:shadow-lg transition-all"
                   >
                     <UserPlus className="w-4 h-4" />
-                    <span>{t("nav.signup")}</span>
+                    <span>Sign Up</span>
                   </Link>
                 </div>
               ) : (
@@ -150,19 +130,19 @@ export default function Navigation() {
                   {isUserMenuOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                       <Link
-                        href={getLocalizedPath("/profile")}
+                        href="/profile"
                         onClick={() => setIsUserMenuOpen(false)}
                         className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       >
                         <User className="w-4 h-4" />
-                        <span>{t("nav.profile")}</span>
+                        <span>Profile</span>
                       </Link>
                       <button
                         onClick={handleLogout}
                         className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span>{t("nav.logout")}</span>
+                        <span>Logout</span>
                       </button>
                     </div>
                   )}
@@ -195,12 +175,11 @@ export default function Navigation() {
             <div className="flex flex-col gap-1">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const localizedHref = getLocalizedPath(item.href)
-                const active = isActive(localizedHref)
+                const active = isActive(item.href)
                 return (
                   <Link
                     key={item.href}
-                    href={localizedHref}
+                    href={item.href}
                     onClick={() => setIsMenuOpen(false)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${
                       active
@@ -214,56 +193,49 @@ export default function Navigation() {
                 )
               })}
 
-              {/* Mobile Language Switcher */}
-              <div className="border-t border-gray-200 mt-2 pt-2">
-                <div className="px-4 py-3">
-                  <LanguageSwitcher />
-                </div>
-              </div>
-
               {/* Mobile Auth Section */}
               <div className="border-t border-gray-200 mt-2 pt-2">
                 {!user ? (
                   <>
                     <Link
-                      href={getLocalizedPath("/login")}
+                      href="/login"
                       onClick={() => setIsMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
                     >
                       <LogIn className="w-5 h-5" />
-                      <span>{t("nav.login")}</span>
+                      <span>Login</span>
                     </Link>
                     <Link
-                      href={getLocalizedPath("/register")}
+                      href="/register"
                       onClick={() => setIsMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-purple-600 text-white"
                     >
                       <UserPlus className="w-5 h-5" />
-                      <span>{t("nav.signup")}</span>
+                      <span>Sign Up</span>
                     </Link>
                   </>
                 ) : (
                   <>
                     <Link
-                      href={getLocalizedPath("/profile")}
+                      href="/profile"
                       onClick={() => setIsMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
                     >
                       <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                       </div>
-                      <span>{user?.username || user?.email?.split('@')[0] || '用户'}</span>
+                      <span>{user?.username || user?.email?.split('@')[0] || 'User'}</span>
                     </Link>
                     <button
                       onClick={() => {
                         logout()
                         setIsMenuOpen(false)
-                        router.push(getLocalizedPath("/"))
+                        router.push("/")
                       }}
                       className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-red-600 hover:bg-red-50 transition-all"
                     >
                       <LogOut className="w-5 h-5" />
-                      <span>{t("nav.logout")}</span>
+                      <span>Logout</span>
                     </button>
                   </>
                 )}

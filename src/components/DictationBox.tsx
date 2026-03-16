@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Eye } from "lucide-react"
 import ConfirmModal from "./ConfirmModal"
-import { useLanguage } from "@/contexts/LanguageContext"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
 
 interface Sentence {
@@ -26,7 +25,6 @@ interface DictationBoxProps {
 type WordStatus = "correct" | "incorrect" | "pending"
 
 export default function DictationBox({ sentence, onComplete, onNext, isLastSentence, dictationMode = "whole", onDictationModeChange }: DictationBoxProps) {
-  const { t } = useLanguage()
   const { playSuccessSound } = useSuccessSound() // 使用全局静音状态
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
@@ -331,7 +329,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
               onClick={() => setShowTranslation(!showTranslation)}
               className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
             >
-              {showTranslation ? t('practice.dictation.hideTranslation') : t('practice.dictation.showTranslation')}
+              {showTranslation ? "Hide Translation" : "Show Translation"}
             </button>
           </div>
 
@@ -347,7 +345,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       {/* Label with Filter */}
       <div className="mb-2 relative">
         <label className="text-sm font-medium text-gray-700">
-          {t('practice.dictation.typeWhatYouHear')}:
+          {"Type what you hear"}:
         </label>
         <div className="inline-block relative ml-2">
           <button
@@ -398,7 +396,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
           onFocus={updateActivity}
           disabled={isLocked}
           className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[100px] text-base disabled:bg-gray-100 disabled:cursor-not-allowed"
-          placeholder={t('practice.dictation.typeYourAnswer')}
+          placeholder={"Type your answer here..."}
         />
       </div>
 
@@ -410,7 +408,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
             onClick={showAllWords ? handleHideAllWords : handleShowAllWords}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
-            {showAllWords ? t('practice.hideWords') : t('practice.showAllWords')}
+            {showAllWords ? "Hide Words" : "Show All Words"}
           </button>
         </div>
 
@@ -494,7 +492,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       {showResult && !isCorrect && (
         <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
           <p className="text-sm text-blue-700">
-            {t('practice.dictation.incorrect')}
+            {"Not correct. Please try again."}
           </p>
         </div>
       )}
@@ -502,7 +500,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       {showResult && isCorrect && (
         <div className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200">
           <p className="text-sm text-green-700">
-            {t('practice.dictation.correct')}
+            {"✓ Correct!"}
           </p>
         </div>
       )}
@@ -515,13 +513,13 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
       >
         {showResult || isRevealed ? (
           <>
-            {t('practice.next')}
+            {"Next"}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </>
         ) : (
-          t('practice.checkAnswer')
+          "Check"
         )}
       </button>
 
@@ -530,9 +528,9 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
         isOpen={showConfirmModal}
         onClose={handleCancelShowWords}
         onConfirm={handleConfirmShowWords}
-        message={`${t('practice.dictation.showWordsConfirm1')}
+        message={`${"Are you sure you want to show all words and submit your answer?"}
 
-${t('practice.dictation.showWordsConfirm2').replace('{count}', String(missingWordsCount))}`}
+${"The score for this sentence will be reduced according to the number of words you have not shown ({count} words).".replace('{count}', String(missingWordsCount))}`}
       />
     </div>
   )

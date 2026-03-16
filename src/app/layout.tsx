@@ -1,7 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import Navigation from "@/components/Navigation"
-import { LanguageProvider } from "@/contexts/LanguageContext"
 
 export const metadata: Metadata = {
   title: "ShadowHub - English Dictation & Shadowing Practice",
@@ -20,10 +19,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <LanguageProvider>
-          <Navigation />
-          <main className="pt-16">{children}</main>
-        </LanguageProvider>
+        <Navigation />
+        <main className="pt-16">{children}</main>
       </body>
     </html>
   )

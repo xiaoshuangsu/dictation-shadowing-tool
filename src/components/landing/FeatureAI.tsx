@@ -2,11 +2,9 @@
 
 import { motion } from "framer-motion"
 import { Sparkles, AlertCircle, Lightbulb, CheckCircle2, ArrowRight } from "lucide-react"
-import { useLanguage } from "@/contexts/LanguageContext"
-import LocalizedLink from "@/components/LocalizedLink"
+import Link from "next/link"
 
 export default function FeatureAI() {
-  const { t } = useLanguage()
   return (
     <section className="py-20 bg-gradient-to-br from-green-50 to-white">
       <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -27,15 +25,15 @@ export default function FeatureAI() {
             >
               <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <Sparkles className="w-4 h-4" />
-                {t("feature.ai.smart")}
+                AI-Powered
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
-                {t("feature.ai.title2")}
+                Smart Feedback System
               </h2>
 
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                {t("feature.ai.desc2")}
+                Get instant, intelligent feedback on your pronunciation and dictation accuracy
               </p>
 
               <ul className="space-y-4 mb-8">
@@ -44,8 +42,8 @@ export default function FeatureAI() {
                     <CheckCircle2 className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.ai.spell")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.ai.spellDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Spelling Check</h4>
+                    <p className="text-gray-600 text-sm">Intelligent error detection and correction</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -53,8 +51,8 @@ export default function FeatureAI() {
                     <CheckCircle2 className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.ai.linking")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.ai.linkingDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Linking Analysis</h4>
+                    <p className="text-gray-600 text-sm">Learn natural word connections</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -62,32 +60,32 @@ export default function FeatureAI() {
                     <CheckCircle2 className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.ai.analysis")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.ai.analysisDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Performance Analysis</h4>
+                    <p className="text-gray-600 text-sm">Track your improvement over time</p>
                   </div>
                 </li>
               </ul>
 
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  📈 {t("feature.ai.trend")}
+                  📈 Progress Trends
                 </div>
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  🎯 {t("feature.ai.personalized")}
+                  🎯 Personalized Tips
                 </div>
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  ⚡ {t("feature.ai.realtime")}
+                  ⚡ Real-time Feedback
                 </div>
               </div>
 
               {/* Try now button */}
-              <LocalizedLink
+              <Link
                 href="/topics"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl"
               >
-                {t("feature.ai.try")}
+                Try Now
                 <ArrowRight className="w-5 h-5" />
-              </LocalizedLink>
+              </Link>
             </motion.div>
           </div>
 

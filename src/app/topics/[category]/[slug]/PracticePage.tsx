@@ -8,7 +8,6 @@ import { supabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
 import { slugToCategory } from '@/lib/utils/category'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { useLanguage } from '@/contexts/LanguageContext'
 
 // Import components
 import VideoPlayer from '@/components/VideoPlayer'
@@ -48,7 +47,6 @@ const defaultSentences: Sentence[] = [
 export default function PracticePage({ category, slug }: { category: string; slug: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { t, language } = useLanguage()
   const { user, loading: authLoading } = useAuth()
 
   // Get mode from URL params, default to 'dictation'

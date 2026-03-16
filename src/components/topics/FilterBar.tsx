@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import DifficultySelector from './DifficultySelector'
-import { useLanguage } from '@/contexts/LanguageContext'
 
 // 筛选选项类型
 export type FilterOptions = {
@@ -17,7 +16,6 @@ interface FilterBarProps {
 }
 
 export default function FilterBar({ categories, onFilterChange }: FilterBarProps) {
-  const { t, language } = useLanguage()
   const [filters, setFilters] = useState<FilterOptions>({
     difficulty: null,
     duration: null,
@@ -29,34 +27,34 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
   // Category 下拉状态
   const [isCategoryOpen, setIsCategoryOpen] = useState(false)
 
-  // 分类映射
-  const CATEGORY_MAP = {
-    '故事': { en: 'Stories', zh: '故事' },
-    'TED演讲': { en: 'TED Talks', zh: 'TED演讲' },
-    '历史演讲': { en: 'Historical Speeches', zh: '历史演讲' },
-    '日常生活': { en: 'Daily Life', zh: '日常生活' },
-    '艺术文化': { en: 'Arts & Culture', zh: '艺术文化' },
-    '文化历史': { en: 'Culture & History', zh: '文化历史' },
-    'BBC Learning English': { en: 'BBC Learning English', zh: 'BBC Learning English' },
-    'VOA Learning English': { en: 'VOA Learning English', zh: 'VOA Learning English' },
-    '动画片': { en: 'Cartoons', zh: '动画片' },
+  // 分类映射（仅英文）
+  const CATEGORY_MAP: Record<string, string> = {
+    '故事': 'Stories',
+    'TED演讲': 'TED Talks',
+    '历史演讲': 'Historical Speeches',
+    '日常生活': 'Daily Life',
+    '艺术文化': 'Arts & Culture',
+    '文化历史': 'Culture & History',
+    'BBC Learning English': 'BBC Learning English',
+    'VOA Learning English': 'VOA Learning English',
+    '动画片': 'Cartoons',
   }
 
   // 构建话题选项（动态，使用映射）
   const categoryOptions = [
-    { value: null, label: t("topics.filter.all") },
+    { value: null, label: "All" },
     ...categories.map(cat => ({
       value: cat,
-      label: CATEGORY_MAP[cat as keyof typeof CATEGORY_MAP]?.[language] || cat
+      label: CATEGORY_MAP[cat] || cat
     })),
   ]
 
   // 时长选项（使用翻译）
   const DURATION_OPTIONS = [
-    { value: null, label: t("topics.filter.all") },
-    { value: 'short', label: t("topics.filter.short") },
-    { value: 'medium', label: t("topics.filter.medium") },
-    { value: 'long', label: t("topics.filter.long") },
+    { value: null, label: "All" },
+    { value: 'short', label: "Short (< 1min)" },
+    { value: 'medium', label: "Medium (1-3min)" },
+    { value: 'long', label: "Long (> 3min)" },
   ]
 
   // 更新筛选条件
@@ -87,7 +85,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="text-xs font-medium text-gray-700">{t("topics.filter.duration")}</span>
+              <span className="text-xs font-medium text-gray-700">{"Duration"}</span>
             </div>
             <div className="relative min-w-[200px]">
               {/* 触发按钮 */}
@@ -97,7 +95,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
                 className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors flex items-center justify-between"
               >
                 <span className="whitespace-nowrap">
-                  {DURATION_OPTIONS.find(opt => opt.value === filters.duration)?.label || t("topics.filter.all")}
+                  {DURATION_OPTIONS.find(opt => opt.value === filters.duration)?.label || "All"}
                 </span>
                 <svg
                   className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isDurationOpen ? 'rotate-180' : ''}`}
@@ -143,7 +141,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
               <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
-              <span className="text-xs font-medium text-gray-700">{t("topics.filter.category")}</span>
+              <span className="text-xs font-medium text-gray-700">{"Category"}</span>
             </div>
             <div className="relative min-w-[200px]">
               {/* 触发按钮 */}
@@ -153,7 +151,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
                 className="w-full px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors flex items-center justify-between"
               >
                 <span className="whitespace-nowrap">
-                  {categoryOptions.find(opt => opt.value === filters.category)?.label || t("topics.filter.all")}
+                  {categoryOptions.find(opt => opt.value === filters.category)?.label || "All"}
                 </span>
                 <svg
                   className={`w-4 h-4 text-gray-500 transition-transform flex-shrink-0 ${isCategoryOpen ? 'rotate-180' : ''}`}

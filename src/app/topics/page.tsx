@@ -5,25 +5,23 @@ import Link from 'next/link'
 import FilterBar, { FilterOptions } from '@/components/topics/FilterBar'
 import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
-import { useLanguage } from '@/contexts/LanguageContext'
-import LocalizedLink from '@/components/LocalizedLink'
 import { getSupabase } from '@/lib/supabase/client'  // 🔴 关键修复：使用 getSupabase() 而不是直接导入实例
 
-// 分类映射
-const CATEGORY_MAP = {
-  '日常生活': { en: 'Daily Life', zh: '日常生活' },
-  '历史演讲': { en: 'Historical Speeches', zh: '历史演讲' },
-  '文化历史': { en: 'Culture & History', zh: '文化历史' },
-  '心灵故事': { en: 'Heart & Soul Stories', zh: '心灵故事' },
-  '艺术文化': { en: 'Arts & Culture', zh: '艺术文化' },
-  'YouTube Vlog': { en: 'YouTube Vlog', zh: 'YouTube Vlog' },
-  '故事': { en: 'Stories', zh: '故事' },
-  '人物访谈': { en: 'Interviews', zh: '人物访谈' },
-  'BBC Learning English': { en: 'BBC Learning English', zh: 'BBC Learning English' },
-  'VOA Learning English': { en: 'VOA Learning English', zh: 'VOA Learning English' },
-  'TED演讲': { en: 'TED Talks', zh: 'TED演讲' },
-  '动画片': { en: 'Cartoons', zh: '动画片' },
-} as const
+// 分类映射（仅英文）
+const CATEGORY_MAP: Record<string, string> = {
+  '日常生活': 'Daily Life',
+  '历史演讲': 'Historical Speeches',
+  '文化历史': 'Culture & History',
+  '心灵故事': 'Heart & Soul Stories',
+  '艺术文化': 'Arts & Culture',
+  'YouTube Vlog': 'YouTube Vlog',
+  '故事': 'Stories',
+  '人物访谈': 'Interviews',
+  'BBC Learning English': 'BBC Learning English',
+  'VOA Learning English': 'VOA Learning English',
+  'TED演讲': 'TED Talks',
+  '动画片': 'Cartoons',
+}
 
 // 带重试的获取素材函数
 async function fetchWithRetry<T>(
@@ -94,7 +92,6 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export default function MaterialsPage() {
-  const { t, language } = useLanguage()
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -118,9 +115,9 @@ export default function MaterialsPage() {
     setImageLoadedStates(prev => ({ ...prev, [materialId]: loaded }))
   }
 
-  // 获取本地化的分类名称
+  // 获取英文分类名称
   const getLocalizedCategory = (categoryId: string) => {
-    return CATEGORY_MAP[categoryId as keyof typeof CATEGORY_MAP]?.[language] || categoryId
+    return CATEGORY_MAP[categoryId] || categoryId
   }
 
   // 动态获取所有不重复的分类
@@ -498,21 +495,21 @@ export default function MaterialsPage() {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            {t("topics.title")}
+            {"English Dictation & Shadowing"}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl">
-            {t("topics.subtitle")}
+            {"Curated English learning materials covering daily life, culture & history, historical speeches, and more. Choose content that matches your level and start practicing!"}
           </p>
 
           {/* 统计信息 */}
           <div className="mt-6 flex flex-wrap gap-6 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900">{totalFilteredCount}</span>
-              <span>{t("topics.materials")}</span>
+              <span>{"materials"}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-gray-900">{totalCategories}</span>
-              <span>{t("topics.categories")}</span>
+              <span>{"categories"}</span>
             </div>
           </div>
         </div>
@@ -535,7 +532,7 @@ export default function MaterialsPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">{t("topics.loading")}</p>
+            <p className="mt-4 text-gray-600">{"Loading..."}</p>
           </div>
         ) : error ? (
           /* 错误提示 */
@@ -543,10 +540,10 @@ export default function MaterialsPage() {
             <svg className="mx-auto h-16 w-16 text-red-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">{t("topics.error")}</h3>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">{"Failed to load materials"}</h3>
             <p className="text-gray-500 mb-4">{error}</p>
             <p className="text-sm text-gray-400 max-w-md mx-auto">
-              {t("topics.errorDetails")}
+              {"Check the browser console for detailed error information. Possible causes: Supabase connection failed, CORS restrictions, or RLS policy blocking access."}
             </p>
           </div>
         ) : totalFilteredCount === 0 ? (
@@ -555,8 +552,8 @@ export default function MaterialsPage() {
             <svg className="mx-auto h-16 w-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="text-lg font-medium text-gray-700 mb-2">{t("topics.noResults")}</h3>
-            <p className="text-gray-500">{t("topics.tryChangingFilters")}</p>
+            <h3 className="text-lg font-medium text-gray-700 mb-2">{"No materials found"}</h3>
+            <p className="text-gray-500">{"Try changing the filter conditions"}</p>
           </div>
         ) : (
           <div className="space-y-12">
@@ -592,7 +589,7 @@ export default function MaterialsPage() {
                     <h2 className="text-2xl font-bold text-gray-900">
                       {getLocalizedCategory(categoryId)}
                       <span className="ml-2 text-sm font-normal text-gray-500">
-                        ({categoryMaterials.length} {t("topics.lessons")})
+                        ({categoryMaterials.length} {"lessons"})
                       </span>
                     </h2>
                     {categoryMaterials.length > defaultCount && (
@@ -608,7 +605,7 @@ export default function MaterialsPage() {
                         }}
                         className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                       >
-                        {isExpanded ? t("topics.collapse") : t("topics.viewAll")}
+                        {isExpanded ? "Collapse ↑" : "View All →"}
                       </button>
                     )}
                   </div>
@@ -747,18 +744,18 @@ export default function MaterialsPage() {
 
                               {/* 操作按钮 */}
                               <div className="flex gap-2">
-                                <LocalizedLink
+                                <Link
                                   href={`/topics/${categoryToSlug(material.category)}/${material.slug || titleToSlug(material.title)}?mode=dictation`}
                                   className="flex-1 text-center px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
                                 >
-                                  {t("topics.dictation")}
-                                </LocalizedLink>
-                                <LocalizedLink
+                                  Dictation
+                                </Link>
+                                <Link
                                   href={`/topics/${categoryToSlug(material.category)}/${material.slug || titleToSlug(material.title)}?mode=shadowing`}
                                   className="flex-1 text-center px-2 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
                                 >
-                                  {t("topics.shadowing")}
-                                </LocalizedLink>
+                                  Shadowing
+                                </Link>
                               </div>
                             </div>
                           </div>

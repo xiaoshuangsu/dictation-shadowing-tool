@@ -2,12 +2,9 @@
 
 import { motion } from "framer-motion"
 import { FileText, Headphones, CheckCircle, ArrowRight } from "lucide-react"
-import { useLanguage } from "@/contexts/LanguageContext"
-import LocalizedLink from "@/components/LocalizedLink"
+import Link from "next/link"
 
 export default function FeatureDictation() {
-  const { t } = useLanguage()
-
   return (
     <section className="py-20 bg-gradient-to-br from-blue-50 to-white">
       <div className="max-w-screen-xl mx-auto px-6 sm:px-8 lg:px-12">
@@ -28,15 +25,15 @@ export default function FeatureDictation() {
             >
               <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <FileText className="w-4 h-4" />
-                <span>{t("footer.dictation")}</span>
+                <span>Dictation</span>
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
-                {t("feature.dictation.title")}
+                Listen and Write
               </h2>
 
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                {t("feature.dictation.desc")}
+                Practice your listening comprehension with interactive dictation exercises
               </p>
 
               <ul className="space-y-4 mb-8">
@@ -45,8 +42,8 @@ export default function FeatureDictation() {
                     <CheckCircle className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.dictation.word")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.dictation.wordDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Word Mode</h4>
+                    <p className="text-gray-600 text-sm">Fill in missing words from sentences</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -54,8 +51,8 @@ export default function FeatureDictation() {
                     <CheckCircle className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.dictation.sentence")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.dictation.sentenceDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Sentence Mode</h4>
+                    <p className="text-gray-600 text-sm">Type complete sentences you hear</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -63,32 +60,32 @@ export default function FeatureDictation() {
                     <CheckCircle className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.dictation.feedback")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.dictation.feedbackDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Instant Feedback</h4>
+                    <p className="text-gray-600 text-sm">Know immediately if you're correct</p>
                   </div>
                 </li>
               </ul>
 
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  🎯 {t("feature.dictation.levels")}
+                  🎯 Multiple Levels
                 </div>
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  ⏱️ {t("feature.dictation.speed")}
+                  ⏱️ Adjustable Speed
                 </div>
                 <div className="bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">
-                  💡 {t("feature.dictation.hint")}
+                  💡 Hints Available
                 </div>
               </div>
 
               {/* Try now button */}
-              <LocalizedLink
+              <Link
                 href="/topics"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
               >
-                {t("feature.dictation.try")}
+                Try Now
                 <ArrowRight className="w-5 h-5" />
-              </LocalizedLink>
+              </Link>
             </motion.div>
           </div>
 

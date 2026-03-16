@@ -1,5 +1,49 @@
 # Changelog
 
+## [16.0.0] - 2026-03-15
+
+### Breaking Changes
+- **彻底移除多语言架构** 🌐❌
+  - 删除 LanguageContext.tsx 和 useLocalizedPath.ts
+  - 删除 LanguageSwitcher 和 LocalizedLink 组件
+  - 移除所有 useLanguage 和 t() 函数调用
+  - 所有 UI 文本改为硬编码英文
+
+### Fixed
+- **修复路由 404 问题** 🔗
+  - 移除 /en/ 路径，统一使用英文路由
+  - 修复访问 /en/topics/... 导致的 404 错误
+  - 所有素材现在通过 /topics/[category]/[slug]/ 访问
+
+### Changed
+- **简化项目架构** 🏗️
+  - 减少 912 行代码（删除多语言相关代码）
+  - 修改 25 个文件，移除多语言依赖
+  - 提升构建速度和运行性能
+
+### Technical Details
+- 删除文件：
+  - `src/contexts/LanguageContext.tsx` (671 行)
+  - `src/lib/hooks/useLocalizedPath.ts` (18 行)
+  - `src/components/LanguageSwitcher.tsx` (77 行)
+  - `src/components/LocalizedLink.tsx` (40 行)
+  - `src/app/en/page.tsx` (31 行)
+
+- 修改文件：
+  - `src/app/layout.tsx` - 移除 LanguageProvider
+  - `src/app/page.tsx` - 移除 useLanguage
+  - `src/app/topics/page.tsx` - 移除 useLanguage，LocalizedLink 改为 Link
+  - `src/components/topics/FilterBar.tsx` - 硬编码英文
+  - `src/components/topics/DifficultySelector.tsx` - 硬编码英文
+  - `src/components/DictationBox.tsx` - 移除 useLanguage
+  - `src/components/WordMode.tsx` - 移除 useLanguage
+  - `src/components/ShadowingPanel.tsx` - 移除 useLanguage
+  - `src/components/landing/*` - 所有落地页组件硬编码英文
+
+- 构建验证：✅ 117 个静态页面全部生成成功
+- 路由验证：✅ /topics/[category]/[slug]/ 正常访问
+- 旧路由：✅ /en/topics/ 正确返回 404
+
 ## [15.3.12] - 2026-03-14
 
 ### Fixed

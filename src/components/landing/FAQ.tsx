@@ -3,68 +3,66 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { ChevronDown, HelpCircle } from "lucide-react"
-import { useLanguage } from "@/contexts/LanguageContext"
 
 export default function FAQ() {
-  const { t } = useLanguage()
   const [openIndex, setOpenIndex] = useState<number | null>(0)
 
   const faqs = [
     {
-      question: t("faq.q1.title"),
-      answer: t("faq.q1.answer"),
+      question: "What is dictation practice?",
+      answer: "Dictation practice is a language learning technique where you listen to audio and write down what you hear. It helps improve listening comprehension, spelling, and grammar skills.",
     },
     {
-      question: t("faq.q2.title"),
-      answer: t("faq.q2.answer"),
+      question: "What is shadowing practice?",
+      answer: "Shadowing is a language learning method where you repeat spoken language immediately after hearing it, like an echo. It helps improve pronunciation, intonation, and speaking fluency.",
     },
     {
-      question: t("faq.q3.title"),
-      answer: t("faq.q3.answer"),
+      question: "How do I get started?",
+      answer: "Simply browse our topics page, select a video that interests you, and choose between dictation or shadowing mode. Start practicing and track your progress!",
     },
     {
-      question: t("faq.q4.title"),
-      answer: t("faq.q4.answer"),
+      question: "Is this free to use?",
+      answer: "Yes! Our core features are completely free. Simply sign up for an account to track your progress and save your statistics.",
     },
     {
-      question: t("faq.q5.title"),
-      answer: t("faq.q5.answer"),
+      question: "What proficiency levels do you support?",
+      answer: "We offer materials from beginner (A1) to advanced (C2) levels. You can filter by difficulty to find content that matches your current level.",
     },
     {
-      question: t("faq.q6.title"),
-      answer: t("faq.q6.answer"),
+      question: "Can I use this on mobile devices?",
+      answer: "Yes! Our platform is fully responsive and works on desktop, tablet, and mobile devices. Practice anywhere, anytime.",
     },
     {
-      question: t("faq.q7.title"),
-      answer: t("faq.q7.answer"),
+      question: "How accurate is the AI feedback?",
+      answer: "Our AI uses advanced speech recognition and natural language processing to provide highly accurate feedback on your pronunciation and dictation.",
     },
     {
-      question: t("faq.q8.title"),
-      answer: t("faq.q8.answer"),
+      question: "Do I need to create an account?",
+      answer: "While you can browse without an account, creating one allows you to save your progress, track statistics, and sync across devices.",
     },
     {
-      question: t("faq.q9.title"),
-      answer: t("faq.q9.answer"),
+      question: "What video sources do you use?",
+      answer: "We use a variety of authentic English content including educational videos, news, movies, and TV shows to provide diverse learning materials.",
     },
     {
-      question: t("faq.q10.title"),
-      answer: t("faq.q10.answer"),
+      question: "How often should I practice?",
+      answer: "We recommend practicing for 15-30 minutes daily. Consistent practice is key to improvement. Use our streak tracking to maintain your habit!",
     },
     {
-      question: t("faq.q11.title"),
-      answer: t("faq.q11.answer"),
+      question: "Can I customize the playback speed?",
+      answer: "Yes! You can adjust the audio playback speed from 0.25x to 2x to match your comfort level and gradually increase as you improve.",
     },
     {
-      question: t("faq.q12.title"),
-      answer: t("faq.q12.answer"),
+      question: "What's the difference between word and sentence mode?",
+      answer: "Word mode focuses on individual words in a sentence, while sentence mode requires you to type the complete sentence. Start with word mode and progress to sentence mode.",
     },
     {
-      question: t("faq.q13.title"),
-      answer: t("faq.q13.answer"),
+      question: "Can I see my progress over time?",
+      answer: "Absolutely! Your account includes detailed charts and statistics showing your practice history, accuracy rates, and improvement trends.",
     },
     {
-      question: t("faq.q14.title"),
-      answer: t("faq.q14.answer"),
+      question: "Is my pronunciation recorded?",
+      answer: "In shadowing mode, yes - your voice is recorded for analysis. Your recordings are processed locally and used only to provide feedback on your pronunciation.",
     },
   ]
 
@@ -83,10 +81,10 @@ export default function FAQ() {
             FAQ
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            {t("faq.title")}
+            Frequently Asked Questions
           </h2>
           <p className="text-lg text-gray-600">
-            {t("faq.subtitle")}
+            Find answers to common questions about our platform
           </p>
         </motion.div>
 

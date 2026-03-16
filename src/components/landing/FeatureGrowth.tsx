@@ -2,11 +2,9 @@
 
 import { motion } from "framer-motion"
 import { TrendingUp, Trophy, Flame, Calendar, ArrowRight } from "lucide-react"
-import { useLanguage } from "@/contexts/LanguageContext"
-import LocalizedLink from "@/components/LocalizedLink"
+import Link from "next/link"
 
 export default function FeatureGrowth() {
-  const { t } = useLanguage()
 
   // Mock data for the chart
   const weekData = [
@@ -58,15 +56,15 @@ export default function FeatureGrowth() {
             >
               <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-semibold mb-4">
                 <TrendingUp className="w-4 h-4" />
-                {t("feature.growth.tracking")}
+                Progress Tracking
               </div>
 
               <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">
-                {t("feature.growth.title2")}
+                Track Your Growth
               </h2>
 
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                {t("feature.growth.desc2")}
+                Monitor your learning journey with detailed statistics and achievements
               </p>
 
               <ul className="space-y-4 mb-8">
@@ -77,8 +75,8 @@ export default function FeatureGrowth() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.growth.practice")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.growth.practiceDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Practice History</h4>
+                    <p className="text-gray-600 text-sm">View all your past practice sessions</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -88,8 +86,8 @@ export default function FeatureGrowth() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.growth.streakRecord")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.growth.streakRecordDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Streak Records</h4>
+                    <p className="text-gray-600 text-sm">Keep your daily practice streak alive</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -99,8 +97,8 @@ export default function FeatureGrowth() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.growth.charts")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.growth.chartsDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Visual Charts</h4>
+                    <p className="text-gray-600 text-sm">See your progress with beautiful charts</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
@@ -110,32 +108,32 @@ export default function FeatureGrowth() {
                     </svg>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-slate-900 mb-1">{t("feature.growth.achievement")}</h4>
-                    <p className="text-gray-600 text-sm">{t("feature.growth.achievementDesc")}</p>
+                    <h4 className="font-semibold text-slate-900 mb-1">Achievements</h4>
+                    <p className="text-gray-600 text-sm">Earn badges for reaching milestones</p>
                   </div>
                 </li>
               </ul>
 
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 text-sm text-orange-700">
-                  📊 {t("feature.growth.detailedData")}
+                  📊 Detailed Analytics
                 </div>
                 <div className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 text-sm text-orange-700">
-                  🏆 {t("feature.growth.achievementBadges")}
+                  🏆 Achievement Badges
                 </div>
                 <div className="bg-orange-50 px-4 py-2 rounded-lg border border-orange-200 text-sm text-orange-700">
-                  🔥 {t("feature.growth.studyHabits")}
+                  🔥 Study Streaks
                 </div>
               </div>
 
               {/* Try now button */}
-              <LocalizedLink
+              <Link
                 href="/topics"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-orange-800 transition-all shadow-lg hover:shadow-xl"
               >
-                {t("feature.growth.try")}
+                Try Now
                 <ArrowRight className="w-5 h-5" />
-              </LocalizedLink>
+              </Link>
             </motion.div>
           </div>
         </motion.div>

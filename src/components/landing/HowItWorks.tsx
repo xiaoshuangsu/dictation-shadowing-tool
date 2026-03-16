@@ -2,38 +2,34 @@
 
 import { motion } from "framer-motion"
 import { Play, PenTool, Target, TrendingUp } from "lucide-react"
-import { useLanguage } from "@/contexts/LanguageContext"
-import { useMemo } from "react"
 
 export default function HowItWorks() {
-  const { t } = useLanguage()
-
-  const steps = useMemo(() => [
+  const steps = [
     {
       icon: Play,
-      title: t("how.step1.title"),
-      description: t("how.step1.desc"),
+      title: "Listen",
+      description: "Watch and listen to authentic English videos",
       color: "bg-blue-500",
     },
     {
       icon: PenTool,
-      title: t("how.step2.title"),
-      description: t("how.step2.desc"),
+      title: "Practice",
+      description: "Type what you hear in dictation mode",
       color: "bg-purple-500",
     },
     {
       icon: Target,
-      title: t("how.step3.title"),
-      description: t("how.step3.desc"),
+      title: "Get Feedback",
+      description: "Receive instant AI-powered corrections",
       color: "bg-green-500",
     },
     {
       icon: TrendingUp,
-      title: t("how.step4.title"),
-      description: t("how.step4.desc"),
+      title: "Improve",
+      description: "Track your progress and master English",
       color: "bg-orange-500",
     },
-  ], [t])
+  ]
 
   return (
     <section className="py-20 bg-white">
@@ -46,10 +42,10 @@ export default function HowItWorks() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-            {t("how.title")}
+            How It Works
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {t("how.subtitle")}
+            Master English in four simple steps
           </p>
         </motion.div>
 

@@ -2,12 +2,9 @@
 
 import { motion } from "framer-motion"
 import { ArrowRight, Mail, Github } from "lucide-react"
-import { useLanguage } from "@/contexts/LanguageContext"
-import LocalizedLink from "@/components/LocalizedLink"
+import Link from "next/link"
 
 export default function CTA() {
-  const { t } = useLanguage()
-
   return (
     <section className="py-20 bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 relative overflow-hidden">
       {/* Background decoration */}
@@ -31,7 +28,7 @@ export default function CTA() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6"
           >
-            {t("cta.title")}
+            Start Your English Journey Today
           </motion.h2>
 
           <motion.p
@@ -41,7 +38,7 @@ export default function CTA() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg md:text-xl text-blue-100 mb-12 max-w-3xl mx-auto"
           >
-            {t("cta.subtitle")}
+            Join thousands of learners improving their English with our proven dictation and shadowing method
           </motion.p>
 
           <motion.div
@@ -51,13 +48,13 @@ export default function CTA() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex justify-center"
           >
-            <LocalizedLink
+            <Link
               href="/topics"
               className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-0.5 group"
             >
-              {t("cta.button")}
+              Get Started Now
               <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </LocalizedLink>
+            </Link>
           </motion.div>
 
           {/* Social links */}
@@ -73,7 +70,7 @@ export default function CTA() {
               className="flex items-center gap-2 hover:text-white transition-colors"
             >
               <Mail className="w-5 h-5" />
-              <span className="text-sm">{t("cta.contact")}</span>
+              <span className="text-sm">Contact Us</span>
             </a>
             <span className="text-blue-400">|</span>
             <a
@@ -83,7 +80,7 @@ export default function CTA() {
               className="flex items-center gap-2 hover:text-white transition-colors"
             >
               <Github className="w-5 h-5" />
-              <span className="text-sm">{t("cta.github")}</span>
+              <span className="text-sm">GitHub</span>
             </a>
           </motion.div>
         </motion.div>

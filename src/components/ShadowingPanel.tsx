@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useLanguage } from "@/contexts/LanguageContext"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
 import { intelligentMatch } from "@/lib/audio-checker"
 
@@ -215,7 +214,6 @@ const generateLinkingIPA = (first: string, second: string): string => {
 }
 
 export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
-  const { t } = useLanguage()
   const { playSuccessSound } = useSuccessSound() // 使用全局静音状态
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
@@ -1201,7 +1199,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       {/* <audio ref={originalAudioRef} src={audioSrc} /> */}
 
       <p className="text-sm text-gray-500 mb-4">
-        💡 {t('practice.shadowing.tip')}
+        💡 Listen to the audio and speak along with it. Try to match the rhythm and intonation.
       </p>
 
       {/* 显示模式切换按钮 */}
@@ -1214,7 +1212,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          {t('practice.shadowing.showAll')}
+          Show All
         </button>
         <button
           onClick={() => setDisplayMode('translation-only')}
@@ -1224,7 +1222,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          {t('practice.shadowing.translationOnly')}
+          Translation Only
         </button>
         <button
           onClick={() => setDisplayMode('blind')}
@@ -1234,7 +1232,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          {t('practice.shadowing.hideAll')}
+          Hide All
         </button>
       </div>
 
@@ -1243,7 +1241,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         {/* 原句 - 根据模式显示或隐藏 */}
         {displayMode !== 'translation-only' && displayMode !== 'blind' && (
           <>
-            <p className="text-sm text-gray-500 mb-2">{t('practice.shadowing.original')}:</p>
+            <p className="text-sm text-gray-500 mb-2">Original:</p>
             <p className="text-base text-gray-800 leading-relaxed">
               {sentence.text}
             </p>
@@ -1254,7 +1252,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         {displayMode !== 'blind' && sentence.translation && (
           <>
             <p className="text-sm text-gray-500 mb-2 mt-4">
-              {t('practice.shadowing.translation')}:
+              Translation:
             </p>
             <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed`}>
               {sentence.translation}
@@ -1267,7 +1265,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           <div className="text-center py-2">
             <p className="text-sm text-gray-500 flex items-center justify-center gap-2">
               <span className="text-lg">🙈</span>
-              <span>{t('practice.shadowing.blindMode')}</span>
+              <span>Blind mode - Listen and speak without reading</span>
             </p>
           </div>
         )}
@@ -1291,7 +1289,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
             ? "bg-green-50 border-green-300"
             : "bg-orange-50 border-orange-300"
         }`}>
-          <p className="text-xs text-gray-500 mb-2">{t('practice.shadowing.myPronunciation')}:</p>
+          <p className="text-xs text-gray-500 mb-2">My Pronunciation:</p>
 
           {/* 音频播放器 - 紧凑版，放在 My Pronunciation 下方 */}
           {recordedAudioUrl && (
@@ -1327,7 +1325,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               })()
             ) : (
               <div className="text-gray-600">
-                {userTranscript || t('practice.shadowing.noRecognition')}
+                {userTranscript || "No speech detected"}
               </div>
             )}
           </div>
@@ -1342,11 +1340,11 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 <p className="text-xs text-blue-700 flex items-start gap-2">
                   <span className="text-lg">💡</span>
                   <span>
-                    <strong>{t('practice.shadowing.linkingTips')}:</strong>
+                    <strong>Linking Tips:</strong>
                     <span className="block mt-1">
                       {pairs.map((pair, index) => (
                         <span key={index}>
-                          <strong>{pair.first} {pair.second}</strong> {t('practice.shadowing.canBeLinked')}{pair.ipa && `, ${t('practice.shadowing.pronouncedAs')} ${pair.ipa}`}
+                          <strong>{pair.first} {pair.second}</strong> can be linked{pair.ipa && `, pronounced as ${pair.ipa}`}
                         </span>
                       ))}
                     </span>
@@ -1473,7 +1471,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
             disabled={isLastSentence}
             className="px-6 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
-            {t('practice.next')}
+            Next
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -1484,7 +1482,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       {/* 录音状态提示 */}
       {isRecording && (
         <div className="text-center mb-4">
-          <p className="text-sm text-red-500 animate-pulse">{t('practice.shadowing.recording')}</p>
+          <p className="text-sm text-red-500 animate-pulse">Recording...</p>
         </div>
       )}
     </div>
