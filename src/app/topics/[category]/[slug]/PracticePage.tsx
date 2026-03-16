@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
-import { slugToCategory } from '@/lib/utils/category'
+import { slugToCategory, getCategoryMetadataBySlug } from '@/lib/utils/category'
 import { useAuth } from '@/lib/hooks/useAuth'
 
 // Import components
@@ -522,7 +522,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
             <Link href={`/topics/${category}`} className="text-blue-600 hover:text-blue-700">
-              {slugToCategory(category)}
+              {getCategoryMetadataBySlug(category)?.name || slugToCategory(category)}
             </Link>
           </div>
 
