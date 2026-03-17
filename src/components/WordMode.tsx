@@ -259,12 +259,12 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
               {/* 调试：如果没有单词，显示提示 */}
               {visibleWordsBefore.length === 0 && visibleWordsAfter.length === 0 && (
                 <span className="text-red-500 text-xs ml-2">
-                  (单词数: {sentenceWords.length})
+                  (Words: {sentenceWords.length})
                 </span>
               )}
             </>
           ) : (
-            <span className="text-gray-400 italic">加载中...</span>
+            <span className="text-gray-400 italic">Loading...</span>
           )}
         </p>
 
@@ -289,7 +289,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
             onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {dictationMode === "word" ? "单词" : "整句"}
+            {dictationMode === "word" ? "Word" : "Sentence"}
             <svg className={`w-3 h-3 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -306,7 +306,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
                 }}
                 className="w-full px-4 py-2.5 text-sm text-left text-gray-600 hover:bg-blue-50 transition-colors whitespace-nowrap"
               >
-                单词
+                Word
               </button>
               <button
                 type="button"
@@ -316,7 +316,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
                 }}
                 className="w-full px-4 py-2.5 text-sm text-left text-gray-600 hover:bg-gray-100 transition-colors whitespace-nowrap"
               >
-                整句
+                Sentence
               </button>
             </div>
           )}

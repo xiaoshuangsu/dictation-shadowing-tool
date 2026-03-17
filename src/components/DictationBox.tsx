@@ -353,7 +353,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
             onClick={() => setIsModeDropdownOpen(!isModeDropdownOpen)}
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-600 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            {dictationMode === "word" ? "单词" : "整句"}
+            {dictationMode === "word" ? "Word" : "Sentence"}
             <svg className={`w-3 h-3 transition-transform ${isModeDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -370,7 +370,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
                 }}
                 className="w-full px-4 py-2.5 text-sm text-left text-gray-600 hover:bg-blue-50 transition-colors whitespace-nowrap"
               >
-                单词
+                Word
               </button>
               <button
                 type="button"
@@ -380,7 +380,7 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
                 }}
                 className="w-full px-4 py-2.5 text-sm text-left text-gray-600 hover:bg-gray-100 transition-colors whitespace-nowrap"
               >
-                整句
+                Sentence
               </button>
             </div>
           )}
