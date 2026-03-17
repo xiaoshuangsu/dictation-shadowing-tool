@@ -240,6 +240,18 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }, [modeParam])
 
+  // 🔴 处理 start 参数：当从个人中心跳转时，设置对应模式的索引
+  useEffect(() => {
+    if (startIndex > 0) {
+      // 根据当前模式设置对应的索引
+      if (mode === 'dictation') {
+        setDictationIndex(startIndex)
+      } else if (mode === 'shadowing') {
+        setShadowingIndex(startIndex)
+      }
+    }
+  }, [startIndex, mode])
+
   // 🔴 显示 Toast 提示（默认 3 秒后自动消失）
   const showToast = (message: string, duration = 3000) => {
     setToastMessage(message)
