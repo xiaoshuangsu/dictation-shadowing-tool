@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 
 // Import components
 import VideoPlayer from '@/components/VideoPlayer'
+import YouTubePlayer from '@/components/YouTubePlayer'
 import AudioPlayer from '@/components/AudioPlayer'
 import DictationBox from '@/components/DictationBox'
 import WordMode from '@/components/WordMode'
@@ -37,6 +38,9 @@ interface Material {
   thumbnail_path: string | null
   transcript: any[]
   duration?: number | null
+  // 新增字段：支持 YouTube 和 R2 视频
+  source_type?: 'r2' | 'youtube'
+  youtube_id?: string | null
 }
 
 const defaultSentences: Sentence[] = [
@@ -66,15 +70,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const [error, setError] = useState<string | null>(null)
 
   // Audio/Video state
-  const [audioSrc, setAudioSrc] = useState<string | undefined>(undefined)
-  const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined)
-  const [thumbnailPath, setThumbnailPath] = useState<string | undefined>(undefined)
   const [sampleSentences, setSampleSentences] = useState<Sentence[]>(defaultSentences)
 
   // 🔴 开发环境检测
   const isDevelopment = process.env.NODE_ENV === 'development'
 
-  // CDN URL helper
+  // CDN URL helper - 仅用于 R2 存储的素材
   const getCdnUrl = (url: string | null): string | undefined => {
     if (!url) return undefined
 
@@ -111,6 +112,29 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
     console.log('🔧 getCdnUrl output:', finalUrl)
     return finalUrl
+  }
+
+  // 🔴 辅助函数：判断素材类型并获取相应的播放器信息
+  const getPlayerInfo = (material: Material) => {
+    const sourceType = material.source_type || 'r2'  // 默认为 R2
+
+    if (sourceType === 'youtube' && material.youtube_id) {
+      // YouTube 视频
+      return {
+        type: 'youtube' as const,
+        audioSrc: undefined,  // YouTube 不需要单独的音频源
+        videoUrl: undefined,
+        thumbnailPath: getCdnUrl(material.thumbnail_path)
+      }
+    } else {
+      // R2 存储（音频或视频）
+      return {
+        type: 'r2' as const,
+        audioSrc: getCdnUrl(material.audio_path),
+        videoUrl: material.video_path ? getCdnUrl(material.video_path) : undefined,
+        thumbnailPath: getCdnUrl(material.thumbnail_path)
+      }
+    }
   }
 
   // 🔴 Audio ref - 用于在用户点击时直接激活音频播放权限
@@ -174,26 +198,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
         if (found) {
           setMaterial(found)
           console.log('📦 Material found:', found.title)
+          console.log('📦 source_type:', found.source_type || 'r2')
+          console.log('📦 youtube_id:', found.youtube_id)
           console.log('📦 audio_path:', found.audio_path)
           console.log('📦 video_path:', found.video_path)
-
-          // Set audio/video URLs with CDN transformation
-          if (found.audio_path) {
-            const audioUrl = getCdnUrl(found.audio_path)
-            console.log('🔊 Setting audioSrc:', audioUrl)
-            setAudioSrc(audioUrl)
-          } else {
-            console.warn('⚠️ No audio_path found in material!')
-          }
-          if (found.video_path) {
-            console.log('🎬 Raw video_path from DB:', found.video_path)
-            const processedUrl = getCdnUrl(found.video_path)
-            console.log('🎬 Processed videoSrc:', processedUrl)
-            setVideoUrl(processedUrl)
-          }
-          if (found.thumbnail_path) {
-            setThumbnailPath(getCdnUrl(found.thumbnail_path))
-          }
 
           // Set transcript
           if (found.transcript && Array.isArray(found.transcript) && found.transcript.length > 0) {
@@ -303,7 +311,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
     console.log("hasStarted:", hasStarted)
     console.log("sampleSentences.length:", sampleSentences.length)
     console.log("🎵 audioRef.current:", audioRef.current)
-    console.log("🎵 audioSrc:", audioSrc)
+    const playerInfo = material ? getPlayerInfo(material) : null
+    console.log("🎵 playerInfo:", playerInfo ? { type: playerInfo.type, hasAudio: !!playerInfo.audioSrc } : null)
 
     // 🔴 关键修复：在用户点击事件的同步调用栈中直接激活音频播放权限
     // 通过调用 AudioPlayer 的 audio 元素的 play() 方法，告诉 Safari 这是用户授权的播放
@@ -584,18 +593,68 @@ export default function PracticePage({ category, slug }: { category: string; slu
                 </div>
               </div>
 
-              {/* 🔴 视频降级时隐藏视频区域（不显示占位符，让练习区域向上移动） */}
-              {videoUrl && !videoDegraded && (
-                <>
-                  {console.log('🎬 About to render VideoPlayer with videoUrl:', videoUrl)}
-                  <VideoPlayer
-                    videoSrc={videoUrl}
-                    currentSentence={currentSentence}
-                    currentTime={currentTime}
-                    thumbnailPath={thumbnailPath}
-                  />
-                </>
-              )}
+              {/* 🔴 根据素材类型渲染播放器 */}
+              {(() => {
+                const playerInfo = getPlayerInfo(material)
+
+                // YouTube 视频
+                if (playerInfo.type === 'youtube' && material.youtube_id && !videoDegraded) {
+                  return (
+                    <YouTubePlayer
+                      youtubeId={material.youtube_id}
+                      currentSentence={currentSentence}
+                      playbackRate={playbackRate}
+                      autoPlayTrigger={autoPlayTrigger}
+                      onPlayEnd={() => {}}
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadingChange={() => {}}
+                      practiceMode={hasStarted && autoPlayTrigger > 0}  // 🔴 只在开始练习后启用句子循环
+                    />
+                  )
+                }
+
+                // R2 视频
+                if (playerInfo.videoUrl && !videoDegraded) {
+                  return (
+                    <VideoPlayer
+                      videoSrc={playerInfo.videoUrl}
+                      currentSentence={currentSentence}
+                      currentTime={currentTime}
+                      thumbnailPath={playerInfo.thumbnailPath}
+                      onDegraded={() => setVideoDegraded(true)}
+                    />
+                  )
+                }
+
+                // 纯音频素材：显示封面图
+                if (playerInfo.thumbnailPath) {
+                  return (
+                    <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
+                      <div
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ backgroundImage: `url(${playerInfo.thumbnailPath})` }}
+                      >
+                        <div className="absolute inset-0 bg-black/30"></div>
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-white text-center">
+                          <svg className="w-16 h-16 mx-auto mb-2 opacity-75" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                          </svg>
+                          <p className="text-sm font-medium">Audio Material</p>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }
+
+                // 没有封面图时显示占位符
+                return (
+                  <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden shadow-lg flex items-center justify-center">
+                    <p className="text-gray-400 text-sm">No cover image</p>
+                  </div>
+                )
+              })()}
             </div>
           </div>
 
@@ -606,33 +665,50 @@ export default function PracticePage({ category, slug }: { category: string; slu
           >
             {/* Debug: AudioPlayer render conditions */}
             {(() => {
+              const playerInfo = material ? getPlayerInfo(material) : null
               console.log('🔍 AudioPlayer render check:', {
-                audioSrc: audioSrc ? audioSrc.substring(0, 50) + '...' : 'undefined',
+                materialType: playerInfo?.type,
+                audioSrc: playerInfo?.audioSrc ? playerInfo.audioSrc.substring(0, 50) + '...' : 'undefined',
                 hasCurrentSentence: !!currentSentence,
                 currentSentenceText: currentSentence?.text?.substring(0, 30),
                 mode,
                 autoPlayTrigger,
-                shouldRender: !!(audioSrc && currentSentence && (mode === 'dictation' || mode === 'shadowing'))
+                shouldRender: !!(playerInfo?.type === 'r2' && playerInfo.audioSrc && currentSentence && (mode === 'dictation' || mode === 'shadowing'))
               })
               return null
             })()}
 
-            {/* Hidden Audio Player - The Only Media Source */}
-            {audioSrc && currentSentence && (mode === 'dictation' || mode === 'shadowing') && (
-              <div style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', pointerEvents: 'none' }}>
-                <AudioPlayer
-                  audioSrc={audioSrc}
-                  currentSentence={currentSentence}
-                  playbackRate={playbackRate}
-                  autoPlayTrigger={autoPlayTrigger}
-                  onPlayEnd={() => {}}
-                  onTimeUpdate={handleTimeUpdate}
-                  onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
-                  onReady={handleAudioReady}
-                  endBuffer={endBuffer}
-                />
-              </div>
-            )}
+            {/* Hidden Audio Player - Only for R2 materials */}
+            {(() => {
+              const playerInfo = getPlayerInfo(material)
+              const isR2Material = playerInfo.type === 'r2'
+
+              // 只有 R2 素材才使用 AudioPlayer
+              // YouTube 素材通过 UniversalPlayer 内置的音频控制
+              if (!isR2Material || !playerInfo.audioSrc || !currentSentence) {
+                return null
+              }
+
+              if (mode !== 'dictation' && mode !== 'shadowing') {
+                return null
+              }
+
+              return (
+                <div style={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', pointerEvents: 'none' }}>
+                  <AudioPlayer
+                    audioSrc={playerInfo.audioSrc}
+                    currentSentence={currentSentence}
+                    playbackRate={playbackRate}
+                    autoPlayTrigger={autoPlayTrigger}
+                    onPlayEnd={() => {}}
+                    onTimeUpdate={handleTimeUpdate}
+                    onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
+                    onReady={handleAudioReady}
+                    endBuffer={endBuffer}
+                  />
+                </div>
+              )
+            })()}
 
             {/* Playback Controls */}
             <div className="bg-gray-100 rounded-lg p-3 mb-4">
@@ -724,19 +800,32 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     onDictationModeChange={setDictationMode}
                   />
                 )
-              ) : audioSrc ? (
-                <ShadowingPanel
-                  sentence={currentSentence}
-                  audioSrc={audioSrc}
-                  onNext={handleNext}
-                  onComplete={handleShadowingComplete}
-                  isLastSentence={isLastSentence}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-64 text-gray-500">
-                  No audio available
-                </div>
-              )}
+              ) : (() => {
+                // Shadowing 模式：只有 R2 素材才需要 audioSrc
+                const playerInfo = getPlayerInfo(material)
+                const isR2Material = playerInfo.type === 'r2'
+
+                if (!isR2Material || !playerInfo.audioSrc) {
+                  // YouTube 素材或不支持 Shadowing
+                  return (
+                    <div className="flex items-center justify-center h-64 text-gray-500">
+                      {playerInfo.type === 'youtube'
+                        ? 'YouTube video shadowing is controlled by the video player'
+                        : 'No audio available'}
+                    </div>
+                  )
+                }
+
+                return (
+                  <ShadowingPanel
+                    sentence={currentSentence}
+                    audioSrc={playerInfo.audioSrc}
+                    onNext={handleNext}
+                    onComplete={handleShadowingComplete}
+                    isLastSentence={isLastSentence}
+                  />
+                )
+              })()}
             </div>
 
             {/* Stats */}

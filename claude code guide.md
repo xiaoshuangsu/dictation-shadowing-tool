@@ -71,7 +71,7 @@
     - 标点 `?.!` 强制切分。
     - 逗号 `,` + 停顿 `> 0.8s` 强制切分。
     - 任何停顿 `> 0.8s` 强制切分。
-* **翻译**：指定调用 **GLM API**，确保结合整篇内容进行准确翻译，表达地道。
+* **翻译**：指定调用 **GLM API**，确保结合整篇内容根据上下文进行准确翻译，表达地道。
 
 ### 2.2 吞音问题解决方案 (Tail Sound Preservation)
 
@@ -1711,4 +1711,198 @@ audio_path: 'audio/{slug}.mp3'
 - [ ] 封面图统一显示
 - [ ] 播放时句子不重叠、不截断
 - [ ] 跳转链接正常（`/topics/ielts-listening/{slug}/`）
+
+---
+
+# 🎬 YouTube 视频素材集成规范 (V18)
+
+## 📋 双源驱动架构
+
+### 数据库字段扩展
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `source_type` | TEXT | 素材来源：'r2' 或 'youtube' |
+| `youtube_id` | TEXT | YouTube 视频 ID（source_type=youtube 时） |
+| `audio_path` | TEXT | R2 为路径，YouTube 为 `youtube:{video_id}` |
+| `audio_size` | INTEGER | YouTube 素材设为 0（占位） |
+| `video_path` | TEXT | R2 视频路径，YouTube 为 null |
+
+**数据库迁移**：`supabase/migrations/add_source_type_and_youtube.sql`
+
+---
+
+## 🎭 播放器路由逻辑
+
+### UniversalPlayer 自动选择
+
+```typescript
+// src/components/UniversalPlayer.tsx
+source_type='youtube' + youtube_id → YouTubePlayer (Iframe API)
+source_type='r2' + video_path → VideoPlayer
+source_type='r2' → AudioPlayer
+```
+
+### YouTubePlayer 双模式
+
+**自由播放模式**：
+- 用户点击视频播放按钮 → 完整观看视频（不循环）
+- 适用于：预览、复习场景
+
+**练习模式**：
+- 用户点击练习区域播放按钮 → 循环播放当前句子
+- 适用于：听写、影子跟读练习
+
+**实现方式**：
+```typescript
+// src/components/YouTubePlayer.tsx
+practiceMode={hasStarted && autoPlayTrigger > 0}
+// 只在 practiceMode=true 时检查句子结束时间并循环
+```
+
+---
+
+## 📥 字幕抓取工具
+
+### 推荐工具：yt-dlp
+
+**脚本**：`scripts/ingest_youtube_ytdlp.py`
+
+**优势**：
+- 直接通过 API 获取字幕，绕过 PO Token 限制
+- 无需浏览器，速度快
+- 稳定可靠
+
+**使用方法**：
+```bash
+python3 scripts/ingest_youtube_ytdlp.py "https://www.youtube.com/watch?v=VIDEO_ID"
+python3 scripts/ingest_youtube_ytdlp.py "URL" --category "Education" --difficulty "B1"
+```
+
+### 备选方案：Playwright (Fallback)
+
+**脚本**：`scripts/ingest_youtube_with_playwright.py`
+
+**使用场景**：
+- yt-dlp 因 PO Token 限制失效时
+- 需要模拟人工操作时
+
+**注意**：无论使用哪个工具，获取的原始时间戳都必须经过 0.5s 强切逻辑。
+
+---
+
+## 🔪 智能断句算法
+
+### 输入：YouTube 原始字幕
+
+- 来源：yt-dlp 或 Playwright DOM 抓取
+- 特征：通常 70-100+ 条细粒度片段
+- 问题：存在严重的末尾溢出（听到下一句开头）
+
+### 断句规则（遵循 Whisper guide）
+
+1. **标点强制切分**：`?.!` 后断句
+2. **逗号+停顿切分**：`,` + 停顿 > 0.8s
+3. **停顿强制切分**：任何停顿 > 0.8s
+
+### 输出：合理句子
+
+- 数量：通常 40-50 条
+- 特征：语义完整，长度适中
+
+---
+
+## ⏱️ 时间戳处理规范
+
+### 核心公式（必须遵守）
+
+```python
+# 末端强切（0.5s）+ 极短句保底（0.2s）
+final_end_time = max(start_time + 0.2, original_end_time - 0.5)
+
+# 强制真空带（0.2s）
+if (next_start - current_end) < 0.2:
+    current_end = next_start - 0.2
+```
+
+### 参数说明
+
+| 参数 | 值 | 说明 |
+|------|-----|------|
+| **核心缩进** | 0.5s | 每句结尾减少 500ms，确保断句干净 |
+| **最小时长** | 0.2s | 防止极短句消失 |
+| **强制真空带** | 0.2s | 确保句间至少 200ms 静音期 |
+
+### 效果验证
+
+```
+句[1]: 0.11s - 8.83s ━━━━━━━━━━━━━━━━━━░░  (间隔 0.50s) ✅
+                                        ↓
+句[2]: 9.33s - 13.63s ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  (间隔 4.36s) ✅
+```
+
+**预期效果**：
+- ✅ 听不到下一句的开头（避免"炸音"）
+- ✅ 句子播放完整
+- ✅ 句间有清晰停顿
+
+---
+
+## 📦 入库数据结构
+
+### 完整示例
+
+```javascript
+{
+  source_type: 'youtube',
+  youtube_id: 'zjjL9yaFrFc',
+  audio_path: 'youtube:zjjL9yaFrFc',
+  audio_size: 0,
+  video_path: null,
+  thumbnail_path: 'https://i.ytimg.com/vi/zjjL9yaFrFc/maxresdefault.jpg',
+  duration: 254,
+  transcript: [
+    {
+      id: 1,
+      text: "Earth zooms around the sun at 110,000 kph, but what if it just...stopped?",
+      startTime: 0.11,
+      endTime: 8.83,  // 已应用末端强切
+      translation: null
+    },
+    // ... 更多句子
+  ]
+}
+```
+
+### SEO 字段（自动生成）
+
+- `meta_title`: `{title} | English Dictation & Shadowing`
+- `meta_description`: 前 10 条字幕拼接（150 字符）
+- `og_image`: 封面图 URL
+
+---
+
+## ✅ 测试检查清单
+
+### YouTube 素材测试
+
+- [ ] Iframe 正常加载
+- [ ] 点击视频播放按钮可完整观看
+- [ ] 点击练习播放按钮循环播放当前句
+- [ ] 断句干净，无"炸音"
+- [ ] 点击字幕行可跳转到对应时间
+
+### R2 素材回归测试
+
+- [ ] 音频/视频播放正常
+- [ ] 听写模式正常
+- [ ] 影子跟读模式正常
+- [ ] 播放速度控制正常
+
+### 关键文件
+
+- `src/components/YouTubePlayer.tsx` - YouTube Iframe 播放器
+- `src/components/UniversalPlayer.tsx` - 统一播放器路由
+- `scripts/ingest_youtube_ytdlp.py` - yt-dlp 抓取脚本（推荐）
+- `scripts/ingest_youtube_with_playwright.py` - Playwright 抓取脚本（备选）
 
