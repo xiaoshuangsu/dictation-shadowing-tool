@@ -930,7 +930,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       }, 500) // 等待 500ms 让音频录制完成
     } else {
       console.warn("No transcript received")
-      setMicError("未能识别到语音，请重试")
+      setMicError("No speech detected, please try again")
     }
   }
 
@@ -1379,7 +1379,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 return (
                   <div className="flex items-center gap-2 text-green-600">
                     <span className="text-2xl">🌟</span>
-                    <span className="font-medium">太棒了！发音非常完美</span>
+                    <span className="font-medium">Excellent! Perfect pronunciation</span>
                   </div>
                 )
               }
@@ -1389,7 +1389,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 return (
                   <div className="flex items-center gap-2 text-green-600">
                     <span className="text-2xl">👍</span>
-                    <span className="font-medium">很不错！部分单词发音可以更精准</span>
+                    <span className="font-medium">Great job! Some words can be more precise</span>
                   </div>
                 )
               }
@@ -1399,7 +1399,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 return (
                   <div className="flex items-center gap-2 text-yellow-600">
                     <span className="text-2xl">✨</span>
-                    <span className="font-medium">大部分词都读对了，继续加油！</span>
+                    <span className="font-medium">Most words are correct, keep it up!</span>
                   </div>
                 )
               }
@@ -1409,7 +1409,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 return (
                   <div className="flex items-center gap-2 text-orange-500">
                     <span className="text-2xl">💪</span>
-                    <span className="font-medium">读得不错，建议针对橙色单词多加练习</span>
+                    <span className="font-medium">Good job! Practice more on orange words</span>
                   </div>
                 )
               }
@@ -1419,7 +1419,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
                 return (
                   <div className="flex items-center gap-2 text-red-500">
                     <span className="text-2xl">😅</span>
-                    <span className="font-medium">没关系，再试一次，你可以的！</span>
+                    <span className="font-medium">It's okay, try again, you can do it!</span>
                   </div>
                 )
               }
@@ -1428,7 +1428,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               return (
                 <div className="flex items-center gap-2 text-orange-500">
                   <span className="text-2xl">✨</span>
-                  <span className="font-medium">继续加油！多练习能让发音更自然</span>
+                  <span className="font-medium">Keep practicing! Practice makes perfect</span>
                 </div>
               )
             })()}
@@ -1454,7 +1454,7 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
           </svg>
           {/* 文字 */}
           <span className="text-sm font-medium whitespace-nowrap">
-            {isRecording ? "结束录音" : "开始录音"}
+            {isRecording ? "Stop Recording" : "Start Recording"}
           </span>
         </button>
       </div>
