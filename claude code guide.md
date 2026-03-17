@@ -2250,3 +2250,181 @@ currentSentenceIndex = dictationIndex = 3  ✅
 
 - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 练习页面（状态管理）
 
+---
+
+# 📍 个人中心跳转到指定句子问题（已解决）
+
+## 📋 问题描述
+
+**症状**：
+- 在个人中心页面查看练习进度
+- 展开素材卡片，显示未完成的句子
+- 点击红色的 **"Sentence X"** 按钮
+- 跳转到练习页面，但**没有定位到对应的句子** ❌
+
+**用户需求**：
+- 从个人中心点击第 5 句，应该在练习页面显示第 5 句
+- URL 带有 `?mode=xxx&start=N` 参数，但参数没有被使用
+
+---
+
+## 🔍 根本原因
+
+**代码位置**：`src/app/topics/[category]/[slug]/PracticePage.tsx`
+
+**问题流程**：
+1. **个人中心生成跳转链接**（MaterialProgress.tsx 第 290 行）：
+   ```typescript
+   const url = `${basePath}&start=${id - 1}`  // 正确传递 start 参数
+   ```
+
+2. **练习页面解析参数**（PracticePage.tsx 第 64-65 行）：
+   ```typescript
+   const startIndexParam = searchParams.get('start')
+   const startIndex = startIndexParam ? parseInt(startIndexParam, 10) : 0
+   ```
+
+3. **❌ 关键问题：startIndex 没有被使用**
+   ```typescript
+   // 第 76-77 行：索引状态初始化为 0，忽略了 startIndex
+   const [dictationIndex, setDictationIndex] = useState(0)
+   const [shadowingIndex, setShadowingIndex] = useState(0)
+   ```
+
+**根本原因**：
+- `useState` 的初始值只在组件首次渲染时使用
+- 即使 URL 带了 `start=4` 参数，`dictationIndex` 和 `shadowingIndex` 仍然被初始化为 0
+- 缺少将 `startIndex` 应用到对应模式索引的逻辑
+
+---
+
+## ✅ 解决方案
+
+### 添加 useEffect 监听参数变化
+
+**位置**：PracticePage.tsx 第 246-256 行
+
+**修复代码**：
+```typescript
+// 🔴 处理 start 参数：当从个人中心跳转时，设置对应模式的索引
+useEffect(() => {
+  if (startIndex > 0) {
+    // 根据当前模式设置对应的索引
+    if (mode === 'dictation') {
+      setDictationIndex(startIndex)
+    } else if (mode === 'shadowing') {
+      setShadowingIndex(startIndex)
+    }
+  }
+}, [startIndex, mode])
+```
+
+**工作原理**：
+1. **监听依赖**：`startIndex` 和 `mode`
+2. **触发条件**：当 `startIndex > 0` 时（从个人中心跳转时）
+3. **智能分配**：
+   - 如果当前是 Dictation 模式 → 设置 `dictationIndex`
+   - 如果当前是 Shadowing 模式 → 设置 `shadowingIndex`
+4. **响应式更新**：当 `mode` 或 `startIndex` 变化时自动执行
+
+---
+
+## 🎯 数据流转
+
+### 场景：从个人中心点击第 5 句（Dictation 模式）
+
+**步骤 1：生成跳转链接**
+```
+个人中心页面（MaterialProgress.tsx）
+  ↓
+点击 "Sentence 5" 按钮
+  ↓
+生成 URL: /topics/daily-life/slug?mode=dictation&start=4
+  ↓
+router.push(url)
+```
+
+**步骤 2：练习页面解析参数**
+```
+PracticePage.tsx
+  ↓
+searchParams.get('mode') → 'dictation'
+searchParams.get('start') → '4'
+  ↓
+const mode = 'dictation'
+const startIndex = 4
+```
+
+**步骤 3：useEffect 设置索引**
+```
+useEffect(() => {
+  if (startIndex > 0) {  // 4 > 0 ✅
+    if (mode === 'dictation') {  // true ✅
+      setDictationIndex(4)  ✅
+    }
+  }
+}, [startIndex, mode])
+```
+
+**步骤 4：显示正确的句子**
+```
+const currentSentenceIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
+  ↓
+currentSentenceIndex = dictationIndex = 4
+  ↓
+显示第 5 句（索引 4）✅
+```
+
+---
+
+## 📊 关键要点
+
+1. **useState 初始值的局限性**
+   - 只在组件首次渲染时使用
+   - 不会响应 props 或 URL 参数的变化
+   - 需要配合 useEffect 实现响应式更新
+
+2. **useEffect 的正确使用**
+   - 监听需要响应的变量（依赖数组）
+   - 在 effect 中执行副作用（设置状态）
+   - 确保依赖数组完整，避免闭包陷阱
+
+3. **模式独立状态管理**
+   - 每个 mode 维护自己的索引
+   - 跳转时只更新当前模式的索引
+   - 不影响其他模式的进度
+
+4. **URL 参数与状态的同步**
+   - URL 是唯一数据源（Single Source of Truth）
+   - 组件状态应该反映 URL 参数
+   - 使用 useEffect 保持同步
+
+---
+
+## ✅ 测试检查清单
+
+### 个人中心跳转测试
+- [ ] 访问个人中心页面（/profile）
+- [ ] 选择 Dictation 或 Shadowing 标签
+- [ ] 展开 **In Progress** 中的素材
+- [ ] 点击红色的 **"Sentence X"** 按钮
+- [ ] 跳转到练习页面，显示对应的句子 ✅
+
+### URL 参数验证
+- [ ] URL 包含 `?mode=xxx&start=N` 参数
+- [ ] N 是从 0 开始的索引（Sentence 5 → start=4）
+- [ ] 进度标识显示正确的句子编号
+
+### 模式切换测试
+- [ ] 从个人中心跳转到 Dictation 模式第 5 句
+- [ ] 切换到 Shadowing 模式，保持 Shadowing 自己的进度
+- [ ] 切换回 Dictation 模式，**仍然显示第 5 句** ✅
+
+---
+
+## 🔗 相关文件
+
+- `src/app/topics/[category]/[slug]/PracticePage.tsx` - 练习页面（添加 useEffect）
+- `src/components/profile/MaterialProgress.tsx` - 个人中心素材进度列表
+
+

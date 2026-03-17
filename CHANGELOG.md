@@ -1,5 +1,25 @@
 # Changelog
 
+## [18.1.4] - 2026-03-17
+
+### Fixed
+- **个人中心跳转到指定句子** 📍
+  - 修复从个人中心点击未完成句子时无法定位到该句子的问题
+  - URL 参数 `start` 现在正确应用到对应模式的索引
+  - 添加 useEffect 监听 startIndex 和 mode 变化
+
+### Technical Details
+- 修改文件：
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx`
+    - 添加 useEffect 处理 start 参数
+    - 根据当前模式设置对应的索引（dictationIndex 或 shadowingIndex）
+  - `claude code guide.md` - 新增问题文档和解决方案说明
+
+- 修复逻辑：
+  - 从个人中心跳转时，URL 带有 `?mode=xxx&start=N` 参数
+  - useEffect 监听 startIndex 和 mode，自动设置对应模式的索引
+  - 保持模式独立进度追踪不受影响
+
 ## [18.1.3] - 2026-03-17
 
 ### Fixed
