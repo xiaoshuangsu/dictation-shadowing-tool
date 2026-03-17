@@ -64,7 +64,24 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
 
         if (error) throw error
 
-        setMaterials(data || [])
+        // 对 Daily Life 分类的素材进行特殊排序：有自定义封面的在前
+        let sortedData = data || []
+        if (categoryName === '日常生活') {
+          sortedData = sortedData.sort((a, b) => {
+            const DEFAULT_COVER = 'thumbnails/culture-history-cover.jpg'
+            const aHasCustomCover = a.thumbnail_path && a.thumbnail_path !== DEFAULT_COVER
+            const bHasCustomCover = b.thumbnail_path && b.thumbnail_path !== DEFAULT_COVER
+
+            // 自定义封面优先
+            if (aHasCustomCover && !bHasCustomCover) return -1
+            if (!aHasCustomCover && bHasCustomCover) return 1
+
+            // 同类型按标题排序
+            return (a.title || '').localeCompare(b.title || '')
+          })
+        }
+
+        setMaterials(sortedData)
       } catch (err) {
         console.error('Failed to fetch materials:', err)
         setError('Failed to load materials')

@@ -65,16 +65,36 @@ export default function MaterialsPage() {
 
         // 并行获取所有分类的素材（每个分类最多4个）和总数
         const promises = CATEGORIES.map(async (category) => {
-          // 获取前4个素材
+          const DEFAULT_COVER = 'thumbnails/culture-history-cover.jpg'
+
+          // 对于 Daily Life 分类，获取更多素材以便筛选有自定义封面的
+          const limit = category.id === '日常生活' ? 50 : 4
+
+          // 获取素材
           const { data, error } = await supabaseClient
             .from('materials')
             .select('*')
             .eq('category', category.id)
             .order('title')
-            .limit(4)
+            .limit(limit)
 
           if (!error && data) {
-            result[category.id] = data
+            // 对于 Daily Life，优先显示有自定义封面的素材
+            if (category.id === '日常生活') {
+              const customCoverMaterials = data.filter(m =>
+                m.thumbnail_path && m.thumbnail_path !== DEFAULT_COVER
+              )
+              const defaultCoverMaterials = data.filter(m =>
+                !m.thumbnail_path || m.thumbnail_path === DEFAULT_COVER
+              )
+              // 合并：自定义封面在前，默认封面在后，各取前几个
+              const customMaterials = customCoverMaterials.slice(0, 4)
+              const remainingCount = 4 - customMaterials.length
+              const defaultMaterials = defaultCoverMaterials.slice(0, remainingCount)
+              result[category.id] = [...customMaterials, ...defaultMaterials]
+            } else {
+              result[category.id] = data.slice(0, 4)
+            }
           }
 
           // 获取该分类的总数
