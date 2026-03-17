@@ -32,7 +32,7 @@ if not SUPABASE_KEY:
     raise ValueError("缺少 SUPABASE_SERVICE_KEY 环境变量")
 
 # 默认分类
-DEFAULT_CATEGORY = "YouTube Vlog"
+DEFAULT_CATEGORY = "Science and Facts"
 DEFAULT_DIFFICULTY = "B2"
 
 

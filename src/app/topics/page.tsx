@@ -22,7 +22,7 @@ type Material = {
 // 分类顺序和配置
 const CATEGORIES = [
   { id: '日常生活', label: 'Daily Life' },
-  { id: 'YouTube Vlog', label: 'YouTube Vlog' },
+  { id: 'Science and Facts', label: 'Science and Facts' },
   { id: '历史演讲', label: 'Historical Speeches' },
   { id: 'TED演讲', label: 'TED Talks' },
   { id: '文化历史', label: 'Culture & History' },
