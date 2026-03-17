@@ -1620,12 +1620,14 @@ python3 scripts/ingest_bulk.py
 #### A. 难度分级
 根据 Part 内容特征分级：
 - **Part 1**（日常对话）：B1
-- **Part 2-4**（学术内容）：B2
+- **Part 2**（学术内容）：B2
+- **Part 3-4**（学术内容）：C1
 
 #### B. 标题优化
 - 原标题：`Cambridge IELTS 10 Academic Listening Test 1 Part 1`
 - 优化后：`Cam 10 Academic Listening Test 1 Part 1`
 - 同步更新 slug 字段
+- Slug 格式统一：cam-x-academic-listening-test-y-part-z
 
 #### C. 统一封面
 - 压缩封面图至 20KB 以下
