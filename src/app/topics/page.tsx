@@ -33,6 +33,7 @@ const CATEGORIES = [
   { id: '人物访谈', label: 'Interviews' },
   { id: 'BBC Learning English', label: 'BBC Learning English' },
   { id: 'VOA Learning English', label: 'VOA Learning English' },
+  { id: 'IELTS Listening', label: 'IELTS Listening' },
 ]
 
 // 难度颜色映射

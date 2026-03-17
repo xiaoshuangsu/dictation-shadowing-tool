@@ -19,6 +19,7 @@ interface AudioPlayerProps {
   onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void
   onLoadingChange?: (isLoading: boolean) => void
   onReady?: (audioElement: HTMLAudioElement) => void
+  endBuffer?: number  // 自定义结束时间补偿值（负数表示向后延伸）
 }
 
 export default function AudioPlayer({
@@ -30,7 +31,8 @@ export default function AudioPlayer({
   onTimeUpdate,
   onPlaybackTimeUpdate,
   onLoadingChange,
-  onReady
+  onReady,
+  endBuffer = -0.2  // 默认向后延伸 200ms
 }: AudioPlayerProps) {
   const audioRefInternal = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -50,7 +52,6 @@ export default function AudioPlayer({
   const totalPlayedSecondsRef = useRef<number>(0)
 
   const START_COMPENSATION = 0.03
-  const END_COMPENSATION = -0.2
 
   const setLoading = (loading: boolean) => {
     if (onLoadingChange) {
@@ -105,7 +106,7 @@ export default function AudioPlayer({
     }
 
     const checkEndTime = () => {
-      if (audio.currentTime >= endNum - END_COMPENSATION) {
+      if (audio.currentTime >= endNum - endBuffer) {
         audio.pause()
         setIsPlaying(false)
         isPlayingRef.current = false

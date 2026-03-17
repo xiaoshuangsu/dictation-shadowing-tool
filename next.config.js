@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Static export for Cloudflare Pages
-  output: 'export',
+  // Static export for Cloudflare Pages (only in production)
+  output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
 
   // Image optimization (disabled for Cloudflare Pages compatibility)
   images: {

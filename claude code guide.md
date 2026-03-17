@@ -1591,3 +1591,91 @@ const { data } = await supabase
 - 所有路由预渲染为静态 HTML
 - 客户端分页无需 API 路由
 
+
+---
+
+# 🎧 IELTS Listening 素材处理规范
+
+## 📋 分类特征
+
+**数据来源**：Cambridge IELTS 系列听力测试
+**素材结构**：每套测试包含 4 个 Part（Part 1-4）
+**音频特点**：时间戳精准，无需大幅度尾音补偿
+
+## 🔧 批量导入流程
+
+### 1. 准备工作
+- 创建新分类：`src/lib/utils/category.ts` 添加 "IELTS Listening"
+- 更新 topics 页面：`src/app/topics/page.tsx` 添加到 CATEGORIES 数组（最后一位）
+
+### 2. 批量导入
+```bash
+# 脚本：scripts/ingest_bulk.py
+# 输入：urls.txt（每行一个 Engnovate URL）
+python3 scripts/ingest_bulk.py
+```
+
+### 3. 导入后处理
+
+#### A. 难度分级
+根据 Part 内容特征分级：
+- **Part 1**（日常对话）：B1
+- **Part 2-4**（学术内容）：B2
+
+#### B. 标题优化
+- 原标题：`Cambridge IELTS 10 Academic Listening Test 1 Part 1`
+- 优化后：`Cam 10 Academic Listening Test 1 Part 1`
+- 同步更新 slug 字段
+
+#### C. 统一封面
+- 压缩封面图至 20KB 以下
+- 上传至 R2：`thumbnails/ielts-cover.jpg`
+- 批量更新数据库：`thumbnail_path = 'thumbnails/ielts-cover.jpg'`
+
+## 🎛️ 音频播放配置
+
+### endBuffer 参数
+
+**问题背景**：
+- 其他素材需要 -0.2s（200ms 向后延伸）以避免尾音截断
+- IELTS 素材时间戳精准，200ms 会导致句子重叠
+
+**解决方案**：
+在 `PracticePage.tsx` 中动态设置 `endBuffer`：
+
+```typescript
+const getEndBuffer = (): number => {
+  if (material?.category === 'IELTS Listening') {
+    return 0.05  // 50ms，精准停止
+  }
+  return -0.2   // 200ms，避免尾音截断
+}
+```
+
+**配置对比**：
+| 分类 | endBuffer | 效果 |
+|------|-----------|------|
+| IELTS Listening | +0.05s | 精准停止，避免重叠 |
+| 其他分类 | -0.2s | 延伸播放，避免截断 |
+
+## 📝 数据库字段
+
+```
+category: 'IELTS Listening'
+difficulty: 'B1' 或 'B2'（根据 Part）
+title: 'Cam X Academic Listening Test Y Part Z'
+slug: 'cam-x-academic-listening-test-y-part-z'
+thumbnail_path: 'thumbnails/ielts-cover.jpg'
+audio_path: 'audio/{slug}.mp3'
+```
+
+## ✅ 检查清单
+
+导入完成后检查：
+- [ ] 分类已在 `/topics` 页面显示（最后一位）
+- [ ] 难度标签正确（Part 1 = B1，Part 2-4 = B2）
+- [ ] 标题已缩写（Cambridge IELTS → Cam）
+- [ ] 封面图统一显示
+- [ ] 播放时句子不重叠、不截断
+- [ ] 跳转链接正常（`/topics/ielts-listening/{slug}/`）
+

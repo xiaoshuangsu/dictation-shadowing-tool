@@ -490,6 +490,18 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const isLastSentence = currentSentenceIndex === sampleSentences.length - 1
   const isFirstSentence = currentSentenceIndex === 0
 
+  // 🔴 根据素材分类动态设置音频结束时间补偿值
+  // IELTS Listening 时间戳更精准，使用较小的延伸值（50ms）
+  // 其他素材使用默认值（200ms）以避免尾音截断
+  const getEndBuffer = (): number => {
+    if (material?.category === 'IELTS Listening') {
+      return 0.05  // 50ms，更精准
+    }
+    return -0.2   // 200ms 向后延伸，避免尾音截断
+  }
+
+  const endBuffer = getEndBuffer()
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* 🔴 Toast 提示 */}
@@ -617,6 +629,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                   onTimeUpdate={handleTimeUpdate}
                   onPlaybackTimeUpdate={handlePlaybackTimeUpdate}
                   onReady={handleAudioReady}
+                  endBuffer={endBuffer}
                 />
               </div>
             )}
