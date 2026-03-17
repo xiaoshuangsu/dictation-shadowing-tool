@@ -7,26 +7,26 @@ export default function HowItWorks() {
   const steps = [
     {
       icon: BookOpen,
-      title: "Select Your Goal",
-      description: "Choose from a vast library of real-world materials, from Daily Conversations to historical speeches, BBC, VOA, and TED Talks. Tailored to every proficiency level.",
+      title: "Curated Content",
+      description: "Explore a vast library of hand-picked resources, including Daily Conversations, Business English, BBC, VOA, and TED Talks. Select the material that matches your level and start practicing instantly.",
       color: "bg-blue-500",
     },
     {
       icon: Mic,
-      title: "Master Dictation",
-      description: "Sharpen your listening by typing what you hear. Toggle between Word or Sentence mode to match your learning pace.",
+      title: "Interactive Dictation",
+      description: "Master listening by typing. Choose between Word or Sentence mode to challenge yourself. Listen, type, and perfect your accuracy step by step.",
       color: "bg-purple-500",
     },
     {
       icon: Target,
-      title: "Shadowing & Speak",
-      description: "Imitate native speakers in real-time. Receive instant, AI-powered feedback on your pronunciation and fluency.",
+      title: "AI Shadowing",
+      description: "Record your voice as you echo authentic audio. Receive instant AI feedback to refine your pronunciation and rhythm in real-time.",
       color: "bg-green-500",
     },
     {
       icon: BarChart3,
-      title: "Track Your Growth",
-      description: "Monitor your learning history and visualize your progress. Turn every practice session into a milestone.",
+      title: "Progress Tracking",
+      description: "Never lose momentum. Monitor your learning history and milestones with detailed analytics to see your daily improvement.",
       color: "bg-orange-500",
     },
   ]
