@@ -801,25 +801,24 @@ export default function PracticePage({ category, slug }: { category: string; slu
                   />
                 )
               ) : (() => {
-                // Shadowing 模式：只有 R2 素材才需要 audioSrc
+                // Shadowing 模式：支持 R2 和 YouTube 素材
                 const playerInfo = getPlayerInfo(material)
                 const isR2Material = playerInfo.type === 'r2'
 
-                if (!isR2Material || !playerInfo.audioSrc) {
-                  // YouTube 素材或不支持 Shadowing
+                // R2 素材需要 audioSrc
+                if (isR2Material && !playerInfo.audioSrc) {
                   return (
                     <div className="flex items-center justify-center h-64 text-gray-500">
-                      {playerInfo.type === 'youtube'
-                        ? 'YouTube video shadowing is controlled by the video player'
-                        : 'No audio available'}
+                      No audio available
                     </div>
                   )
                 }
 
+                // YouTube 素材不需要 audioSrc，直接显示 ShadowingPanel
                 return (
                   <ShadowingPanel
                     sentence={currentSentence}
-                    audioSrc={playerInfo.audioSrc}
+                    audioSrc={isR2Material ? playerInfo.audioSrc : undefined}
                     onNext={handleNext}
                     onComplete={handleShadowingComplete}
                     isLastSentence={isLastSentence}

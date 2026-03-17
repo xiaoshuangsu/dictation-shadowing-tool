@@ -1,5 +1,31 @@
 # Changelog
 
+## [18.1.0] - 2026-03-17
+
+### Added
+- **YouTube Shadowing 模式解耦逻辑** 🎤
+  - ShadowingPanel 支持 YouTube 素材（audioSrc 可选）
+  - YouTube 播放与录音完全解耦，互不影响
+  - 点击中栏播放按钮 → 仅播放视频，不触发录音
+  - 点击 Start Recording → 仅开始录音，不触发视频播放
+
+### Changed
+- **YouTube 练习模式优化** 🎬
+  - YouTube 素材使用 practiceMode 控制句子循环
+  - 播放到 end-0.5s 自动暂停并重置到开头
+  - 左侧视频播放器独立操作，不影响中栏练习状态
+
+### Technical Details
+- 修改文件：
+  - `src/components/ShadowingPanel.tsx` - audioSrc 改为可选
+  - `src/components/YouTubePlayer.tsx` - 添加 practiceMode 逻辑
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 解耦播放与录音状态
+  - `src/lib/supabase/client.ts` - 更新 Material 接口类型
+  - `claude code guide.md` - 新增 YouTube Shadowing 解耦逻辑文档
+
+- 构建验证：✅ 编译成功
+- 功能验证：✅ YouTube 和 R2 素材逻辑互不影响
+
 ## [16.0.0] - 2026-03-15
 
 ### Breaking Changes

@@ -90,9 +90,10 @@ export default function YouTubePlayer({
       videoId: youtubeId,
       playerVars: {
         playsinline: 1,
-        controls: 1,
+        controls: 0,  // 🔴 隐藏原生播放器控制，完全由练习区域控制
         modestbranding: 1,
-        rel: 0
+        rel: 0,
+        disablekb: 1  // 禁用键盘控制
       },
       events: {
         onReady: (event: any) => {

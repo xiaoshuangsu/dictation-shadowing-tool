@@ -14,7 +14,7 @@ interface Sentence {
 
 interface ShadowingPanelProps {
   sentence: Sentence
-  audioSrc: string  // 新增：音频源
+  audioSrc?: string  // 可选：音频源（R2 素材使用，YouTube 素材不需要）
   currentTime?: number  // 当前播放时间（用于确定显示哪个子句）
   onComplete?: (isCorrect: boolean, durationSeconds: number) => void
   onNext?: () => void

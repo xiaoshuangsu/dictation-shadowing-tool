@@ -106,6 +106,11 @@ export interface Material {
   play_count: number
   created_at: string
   updated_at: string
+  // 新增字段：支持 YouTube 和 R2 视频
+  source_type: 'r2' | 'youtube'
+  youtube_id?: string | null
+  video_path?: string | null
+  transcript?: any  // JSONB 类型，存储句子级别的转录数据
 }
 
 /**

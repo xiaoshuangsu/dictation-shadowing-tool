@@ -1762,6 +1762,162 @@ practiceMode={hasStarted && autoPlayTrigger > 0}
 
 ---
 
+## 🎤 Shadowing 模式下的 YouTube 解耦逻辑
+
+### 核心原则
+
+**解耦播放与录音**：YouTube 模式下的 Shadowing 练习与 R2 素材完全一致
+
+| 操作 | 中栏播放按钮 | Start Recording 按钮 |
+|------|-------------|---------------------|
+| **功能** | 仅控制视频播放 | 仅控制录音开始 |
+| **互不影响** | 不触发录音 | 不触发视频播放 |
+
+### 架构设计
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    PracticePage.tsx                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌────────────┐ │
+│  │  YouTubePlayer  │  │   AudioPlayer   │  │ShadowingPanel│ │
+│  │   (仅 YouTube)  │  │   (仅 R2)       │  │   (通用)    │ │
+│  │  - 视频播放      │  │  - 音频播放      │  │  - 录音控制  │ │
+│  │  - practiceMode │  │  - endBuffer    │  │  - 独立录音  │ │
+│  │  - end-0.5s     │  │  - end-0.2s     │  │             │ │
+│  └─────────────────┘  └─────────────────┘  └────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+         YouTube 素材            R2 素材         通用组件
+```
+
+**关键区别：**
+- **YouTube 素材**：使用 `YouTubePlayer` + `practiceMode`，播放到 `end - 0.5s` 自动暂停
+- **R2 素材**：使用 `AudioPlayer` + `endBuffer`，播放到 `end - 0.2s`（或 `0.05s` for IELTS）自动暂停
+- **两种素材互不影响**，各自有独立的播放控制逻辑
+
+### 状态流转
+
+**R2 素材流程：**
+```
+用户点击播放 → AudioPlayer 播放音频 → 播放到 end-0.5s 停止
+                                        ↓
+                              ShadowingPanel 独立工作
+                                        ↓
+                        用户手动点 Start Recording → 开始录音
+```
+
+**YouTube 素材流程：**
+```
+用户点击播放 → YouTubePlayer 播放视频 → 播放到 end-0.5s 停止
+                                           ↓
+                                 ShadowingPanel 独立工作
+                                           ↓
+                           用户手动点 Start Recording → 开始录音
+```
+
+### 实现细节
+
+**1. YouTube 素材不需要 audioSrc**
+```typescript
+// PracticePage.tsx - ShadowingPanel 渲染
+const playerInfo = getPlayerInfo(material)
+const isR2Material = playerInfo.type === 'r2'
+
+<ShadowingPanel
+  sentence={currentSentence}
+  audioSrc={isR2Material ? playerInfo.audioSrc : undefined}  // YouTube 传入 undefined
+  onNext={handleNext}
+  onComplete={handleShadowingComplete}
+  isLastSentence={isLastSentence}
+/>
+```
+
+**2. YouTube 视频播放独立控制（仅 YouTube 素材）**
+```typescript
+// YouTubePlayer.tsx - 播放到句子结束自动暂停
+// ⚠️ 注意：此逻辑仅用于 YouTube 素材，R2 素材使用 AudioPlayer 的独立逻辑
+if (isPracticeModeRef.current) {  // 只在 practiceMode=true 时生效
+  if (currentTime >= endTime - endBuffer) {
+    playerRef.current.pauseVideo()
+    playerRef.current.seekTo(startTime, true)  // 重置到开头
+    isPracticeModeRef.current = false
+    // 不触发录音，仅暂停视频
+  }
+}
+```
+
+**对比：R2 素材的播放控制（不受影响）**
+```typescript
+// AudioPlayer.tsx - R2 素材使用独立的 endBuffer 逻辑
+// ⚠️ 注意：此逻辑仅用于 R2 素材，YouTube 素材不受影响
+const checkEndTime = () => {
+  if (audio.currentTime >= endNum - endBuffer) {
+    audio.pause()
+    audio.currentTime = startNum
+    // R2 素材使用不同的 endBuffer 值（-0.2s 或 0.05s）
+  }
+}
+```
+
+**3. 录音独立控制**
+```typescript
+// ShadowingPanel.tsx - Start Recording 按钮独立工作
+const startRecording = () => {
+  // 仅启动录音，不触发视频播放
+  recognitionRef.current.start()
+  mediaRecorderRef.current.start()
+  setIsRecording(true)
+}
+```
+
+**4. 左侧视频隔离**
+```typescript
+// YouTubePlayer.tsx - 左侧播放器完全独立
+- 用户点击播放/暂停/拖动 → 只影响视频本身
+- 不触发中栏练习状态
+- 不触发录音功能
+- 仅作为参考播放器使用
+```
+
+### 关键文件
+
+| 文件 | 作用 | 适用素材 | 关键逻辑 |
+|------|------|---------|----------|
+| `YouTubePlayer.tsx` | YouTube Iframe 播放器 | **仅 YouTube** | `practiceMode` 控制句子循环，播放到 `end - 0.5s` 自动暂停 |
+| `AudioPlayer.tsx` | 音频播放器 | **仅 R2** | `endBuffer` 控制播放停止（-0.2s 或 0.05s），不受本次改动影响 |
+| `VideoPlayer.tsx` | 视频播放器 | **仅 R2** | 独立的播放控制逻辑，不受本次改动影响 |
+| `ShadowingPanel.tsx` | 影子跟读录音组件 | **通用** | `audioSrc` 可选，YouTube 模式下为 `undefined` |
+| `PracticePage.tsx` | 练习页面状态管理 | **通用** | 根据 `source_type` 选择播放器和控制逻辑 |
+
+### 本次改动范围
+
+✅ **仅影响 YouTube 素材的 Shadowing 模式**
+- YouTube 添加 `practiceMode` 控制
+- YouTube 播放到 `end - 0.5s` 自动暂停
+- ShadowingPanel 支持 `audioSrc` 可选
+
+❌ **不影响 R2 素材**
+- AudioPlayer 逻辑保持不变
+- VideoPlayer 逻辑保持不变
+- R2 素材的 `endBuffer` 参数保持不变
+
+### 效果验证
+
+| 测试用例 | 预期行为 |
+|---------|----------|
+| **点击中栏播放** | YouTube 视频播放到 end-0.5s 自动停止 ✅<br>录音机无动作（保持停止状态） ✅ |
+| **手动点 Start Recording** | 开始录音 ✅<br>视频保持暂停（不被触发） ✅ |
+| **左侧视频操作** | 不影响中栏练习状态或录音功能 ✅ |
+| **播放结束自动停止** | 视频播完单句自动停止，回到开头 ✅ |
+
+### 设计优势
+
+1. **用户体验一致**：YouTube 和 R2 素材的操作逻辑完全一致
+2. **功能解耦**：播放和录音互不干扰，用户可自由控制
+3. **代码简洁**：不需要复杂的状态同步逻辑
+4. **易于维护**：各组件职责清晰，修改影响范围小
+
+---
+
 ## 📥 字幕抓取工具
 
 ### 推荐工具：yt-dlp
@@ -1891,6 +2047,8 @@ if (next_start - current_end) < 0.2:
 - [ ] 点击练习播放按钮循环播放当前句
 - [ ] 断句干净，无"炸音"
 - [ ] 点击字幕行可跳转到对应时间
+- [ ] Shadowing 模式下自动开始录音
+- [ ] Shadowing 模式下播放结束自动停止录音
 
 ### R2 素材回归测试
 
@@ -1902,7 +2060,9 @@ if (next_start - current_end) < 0.2:
 ### 关键文件
 
 - `src/components/YouTubePlayer.tsx` - YouTube Iframe 播放器
+- `src/components/ShadowingPanel.tsx` - 影子跟读组件（支持自动录音）
 - `src/components/UniversalPlayer.tsx` - 统一播放器路由
+- `src/app/topics/[category]/[slug]/PracticePage.tsx` - 练习页面（状态管理）
 - `scripts/ingest_youtube_ytdlp.py` - yt-dlp 抓取脚本（推荐）
 - `scripts/ingest_youtube_with_playwright.py` - Playwright 抓取脚本（备选）
 
