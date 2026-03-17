@@ -72,6 +72,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
   // Audio/Video state
   const [sampleSentences, setSampleSentences] = useState<Sentence[]>(defaultSentences)
 
+  // 🔴 模式独立的进度追踪
+  const [dictationIndex, setDictationIndex] = useState(0)
+  const [shadowingIndex, setShadowingIndex] = useState(0)
+
   // 🔴 开发环境检测
   const isDevelopment = process.env.NODE_ENV === 'development'
 
@@ -148,7 +152,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
   }
 
   // Practice state
-  const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)  // 初始值为 0
   const [hasStarted, setHasStarted] = useState(false)  // 新增：跟踪是否已开始播放
   const [videoDegraded, setVideoDegraded] = useState(false)  // 🔴 视频降级状态
   const [toastMessage, setToastMessage] = useState<string | null>(null)  // 🔴 Toast 提示消息
@@ -279,27 +282,40 @@ export default function PracticePage({ category, slug }: { category: string; slu
     window.history.replaceState({}, '', url.toString())
     setMode(newMode)
 
-    // Reset practice state when switching modes
-    setCurrentSentenceIndex(0)
+    // 🔴 修复：重置播放状态，但保持各模式的独立进度
     setHasStarted(false)
     setHasPlayedCurrent(false)
+    // 不重置索引 - 每个 mode 保持自己的进度
   }
 
-  // Current sentence
+  // Current sentence - 根据模式选择对应的索引
+  const currentSentenceIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
   const currentSentence = sampleSentences[currentSentenceIndex] || sampleSentences[0]
 
   // Navigation
   const handlePrevious = () => {
-    if (currentSentenceIndex > 0) {
-      setCurrentSentenceIndex(prev => prev - 1)
+    const currentIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
+    if (currentIndex > 0) {
+      const newIndex = currentIndex - 1
+      if (mode === 'dictation') {
+        setDictationIndex(newIndex)
+      } else {
+        setShadowingIndex(newIndex)
+      }
       setAutoPlayTrigger(prev => prev + 1)
       setHasPlayedCurrent(false)
     }
   }
 
   const handleNext = () => {
-    if (currentSentenceIndex < sampleSentences.length - 1) {
-      setCurrentSentenceIndex(prev => prev + 1)
+    const currentIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
+    if (currentIndex < sampleSentences.length - 1) {
+      const newIndex = currentIndex + 1
+      if (mode === 'dictation') {
+        setDictationIndex(newIndex)
+      } else {
+        setShadowingIndex(newIndex)
+      }
       setAutoPlayTrigger(prev => prev + 1)
       setHasPlayedCurrent(false)
     }
@@ -363,22 +379,24 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
 
     // 场景 B：后续点击，先递增索引，再播放（不滚动页面）
-    if (currentSentenceIndex < sampleSentences.length - 1) {
+    const currentIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
+    if (currentIndex < sampleSentences.length - 1) {
       console.log("场景 B: 切换到下一句")
-      console.log("当前索引:", currentSentenceIndex, "< 总数:", sampleSentences.length - 1)
+      console.log("当前索引:", currentIndex, "< 总数:", sampleSentences.length - 1)
 
       // 使用 flushSync 强制同步更新，确保索引先更新，再触发播放
       flushSync(() => {
-        setCurrentSentenceIndex(prev => {
-          const newIndex = prev + 1
-          console.log("更新索引:", prev, "->", newIndex)
-          return newIndex
-        })
+        const newIndex = currentIndex + 1
+        if (mode === 'dictation') {
+          setDictationIndex(newIndex)
+        } else {
+          setShadowingIndex(newIndex)
+        }
+        console.log("更新索引:", currentIndex, "->", newIndex)
       })
 
       // 索引更新后，再触发播放
       console.log("索引已更新，现在触发播放")
-      console.log("更新后的 currentSentenceIndex:", currentSentenceIndex)
       setAutoPlayTrigger(prev => prev + 1)
       console.log("触发播放新索引")
     } else {
@@ -872,7 +890,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
                       key={sentence.id}
                       onClick={() => {
                         // 切换到选中的句子并触发播放
-                        setCurrentSentenceIndex(index)
+                        // 根据当前模式更新对应的索引
+                        if (mode === 'dictation') {
+                          setDictationIndex(index)
+                        } else {
+                          setShadowingIndex(index)
+                        }
                         setAutoPlayTrigger(prev => prev + 1)
                       }}
                       className={`p-3 rounded cursor-pointer transition-colors ${

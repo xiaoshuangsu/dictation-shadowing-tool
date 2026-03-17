@@ -25,6 +25,7 @@
 | **CSS 无法加载** | 手机端页面格式错乱 | 启动 dev server: `npx next dev -p 3000 -H 0.0.0.0` |
 | **频繁显示加载中** | 桌面端"缓冲中..."不断弹出 | 添加 `onPlaying` 事件清除加载状态 |
 | **QUIC 协议错误** | 页面空白，`ERR_QUIC_PROTOCOL_ERROR` | 强制刷新（Cmd+Shift+R）或在 Cloudflare 禁用 HTTP/3 |
+| **模式切换进度丢失** | Dictation/Shadowing 切换时回到第 1 句 | 删除重复的 `currentSentenceIndex` 状态，使用模式独立索引 |
 
 ### VideoPlayer 核心原则
 1. **事件成对绑定**：`onWaiting` + `onPlaying` 必须同时存在
@@ -2065,4 +2066,187 @@ if (next_start - current_end) < 0.2:
 - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 练习页面（状态管理）
 - `scripts/ingest_youtube_ytdlp.py` - yt-dlp 抓取脚本（推荐）
 - `scripts/ingest_youtube_with_playwright.py` - Playwright 抓取脚本（备选）
+
+---
+
+# 🔄 模式独立进度追踪问题（已解决）
+
+## 📋 问题描述
+
+**症状**：
+- 在 Dictation 模式练习到第 4 句
+- 切换到 Shadowing 模式，从第 1 句重新开始
+- Shadowing 练习到第 5 句
+- 切换回 Dictation 模式，**预期回到第 4 句，实际回到第 1 句** ❌
+
+**用户需求**：
+- Dictation 模式：维护自己的句子索引（如第 4 句）
+- Shadowing 模式：维护自己的句子索引（如第 5 句）
+- 切换模式时：恢复到该模式对应的进度
+
+---
+
+## 🔍 根本原因
+
+**代码位置**：`src/app/topics/[category]/[slug]/PracticePage.tsx`
+
+**问题 1：重复的状态定义冲突**
+```typescript
+// ❌ 第 155 行：定义了旧的 currentSentenceIndex 状态
+const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
+
+// ✅ 第 76-77 行：定义了模式独立的状态
+const [dictationIndex, setDictationIndex] = useState(0)
+const [shadowingIndex, setShadowingIndex] = useState(0)
+
+// ✅ 第 293 行：根据模式动态选择索引
+const currentSentenceIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
+```
+
+**冲突说明**：
+- 第 155 行的 `currentSentenceIndex` 是一个**可变状态**
+- 第 293 行的 `currentSentenceIndex` 是一个**计算值**
+- 在 JavaScript 中，后声明的变量会覆盖先声明的变量
+- 导致：计算值无法响应状态变化，始终返回初始值
+
+**问题 2：Transcript 点击使用错误的更新函数**
+```typescript
+// ❌ 第 894 行：调用了不存在的 setCurrentSentenceIndex
+onClick={() => {
+  setCurrentSentenceIndex(index)  // 这个函数实际上更新的是第 155 行的状态
+  setAutoPlayTrigger(prev => prev + 1)
+}}
+```
+
+---
+
+## ✅ 解决方案
+
+### 修改 1：删除重复的状态定义
+
+**位置**：第 155 行
+
+**删除**：
+```typescript
+// ❌ 删除这一行
+const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0)
+```
+
+### 修改 2：修复 Transcript 点击事件
+
+**位置**：第 894 行
+
+**修复前**：
+```typescript
+onClick={() => {
+  setCurrentSentenceIndex(index)
+  setAutoPlayTrigger(prev => prev + 1)
+}}
+```
+
+**修复后**：
+```typescript
+onClick={() => {
+  // 根据当前模式更新对应的索引
+  if (mode === 'dictation') {
+    setDictationIndex(index)
+  } else {
+    setShadowingIndex(index)
+  }
+  setAutoPlayTrigger(prev => prev + 1)
+}}
+```
+
+---
+
+## 🎯 工作原理
+
+### 状态架构
+
+```typescript
+// 两个独立的索引状态
+const [dictationIndex, setDictationIndex] = useState(0)      // Dictation 模式的索引
+const [shadowingIndex, setShadowingIndex] = useState(0)     // Shadowing 模式的索引
+
+// 根据当前模式动态选择索引
+const currentSentenceIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
+```
+
+### 数据流转
+
+**场景 1：Dictation 模式练习**
+```
+用户练习到第 4 句
+  ↓
+dictationIndex = 3
+  ↓
+currentSentenceIndex = dictationIndex = 3  （因为 mode === 'dictation'）
+```
+
+**场景 2：切换到 Shadowing 模式**
+```
+用户点击 Shadowing 标签
+  ↓
+mode = 'shadowing'
+  ↓
+currentSentenceIndex = shadowingIndex = 0  （因为 mode === 'shadowing'）
+  ↓
+显示第 1 句（Shadowing 的进度）
+```
+
+**场景 3：Shadowing 练习到第 5 句**
+```
+用户练习到第 5 句
+  ↓
+shadowingIndex = 4
+  ↓
+currentSentenceIndex = shadowingIndex = 4
+```
+
+**场景 4：切换回 Dictation 模式**
+```
+用户点击 Dictation 标签
+  ↓
+mode = 'dictation'
+  ↓
+currentSentenceIndex = dictationIndex = 3  ✅
+  ↓
+显示第 4 句（Dictation 的进度）
+```
+
+---
+
+## 📊 关键要点
+
+1. **避免变量名冲突**
+   - 不要在同一个文件中声明同名的变量
+   - 计算值使用 `const`，状态使用 `useState`
+   - 后声明的变量会覆盖先声明的变量
+
+2. **模式独立状态**
+   - 每个模式维护自己的索引状态
+   - 切换模式时不需要重置索引
+   - 通过计算值动态选择当前使用的索引
+
+3. **更新函数必须对应**
+   - Dictation 模式使用 `setDictationIndex`
+   - Shadowing 模式使用 `setShadowingIndex`
+   - 不能使用不存在的 `setCurrentSentenceIndex`
+
+---
+
+## ✅ 测试检查清单
+
+- [ ] Dictation 模式练习到第 4 句
+- [ ] 切换到 Shadowing 模式，显示第 1 句
+- [ ] Shadowing 模式练习到第 5 句
+- [ ] 切换回 Dictation 模式，**回到第 4 句** ✅
+- [ ] 再切换到 Shadowing 模式，**回到第 5 句** ✅
+- [ ] 点击 Transcript 中的句子，正确跳转
+
+---
+
+## 🔗 相关文件
+
+- `src/app/topics/[category]/[slug]/PracticePage.tsx` - 练习页面（状态管理）
 

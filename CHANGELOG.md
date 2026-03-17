@@ -1,5 +1,24 @@
 # Changelog
 
+## [18.1.2] - 2026-03-17
+
+### Fixed
+- **模式独立进度追踪** 🔄
+  - 修复 Dictation/Shadowing 模式切换时进度丢失问题
+  - Dictation 模式和 Shadowing 模式现在维护各自独立的句子索引
+  - 切换模式时自动恢复到该模式的上次进度
+  - 修复 Transcript 点击跳转逻辑
+
+### Technical Details
+- 修改文件：
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx`
+    - 删除重复的 `currentSentenceIndex` 状态定义
+    - 修复 Transcript 点击事件，使用模式独立的索引更新函数
+  - `claude code guide.md` - 新增问题文档和解决方案说明
+
+- 问题根因：重复的变量声明导致计算值无法响应状态变化
+- 解决方案：使用 `mode === 'dictation' ? dictationIndex : shadowingIndex` 动态选择索引
+
 ## [18.1.1] - 2026-03-17
 
 ### Changed
