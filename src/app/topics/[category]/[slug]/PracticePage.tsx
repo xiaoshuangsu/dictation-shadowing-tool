@@ -586,12 +586,18 @@ export default function PracticePage({ category, slug }: { category: string; slu
           {/* Left Column - Video Player (25%) - 🔴 移动端播放后隐藏，桌面端始终显示 */}
           <div className={`${hasStarted ? 'max-lg:hidden' : ''} lg:col-span-1 w-full transition-all duration-300`}>
             <div className="bg-white rounded-lg shadow-sm p-4 sticky top-40">
-              {/* Progress Indicator - Moved Here */}
-              <div className="text-center mb-3 pb-3 border-b border-gray-200">
-                <div className="text-xs text-gray-900">
-                  {currentSentenceIndex + 1} <span className="text-gray-400">/</span> {sampleSentences.length}
-                </div>
-              </div>
+              {/* 🔴 左栏标题：参考 Transcript 样式 */}
+              {(() => {
+                const playerInfo = getPlayerInfo(material)
+                const isVideoMaterial = playerInfo.type === 'youtube' || playerInfo.videoUrl
+                return (
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-gray-900">
+                      {isVideoMaterial ? 'Video' : 'Audio'}
+                    </h3>
+                  </div>
+                )
+              })()}
 
               {/* 🔴 根据素材类型渲染播放器 */}
               {(() => {
@@ -709,6 +715,13 @@ export default function PracticePage({ category, slug }: { category: string; slu
                 </div>
               )
             })()}
+
+            {/* Progress Indicator - 🔴 移至中栏，确保移动端视频隐藏后仍可见 */}
+            <div className="text-center mb-3">
+              <div className="text-xs text-gray-900">
+                {currentSentenceIndex + 1} <span className="text-gray-400">/</span> {sampleSentences.length}
+              </div>
+            </div>
 
             {/* Playback Controls */}
             <div className="bg-gray-100 rounded-lg p-3 mb-4">

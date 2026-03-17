@@ -1,5 +1,22 @@
 # Changelog
 
+## [18.1.1] - 2026-03-17
+
+### Changed
+- **UI 优化：进度标识位置调整** 📍
+  - 将进度标识从左栏移至中栏播放控制组件上方
+  - 确保移动端视频隐藏后用户仍能看到练习进度
+  - 样式与控制按钮视觉对齐
+
+- **UI 优化：左栏添加素材类型标题** 🏷️
+  - 左栏添加 "Video" / "Audio" 标题
+  - 参考右侧 Transcript 标签样式（font-semibold, text-gray-900）
+  - 左对齐，保持三栏视觉一致
+
+### Technical Details
+- 修改文件：
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx` - UI 布局调整
+
 ## [18.1.0] - 2026-03-17
 
 ### Added
