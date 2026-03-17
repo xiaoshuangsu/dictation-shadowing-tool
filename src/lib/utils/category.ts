@@ -16,6 +16,7 @@ export const CATEGORY_SLUG_MAP: Record<string, string> = {
   'VOA Learning English': 'voa-learning-english',
   'TED演讲': 'ted-talks',
   '动画片': 'cartoons',
+  'IELTS Listening': 'ielts-listening',
 }
 
 // Reverse mapping: slug to category name
@@ -148,6 +149,14 @@ export const CATEGORY_METADATA: Record<string, CategoryMetadata> = {
     icon: '🎬',
     color: 'bg-orange-500',
     gradient: 'from-orange-500 to-orange-600',
+  },
+  'IELTS Listening': {
+    name: 'IELTS Listening',
+    slug: 'ielts-listening',
+    description: 'Cambridge IELTS listening practice tests',
+    icon: '🎧',
+    color: 'bg-violet-600',
+    gradient: 'from-violet-600 to-violet-700',
   },
 }
 

@@ -64,6 +64,7 @@ CATEGORY_SLUG_MAP = {
     'VOA Learning English': 'voa-learning-english',
     'TED演讲': 'ted-talks',
     '动画片': 'cartoons',
+    'IELTS Listening': 'ielts-listening',
 }
 
 # ==================== 工具函数 ====================
@@ -285,8 +286,8 @@ def save_to_supabase(title: str, slug: str, audio_path: str, transcript: List[Di
         material_data = {
             'title': title,
             'slug': slug,
-            'category': '日常生活',
-            'difficulty': 'A2',
+            'category': 'IELTS Listening',
+            'difficulty': 'B1',
             'audio_path': audio_path,
             'video_path': None,
             'thumbnail_path': None,
@@ -374,7 +375,7 @@ def process_url(url: str, index: int, total: int) -> bool:
         # 9. 保存到 Supabase
         if save_to_supabase(title, slug, r2_key, sentences):
             log(f"✅ [{index}/{total}] 导入成功!")
-            print(f"   访问链接: /topics/daily-life/{slug}/")
+            print(f"   访问链接: /topics/ielts-listening/{slug}/")
             return True
         else:
             return False
