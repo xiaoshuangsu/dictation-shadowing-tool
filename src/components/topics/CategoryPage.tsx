@@ -190,44 +190,47 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
           <div className="flex items-center gap-4 mb-4">
             <span className="text-5xl">{categoryMetadata?.icon}</span>
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                {categoryMetadata?.name || categorySlug}
-              </h1>
+              <div className="flex items-baseline gap-3">
+                <h1 className="text-4xl font-bold text-gray-900">
+                  {categoryMetadata?.name || categorySlug}
+                </h1>
+                <span className="text-sm text-gray-500">
+                  ({filteredMaterials.length} materials)
+                </span>
+              </div>
               <p className="text-lg text-gray-600">
                 {categoryMetadata?.description || `${filteredMaterials.length} materials to practice`}
               </p>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="flex flex-wrap gap-6 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{filteredMaterials.length}</span>
-              <span>materials</span>
+          {/* Filter Status */}
+          {searchQuery || selectedDifficulty || selectedDuration ? (
+            <div className="flex flex-wrap gap-6 text-sm text-gray-600 mt-4">
+              {searchQuery && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900">"{searchQuery}"</span>
+                  <span>search</span>
+                </div>
+              )}
+              {selectedDifficulty && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900">{selectedDifficulty}</span>
+                  <span>difficulty</span>
+                </div>
+              )}
+              {selectedDuration && (
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900">
+                    {selectedDuration === 'short' ? '< 1min' :
+                     selectedDuration === 'medium' ? '1-3min' :
+                     selectedDuration === 'long' ? '> 3min' : ''}
+                  </span>
+                  <span>duration</span>
+                </div>
+              )}
             </div>
-            {searchQuery && (
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900">"{searchQuery}"</span>
-                <span>search</span>
-              </div>
-            )}
-            {selectedDifficulty && (
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900">{selectedDifficulty}</span>
-                <span>difficulty</span>
-              </div>
-            )}
-            {selectedDuration && (
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-gray-900">
-                  {selectedDuration === 'short' ? '< 1min' :
-                   selectedDuration === 'medium' ? '1-3min' :
-                   selectedDuration === 'long' ? '> 3min' : ''}
-                </span>
-                <span>duration</span>
-              </div>
-            )}
-          </div>
+          ) : null}
         </div>
       </div>
 

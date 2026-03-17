@@ -48,11 +48,12 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 export default function MaterialsPage() {
   const [materialsByCategory, setMaterialsByCategory] = useState<Record<string, Material[]>>({})
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [imageLoadedStates, setImageLoadedStates] = useState<Record<string, boolean>>({})
 
-  // 获取每个分类的前4个素材（性能优化）
+  // 获取每个分类的前4个素材和总数
   useEffect(() => {
     if (typeof window === 'undefined') return
 
@@ -60,24 +61,37 @@ export default function MaterialsPage() {
       try {
         const supabaseClient = getSupabase()
         const result: Record<string, Material[]> = {}
+        const counts: Record<string, number> = {}
 
-        // 并行获取所有分类的素材（每个分类最多4个）
+        // 并行获取所有分类的素材（每个分类最多4个）和总数
         const promises = CATEGORIES.map(async (category) => {
+          // 获取前4个素材
           const { data, error } = await supabaseClient
             .from('materials')
             .select('*')
             .eq('category', category.id)
             .order('title')
-            .limit(4)  // 🔴 关键优化：每个分类只取4个
+            .limit(4)
 
           if (!error && data) {
             result[category.id] = data
+          }
+
+          // 获取该分类的总数
+          const { count } = await supabaseClient
+            .from('materials')
+            .select('*', { count: 'exact', head: true })
+            .eq('category', category.id)
+
+          if (count !== null) {
+            counts[category.id] = count
           }
         })
 
         await Promise.all(promises)
 
         setMaterialsByCategory(result)
+        setCategoryCounts(counts)
         setError(null)
       } catch (err) {
         console.error('获取素材失败:', err)
@@ -179,7 +193,7 @@ export default function MaterialsPage() {
                       >
                         {category.label}
                         <span className="ml-2 text-sm font-normal text-gray-500">
-                          (Preview)
+                          ({categoryCounts[category.id] || 0} materials)
                         </span>
                       </Link>
                       <Link
