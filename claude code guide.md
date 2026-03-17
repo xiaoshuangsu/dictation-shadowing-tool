@@ -1594,6 +1594,37 @@ const { data } = await supabase
 
 ---
 
+# 🎧 纯音频素材处理规范
+
+## 📋 默认封面图规范
+
+**定义**：纯音频素材指 `video_path` 为 `null`，仅有 `audio_path` 的素材。
+
+**默认封面**：
+- **路径**：`thumbnails/culture-history-cover.jpg`
+- **尺寸**：800x450 像素
+- **大小**：20KB 以下（当前 9.2KB）
+- **格式**：JPG
+- **用途**：所有没有自定义封面的纯音频素材
+
+**批量更新脚本**：
+```python
+# 查找所有没有封面图的纯音频素材
+result = supabase.table('materials').select('*').is_('video_path', None).is_('thumbnail_path', None).execute()
+
+# 批量更新默认封面
+for m in result.data:
+    supabase.table('materials').update({
+        'thumbnail_path': 'thumbnails/culture-history-cover.jpg'
+    }).eq('id', m['id']).execute()
+```
+
+**特殊分类封面**：
+- IELTS Listening：`thumbnails/ielts-cover.jpg`
+- Culture & History：`thumbnails/culture-history-cover.jpg`
+
+---
+
 # 🎧 IELTS Listening 素材处理规范
 
 ## 📋 分类特征
