@@ -107,6 +107,7 @@ SYSTEM_PROMPT = """你是一位专业的英汉翻译专家。严格遵守以下�
 【输出格式】：
 返回 JSON：{"translations": ["翻译1", "翻译2", ...]}
 ⚠️ 如果输入 8 句，必须返回 8 个翻译，不能多也不能少！
+❌ 严禁在翻译中使用方括号 [ ]，直接输出纯中文翻译即可
 """
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -156,7 +157,10 @@ def fix_geographic_translation(original_en: str, bad_translation: str, video_tit
         result = response.json()
         
         if 'choices' in result and len(result['choices']) > 0:
-            return result['choices'][0]['message']['content'].strip()
+            translation = result['choices'][0]['message']['content'].strip()
+            # 清理方括号
+            translation = translation.replace('[', '').replace(']', '')
+            return translation
         return bad_translation  # 保持原翻译
     except:
         return bad_translation
@@ -193,7 +197,8 @@ def translate_batch(texts: List[str], video_title: str, category: str, difficult
 3. that comes when 翻译为"源于...所带来的..."
 4. Take the belief that 翻译为"采取这一信念：..."
 5. certain 翻译为"笃定"
-6. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
+6. 严禁在翻译中使用方括号 [ ]，直接输出纯中文翻译
+7. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
         ],
         "temperature": 0.2,
         "response_format": {"type": "json_object"}
@@ -220,12 +225,34 @@ def translate_batch(texts: List[str], video_title: str, category: str, difficult
                     translations.append("")
                 return translations[:len(texts)]
 
-            # 检查是否有脑补内容（如"明灯"、"光芒"等）
+            # 清理方括号（如果模型误模仿了输入格式）
+            cleaned_translations = []
             for trans in translations:
-                if any(word in trans for word in ['明灯', '光芒', '就像', '仿佛', '展现']):
-                    print(f"      ⚠️  检测到脑补内容: {trans[:50]}...")
+                # 去除可能被误加的方括号及其内容
+                # 例如: "[翻译]" 或 "翻译 [原文]" 都会被清理
+                cleaned = trans
+                # 去除开头和结尾的方括号
+                if cleaned.startswith('[') and ']' in cleaned:
+                    # 尝试提取方括号内的内容（如果是纯方括号包裹）
+                    first_close = cleaned.index(']')
+                    maybe_translation = cleaned[1:first_close].strip()
+                    # 检查是否是完整的翻译（不包含英文原文）
+                    if not any(c in maybe_translation for c in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'):
+                        cleaned = maybe_translation
+                    else:
+                        # 如果方括号内混有原文，去除所有方括号
+                        cleaned = cleaned.replace('[', '').replace(']', '')
+                else:
+                    # 去除所有方括号（保险起见）
+                    cleaned = cleaned.replace('[', '').replace(']', '')
 
-            return translations
+                cleaned_translations.append(cleaned.strip())
+
+                # 检查是否有脑补内容（如"明灯"、"光芒"等）
+                if any(word in cleaned for word in ['明灯', '光芒', '就像', '仿佛', '展现']):
+                    print(f"      ⚠️  检测到脑补内容: {cleaned[:50]}...")
+
+            return cleaned_translations
         else:
             print(f"      ⚠️  API 返回格式异常")
             return ["" for _ in texts]
