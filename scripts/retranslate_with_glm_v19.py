@@ -467,13 +467,25 @@ def main():
 
                 # 前 10 个素材：暂停等待验证
                 if current_num <= 10:
-                    user_input = input("✅ 这个翻译质量 OK 吗？输入 'y' 继续下一个，输入 'stop' 停止调优: ").strip().lower()
+                    try:
+                        # 检测是否在交互式环境中
+                        import sys
+                        if sys.stdin.isatty():
+                            user_input = input("✅ 这个翻译质量 OK 吗？输入 'y' 继续下一个，输入 'stop' 停止调优: ").strip().lower()
 
-                    if user_input == 'stop':
-                        print("\n⏸️  用户停止翻译")
-                        break
-                    elif user_input != 'y':
-                        print("\n⚠️  无效输入，继续下一个...")
+                            if user_input == 'stop':
+                                print("\n⏸️  用户停止翻译")
+                                break
+                            elif user_input != 'y':
+                                print("\n⚠️  无效输入，继续下一个...")
+                        else:
+                            # 非交互式环境：自动继续
+                            print(f"   ℹ️  非交互式环境，自动继续...")
+                            time.sleep(1)
+                    except EOFError:
+                        # EOF 错误：自动继续
+                        print(f"   ℹ️  EOF 检测，自动继续...")
+                        time.sleep(1)
                 else:
                     # 10 个以后：进入 Full Auto-pilot
                     if current_num == 11:
