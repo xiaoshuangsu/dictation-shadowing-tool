@@ -14,15 +14,7 @@ import { useAuth } from "@/lib/hooks/useAuth"
 import { supabase } from "@/lib/supabase/client"
 import { savePracticeRecord } from "@/lib/supabase/client"
 import { onDictationComplete, onShadowingComplete } from "@/lib/supabase/streak"
-
-// 句子数据类型（translation 字段可选）
-interface Sentence {
-  id: number
-  text: string
-  startTime: number
-  endTime: number
-  translation?: string  // 可选的中文翻译
-}
+import type { Sentence } from "@/types"
 
 // 素材数据类型（扩展 client.ts 中的 Material 类型）
 interface PracticeMaterial {
@@ -1063,7 +1055,10 @@ function HomeContent() {
                         {/* 中文翻译 */}
                         {sentence.translation && (
                           <p className="text-xs text-gray-600 italic mt-1">
-                            {sentence.translation}
+                            {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
+                            {typeof sentence.translation === 'string'
+                              ? sentence.translation
+                              : (sentence.translation?.['zh'] || '')}
                           </p>
                         )}
                       </div>

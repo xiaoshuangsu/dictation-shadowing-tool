@@ -34,6 +34,138 @@
 
 ---
 
+# 🌍 多语言翻译功能升级 (V19)
+
+## 📋 问题总结
+
+### 1. 数据丢失问题 ❌
+**原因**：执行数据库迁移时，SQL 脚本针对的是不存在的 `materials.translation` 字段（实际翻译数据在 `materials.transcript` 数组中每个句子的 `translation` 字段）。
+
+**后果**：所有翻译数据变成空对象 `{"zh": ""}`
+
+### 2. 前端渲染错误 ❌
+**错误**：`Error: Objects are not valid as a React child (found: object with keys {zh})`
+
+**原因**：部分组件直接渲染 `sentence.translation` 对象，而不是提取其中的值
+
+### 3. URL 包含中文 ❌
+**原因**：测试链接生成时使用了数据库中的中文分类名（如 `心灵故事`），而不是对应的英文 slug（如 `heart-soul-stories`）
+
+### 4. 地理问题翻译不自然 ❌
+**问题**：`above the United States` 被翻译成 `美国之上`，不符合中文地理表达习惯
+
+---
+
+## ✅ 解决方案
+
+### 1. 数据恢复
+创建专业级上下文感知翻译脚本 `scripts/retranslate_with_glm.py`：
+- 使用 GLM-4 API 重新生成翻译
+- 批量翻译（每批 8 句，保持上下文连贯）
+- 成功恢复 Canada (40句) 和 Empty Your Mind (86句)
+
+### 2. 前端修复
+更新所有组件使用向后兼容逻辑：
+```typescript
+typeof sentence.translation === 'string'
+  ? sentence.translation
+  : (sentence.translation?.['zh'] || '')
+```
+
+**修复文件**：
+- `src/app/topics/[category]/[slug]/PracticePage.tsx`
+- `src/app/practice/page.tsx`
+- `src/app/tools/timestamp-marker/page.tsx`
+
+### 3. 翻译质量优化
+
+**A. 上下文背景注入**
+- 获取视频标题作为上下文
+- 提示格式：`【当前视频标题：Canada: Provinces and Territories】请在此语境下进行地道翻译。`
+
+**B. 地理常识补丁**
+System Prompt 添加：
+```
+🌍 地理常识补丁：
+- above, north of → 以北
+- below, south of → 以南
+- next to → 相邻
+
+⚠️ 禁止："...之上"、"...下方"
+✅ 应使用：以北、以南、以东、以西
+```
+
+**C. 单句重试逻辑**
+- 自动检测地理问题（`之上` + 国家名）
+- 触发自我检查和重新翻译
+- 日志显示：`🔍 检测到地理问题 → 🔄 修正: 美国之上 → 美国以北`
+
+### 4. URL 修正
+使用正确的英文 slug：
+- `心灵故事` → `heart-soul-stories`
+- `文化历史` → `culture-history`
+
+---
+
+## 🎯 核心逻辑
+
+**数据结构**：
+```json
+{
+  "transcript": [
+    {
+      "id": 1,
+      "text": "Canada is located above the United States.",
+      "startTime": 0.0,
+      "endTime": 3.5,
+      "translation": {
+        "zh": "加拿大位于美国以北。",
+        "en": "Canada is located north of the United States.",
+        "ja": "カナダは米国の北に位置します。"
+      }
+    }
+  ]
+}
+```
+
+**前端渲染逻辑**：
+```typescript
+// 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式
+const translation = typeof sentence.translation === 'string'
+  ? sentence.translation
+  : (sentence.translation?.['zh'] || '')
+```
+
+**翻译工作流**：
+```
+1. 扫描数据库，查找空翻译（{} 或 {"zh": ""}）
+2. 批量翻译（每批 8 句，注入视频标题作为上下文）
+3. 自动检测地理问题（之上 + 国家名）
+4. 触发单句重试（自我检查并修正）
+5. 更新数据库为 JSONB 格式
+```
+
+---
+
+## 📁 关键文件
+
+| 文件 | 作用 |
+|------|------|
+| `src/types/index.ts` | TypeScript 类型定义（Translation、Sentence 接口）|
+| `scripts/retranslate_with_glm.py` | 专业级上下文感知翻译脚本 |
+| `scripts/fix_failed_translations.py` | 单句修复工具 |
+| `scripts/restore_empty_translations.py` | 批量恢复空翻译 |
+
+---
+
+## ✅ 验证结果
+
+✅ Canada 素材：40/40 句翻译成功
+✅ Empty Your Mind 素材：86/86 句翻译成功
+✅ 地理问题修正：`美国之上` → `美国以北`
+
+---
+
 # ⚠️ 重要交互准则 (Sarah's Identity & Interaction)
 * **用户身份**：Sarah（非开发者，不具备代码编写能力）。
 * **沟通语言**：必须全程使用 **中文**。

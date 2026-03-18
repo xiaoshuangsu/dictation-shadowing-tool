@@ -1,5 +1,83 @@
 # Changelog
 
+## [19.0.0] - 2026-03-17
+
+### Added
+- **多语言翻译功能升级** 🌍
+  - 新增 TypeScript 类型定义（Translation、Sentence 接口）
+  - 支持多语言 JSONB 格式：`{"zh": "中文", "en": "English", "ja": "日本語"}`
+  - 向后兼容旧格式（string）和新格式（Translation 对象）
+  - 添加辅助函数：`getTranslation()`、`hasTranslation()`
+
+- **专业级上下文感知翻译脚本** 🤖
+  - `scripts/retranslate_with_glm.py`：使用 GLM-4 API 批量翻译
+  - 每批 8 句，保持上下文连贯
+  - 注入视频标题作为翻译语境
+  - 地理常识补丁（自动修正"之上"为"以北"等）
+  - 单句重试逻辑（自动检测并修正问题翻译）
+
+- **单句修复和批量恢复工具** 🔧
+  - `scripts/fix_failed_translations.py`：修复单个失败句子
+  - `scripts/restore_empty_translations.py`：批量恢复空翻译
+
+### Fixed
+- **前端渲染错误修复** 🐛
+  - 修复 `Error: Objects are not valid as a React child`
+  - 所有组件使用向后兼容逻辑：
+    ```typescript
+    typeof sentence.translation === 'string'
+      ? sentence.translation
+      : (sentence.translation?.['zh'] || '')
+    ```
+  - 修复文件：
+    - `src/components/DictationBox.tsx`
+    - `src/components/ShadowingPanel.tsx`
+    - `src/components/WordMode.tsx`
+    - `src/app/topics/[category]/[slug]/PracticePage.tsx`
+    - `src/app/practice/page.tsx`
+    - `src/app/tools/timestamp-marker/page.tsx`
+
+- **翻译质量优化** ✨
+  - 上下文背景注入：获取视频标题作为翻译语境
+  - 地理常识补丁：`above the United States` → `美国以北`（非`美国之上`）
+  - 自动检测地理问题并触发单句重试
+
+### Technical Details
+- 新增文件：
+  - `src/types/index.ts` - TypeScript 类型定义
+  - `scripts/retranslate_with_glm.py` - 专业级翻译脚本
+  - `scripts/fix_failed_translations.py` - 单句修复工具
+  - `scripts/restore_empty_translations.py` - 批量恢复工具
+  - `supabase/migrations/add_multilingual_translation.sql` - 数据库迁移
+
+- 数据结构示例：
+  ```json
+  {
+    "transcript": [
+      {
+        "id": 1,
+        "text": "Canada is located above the United States.",
+        "startTime": 0.0,
+        "endTime": 3.5,
+        "translation": {
+          "zh": "加拿大位于美国以北。",
+          "en": "Canada is located north of the United States.",
+          "ja": "カナダは米国の北に位置します。"
+        }
+      }
+    ]
+  }
+  ```
+
+- 验证结果：
+  - ✅ Canada 素材：40/40 句翻译成功
+  - ✅ Empty Your Mind 素材：86/86 句翻译成功
+  - ✅ 地理问题修正：`美国之上` → `美国以北`
+
+- 构建验证：✅ 231 个静态页面全部生成成功
+
+---
+
 ## [18.1.4] - 2026-03-17
 
 ### Fixed

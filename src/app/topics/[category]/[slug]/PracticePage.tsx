@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
 import { slugToCategory, getCategoryMetadataBySlug } from '@/lib/utils/category'
 import { useAuth } from '@/lib/hooks/useAuth'
+import type { Sentence } from '@/types'
 
 // Import components
 import VideoPlayer from '@/components/VideoPlayer'
@@ -19,14 +20,6 @@ import ShadowingPanel from '@/components/ShadowingPanel'
 
 type PracticeMode = 'dictation' | 'shadowing'
 type DictationMode = 'word' | 'whole'
-
-interface Sentence {
-  id: number
-  text: string
-  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
-  endTime: number | string     // 🔴 允许字符串以保留精度
-  translation?: string
-}
 
 interface Material {
   id: string
@@ -934,7 +927,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
                           </p>
                           {showTranscript && sentence.translation && (
                             <p className="text-xs text-gray-500 italic mt-1">
-                              {sentence.translation}
+                              {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
+                              {typeof sentence.translation === 'string'
+                                ? sentence.translation
+                                : (sentence.translation?.['zh'] || '')}
                             </p>
                           )}
                         </div>

@@ -4,14 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Eye } from "lucide-react"
 import ConfirmModal from "./ConfirmModal"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
-
-interface Sentence {
-  id: number
-  text: string
-  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
-  endTime: number | string     // 🔴 允许字符串以保留精度
-  translation?: string  // 可选的中文翻译字段
-}
+import type { Sentence, Translation } from "@/types"
 
 interface DictationBoxProps {
   sentence: Sentence
@@ -336,7 +329,10 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
           {/* Second row: Translation text */}
           {showTranslation && (
             <p className="text-sm text-gray-600 italic">
-              {sentence.translation}
+              {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
+              {typeof sentence.translation === 'string'
+                ? sentence.translation
+                : (sentence.translation?.['zh'] || '')}
             </p>
           )}
         </div>

@@ -3,14 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
 import { intelligentMatch } from "@/lib/audio-checker"
-
-interface Sentence {
-  id: number
-  text: string
-  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
-  endTime: number | string     // 🔴 允许字符串以保留精度
-  translation?: string  // 可选的中文翻译字段
-}
+import type { Sentence, Translation } from "@/types"
 
 interface ShadowingPanelProps {
   sentence: Sentence
@@ -1255,7 +1248,10 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
               Translation:
             </p>
             <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed`}>
-              {sentence.translation}
+              {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
+              {typeof sentence.translation === 'string'
+                ? sentence.translation
+                : (sentence.translation?.['zh'] || '')}
             </p>
           </>
         )}

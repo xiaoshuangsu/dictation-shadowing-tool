@@ -2,14 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
-
-interface Sentence {
-  id: number
-  text: string
-  startTime: number | string  // 🔴 允许字符串以保留精度 (如 "9.10")
-  endTime: number | string     // 🔴 允许字符串以保留精度
-  translation?: string  // 可选的中文翻译字段
-}
+import type { Sentence } from "@/types"
 
 interface WordModeProps {
   sentence: Sentence
@@ -272,7 +265,10 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         {showTranslation && sentence.translation && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-sm text-gray-600 italic">
-              {sentence.translation}
+              {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
+              {typeof sentence.translation === 'string'
+                ? sentence.translation
+                : (sentence.translation?.['zh'] || '')}
             </p>
           </div>
         )}

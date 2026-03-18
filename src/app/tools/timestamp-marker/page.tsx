@@ -3,14 +3,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase/client"
-
-interface Sentence {
-  id: number
-  text: string
-  startTime: number | string
-  endTime: number | string
-  translation?: string
-}
+import type { Sentence } from "@/types"
 
 // 素材数据类型
 interface TimestampMaterial {
@@ -481,7 +474,12 @@ export default function TimestampMarker() {
                               </button>
                             </div>
                             <textarea
-                              value={sentence.translation || ''}
+                              value={
+                                /* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */
+                                typeof sentence.translation === 'string'
+                                  ? (sentence.translation || '')
+                                  : (sentence.translation?.['zh'] || '')
+                              }
                               onChange={(e) => {
                                 e.stopPropagation()
                                 updateSentenceTranslation(index, e.target.value)
@@ -497,7 +495,12 @@ export default function TimestampMarker() {
                         <div>
                           <p className="text-sm">{sentence.text || <span className="text-red-500 italic">Empty!</span>}</p>
                           {sentence.translation && (
-                            <p className="text-xs text-gray-500 mt-1">💭 {sentence.translation}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              💭 {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
+                              {typeof sentence.translation === 'string'
+                                ? sentence.translation
+                                : (sentence.translation?.['zh'] || '')}
+                            </p>
                           )}
                         </div>
                       )}
