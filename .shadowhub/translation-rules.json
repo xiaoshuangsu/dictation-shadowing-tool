@@ -1,5 +1,5 @@
 {
-  "version": "V20.1",
+  "version": "V20.2",
   "last_updated": "2026-03-18",
   "description": "翻译逻辑引擎 - 结构化规则，由 retranslate_with_glm_v20.py 自动加载",
 
@@ -270,42 +270,51 @@
 
     "chinese_word_order": {
       "description": "中式语序优化（状语前置原则）",
-      "rule": "强制要求将句尾的地点状语（如 in the US, at school）移动到中文句子的动作之前。注意：如果有连接词（In addition, Also, However），连接词放在最前面，然后是地点状语。",
+      "rule": "强制要求将句尾的地点状语移动到中文句子的动作之前。注意：只适用于修饰动作的地点状语，不适用于 be 动词后的表语或宾语。",
       "priority": "HIGH",
+      "distinction": "判断：地点短语是否修饰动作？如果是状语则前置，如果是表语/宾语则不前置。",
       "examples": [
         {
           "en": "In addition, many people play hockey in the United States.",
+          "analysis": "in the United States 是状语，修饰 play",
           "bad": "此外，许多人在美国打冰球。",
           "good": "此外，在美国，也有很多人打冰球。"
         },
         {
-          "en": "Many people play hockey in the US",
-          "bad": "许多人在美国打冰球。",
-          "good": "在美国，也有很多人打冰球。"
+          "en": "Also, they live in Canada.",
+          "analysis": "in Canada 是表语，不前置",
+          "good": "另外，他们住在加拿大。"
         },
         {
           "en": "Students study at school",
+          "analysis": "at school 是状语，修饰 study",
           "bad": "学生们在学校学习。",
           "good": "在学校，学生们学习。"
         },
         {
-          "en": "Also, they live in Canada",
-          "bad": "他们也住在加拿大。",
-          "good": "另外，在加拿大，他们居住。"
-        },
-        {
           "en": "I work at home",
+          "analysis": "at home 是状语，修饰 work",
           "bad": "我在家工作。",
           "good": "在家，我工作。"
+        },
+        {
+          "en": "She studied in the library",
+          "analysis": "in the library 是状语，修饰 studied",
+          "bad": "她在图书馆学习。",
+          "good": "在图书馆，她学习。"
+        },
+        {
+          "en": "The meeting was held in Beijing",
+          "analysis": "in Beijing 是状语，修饰 was held",
+          "bad": "会议在北京举行。",
+          "good": "在北京，举行了会议。"
         }
       ],
       "patterns": [
-        "连接词 + in [Place] → 连接词，在[Place]，...",
-        "连接词 + at [Place] → 连接词，在[Place]，...",
-        "in [Place] → 在[Place]，...",
-        "at [Place] → 在[Place]，...",
-        "on [Place] → 在[Place]上，...",
-        "from [Place] → 从[Place]，..."
+        "动词 + in [Place]（状语）→ 在[Place]，动词",
+        "动词 + at [Place]（状语）→ 在[Place]，动词",
+        "be动词 + in [Place]（表语）→ 不前置",
+        "be动词 + at [Place]（表语）→ 不前置"
       ]
     }
   },
