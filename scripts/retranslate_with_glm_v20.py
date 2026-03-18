@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-专业级上下文感知翻译脚本（V20.2 - 数据完整性校验版）
+专业级上下文感知翻译脚本（V20.3 - 智能合并版）
 使用 GLM-4 API 生成地道、具备上下文理解能力的翻译
 新增：时间戳合法性检查、强制对齐验证、结果分类汇报
 更新：中式语序优化规则（状语前置，含连接词处理）
+最新：智能句子合并（自动处理小写/连接词开头的句子）
 """
 
 import os
@@ -515,8 +516,60 @@ def process_material(material_id: str, video_title: str, category: str, difficul
     #         'geo_fixes': 0
     #     }
 
-    # 提取所有句子文本（只处理有 text 字段的句子）
-    valid_sentences = [(i, sent.get('text', '').strip()) for i, sent in enumerate(transcript) if sent.get('text', '').strip()]
+    # ═════════════════════════════════════════════════════════════════════════
+    # 智能句子合并预处理（方案3：允许合理合并）
+    # ═════════════════════════════════════════════════════════════════════════
+    # 检测需要合并的句子（小写字母开头、或以连接词开头）
+    merge_groups = []  # 记录哪些索引需要合并在一起
+    current_group = [0]
+
+    for i in range(1, len(transcript)):
+        prev_sent = transcript[i-1].get('text', '').strip()
+        curr_sent = transcript[i].get('text', '').strip()
+
+        if not curr_sent:
+            continue
+
+        # 检查当前句子是否应该与前一句合并
+        should_merge = False
+
+        # 情况1: 小写字母开头
+        if curr_sent and curr_sent[0].islower():
+            should_merge = True
+
+        # 情况2: 以连接词开头（小写）
+        connection_words = ['because', 'so', 'but', 'and', 'or', 'yet', 'for', 'nor']
+        if curr_sent:
+            first_word = curr_sent.split()[0].lower() if curr_sent.split() else ''
+            if first_word in connection_words:
+                should_merge = True
+
+        if should_merge:
+            current_group.append(i)
+        else:
+            merge_groups.append(current_group)
+            current_group = [i]
+
+    if current_group:
+        merge_groups.append(current_group)
+
+    print(f"   🔗 检测到 {len(merge_groups)} 个句子组（{sum(len(g) for g in merge_groups)} 句）")
+    merged_count = sum(len(g) - 1 for g in merge_groups if len(g) > 1)
+    if merged_count > 0:
+        print(f"   📝 将合并 {merged_count} 个小写/连接词开头的句子")
+
+    # 提取文本（按合并组）
+    valid_sentences = []
+    sentence_to_group = {}  # 映射：原始索引 -> 组索引
+    group_to_sentences = {}  # 映射：组索引 -> [原始索引列表]
+
+    for group_idx, group in enumerate(merge_groups):
+        group_to_sentences[group_idx] = group
+        for sent_idx in group:
+            sentence_to_group[sent_idx] = group_idx
+            text = transcript[sent_idx].get('text', '').strip()
+            if text:
+                valid_sentences.append((sent_idx, text))
 
     if not valid_sentences:
         print(f"❌ 无有效句子")
@@ -526,8 +579,30 @@ def process_material(material_id: str, video_title: str, category: str, difficul
             'geo_fixes': 0
         }
 
-    # 提取文本列表用于翻译
-    texts = [text for _, text in valid_sentences]
+    # 提取文本列表用于翻译（按合并组）
+    texts = []
+    group_text_map = {}  # 组索引 -> 合并后的文本
+    group_sentence_map = {}  # 组索引 -> [原始句子索引]
+
+    for group_idx, group in enumerate(merge_groups):
+        group_texts = []
+        group_sentence_indices = []
+        for sent_idx in group:
+            text = transcript[sent_idx].get('text', '').strip()
+            if text:
+                group_texts.append(text)
+                group_sentence_indices.append(sent_idx)
+
+        # 合并同一组的文本
+        if len(group_texts) == 1:
+            merged_text = group_texts[0]
+        else:
+            # 用空格连接多句话
+            merged_text = ' '.join(group_texts)
+
+        texts.append(merged_text)
+        group_text_map[group_idx] = merged_text
+        group_sentence_map[group_idx] = group_sentence_indices
 
     # 分批翻译（每批 8 句）
     batch_size = 8
@@ -602,14 +677,29 @@ def process_material(material_id: str, video_title: str, category: str, difficul
             'geo_fixes': geo_fixes
         }
 
-    # 更新 transcript（按原始索引）
+    # 更新 transcript（按合并组分配翻译）
     updated_transcript = []
     trans_idx = 0
+
     for sent in transcript:
         sent_copy = sent.copy()
-        if sent.get('text', '').strip() and trans_idx < len(all_translations):
-            sent_copy['translation'] = {"zh": all_translations[trans_idx]}
-            trans_idx += 1
+        text = sent.get('text', '').strip()
+
+        if text:
+            # 找到这个句子属于哪个组
+            sent_idx = transcript.index(sent)
+            group_idx = sentence_to_group.get(sent_idx, -1)
+
+            if group_idx >= 0 and group_idx < len(all_translations):
+                # 使用该组的翻译
+                sent_copy['translation'] = {"zh": all_translations[group_idx]}
+            else:
+                # 理论上不应该到这里
+                print(f"⚠️  句子 {sent_idx} 找不到对应组")
+        else:
+            # 空句子，保持原样
+            pass
+
         updated_transcript.append(sent_copy)
 
     # 写入数据库
