@@ -1,0 +1,431 @@
+#!/usr/bin/env python3
+"""
+专业级上下文感知翻译脚本（V19.1 - 三道防线版）
+使用 GLM-4 API 生成地道、具备上下文理解能力的翻译
+"""
+
+import os
+import sys
+import json
+import time
+from pathlib import Path
+from typing import List, Dict, Optional
+from supabase import create_client
+import requests
+
+# 加载 .env.local
+env_local_path = Path(__file__).parent.parent / '.env.local'
+if env_local_path.exists():
+    with open(env_local_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                os.environ[key.strip()] = value.strip()
+
+# GLM API 配置
+GLM_API_KEY = os.environ.get("GLM_API_KEY")
+
+# Supabase 配置
+SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 三道防线：System Prompt V19.5（口语终极版）
+# ══════════════════════════════════════════════════════════════════════════════
+
+SYSTEM_PROMPT = """你是一位专业的英汉翻译专家。严格遵守以下规则：
+
+【绝对规则】（强制执行）：
+⚠️ **严禁将不同编号的句子合并翻译，即使句子不完整或以逗号结尾！**
+每个编号对应一个独立的翻译，返回数组的每个元素只能包含一个编号的翻译。
+
+【口语终极准则】（必须遵守）：
+
+1️⃣ 拒绝"词典中文"：
+- You were joking? → "你逗我呢？"或"你耍我啊？"（❌ "你在开玩笑吗？"）
+- I got you! (整蛊语境) → "嘿嘿，上当了吧？"（❌ "我捉到你了"）
+- Pulling my leg → "拿我开涮"或"忽悠我"（❌ "拉我的腿"）
+- I got you, though. Didn't I? → "嘿嘿，上当了吧？是不是？"
+
+2️⃣ 情绪对齐：
+- Thanks for saying those nice things... (整蛊后) → "不过，谢啦，难得听你这么夸我。"
+- 传达整蛊成功后的调侃+感谢的复杂情绪
+
+3️⃣ 语气词强制要求：
+- 非正式口语必须带有："啊、呢、吧、嘛、哩、哈"
+- 没有语气词的口语翻译一律判定为失败
+
+【分类风格规则】（重要）：
+- 科学类（TED演讲/科普）：术语严谨，不带个人情绪，不使用语气词
+- 职场类（正式对话）：用词正式，不使用口语俚语，语气中性
+- 日常生活类（对话）：使用口语俚语，必须包含语气词
+
+【示例对照】（B 站/短视频风格）：
+日常对话类（非正式）：
+1. You were joking?
+   → 你逗我呢？
+
+2. You were pulling my leg that whole time?
+   → 你一直都在拿我开涮啊？
+
+3. You.
+   → 你呀。
+
+4. I can't believe it.
+   → 我都不敢信了！
+
+5. I got you, though. Didn't I?
+   → 嘿嘿，上当了吧？
+
+6. Thanks for saying those nice things about me, though.
+   → 不过，谢啦，难得听你这么夸我。
+
+7. It's nice to know what you think about me.
+   → 知道你这么想我，挺开心的。
+
+正式/演讲类（更规范）：
+1. When faced with a big challenge...
+   → 面对重大挑战，似乎失败隐藏在每个角落时，
+
+2. Be more confident.
+   → 更自信点。
+
+3. Take the belief that you are valuable...
+   → 采取这一信念：你是有价值、值得且有能力的。
+
+【词汇规则】：
+- lurk → "隐藏"（❌ "潜伏"）
+- that comes when → "源于...所带来的..."
+- Take the belief that → "采取这一信念：..."
+- certain → "笃定"（❌ "确信"）
+
+【禁止词汇】：
+- ❌ 严禁：捉到、玩笑、拉腿（pulling my leg 的字面翻译）
+- ❌ 严禁：明灯、光芒、道路、旅程
+
+【输出格式】：
+返回 JSON：{"translations": ["翻译1", "翻译2", ...]}
+⚠️ 如果输入 8 句，必须返回 8 个翻译，不能多也不能少！
+"""
+
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+def has_geographic_issue(translation: str) -> bool:
+    """检测翻译是否有地理问题"""
+    problematic_patterns = [
+        "之上", "下方", "之上方", "下方在", "触碰地面", "光触碰"
+    ]
+    return any(pattern in translation for pattern in problematic_patterns)
+
+
+def fix_geographic_translation(original_en: str, bad_translation: str, video_title: str) -> Optional[str]:
+    """修复地理问题翻译（单句重试）"""
+    url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+
+    headers = {
+        "Authorization": f"Bearer {GLM_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    retry_prompt = f"""请修复以下翻译中的地理问题：
+
+原文：{original_en}
+错误翻译：{bad_translation}
+视频标题：{video_title}
+
+⚠️ 地理常识补丁：
+- above, north of → 以北（严禁："之上"）
+- below, south of → 以南（严禁："下方"）
+- light touches ground → 阳光洒向大地（严禁："光触碰地面"）
+
+请提供修正后的翻译，只返回翻译结果："""
+
+    payload = {
+        "model": "glm-4-flash",
+        "messages": [
+            {"role": "user", "content": retry_prompt}
+        ],
+        "temperature": 0.2,
+        "max_tokens": 200
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        result = response.json()
+        
+        if 'choices' in result and len(result['choices']) > 0:
+            return result['choices'][0]['message']['content'].strip()
+        return bad_translation  # 保持原翻译
+    except:
+        return bad_translation
+
+
+def translate_batch(texts: List[str], video_title: str, category: str, difficulty: str) -> List[str]:
+    """批量翻译（三道防线 V19.2 版）"""
+
+    # 构建带编号的列表格式输入
+    numbered_list = "\n".join([f"{i+1}. [{text}]" for i, text in enumerate(texts)])
+
+    url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GLM_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "glm-4-flash",
+        "messages": [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"""请翻译以下 {len(texts)} 行字幕：
+
+**视频标题**: {video_title}
+**分类**: {category}
+**难度**: {difficulty}
+
+字幕内容（带编号）：
+{numbered_list}
+
+⚠️ 强制要求：
+1. 参考示例中的翻译风格和句式
+2. lurk 翻译为"隐藏"（不要用"潜伏"）
+3. that comes when 翻译为"源于...所带来的..."
+4. Take the belief that 翻译为"采取这一信念：..."
+5. certain 翻译为"笃定"
+6. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
+        ],
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"}
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        result = response.json()
+
+        if 'choices' in result and len(result['choices']) > 0:
+            content = result['choices'][0]['message']['content'].strip()
+            data = json.loads(content)
+            translations = data.get('translations', [])
+
+            # 验证返回格式
+            if not isinstance(translations, list):
+                print(f"      ⚠️  返回格式错误：不是数组")
+                return ["" for _ in texts]
+
+            if len(translations) != len(texts):
+                print(f"      ⚠️  返回行数不匹配：{len(translations)}/{len(texts)}")
+                # 行数不匹配时，按原文长度填充
+                while len(translations) < len(texts):
+                    translations.append("")
+                return translations[:len(texts)]
+
+            # 检查是否有脑补内容（如"明灯"、"光芒"等）
+            for trans in translations:
+                if any(word in trans for word in ['明灯', '光芒', '就像', '仿佛', '展现']):
+                    print(f"      ⚠️  检测到脑补内容: {trans[:50]}...")
+
+            return translations
+        else:
+            print(f"      ⚠️  API 返回格式异常")
+            return ["" for _ in texts]
+
+    except json.JSONDecodeError as e:
+        print(f"      ❌ JSON 解析失败: {str(e)[:50]}")
+        return ["" for _ in texts]
+    except Exception as e:
+        print(f"      ❌ 翻译失败: {str(e)[:50]}")
+        return ["" for _ in texts]
+
+
+def process_material(material_id: str, video_title: str, category: str, difficulty: str, transcript: List[Dict], supabase_client) -> bool:
+    """处理单个素材的翻译"""
+
+    print(f"\n{'─'*80}")
+    print(f"🎬 {video_title}")
+    print(f"📝 {len(transcript)} 句 | 📂 {category} | 🎯 {difficulty}")
+    print(f"{'─'*80}")
+
+    # 提取所有句子文本（只处理有 text 字段的句子）
+    valid_sentences = [(i, sent.get('text', '').strip()) for i, sent in enumerate(transcript) if sent.get('text', '').strip()]
+
+    if not valid_sentences:
+        print(f"❌ 无有效句子")
+        return False
+
+    # 提取文本列表用于翻译
+    texts = [text for _, text in valid_sentences]
+
+    # 分批翻译（每批 8 句）
+    batch_size = 8
+    all_translations = []
+    geo_fixes = 0
+
+    for i in range(0, len(texts), batch_size):
+        batch_texts = texts[i:i+batch_size]
+        batch_num = i // batch_size + 1
+        total_batches = (len(texts) + batch_size - 1) // batch_size
+
+        print(f"   📦 批次 {batch_num}/{total_batches} ({len(batch_texts)} 句)...", end="", flush=True)
+
+        # 翻译当前批次
+        translations = translate_batch(batch_texts, video_title, category, difficulty)
+        all_translations.extend(translations)
+
+        # 检查地理问题并自动修复
+        for j, trans in enumerate(translations):
+            if has_geographic_issue(trans):
+                geo_fixes += 1
+                original = batch_texts[j]  # batch_texts 是字符串列表
+                fixed = fix_geographic_translation(original, trans, video_title)
+                if fixed and fixed != trans:
+                    all_translations[i+j] = fixed
+                    print(f" [地理修复]", end="", flush=True)
+
+        print(f" ✓")
+        time.sleep(0.3)  # 避免 API 频率限制
+
+    # 更新 transcript（按原始索引）
+    updated_transcript = []
+    trans_idx = 0
+    for sent in transcript:
+        sent_copy = sent.copy()
+        if sent.get('text', '').strip() and trans_idx < len(all_translations):
+            sent_copy['translation'] = {"zh": all_translations[trans_idx]}
+            trans_idx += 1
+        updated_transcript.append(sent_copy)
+
+    # 写入数据库
+    try:
+        supabase_client.table('materials').update({
+            'transcript': updated_transcript
+        }).eq('id', material_id).execute()
+
+        print(f"✅ 完成 | 地理修复: {geo_fixes} 句")
+        return True
+
+    except Exception as e:
+        print(f"❌ 数据库更新失败: {str(e)[:100]}")
+        return False
+
+
+def main():
+    """主函数"""
+    
+    # 参数
+    MODE = os.environ.get("MODE", "full")  # full | demo | single
+    SINGLE_ID = os.environ.get("SINGLE_ID")  # 单个素材 ID
+    LIMIT = int(os.environ.get("LIMIT", "0"))  # 限制处理数量
+    
+    supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    
+    print("="*100)
+    print("🌍 专业级上下文感知翻译脚本 V19.1 - 三道防线版")
+    print("="*100)
+    print(f"\n📋 模式: {MODE}")
+    
+    if MODE == "single":
+        # 单个素材模式
+        print(f"\n🎯 素材 ID: {SINGLE_ID}")
+        
+        result = supabase.table('materials').select('*').eq('id', SINGLE_ID).execute()
+        if not result.data:
+            print(f"❌ 未找到素材")
+            return
+        
+        material = result.data[0]
+        process_material(
+            material['id'],
+            material['title'],
+            material['category'],
+            material['difficulty'],
+            material.get('transcript', []),
+            supabase
+        )
+        
+    elif MODE == "demo":
+        # 演示模式：只翻译 5 个素材
+        demo_titles = [
+            "April Fool's Day Joke _ English Conversation",
+            "What If The Earth Stopped Orbiting The Sun",
+            "Corruption",
+            "Handel's 'Messiah'",
+            "3 tips to boost your confidence - TED-Ed"
+        ]
+        
+        print(f"\n🎯 演示素材: {len(demo_titles)} 个")
+        
+        for title in demo_titles:
+            result = supabase.table('materials').select('*').eq('title', title).execute()
+            if result.data:
+                material = result.data[0]
+                process_material(
+                    material['id'],
+                    material['title'],
+                    material['category'],
+                    material['difficulty'],
+                    material.get('transcript', []),
+                    supabase
+                )
+    
+    else:
+        # 全量模式：翻译所有素材
+        print(f"\n🚀 全量翻译模式")
+        
+        # 查询所有需要翻译的素材
+        result = supabase.table('materials').select('*').order('id').execute()
+        
+        materials = result.data
+        
+        if LIMIT > 0:
+            materials = materials[:LIMIT]
+            print(f"\n📊 限制处理前 {LIMIT} 个素材")
+        
+        print(f"\n📊 总素材数: {len(materials)}")
+        
+        success_count = 0
+        skip_count = 0
+        
+        for material in materials:
+            transcript = material.get('transcript', [])
+            
+            # 检查是否需要翻译
+            needs_translation = False
+            for sent in transcript:
+                trans = sent.get('translation')
+                zh = trans.get('zh', '') if isinstance(trans, dict) else trans
+                if not zh:
+                    needs_translation = True
+                    break
+            
+            if not needs_translation:
+                skip_count += 1
+                continue
+            
+            # 处理素材
+            if process_material(
+                material['id'],
+                material['title'],
+                material['category'],
+                material['difficulty'],
+                transcript,
+                supabase
+            ):
+                success_count += 1
+
+                # 每个素材一个 commit
+                # Git commit 将在主流程中处理
+            else:
+                print(f"\n⚠️  跳过素材: {material['title']}")
+        
+        print(f"\n{'='*100}")
+        print(f"✅ 翻译完成")
+        print(f"{'='*100}")
+        print(f"\n📊 统计:")
+        print(f"   成功: {success_count} 个")
+        print(f"   跳过: {skip_count} 个")
+        print(f"   总计: {len(materials)} 个")
+
+
+if __name__ == "__main__":
+    main()

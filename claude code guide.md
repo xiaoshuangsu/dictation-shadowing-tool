@@ -166,6 +166,216 @@ const translation = typeof sentence.translation === 'string'
 
 ---
 
+## 📈 翻译质量提升总结 (V19.1)
+
+### 问题发现与修复历程
+
+#### 问题 1：数据库写入失败 ❌
+**症状**：翻译 API 调用成功，但数据库中 `translation.zh` 字段为空
+
+**根本原因**：
+- 使用 `anon_key` 进行数据库更新，权限不足
+- 虽然 API 返回 200 OK，但实际数据未写入
+
+**解决方案**：
+```python
+# ❌ 错误：使用 anon_key
+SUPABASE_KEY = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+
+# ✅ 正确：使用 service_role_key
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+```
+
+---
+
+#### 问题 2：口语俚语直译 ❌
+**症状**：
+- "I got you, though. Didn't I?" → "我懂你意思"（错误）
+- "You were pulling my leg that whole time?" → 字面翻译（错误）
+
+**根本原因**：
+- Prompt 缺少口语俚语专项规则
+- 模型按字面意思翻译，未考虑语境
+
+**解决方案**：添加口语俚语专项规则
+```python
+SYSTEM_PROMPT = """**口语俚语专项规则（必须遵守）**:
+
+1️⃣  **习惯用语处理（严禁字面翻译）**:
+   - pull someone's leg → 拿我开涮 / 忽悠我 / 戏弄我
+   - I got you → 你上当了 / 我骗到你了 / 中计了吧
+   - kidding / joking → 开玩笑 / 闹着玩
+   - Just kidding → 闹着玩的 / 跟你开玩笑呢
+
+2️⃣  **情绪对齐（必须传达）**:
+   - 愚人节语境 → 整蛊、调侃、惊讶
+   - 被骗后的反应 → 恍然大悟、难以置信
+   - 语气要生动、有戏剧性
+"""
+```
+
+**改进效果**：
+- ✅ "I got you, though. Didn't I?" → "你上当了，对吧？哈，我骗到你了嘛！"
+- ✅ "You were pulling my leg that whole time?" → "你刚才一直在拿我开涮呢？"
+
+---
+
+#### 问题 3：过度翻译 ❌❌
+**症状**：
+- "Be more confident" → "要更加自信哦，勇敢地展现你的光芒，相信自己，你一定可以做到！"
+- 增加了原文没有的大量修饰词
+
+**根本原因**：
+- 长难句被时间戳拆分为多个短句
+- 模型处理单句时为了"补全逻辑"而增加修饰词
+- Prompt 缺少"极简主义"约束
+
+**解决方案**：全段落感知 + 极简主义
+
+**A. 全段落感知**
+```python
+# ❌ 错误：逐句翻译，缺少上下文
+for sentence in sentences:
+    translation = call_api(sentence)  # 单句翻译
+
+# ✅ 正确：全段落翻译
+full_context = "\n".join([f"{i+1}. {s.text}" for i, s in enumerate(sentences)])
+translations = call_api(full_context)  # 整段翻译
+```
+
+**B. 极简主义约束**
+```python
+SYSTEM_PROMPT = """**核心原则：简洁、准确、不过度修饰**
+
+1️⃣  **极简主义**:
+   - 译文长度应控制在英文原句长度的 1.0-1.5 倍
+   - 严禁为了"完整"而增加修饰词
+   - 能用 3 个字表达的，绝不用 5 个字
+
+2️⃣  **禁止添加（No Adding）**:
+   ❌ 禁止添加：'一些'、'一点'、'哦'、'吧'、'呢'、'啊'、'呀'等填充词
+   ❌ 禁止添加：原文没有的形容词、副词
+   ❌ 禁止为了"让句子完整"而增加连接词
+"""
+```
+
+**改进效果**：
+- ✅ "Be more confident" → "更自信一点。"（简洁、准确）
+- ✅ "When faced with a big challenge..." → "面对重大挑战，似乎失败在每个角落潜伏时，"
+
+---
+
+### 🎯 最终 Prompt 架构
+
+**System Prompt 组成部分**：
+```python
+SYSTEM_PROMPT = f"""你是一位专业的英译中翻译专家。
+
+**当前视频**: {title}
+**分类**: {category}
+**领域特点**: {focus}
+
+**翻译指导**: {instruction}
+
+**口语俚语专项规则（必须遵守）**:
+1. 习惯用语处理（严禁字面翻译）
+2. 情绪对齐（根据视频类型调整语气）
+3. 拒绝课本中文（使用语气助词：啊、呢、嘛、哈）
+
+**极简主义原则**:
+1. 译文长度控制在 1.0-1.5 倍
+2. 严禁增加填充词（'一些'、'一点'、'哦'、'吧'）
+3. 能用 3 个字表达的，绝不用 5 个字
+
+**地理常识补丁（严禁违反）**:
+- above, north of → 以北（❌ "之上"、"上方"）
+- below, south of → 以南（❌ "之下"、"下方"）
+
+请翻译成地道的中文，只返回翻译结果。
+"""
+```
+
+---
+
+### 📊 修复效果对比
+
+| 测试句子 | 修复前 | 修复后 |
+|----------|--------|--------|
+| You were joking? | 你是在开玩笑吗？ | 你开玩笑吧？ |
+| You were pulling my leg? | （字面翻译） | 你刚才一直在拿我开涮呢？ |
+| I got you, though. Didn't I? | 我懂你意思 | 你上当了，对吧？哈，我骗到你了嘛！ |
+| Be more confident | 要更加自信哦，勇敢地展现你的光芒... | 更自信一点。 |
+| Maybe you've heard this advice | 也许你之前已经听过这样的建议了 | 可能你之前已经听过这建议了 |
+
+---
+
+### 🔑 关键技术要点
+
+#### 1. 数据库权限
+```python
+# 必须使用 service_role_key 进行数据库更新
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+```
+
+#### 2. 全段落翻译
+```python
+# 构建完整上下文
+full_context = "\n".join([f"{i+1}. {s.text}" for i, s in enumerate(sentences)])
+
+# 要求模型返回对应行数的翻译
+payload = {
+    "messages": [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"请翻译以下 {len(sentences)} 行字幕：\n\n{full_context}"}
+    ],
+    "response_format": {"type": "json_object"}  # 返回 JSON 格式
+}
+```
+
+#### 3. 批量处理策略
+```python
+# 分批翻译（每批 8 句）
+batch_size = 8
+for i in range(0, len(sentences), batch_size):
+    batch = sentences[i:i+batch_size]
+    # 翻译当前批次
+    translations = call_api_batch(batch)
+
+    # 每 10 句保存一次数据库
+    if (i + batch_size) % 10 == 0:
+        supabase.table('materials').update({
+            'transcript': transcript
+        }).eq('id', material_id).execute()
+```
+
+---
+
+### ✅ 验证标准
+
+**质量检查清单**：
+- [ ] 无"美国之上"等地理问题
+- [ ] 无"光触碰地面"等非人类表述
+- [ ] 口语俚语正确处理（如 pull leg → 开涮）
+- [ ] 无过度翻译（字数比 < 1.5x）
+- [ ] 语气符合视频类型（整蛊、科普、正式等）
+- [ ] 无"课本中文"（避免"你是在...吗？"）
+
+---
+
+### 📝 后续优化方向
+
+1. **上下文窗口扩大**：前后各 5 句，而不仅仅是前后各 2 句
+2. **视频类型自适应**：根据视频类型（日常对话、科普、艺术等）动态调整 Prompt
+3. **单句重试机制**：检测到地理问题或过度翻译时，自动触发单句重试
+4. **翻译质量评分**：建立自动评分机制，筛选低质量翻译进行人工审核
+
+---
+
+**版本**: V19.1
+**更新日期**: 2026-03-18
+
+---
+
 # ⚠️ 重要交互准则 (Sarah's Identity & Interaction)
 * **用户身份**：Sarah（非开发者，不具备代码编写能力）。
 * **沟通语言**：必须全程使用 **中文**。

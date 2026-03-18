@@ -1,5 +1,35 @@
 # Changelog
 
+## [19.1.0] - 2026-03-17
+
+### Added
+- **多领域语境自适应翻译系统** 🎯
+  - V19.5 System Prompt：根据素材分类自动选择翻译风格
+  - 科学科普类：术语严谨，不带情绪，无语气词
+  - 职场正式类：用词正式，无口语俚语
+  - 日常生活类：口语俚语 + 强制语气词（啊、呢、吧、嘛）
+
+### Fixed
+- **口语翻译质量大幅提升** 💬
+  - 拒绝"词典中文"：You were joking → "你逗我呢？"（非"你在开玩笑吗"）
+  - 俚语正确处理：pulling my leg → "拿我开涮"（非"拉我的腿"）
+  - 整蛊语境对齐：I got you → "嘿嘿，上当了吧？"（非"我捉到你了"）
+  - 情绪对齐：Thanks for saying those nice things → "不过，谢啦，难得听你这么夸我"
+
+### Improved
+- **格式化约束机制** 📏
+  - 物理隔离：带编号列表输入，严禁句子合并
+  - 长句拆分：that comes when → "源于...所带来的..."
+  - 引导句处理：Take the belief that → "采取这一信念：..."
+  - 不完整句处理：逗号结尾的句子保持不完整状态
+
+### Technical Details
+- 更新文件：
+  - `scripts/retranslate_with_glm_v19.py` - V19.5 多领域语境自适应翻译脚本
+  - `claude code guide.md` - 更新多语言翻译功能升级文档（V19.1）
+  - `POTOKEN_GUIDE.md` - YouTube PO Token 获取指南
+  - `scripts/requirements.txt` - Python 依赖列表
+
 ## [19.0.0] - 2026-03-17
 
 ### Added

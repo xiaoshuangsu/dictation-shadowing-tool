@@ -1,0 +1,2 @@
+# YouTube 字幕抓取所需依赖
+youtube-transcript-api==0.6.2
