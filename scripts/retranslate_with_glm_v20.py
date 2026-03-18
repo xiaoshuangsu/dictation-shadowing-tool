@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-专业级上下文感知翻译脚本（V20.3 - 智能合并版）
+专业级上下文感知翻译脚本（V20.4 - 上下文窗口版）
 使用 GLM-4 API 生成地道、具备上下文理解能力的翻译
 新增：时间戳合法性检查、强制对齐验证、结果分类汇报
 更新：中式语序优化规则（状语前置，含连接词处理）
-最新：智能句子合并（自动处理小写/连接词开头的句子）
+最新：上下文窗口模式（逐句翻译，带前后文语境，保持1:1对齐）
 """
 
 import os
@@ -318,6 +318,97 @@ def validate_alignment(source_count: int, translations: List[str]) -> bool:
     return len(translations) == source_count
 
 
+def translate_with_context(texts: List[str], video_title: str, category: str, difficulty: str) -> List[str]:
+    """
+    单句翻译模式（带上下文窗口）
+    为每句话提供前后各2句作为上下文，但只翻译当前句
+    保持严格的1:1对齐
+    """
+    url = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GLM_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    context_window = 2  # 前后各2句作为上下文
+
+    translations = []
+
+    for i, text in enumerate(texts):
+        # 构建上下文
+        context_before = []
+        context_after = []
+
+        # 收集前文
+        for j in range(max(0, i - context_window), i):
+            context_before.append(f"  [{j+1}] {texts[j]}")
+
+        # 收集后文
+        for j in range(i + 1, min(len(texts), i + context_window + 1)):
+            context_after.append(f"  [{j+1}] {texts[j]}")
+
+        # 构建prompt
+        context_str = ""
+        if context_before:
+            context_str += "【前文上下文】：\n" + "\n".join(context_before) + "\n\n"
+
+        context_str += f"【当前句（第{i+1}句）】：\n  [{i+1}] {text}\n"
+
+        if context_after:
+            context_str += "\n【后文上下文】：\n" + "\n".join(context_after)
+
+        user_prompt = f"""请翻译以下字幕的第{i+1}句，参考前后文的语境：
+
+**【当前视频】：{video_title}**
+**分类**: {category}
+**难度**: {difficulty}
+
+{context_str}
+
+⚠️ 翻译要求：
+1. 只翻译第{i+1}句，不要翻译其他句子
+2. 结合前后文的语境理解，但保持第{i+1}句的独立性
+3. 严格遵守翻译规则（口语化、状语前置、体育术语等）
+
+请只返回第{i+1}句的中文翻译："""
+
+        payload = {
+            "model": "glm-4-flash",
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            "temperature": 0.2,
+            "max_tokens": 500
+        }
+
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            result = response.json()
+
+            if 'choices' in result and len(result['choices']) > 0:
+                translation = result['choices'][0]['message']['content'].strip()
+                # 清理可能的编号前缀
+                translation = translation.replace(f"[{i+1}]", "").strip()
+                translations.append(translation)
+
+                # 显示进度（每10句显示一次）
+                if (i + 1) % 10 == 0:
+                    print(f"   进度: {i+1}/{len(texts)}", end="\r", flush=True)
+            else:
+                print(f"      ⚠️  第{i+1}句翻译失败")
+                translations.append("")  # 空翻译占位
+
+        except Exception as e:
+            print(f"      ❌ 第{i+1}句翻译异常: {str(e)[:30]}")
+            translations.append("")
+
+        time.sleep(0.2)  # 避免API频率限制
+
+    print()  # 换行
+    return translations
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 
 def has_geographic_issue(translation: str) -> bool:
@@ -516,60 +607,8 @@ def process_material(material_id: str, video_title: str, category: str, difficul
     #         'geo_fixes': 0
     #     }
 
-    # ═════════════════════════════════════════════════════════════════════════
-    # 智能句子合并预处理（方案3：允许合理合并）
-    # ═════════════════════════════════════════════════════════════════════════
-    # 检测需要合并的句子（小写字母开头、或以连接词开头）
-    merge_groups = []  # 记录哪些索引需要合并在一起
-    current_group = [0]
-
-    for i in range(1, len(transcript)):
-        prev_sent = transcript[i-1].get('text', '').strip()
-        curr_sent = transcript[i].get('text', '').strip()
-
-        if not curr_sent:
-            continue
-
-        # 检查当前句子是否应该与前一句合并
-        should_merge = False
-
-        # 情况1: 小写字母开头
-        if curr_sent and curr_sent[0].islower():
-            should_merge = True
-
-        # 情况2: 以连接词开头（小写）
-        connection_words = ['because', 'so', 'but', 'and', 'or', 'yet', 'for', 'nor']
-        if curr_sent:
-            first_word = curr_sent.split()[0].lower() if curr_sent.split() else ''
-            if first_word in connection_words:
-                should_merge = True
-
-        if should_merge:
-            current_group.append(i)
-        else:
-            merge_groups.append(current_group)
-            current_group = [i]
-
-    if current_group:
-        merge_groups.append(current_group)
-
-    print(f"   🔗 检测到 {len(merge_groups)} 个句子组（{sum(len(g) for g in merge_groups)} 句）")
-    merged_count = sum(len(g) - 1 for g in merge_groups if len(g) > 1)
-    if merged_count > 0:
-        print(f"   📝 将合并 {merged_count} 个小写/连接词开头的句子")
-
-    # 提取文本（按合并组）
-    valid_sentences = []
-    sentence_to_group = {}  # 映射：原始索引 -> 组索引
-    group_to_sentences = {}  # 映射：组索引 -> [原始索引列表]
-
-    for group_idx, group in enumerate(merge_groups):
-        group_to_sentences[group_idx] = group
-        for sent_idx in group:
-            sentence_to_group[sent_idx] = group_idx
-            text = transcript[sent_idx].get('text', '').strip()
-            if text:
-                valid_sentences.append((sent_idx, text))
+    # 提取所有句子文本（只处理有 text 字段的句子）
+    valid_sentences = [(i, sent.get('text', '').strip()) for i, sent in enumerate(transcript) if sent.get('text', '').strip()]
 
     if not valid_sentences:
         print(f"❌ 无有效句子")
@@ -579,35 +618,39 @@ def process_material(material_id: str, video_title: str, category: str, difficul
             'geo_fixes': 0
         }
 
-    # 提取文本列表用于翻译（按合并组）
-    texts = []
-    group_text_map = {}  # 组索引 -> 合并后的文本
-    group_sentence_map = {}  # 组索引 -> [原始句子索引]
+    # 提取文本列表用于翻译
+    texts = [text for _, text in valid_sentences]
 
-    for group_idx, group in enumerate(merge_groups):
-        group_texts = []
-        group_sentence_indices = []
-        for sent_idx in group:
-            text = transcript[sent_idx].get('text', '').strip()
-            if text:
-                group_texts.append(text)
-                group_sentence_indices.append(sent_idx)
+    # ═════════════════════════════════════════════════════════════════════════
+    # 智能翻译模式选择
+    # ═════════════════════════════════════════════════════════════════════════
+    # 心灵故事类素材使用上下文窗口模式（逐句翻译，带前后文语境）
+    use_context_mode = (
+        category == "心灵故事" or
+        "Motivational" in video_title or
+        "Mindfulness" in video_title or
+        os.environ.get("USE_CONTEXT_MODE", "false").lower() == "true"
+    )
 
-        # 合并同一组的文本
-        if len(group_texts) == 1:
-            merged_text = group_texts[0]
-        else:
-            # 用空格连接多句话
-            merged_text = ' '.join(group_texts)
+    if use_context_mode:
+        print(f"   🔍 使用上下文窗口模式（逐句翻译）")
+        all_translations = translate_with_context(texts, video_title, category, difficulty)
+        geo_fixes = 0
 
-        texts.append(merged_text)
-        group_text_map[group_idx] = merged_text
-        group_sentence_map[group_idx] = group_sentence_indices
-
-    # 分批翻译（每批 8 句）
-    batch_size = 8
-    all_translations = []
-    geo_fixes = 0
+        # 检查地理问题并自动修复（上下文模式）
+        for i, trans in enumerate(all_translations):
+            if has_geographic_issue(trans):
+                geo_fixes += 1
+                original = texts[i]
+                fixed = fix_geographic_translation(original, trans, video_title)
+                if fixed and fixed != trans:
+                    all_translations[i] = fixed
+                    print(f"   [地理修复: 第{i+1}句]")
+    else:
+        # 分批翻译（每批 8 句）
+        batch_size = 8
+        all_translations = []
+        geo_fixes = 0
 
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i:i+batch_size]
@@ -677,29 +720,14 @@ def process_material(material_id: str, video_title: str, category: str, difficul
             'geo_fixes': geo_fixes
         }
 
-    # 更新 transcript（按合并组分配翻译）
+    # 更新 transcript（按原始索引）
     updated_transcript = []
     trans_idx = 0
-
     for sent in transcript:
         sent_copy = sent.copy()
-        text = sent.get('text', '').strip()
-
-        if text:
-            # 找到这个句子属于哪个组
-            sent_idx = transcript.index(sent)
-            group_idx = sentence_to_group.get(sent_idx, -1)
-
-            if group_idx >= 0 and group_idx < len(all_translations):
-                # 使用该组的翻译
-                sent_copy['translation'] = {"zh": all_translations[group_idx]}
-            else:
-                # 理论上不应该到这里
-                print(f"⚠️  句子 {sent_idx} 找不到对应组")
-        else:
-            # 空句子，保持原样
-            pass
-
+        if sent.get('text', '').strip() and trans_idx < len(all_translations):
+            sent_copy['translation'] = {"zh": all_translations[trans_idx]}
+            trans_idx += 1
         updated_transcript.append(sent_copy)
 
     # 写入数据库
