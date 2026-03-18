@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-专业级上下文感知翻译脚本（V20.0 - 数据完整性校验版）
+专业级上下文感知翻译脚本（V20.2 - 数据完整性校验版）
 使用 GLM-4 API 生成地道、具备上下文理解能力的翻译
 新增：时间戳合法性检查、强制对齐验证、结果分类汇报
+更新：中式语序优化规则（状语前置，含连接词处理）
 """
 
 import os
@@ -235,6 +236,23 @@ SYSTEM_PROMPT = """你是一位专业的英汉翻译专家。严格遵守以下�
 - below, south of → "以南"（❌ "之下"、"下方"）
 - next to → "相邻"（❌ "旁边"）
 - light touches ground → "阳光洒向大地"（❌ "光触碰地面"）
+
+【中式语序优化】（状语前置原则 - HIGH 优先级）：
+- ⚠️ 强制要求：将句尾的地点状语移动到中文句子的动作之前
+- 如果有连接词（In addition, Also, However），连接词在最前面，然后是地点状语
+- 示例：
+  * In addition, many people play hockey in the United States.
+    → "此外，在美国，也有很多人打冰球。"
+    ❌ "此外，许多人在美国打冰球。"
+  * Many people play hockey in the US
+    → "在美国，也有很多人打冰球。"
+    ❌ "许多人在美国打冰球。"
+  * Also, they live in Canada
+    → "另外，在加拿大，他们居住。"
+    ❌ "他们也住在加拿大。"
+  * Students study at school
+    → "在学校，学生们学习。"
+    ❌ "学生们在学校学习。"
 
 【全段落感知 + 极简主义】（必须遵守）：
 - 极简主义：能用 3 个字表达的，绝不用 5 个字
