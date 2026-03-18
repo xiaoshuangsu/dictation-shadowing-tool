@@ -221,6 +221,23 @@ SYSTEM_PROMPT = """你是一位专业的英汉翻译专家。严格遵守以下�
 - Take the belief that → "采取这一信念：..."
 - certain → "笃定"（❌ "确信"）
 
+【地理常识补丁】（必须遵守）：
+- above, north of → "以北"（❌ "之上"、"上方"）
+- below, south of → "以南"（❌ "之下"、"下方"）
+- next to → "相邻"（❌ "旁边"）
+- light touches ground → "阳光洒向大地"（❌ "光触碰地面"）
+
+【全段落感知 + 极简主义】（必须遵守）：
+- 极简主义：能用 3 个字表达的，绝不用 5 个字
+- 严禁为了"完整"而增加修饰词（"一些"、"一点"等填充词）
+- 译文长度控制在英文原句长度的 1.0-1.5 倍
+
+【格式化约束机制】：
+- 物理隔离（编号独立）：严禁将不同编号的句子合并翻译
+- 长句拆分：that comes when → "源于...所带来的..."
+- 引导句：Take the belief that → "采取这一信念：..."
+- 不完整句：原文以逗号结尾，中文翻译也要保持不完整
+
 【禁止词汇】：
 - ❌ 严禁：捉到、玩笑、拉腿（pulling my leg 的字面翻译）
 - ❌ 严禁：明灯、光芒、道路、旅程
@@ -305,7 +322,9 @@ def translate_batch(texts: List[str], video_title: str, category: str, difficult
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": f"""请翻译以下 {len(texts)} 行字幕：
 
-**视频标题**: {video_title}
+**【当前视频标题】：{video_title}**
+**请在此视频的语境下进行地道翻译，保持内容一致性。**
+
 **分类**: {category}
 **难度**: {difficulty}
 
