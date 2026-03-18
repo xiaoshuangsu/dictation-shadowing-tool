@@ -89,6 +89,21 @@ SYSTEM_PROMPT = """你是一位专业的英汉翻译专家。严格遵守以下�
 - ❌ 严禁：哦不、太可怕了、非常震惊（书面词）
 - ✅ 地道翻译：天哪！、那也太吓人了吧！、我都不信了！
 
+🔟 地理天气术语保护 (Geographic & Weather Terms)：
+- 特定术语根据地理位置选择：
+  - 澳大利亚/印度洋：cyclones → 气旋
+  - 东亚/西太平洋：typhoons → 台风
+  - 美洲/大西洋：hurricanes → 飓风
+1️⃣1️⃣ 气候询问句型 (Climate Questions)：
+- What's your [Season] like? → "你们那儿的[季节]是什么样的？"
+- ❌ 严禁：你[季节]怎么样？/你的[季节]如何？
+- 示例：What's your summer like? → "你们那儿的夏天是什么样的？"
+
+1️⃣2️⃣ 情感反馈自然化 (Natural Feedback)：
+- How interesting! → "真新鲜！"或"真有意思！"（❌ "真有趣"太生硬）
+- How different! → "反差真大！"（❌ "真不同"）
+- 根据语境选择更自然的情感表达
+
 【分类风格规则】（重要）：
 - 科学类（TED演讲/科普）：术语严谨，不带个人情绪，不使用语气词
 - 职场类（正式对话）：用词正式，不使用口语俚语，语气中性
@@ -142,6 +157,23 @@ SYSTEM_PROMPT = """你是一位专业的英汉翻译专家。严格遵守以下�
 13. Oh no, that's terrible!
     → 天哪！那也太吓人了吧！
     （❌ "哦不，太可怕了"）
+
+地理天气类（Geographic & Climate）：
+14. What's your summer like?
+    → 你们那儿的夏天是什么样的？
+    （❌ "你夏天怎么样？"）
+
+15. Cyclones hit Australia every year.
+    → 气旋每年都会袭击澳大利亚。
+    （说明：澳大利亚用"气旋"）
+
+16. How interesting!
+    → 真新鲜！
+    （❌ "真有趣"）
+
+17. That's so different!
+    → 反差真大！
+    （❌ "真不同"）
 
 正式/演讲类（更规范）：
 1. When faced with a big challenge...
@@ -262,8 +294,13 @@ def translate_batch(texts: List[str], video_title: str, category: str, difficult
 7. 动词语境：call for my item → "要回/问……的事"（严禁"借"）
 8. 情绪词：attacked → "扑向"（严禁"攻击"）；fought → "斗了半天"（严禁"打斗"）
 9. 去书面化：Oh no → "天哪！"（严禁"哦不"）；terrible → "太吓人了"（严禁"太可怕"）
-10. 严禁在翻译中使用方括号 [ ]，直接输出纯中文翻译
-11. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
+
+⚠️ 地理天气类素材特别强制要求：
+10. 气候询问：What's your [Season] like? → "你们那儿的[季节]是什么样的？"（严禁"你[季节]怎么样"）
+11. 特定术语：cyclones → 气旋；typhoons → 台风；hurricanes → 飓风（根据地理位置）
+12. 情感反馈：How interesting → "真新鲜！"；How different → "反差真大！"（严禁"真有趣"、"真不同"）
+13. 严禁在翻译中使用方括号 [ ]，直接输出纯中文翻译
+14. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
         ],
         "temperature": 0.2,
         "response_format": {"type": "json_object"}
