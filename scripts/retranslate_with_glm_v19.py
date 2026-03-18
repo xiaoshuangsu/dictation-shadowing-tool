@@ -256,8 +256,14 @@ def translate_batch(texts: List[str], video_title: str, category: str, difficult
 3. that comes when 翻译为"源于...所带来的..."
 4. Take the belief that 翻译为"采取这一信念：..."
 5. certain 翻译为"笃定"
-6. 严禁在翻译中使用方括号 [ ]，直接输出纯中文翻译
-7. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
+
+⚠️ 对话类素材（Dialogue）特别强制要求：
+6. 短促追问：You did? → "你做到了？"（严禁"我怎么做的"）
+7. 动词语境：call for my item → "要回/问……的事"（严禁"借"）
+8. 情绪词：attacked → "扑向"（严禁"攻击"）；fought → "斗了半天"（严禁"打斗"）
+9. 去书面化：Oh no → "天哪！"（严禁"哦不"）；terrible → "太吓人了"（严禁"太可怕"）
+10. 严禁在翻译中使用方括号 [ ]，直接输出纯中文翻译
+11. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
         ],
         "temperature": 0.2,
         "response_format": {"type": "json_object"}
