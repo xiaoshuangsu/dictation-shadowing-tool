@@ -1,7 +1,7 @@
 {
-  "version": "V19.9",
+  "version": "V20.0",
   "last_updated": "2026-03-18",
-  "description": "翻译逻辑引擎 - 结构化规则，由 retranslate_with_glm_v19.py 自动加载",
+  "description": "翻译逻辑引擎 - 结构化规则，由 retranslate_with_glm_v20.py 自动加载",
 
   "categories": {
     "science": {
@@ -266,6 +266,40 @@
       "general": ["捉到", "玩笑", "拉腿", "明灯", "光芒", "道路", "旅程"],
       "motivational": ["笃定"],
       "dialogue": ["哦不", "太可怕了"]
+    },
+
+    "chinese_word_order": {
+      "description": "中式语序优化（状语前置原则）",
+      "rule": "强制要求将句尾的地点状语（如 in the US, at school）移动到中文句子的动作之前",
+      "priority": "HIGH",
+      "examples": [
+        {
+          "en": "Many people play hockey in the US",
+          "bad": "许多人在美国打冰球。",
+          "good": "在美国，也有很多人打冰球。"
+        },
+        {
+          "en": "Students study at school",
+          "bad": "学生们在学校学习。",
+          "good": "在学校，学生们学习。"
+        },
+        {
+          "en": "They live in Canada",
+          "bad": "他们住在加拿大。",
+          "good": "在加拿大，他们居住。"
+        },
+        {
+          "en": "I work at home",
+          "bad": "我在家工作。",
+          "good": "在家，我工作。"
+        }
+      ],
+      "patterns": [
+        "in [Place] → 在[Place]，...",
+        "at [Place] → 在[Place]，...",
+        "on [Place] → 在[Place]上，...",
+        "from [Place] → 从[Place]，..."
+      ]
     }
   },
 
