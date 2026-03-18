@@ -1,0 +1,219 @@
+{
+  "report_date": "2026-03-18",
+  "total_materials": 201,
+  "success_count": 183,
+  "failed_count": 18,
+  "success_rate": "91.0%",
+  "script_version": "V20.3",
+  "rules_applied": [
+    "冰球体育术语保护 (Body check → 身体冲撞)",
+    "中式语序优化 (状语前置原则 - 只适用于动作状语)"
+  ],
+
+  "failed_materials": [
+    {
+      "seq": 15,
+      "name": "The Lion And The Mouse",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 80,
+      "failure_reason": "alignment_failed",
+      "details": "批次 7、9 返回行数不匹配 (7/8)",
+      "retry_attempts": 2
+    },
+    {
+      "seq": 19,
+      "name": "What lack of sleep does to the teenage brain - Wendy Troxel",
+      "category": "TED演讲",
+      "difficulty": "B1",
+      "sentences": 70,
+      "failure_reason": "alignment_failed",
+      "details": "批次 3 返回行数不匹配 (1/8, 6/8)",
+      "retry_attempts": 2
+    },
+    {
+      "seq": 35,
+      "name": "The Bear and the Bee - US English accent (TheFableCottage.com)",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 58,
+      "failure_reason": "alignment_failed",
+      "details": "批次 6 返回行数不匹配 (6/8)",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "The Crane of Gratitude Japanese Fairy Tales in English",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 29,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "Cam 12 Academic Listening Test 2 Part 1",
+      "category": "IELTS Listening",
+      "difficulty": "B1",
+      "sentences": 55,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "Do you really need to take 10,000 steps a day? - Shannon Odell",
+      "category": "TED演讲",
+      "difficulty": "B1",
+      "sentences": 45,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "Jessica's First Day of School",
+      "category": "日常生活",
+      "difficulty": "A1",
+      "sentences": 33,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "The Wind and the Sun - UK English accent (TheFableCottage.com)",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 28,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "What happens to your brain without any social contact? - Terry Kupers",
+      "category": "TED演讲",
+      "difficulty": "A2",
+      "sentences": 43,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "The Fox and the Crow (UK English - TheFableCottage.com)",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 36,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "The Frightened Lion - US English accent (TheFableCottage.com)",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 50,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "Cam 11 Academic Listening Test 3 Part 3",
+      "category": "IELTS Listening",
+      "difficulty": "C1",
+      "sentences": 61,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "Cam 11 Academic Listening Test 1 Part 2",
+      "category": "IELTS Listening",
+      "difficulty": "B2",
+      "sentences": 39,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "The Goose That Laid Golden Eggs",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 57,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "Cam 10 Academic Listening Test 4 Part 1",
+      "category": "IELTS Listening",
+      "difficulty": "B1",
+      "sentences": 56,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "The Goose That Laid The Golden Egg | Short Stories | Aesop's fables in English",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 30,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "Empty Your Mind - A Powerful Motivational Story for Your Life",
+      "category": "心灵故事",
+      "difficulty": "A1",
+      "sentences": 86,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    },
+    {
+      "seq": null,
+      "name": "The Cunning Fox And The Clever Stork",
+      "category": "故事",
+      "difficulty": "A2",
+      "sentences": 147,
+      "failure_reason": "alignment_failed",
+      "retry_attempts": 2
+    }
+  ],
+
+  "db_errors": [
+    {
+      "seq": null,
+      "name": "Cam 10 Academic Listening Test 4 Part 1",
+      "category": "IELTS Listening",
+      "difficulty": "B1",
+      "sentences": 62,
+      "failure_reason": "db_error: Connection reset by peer",
+      "error_type": "网络连接错误"
+    }
+  ],
+
+  "recommendations": {
+    "alignment_failures": {
+      "cause": "GLM-4 模型在某些批次中返回的翻译行数与原文不匹配",
+      "suggested_solutions": [
+        "手动检查这些素材的原文格式，确认是否有特殊字符或格式问题",
+        "尝试减小批次大小（从 8 句改为 4 句）",
+        "使用不同的温度参数重新翻译",
+        "考虑使用备用翻译模型（如 GPT-4）处理这些失败素材"
+      ]
+    },
+    "db_errors": {
+      "cause": "数据库连接中断",
+      "suggested_solutions": [
+        "重新翻译该素材",
+        "检查网络连接稳定性",
+        "增加数据库连接超时时间"
+      ]
+    }
+  },
+
+  "next_steps": [
+    "1. 导出失败素材的原文数据，人工检查格式问题",
+    "2. 尝试使用更小的批次大小（4句/批）重新翻译",
+    "3. 对于持续失败的素材，考虑人工翻译或使用备用模型",
+    "4. 验证成功翻译的素材质量，抽查 10-20 个"
+  ]
+}
