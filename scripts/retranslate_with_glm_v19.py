@@ -369,27 +369,26 @@ def main():
                 )
     
     else:
-        # 全量模式：翻译所有素材
-        print(f"\n🚀 全量翻译模式")
-        
+        # 全量模式：Auto-pilot 翻译所有素材
+        print(f"\n🚀 全量 Auto-pilot 模式")
+        print(f"="*100)
+        print(f"[模式]：原子提交 + 实时汇报 + 前 10 个素材验证")
+        print(f"="*100)
+
         # 查询所有需要翻译的素材
         result = supabase.table('materials').select('*').order('id').execute()
-        
         materials = result.data
-        
+
         if LIMIT > 0:
             materials = materials[:LIMIT]
             print(f"\n📊 限制处理前 {LIMIT} 个素材")
-        
-        print(f"\n📊 总素材数: {len(materials)}")
-        
-        success_count = 0
+
+        # 过滤出需要翻译的素材
+        materials_to_translate = []
         skip_count = 0
-        
+
         for material in materials:
             transcript = material.get('transcript', [])
-            
-            # 检查是否需要翻译
             needs_translation = False
             for sent in transcript:
                 trans = sent.get('translation')
@@ -397,34 +396,107 @@ def main():
                 if not zh:
                     needs_translation = True
                     break
-            
-            if not needs_translation:
+
+            if needs_translation:
+                materials_to_translate.append(material)
+            else:
                 skip_count += 1
-                continue
-            
+
+        total = len(materials_to_translate)
+        print(f"\n📊 总素材数: {len(materials)}")
+        print(f"📊 需要翻译: {total}")
+        print(f"📊 跳过: {skip_count}")
+        print(f"="*100)
+
+        if total == 0:
+            print("\n✅ 所有素材翻译已完成！")
+            return
+
+        # Auto-pilot 主循环
+        import subprocess
+        import random
+
+        for idx, material in enumerate(materials_to_translate):
+            current_num = idx + 1
+            material_id = material['id']
+            video_title = material['title']
+            category = material['category']
+            difficulty = material['difficulty']
+            transcript = material.get('transcript', [])
+
             # 处理素材
             if process_material(
-                material['id'],
-                material['title'],
-                material['category'],
-                material['difficulty'],
+                material_id,
+                video_title,
+                category,
+                difficulty,
                 transcript,
                 supabase
             ):
-                success_count += 1
+                # 原子提交：每个素材一个 commit
+                try:
+                    commit_msg = f"feat: 翻译素材 [{current_num}/{total}] {video_title[:50]}"
+                    subprocess.run([
+                        'git', 'add', '.'
+                    ], capture_output=True, timeout=30)
+                    subprocess.run([
+                        'git', 'commit', '-m', commit_msg
+                    ], capture_output=True, timeout=30)
+                    print(f"   📦 Git commit: {commit_msg[:60]}...")
+                except Exception as e:
+                    print(f"   ⚠️  Git commit 失败: {str(e)[:50]}")
 
-                # 每个素材一个 commit
-                # Git commit 将在主流程中处理
+                # 实时汇报
+                print(f"\n{'='*100}")
+                print(f"[进度]: {current_num} / {total}")
+                print(f"[标题]: {video_title}")
+                print(f"[分类]: {category} | 难度: {difficulty}")
+
+                # 采样对比：随机抽取 1 句
+                valid_sentences = [s for s in transcript if s.get('text')]
+                if valid_sentences:
+                    sample_sent = random.choice(valid_sentences)
+                    sample_trans = sample_sent.get('translation', {})
+                    sample_zh = sample_trans.get('zh', '') if isinstance(sample_trans, dict) else sample_trans
+
+                    print(f"[采样对比]:")
+                    print(f"   EN: {sample_sent['text'][:80]}")
+                    print(f"   ZH: {sample_zh}")
+
+                print(f"{'='*100}\n")
+
+                # 前 10 个素材：暂停等待验证
+                if current_num <= 10:
+                    user_input = input("✅ 这个翻译质量 OK 吗？输入 'y' 继续下一个，输入 'stop' 停止调优: ").strip().lower()
+
+                    if user_input == 'stop':
+                        print("\n⏸️  用户停止翻译")
+                        break
+                    elif user_input != 'y':
+                        print("\n⚠️  无效输入，继续下一个...")
+                else:
+                    # 10 个以后：进入 Full Auto-pilot
+                    if current_num == 11:
+                        print("\n🚀 进入 Full Auto-pilot 模式（静默运行）\n")
             else:
-                print(f"\n⚠️  跳过素材: {material['title']}")
-        
+                print(f"\n⚠️  素材翻译失败: {video_title}")
+
+        # 最终统计
         print(f"\n{'='*100}")
-        print(f"✅ 翻译完成")
+        print(f"✅ Auto-pilot 完成")
         print(f"{'='*100}")
         print(f"\n📊 统计:")
-        print(f"   成功: {success_count} 个")
-        print(f"   跳过: {skip_count} 个")
-        print(f"   总计: {len(materials)} 个")
+        print(f"   已完成: {current_num} / {total}")
+        print(f"   跳过: {skip_count}")
+        print(f"   总计: {len(materials)}")
+
+        # 推送到远程仓库
+        try:
+            print(f"\n📡 推送到 GitHub...")
+            subprocess.run(['git', 'push', 'origin', 'main'], capture_output=True, timeout=60)
+            print(f"✅ 推送完成")
+        except Exception as e:
+            print(f"⚠️  推送失败: {str(e)[:50]}")
 
 
 if __name__ == "__main__":
