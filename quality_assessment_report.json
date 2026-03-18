@@ -1,0 +1,365 @@
+{
+  "timestamp": "1773824331.4997308",
+  "samples": [
+    {
+      "material_id": "dea0c421-2726-4e99-9930-fe7b426e21e0",
+      "title": "What time is it - Time for breakfast",
+      "category": "日常生活",
+      "total_sentences": 21,
+      "differences": 2,
+      "diff_rate": 0.09523809523809523,
+      "diff_details": [
+        {
+          "index": 9,
+          "en": "Are you ready?",
+          "old": "准备好了吗？",
+          "new": "你准备好了吗？"
+        },
+        {
+          "index": 17,
+          "en": "Time for bed.",
+          "old": "睡觉时间到了。",
+          "new": "到睡觉时间了。"
+        }
+      ]
+    },
+    {
+      "material_id": "f7b5f896-f9ee-47f4-8aba-a999d880736f",
+      "title": "Thanksgiving (2)",
+      "category": "日常生活",
+      "total_sentences": 20,
+      "differences": 20,
+      "diff_rate": 1.0,
+      "diff_details": [
+        {
+          "index": 1,
+          "en": "Thanksgiving,",
+          "old": "感恩节，",
+          "new": "但在两个国家，感恩节都是一年中非常愉快的时候。"
+        },
+        {
+          "index": 2,
+          "en": "an important holiday in North America, is held during the fall or autumn season of the year.",
+          "old": "北美一个重要的节日，在每年的秋季或秋天举行。",
+          "new": ""
+        },
+        {
+          "index": 3,
+          "en": "This holiday is called Thanksgiving.",
+          "old": "这个节日被称为感恩节。",
+          "new": ""
+        },
+        {
+          "index": 4,
+          "en": "At this time of year, people join with their relatives to reflect upon their good fortune.",
+          "old": "在这个时候，人们会与他们的亲戚团聚，反思他们的好运。",
+          "new": ""
+        },
+        {
+          "index": 5,
+          "en": "Thanksgiving is a holiday that has a long history in North America.",
+          "old": "感恩节在北美有着悠久的历史。",
+          "new": ""
+        },
+        {
+          "index": 6,
+          "en": "It was first celebrated when English settlers arrived in the eastern part of what is now the United States during the 17th century.",
+          "old": "它是在17世纪，当英国定居者到达现在美国东部的地区时首次庆祝的。",
+          "new": ""
+        },
+        {
+          "index": 7,
+          "en": "When they survived the first hard year, they celebrated and gave thanks to God.",
+          "old": "他们在经历了第一年的艰难之后幸存下来，庆祝并感谢上帝。",
+          "new": ""
+        },
+        {
+          "index": 8,
+          "en": "They invited some of the Native people to their Thanksgiving celebration.",
+          "old": "他们邀请了部分土著人到他们的感恩节庆祝活动中。",
+          "new": ""
+        },
+        {
+          "index": 9,
+          "en": "Because the native people had helped them to survive during the hard winter, the tradition of celebrating Thanksgiving continued and spread throughout North America.",
+          "old": "因为土著人在艰难的冬天帮助他们生存，庆祝感恩节的习俗得以延续并在北美传播开来。",
+          "new": ""
+        },
+        {
+          "index": 10,
+          "en": "Each fall, during the time of the autumn harvest, people celebrated Thanksgiving.",
+          "old": "每年秋天，在收获的季节，人们都会庆祝感恩节。",
+          "new": ""
+        },
+        {
+          "index": 11,
+          "en": "They gave thanks for the food of the harvest and for all the good things in their lives.",
+          "old": "他们为收获的食物以及生活中所有美好的事物表示感谢。",
+          "new": ""
+        },
+        {
+          "index": 12,
+          "en": "Today, the tradition of Thanksgiving celebration continues.",
+          "old": "如今，感恩节的庆祝传统仍在继续。",
+          "new": ""
+        },
+        {
+          "index": 13,
+          "en": "Families gather to eat a large bird called a Turkey.",
+          "old": "家人聚在一起吃一只叫做火鸡的大鸟。",
+          "new": ""
+        },
+        {
+          "index": 14,
+          "en": "They also eat pumpkin pie.",
+          "old": "他们还会吃南瓜派。",
+          "new": ""
+        },
+        {
+          "index": 15,
+          "en": "This is a sweet dessert that is made from a large orange vegetable that grows on the ground.",
+          "old": "这是一种甜点，由一种生长在地上的大橙子蔬菜制成。",
+          "new": ""
+        },
+        {
+          "index": 16,
+          "en": "In the United States, Thanksgiving is celebrated on the 4th Thursday of November, but the following day, Friday, is also a holiday and then comes the weekend.",
+          "old": "在美国，感恩节在11月的第四个星期四庆祝，但接下来的那天，星期五，也是假日，然后就是周末。",
+          "new": ""
+        },
+        {
+          "index": 17,
+          "en": "In Canada, Thanksgiving is celebrated on the second Monday of October.",
+          "old": "加拿大感恩节是在十月的第二个星期一庆祝的。",
+          "new": ""
+        },
+        {
+          "index": 18,
+          "en": "The reason for the earlier celebration in Canada is that the weather is colder than in the United States.",
+          "old": "加拿大提前庆祝的原因是因为那里的天气比美国冷。",
+          "new": ""
+        },
+        {
+          "index": 19,
+          "en": "This means that the harvest happens earlier in Canada, so Thanksgiving is held at an earlier date.",
+          "old": "这意味着加拿大的收获时间更早，所以感恩节也提前了。",
+          "new": ""
+        },
+        {
+          "index": 20,
+          "en": "But in both countries, Thanksgiving is a very pleasant time of year.",
+          "old": "但在两个国家，感恩节都是非常愉快的一年中的时光。",
+          "new": ""
+        }
+      ]
+    },
+    {
+      "material_id": "86d8e031-1dc0-4b0b-a5c1-50a0601a8dc3",
+      "title": "April Fool's Day Joke _ English Conversation",
+      "category": "日常生活",
+      "total_sentences": 41,
+      "differences": 32,
+      "diff_rate": 0.7804878048780488,
+      "diff_details": [
+        {
+          "index": 10,
+          "en": "She broke my heart.",
+          "old": "她伤了我的心。",
+          "new": "她明天要离开去夏威夷和她的一个同事私奔了。"
+        },
+        {
+          "index": 11,
+          "en": "She is leaving tomorrow to Hawaii to elope with one of her co-workers.",
+          "old": "她明天要去夏威夷和她的一个同事私奔了。",
+          "new": "我简直不敢相信这发生在我身上。"
+        },
+        {
+          "index": 12,
+          "en": "I can't believe this is happening to me.",
+          "old": "我都不敢信这会发生在我身上。",
+          "new": "这是我一生中最糟糕的一天。"
+        },
+        {
+          "index": 13,
+          "en": "It's the worst day of my life.",
+          "old": "这是我一生中最糟糕的一天。",
+          "new": "哦我的天，鲍勃，我真的很抱歉。我不知道该说什么。"
+        },
+        {
+          "index": 14,
+          "en": "Oh my gosh, I'm so sorry, Bob.",
+          "old": "哦我的天哪，Bob，我真的很抱歉。",
+          "new": "我无话可说。"
+        },
+        {
+          "index": 15,
+          "en": "I don't know what to say.",
+          "old": "我不知道该说什么。",
+          "new": "是的。"
+        },
+        {
+          "index": 16,
+          "en": "I'm speechless.",
+          "old": "我一句话也说不出来。",
+          "new": "我不知道没有她我该怎么办。"
+        },
+        {
+          "index": 17,
+          "en": "Yeah.",
+          "old": "是啊。",
+          "new": "她对我意味着一切。"
+        },
+        {
+          "index": 18,
+          "en": "I don't know what I'm going to do without her.",
+          "old": "没有她我不知道该怎么办。",
+          "new": "没有她，我什么都不是。"
+        },
+        {
+          "index": 19,
+          "en": "She's everything to me.",
+          "old": "她对我来说就是一切。",
+          "new": "一切都会好起来的，鲍勃。"
+        },
+        {
+          "index": 20,
+          "en": "I'm nothing without her.",
+          "old": "没有她我什么都不是。",
+          "new": "你是个很帅的男生。"
+        },
+        {
+          "index": 21,
+          "en": "Everything will be alright, Bob.",
+          "old": "一切都会好起来的，鲍勃。",
+          "new": "你有很多朋友，一份好工作，和一个光明的未来。"
+        },
+        {
+          "index": 22,
+          "en": "You are a good looking guy.",
+          "old": "你是个帅小伙。",
+          "new": "哈哈！"
+        },
+        {
+          "index": 23,
+          "en": "You have lots of friends, a great job, and a bright future.",
+          "old": "你有很多朋友，一份好工作，还有光明的未来。",
+          "new": "鲍勃，你在笑什么？有什么好笑的？"
+        },
+        {
+          "index": 24,
+          "en": "Hahaha!",
+          "old": "哈哈哈！",
+          "new": "我只是在开玩笑，优米。愚人节。哈哈！"
+        },
+        {
+          "index": 25,
+          "en": "Bob, what are you laughing about? What's so funny?",
+          "old": "鲍勃，你在笑什么？这么好笑吗？",
+          "new": "什么？你什么意思？"
+        },
+        {
+          "index": 26,
+          "en": "I'm only joking, Yumi. April Fools. Haha!",
+          "old": "我只是在开玩笑，优米。愚人节。哈哈！",
+          "new": "你逗我呢？"
+        },
+        {
+          "index": 27,
+          "en": "What? What do you mean?",
+          "old": "什么？你什么意思？",
+          "new": "你一直都在拿我开涮？"
+        },
+        {
+          "index": 28,
+          "en": "You were joking?",
+          "old": "你逗我呢？",
+          "new": "你。"
+        },
+        {
+          "index": 29,
+          "en": "You were pulling my leg that whole time?",
+          "old": "你一直都在拿我开涮啊？",
+          "new": "我都不敢信了。"
+        },
+        {
+          "index": 30,
+          "en": "You.",
+          "old": "你呀。",
+          "new": "嘿嘿，上当了吧？是不是？"
+        },
+        {
+          "index": 31,
+          "en": "I can't believe it.",
+          "old": "我都不敢信了！",
+          "new": "谢谢你夸我，虽然如此。"
+        },
+        {
+          "index": 32,
+          "en": "I got you, though. Didn't I?",
+          "old": "嘿嘿，上当了吧？是不是？",
+          "new": "知道你这么想我，挺开心的。"
+        },
+        {
+          "index": 33,
+          "en": "Thanks for saying those nice things about me, though.",
+          "old": "不过，谢啦，难得听你这么夸我。",
+          "new": "尤其是你居然还说我长得帅。"
+        },
+        {
+          "index": 34,
+          "en": "It's nice to know what you think about me.",
+          "old": "知道你这么想我，挺开心的。",
+          "new": "我真的很感激。"
+        },
+        {
+          "index": 35,
+          "en": "Especially that you think I'm good looking.",
+          "old": "尤其是你居然还说我长得帅。",
+          "new": "我不太感冒。"
+        },
+        {
+          "index": 36,
+          "en": "I really appreciate it.",
+          "old": "我真的很感激。",
+          "new": "哎呦！哎呦！我觉得我脚踝断了。"
+        },
+        {
+          "index": 37,
+          "en": "I'm not impressed.",
+          "old": "我一点也不觉得惊讶。",
+          "new": "哦我的天，你还好吗？我很抱歉，这是我的错。"
+        },
+        {
+          "index": 38,
+          "en": "Ouch! Ouch! I think I broke my ankle.",
+          "old": "哎呦！哎呦！我觉得我脚踝断了。",
+          "new": "抓到你了。"
+        },
+        {
+          "index": 39,
+          "en": "Oh my god, are you okay? I'm so sorry. It's my fault.",
+          "old": "哦我的天，你没事吧？真的很抱歉，这是我的错。",
+          "new": "愚人节，鲍勃。"
+        },
+        {
+          "index": 40,
+          "en": "Got ya.",
+          "old": "中招了。",
+          "new": ""
+        },
+        {
+          "index": 41,
+          "en": "April Fools, Bob.",
+          "old": "愚人节玩笑，鲍勃。",
+          "new": ""
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_materials": 3,
+    "total_sentences": 82,
+    "total_diffs": 54,
+    "avg_diff_rate": 0.6252419667053813
+  }
+}
