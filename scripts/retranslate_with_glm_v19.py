@@ -104,10 +104,23 @@ SYSTEM_PROMPT = """你是一位专业的英汉翻译专家。严格遵守以下�
 - How different! → "反差真大！"（❌ "真不同"）
 - 根据语境选择更自然的情感表达
 
+1️⃣3️⃣ 励志哲学类风格对齐 (Motivational/Philosophical)：
+- 关键词替换：
+  - restless → "心神不宁"或"焦躁"（❌ "不安分"）
+  - thoughts（内心混乱时）→ "杂念"或"念头"（❌ "想法"）
+  - In this moment → "当下"或"此时此刻"（❌ "在这个时刻"）
+- 去平庸化（文学化表达）：
+  - 使用有感染力的词汇：纷纷扰扰、充斥、活在当下、宁静
+  - ❌ 严禁过于直白的口语化表达
+- 保持简洁：
+  - 励志故事语言短促有力，❌ 严禁啰嗦的长句
+  - 示例：Marco was very restless. → "马可感到心神不宁。"（❌ "马可是一个非常不安分的人。"）
+
 【分类风格规则】（重要）：
 - 科学类（TED演讲/科普）：术语严谨，不带个人情绪，不使用语气词
 - 职场类（正式对话）：用词正式，不使用口语俚语，语气中性
 - 日常生活类（对话）：使用口语俚语，必须包含语气词
+- 励志哲学类（Motivational）：文学化表达，简洁有力，关键词替换
 
 【示例对照】（B 站/短视频风格）：
 日常对话类（非正式）：
@@ -174,6 +187,23 @@ SYSTEM_PROMPT = """你是一位专业的英汉翻译专家。严格遵守以下�
 17. That's so different!
     → 反差真大！
     （❌ "真不同"）
+
+励志哲学类（Motivational/Philosophical）：
+18. Marco was very restless.
+    → 马可感到心神不宁。
+    （❌ "马可是一个非常不安分的人。"）
+
+19. His mind was full of thoughts.
+    → 他脑海里充满了杂念。
+    （❌ "他脑子里有很多想法。"）
+
+20. Live in this moment.
+    → 活在当下。
+    （❌ "活在此时此刻"或"在这个时刻生活"）
+
+21. Find your inner peace.
+    → 寻找内心的宁静。
+    （❌ "找到你内心的平静"）
 
 正式/演讲类（更规范）：
 1. When faced with a big challenge...
@@ -299,8 +329,15 @@ def translate_batch(texts: List[str], video_title: str, category: str, difficult
 10. 气候询问：What's your [Season] like? → "你们那儿的[季节]是什么样的？"（严禁"你[季节]怎么样"）
 11. 特定术语：cyclones → 气旋；typhoons → 台风；hurricanes → 飓风（根据地理位置）
 12. 情感反馈：How interesting → "真新鲜！"；How different → "反差真大！"（严禁"真有趣"、"真不同"）
-13. 严禁在翻译中使用方括号 [ ]，直接输出纯中文翻译
-14. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
+
+⚠️ 励志哲学类素材（Motivational/Philosophical）特别强制要求：
+13. 关键词替换：restless → "心神不宁"或"焦躁"（严禁"不安分"）
+14. 关键词替换：thoughts（内心）→ "杂念"或"念头"（严禁"想法"）
+15. 关键词替换：In this moment → "当下"或"此时此刻"（严禁"在这个时刻"）
+16. 文学化表达：使用有感染力的词汇（宁静、纷扰、充斥），❌ 严禁过于直白
+17. 保持简洁：语言短促有力，❌ 严禁啰嗦的长句
+18. 严禁在翻译中使用方括号 [ ]，直接输出纯中文翻译
+19. 返回 JSON 格式：{{"translations": ["翻译1", "翻译2", ...]}}"""}
         ],
         "temperature": 0.2,
         "response_format": {"type": "json_object"}
