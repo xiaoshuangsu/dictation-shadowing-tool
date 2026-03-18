@@ -1,0 +1,288 @@
+{
+  "version": "V19.9",
+  "last_updated": "2026-03-18",
+  "description": "翻译逻辑引擎 - 结构化规则，由 retranslate_with_glm_v19.py 自动加载",
+
+  "categories": {
+    "science": {
+      "name": "科学科普类",
+      "style": "术语严谨，不带个人情绪，无语气词",
+      "requirements": {
+        "terminology": "准确严谨",
+        "subjective_words": "禁止使用（我觉得、好像、似乎）",
+        "tone_particles": "禁止使用（啊、呢、吧、嘛、哈）"
+      },
+      "examples": [
+        {
+          "en": "Well, for one thing, you'd have only a month to live.",
+          "bad": "哎呀，首先你只能活一个月啦！",
+          "good": "首先，你将只剩下一个月的时间来生活。"
+        },
+        {
+          "en": "This tug of war keeps us in orbit.",
+          "bad": "这场拉锯战把我们保持在轨道上呢。",
+          "good": "这场拉锯战使我们保持在轨道上。"
+        }
+      ],
+      "vocabulary": {
+        "orbit": "轨道",
+        "planet": "星球"
+      }
+    },
+
+    "business": {
+      "name": "职场正式类",
+      "style": "用词正式，不使用口语俚语，语气中性",
+      "requirements": {
+        "vocabulary": "用词正式（corruption → 腐败）",
+        "slang": "禁止使用口语俚语（逗我、拿我开涮、忽悠、上当）",
+        "exaggeration": "禁止夸张表达（！！、！！！）"
+      },
+      "examples": [
+        {
+          "en": "How can corruption be stopped?",
+          "bad": "怎么才能阻止腐败啊？",
+          "good": "如何制止腐败？"
+        },
+        {
+          "en": "A kickback is similar to a bribe",
+          "bad": "回扣跟贿赂差不多。",
+          "good": "回扣与贿赂类似，区别在于..."
+        }
+      ],
+      "vocabulary": {
+        "corruption": "腐败",
+        "bribe": "贿赂",
+        "kickback": "回扣"
+      }
+    },
+
+    "daily_conversation": {
+      "name": "日常生活类",
+      "style": "口语俚语 + 强制语气词，B 站/短视频风格",
+      "requirements": {
+        "tone_particles": "必须包含（啊、呢、吧、嘛、哩、哈）",
+        "dictionary_chinese": "拒绝词典中文",
+        "slang": "使用口语俚语",
+        "emotion_alignment": "情绪对齐（整蛊 → 调侃）"
+      },
+      "examples": [
+        {
+          "en": "You were joking?",
+          "bad": "你在开玩笑吗？",
+          "good": "你逗我呢？"
+        },
+        {
+          "en": "You were pulling my leg that whole time?",
+          "bad": "你一直都在拉我的腿？",
+          "good": "你一直都在拿我开涮啊？"
+        },
+        {
+          "en": "I got you, though. Didn't I?",
+          "bad": "我捉到你了，对吧？",
+          "good": "嘿嘿，上当了吧？是不是？"
+        },
+        {
+          "en": "Thanks for saying those nice things about me, though.",
+          "bad": "虽然你那么夸我，我还是很高兴。",
+          "good": "不过，谢啦，难得听你这么夸我。"
+        }
+      ],
+      "slang_map": {
+        "joking": "逗我呢",
+        "pulling my leg": "拿我开涮",
+        "I got you": "上当了吧",
+        "kidding": "开玩笑"
+      }
+    },
+
+    "motivational": {
+      "name": "励志哲学类",
+      "style": "文学化表达，简洁有力",
+      "requirements": {
+        "literary": "使用有感染力的文学化词汇（宁静、纷扰、充斥）",
+        "concise": "语言短促有力，严禁啰嗦长句"
+      },
+      "keyword_replacements": {
+        "restless": ["心神不宁", "焦躁"],
+        "thoughts": ["杂念", "念头"],
+        "in this moment": ["当下", "此时此刻"]
+      },
+      "forbidden": {
+        "restless": ["不安分"],
+        "thoughts": ["想法"],
+        "in this moment": ["在这个时刻"]
+      },
+      "examples": [
+        {
+          "en": "Marco was very restless.",
+          "bad": "马可是一个非常不安分的人。",
+          "good": "马可感到心神不宁。"
+        },
+        {
+          "en": "His mind was full of thoughts.",
+          "bad": "他脑子里有很多想法。",
+          "good": "他脑海里充满了杂念。"
+        },
+        {
+          "en": "Live in this moment.",
+          "bad": "在这个时刻生活。",
+          "good": "活在当下。"
+        }
+      ]
+    },
+
+    "geographic_climate": {
+      "name": "地理天气类",
+      "style": "特定术语准确，情感反馈自然",
+      "requirements": {
+        "terminology": "根据地理位置选择准确术语",
+        "climate_questions": "What's your [Season] like? → 你们那儿的[季节]是什么样的？",
+        "feedback": "情感反馈应自然地道"
+      },
+      "terminology_map": {
+        "cyclones": {
+          "region": "澳大利亚、印度洋",
+          "translation": "气旋"
+        },
+        "typhoons": {
+          "region": "东亚、西太平洋",
+          "translation": "台风"
+        },
+        "hurricanes": {
+          "region": "美洲、大西洋",
+          "translation": "飓风"
+        }
+      },
+      "examples": [
+        {
+          "en": "What's your winter like?",
+          "bad": "你冬天怎么样？",
+          "good": "你们那儿的冬天是什么样的？"
+        },
+        {
+          "en": "How interesting!",
+          "bad": "真有趣",
+          "good": "真新鲜！"
+        },
+        {
+          "en": "How different!",
+          "bad": "真不同",
+          "good": "反差真大！"
+        }
+      ]
+    }
+  },
+
+  "universal_rules": {
+    "tag_questions": {
+      "description": "反问句式对齐",
+      "rule": "遇到 ...didn't I? 或 ...right? 类确认语气，严禁直译为'不是吗？'或'没吧？'",
+      "correct": ["是不是？", "对吧？", "或合并到前句"],
+      "forbidden": ["不是吗？", "没吧？", "对不对？"]
+    },
+
+    "reference_check": {
+      "description": "指代对象校验",
+      "rule": "根据上下文判断主语和宾语",
+      "examples": [
+        {
+          "en": "you think I'm good looking",
+          "bad": "我觉得我长得好看",
+          "good": "你觉得我长得好看"
+        }
+      ]
+    },
+
+    "role_tracking": {
+      "description": "对话角色追踪",
+      "rule": "短促追问必须保持原主语",
+      "examples": [
+        {
+          "en": "You did?",
+          "bad": "我怎么做的？",
+          "good": "你做到了？"
+        },
+        {
+          "en": "How?",
+          "bad": "我怎么做的？",
+          "good": "怎么弄的？"
+        }
+      ]
+    },
+
+    "semantic_disambiguation": {
+      "description": "动词语境分析",
+      "rule": "Call someone for my [Item]，如果物品属于拨打者，应译为'要回/问……的事'，严禁译为'借'",
+      "examples": [
+        {
+          "en": "I called her for my keys.",
+          "bad": "我打电话找她借钥匙。",
+          "good": "我打电话问她钥匙的事。"
+        }
+      ]
+    },
+
+    "tone_alignment": {
+      "description": "情绪对齐",
+      "rule": "对话类素材严禁使用'战斗'、'攻击'这种死板的词",
+      "replacements": {
+        "attacked": "扑向",
+        "fought": "斗了半天"
+      }
+    },
+
+    "natural_expression": {
+      "description": "去辞海化（自然表达）",
+      "rule": "严禁书面词，使用地道口语",
+      "replacements": {
+        "Oh no": "天哪！",
+        "terrible": "太吓人了"
+      },
+      "forbidden": {
+        "Oh no": ["哦不"],
+        "terrible": ["太可怕了"]
+      }
+    },
+
+    "formatting": {
+      "description": "格式化约束",
+      "rules": [
+        "物理隔离（编号独立）：严禁将不同编号的句子合并翻译",
+        "长句拆分：that comes when → 源于...所带来的...",
+        "引导句：Take the belief that → 采取这一信念：...",
+        "不完整句：原文以逗号结尾，中文翻译也要保持不完整"
+      ]
+    },
+
+    "vocabulary_rules": {
+      "lurk": "隐藏",
+      "that comes when": "源于...所带来的...",
+      "Take the belief that": "采取这一信念：...",
+      "certain": "笃定"
+    },
+
+    "forbidden_words": {
+      "general": ["捉到", "玩笑", "拉腿", "明灯", "光芒", "道路", "旅程"],
+      "motivational": ["笃定"],
+      "dialogue": ["哦不", "太可怕了"]
+    }
+  },
+
+  "prompt_structure": {
+    "system_prompt_sections": [
+      "绝对规则（物理隔离）",
+      "口语终极准则",
+      "分类风格规则",
+      "示例对照",
+      "词汇规则",
+      "禁止词汇"
+    ],
+    "user_prompt_sections": [
+      "视频标题",
+      "分类",
+      "难度",
+      "强制要求（分类特定）"
+    ]
+  }
+}
