@@ -446,46 +446,16 @@ def main():
                 except Exception as e:
                     print(f"   ⚠️  Git commit 失败: {str(e)[:50]}")
 
-                # 实时汇报
-                print(f"\n{'='*100}")
-                print(f"[进度]: {current_num} / {total}")
-                print(f"[标题]: {video_title}")
-                print(f"[分类]: {category} | 难度: {difficulty}")
+                # 实时汇报（简化版）
+                print(f"[进度] {current_num}/{total} | {video_title[:60]}")
 
-                # 采样对比：随机抽取 1 句
-                valid_sentences = [s for s in transcript if s.get('text')]
-                if valid_sentences:
-                    sample_sent = random.choice(valid_sentences)
-                    sample_trans = sample_sent.get('translation', {})
-                    sample_zh = sample_trans.get('zh', '') if isinstance(sample_trans, dict) else sample_trans
-
-                    print(f"[采样对比]:")
-                    print(f"   EN: {sample_sent['text'][:80]}")
-                    print(f"   ZH: {sample_zh}")
-
-                print(f"{'='*100}\n")
-
-                # 前 10 个素材：暂停等待验证
-                if current_num <= 10:
-                    try:
-                        # 检测是否在交互式环境中
-                        import sys
-                        if sys.stdin.isatty():
-                            user_input = input("✅ 这个翻译质量 OK 吗？输入 'y' 继续下一个，输入 'stop' 停止调优: ").strip().lower()
-
-                            if user_input == 'stop':
-                                print("\n⏸️  用户停止翻译")
-                                break
-                            elif user_input != 'y':
-                                print("\n⚠️  无效输入，继续下一个...")
-                        else:
-                            # 非交互式环境：自动继续
-                            print(f"   ℹ️  非交互式环境，自动继续...")
-                            time.sleep(1)
-                    except EOFError:
-                        # EOF 错误：自动继续
-                        print(f"   ℹ️  EOF 检测，自动继续...")
-                        time.sleep(1)
+                # Git commit（静默）
+                try:
+                    commit_msg = f"feat: 翻译素材 [{current_num}/{total}] {video_title[:50]}"
+                    subprocess.run(['git', 'add', '.'], capture_output=True, timeout=30)
+                    subprocess.run(['git', 'commit', '-m', commit_msg], capture_output=True, timeout=30)
+                except Exception as e:
+                    pass  # 静默处理 Git 错误
                 else:
                     # 10 个以后：进入 Full Auto-pilot
                     if current_num == 11:
