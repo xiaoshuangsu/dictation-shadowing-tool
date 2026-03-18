@@ -478,16 +478,16 @@ def process_material(material_id: str, video_title: str, category: str, difficul
     print(f"{'─'*80}")
 
     # ═════════════════════════════════════════════════════════════════════════
-    # 1. 时间戳合法性检查
+    # 1. 时间戳合法性检查（已禁用 - 直接翻译，不检查时间戳）
     # ═════════════════════════════════════════════════════════════════════════
-    timestamp_valid, timestamp_error = validate_timestamps(transcript)
-    if not timestamp_valid:
-        print(f"❌ 时间戳检查失败: {timestamp_error}")
-        return {
-            'success': False,
-            'reason': f'bad_timestamp: {timestamp_error}',
-            'geo_fixes': 0
-        }
+    # timestamp_valid, timestamp_error = validate_timestamps(transcript)
+    # if not timestamp_valid:
+    #     print(f"❌ 时间戳检查失败: {timestamp_error}")
+    #     return {
+    #         'success': False,
+    #         'reason': f'bad_timestamp: {timestamp_error}',
+    #         'geo_fixes': 0
+    #     }
 
     # 提取所有句子文本（只处理有 text 字段的句子）
     valid_sentences = [(i, sent.get('text', '').strip()) for i, sent in enumerate(transcript) if sent.get('text', '').strip()]
