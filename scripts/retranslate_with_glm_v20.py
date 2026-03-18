@@ -632,10 +632,12 @@ def process_material(material_id: str, video_title: str, category: str, difficul
         os.environ.get("USE_CONTEXT_MODE", "false").lower() == "true"
     )
 
+    batch_size = 4  # 默认批次大小（减小以提高成功率）
+    geo_fixes = 0
+
     if use_context_mode:
         print(f"   🔍 使用上下文窗口模式（逐句翻译）")
         all_translations = translate_with_context(texts, video_title, category, difficulty)
-        geo_fixes = 0
 
         # 检查地理问题并自动修复（上下文模式）
         for i, trans in enumerate(all_translations):
@@ -648,9 +650,7 @@ def process_material(material_id: str, video_title: str, category: str, difficul
                     print(f"   [地理修复: 第{i+1}句]")
     else:
         # 分批翻译（每批 8 句）
-        batch_size = 8
         all_translations = []
-        geo_fixes = 0
 
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i:i+batch_size]
