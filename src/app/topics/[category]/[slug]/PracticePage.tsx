@@ -922,11 +922,11 @@ export default function PracticePage({ category, slug }: { category: string; slu
                           {index + 1}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-800 leading-relaxed">
+                          <p className="text-base text-gray-900 leading-relaxed">
                             {displayText}
                           </p>
                           {showTranscript && sentence.translation && (
-                            <p className="text-xs text-gray-500 italic mt-1">
+                            <p className="text-sm text-gray-700 italic mt-1">
                               {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
                               {typeof sentence.translation === 'string'
                                 ? sentence.translation
