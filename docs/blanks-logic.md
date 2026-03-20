@@ -248,26 +248,76 @@ score += random.uniform(0, 5)
 | I **like** everything. | like | 动词 | +20 分 |
 | They're **open** from 7:30... | open | 动词 | +20 分 |
 
-### 5. 保底机制（新增）
+### 5. 保底机制（v1.2.4 修复）
 
-**问题**：某些句子全是简单词（如 "It's seven o'clock."），如果严格过滤可能无词可挖。
+#### 问题背景
 
-**解决方案**：
+**原问题**：短句规则过于严格，导致某些合理句子无法挖空
+
+**示例**：
 ```python
-# 保底优先级（降序）：
-1. 实义动词/名词/形容词（最高优先级）
+# 句子: "How can I help you?"（5个词，短句）
+# 原规则：
+if not is_core and pos_category != 'NN':
+    continue  # ❌ 跳过非核心动词
+
+# 结果：
+# - help (VB) + 非核心 → 被跳过
+# - 所有词都是停用词或被跳过
+# - 无候选词 → 不挖空
+
+# 前端回退到随机算法：
+# - randomIndex = 7 % 5 = 2
+# - 挖空 "I" ❌ 错误！
+```
+
+#### 解决方案
+
+**v1.2.4 修复**：放宽短句规则，允许非核心动词和名词
+
+```python
+# 短句特殊处理
+if is_short_sentence:
+    # 只考虑实词
+    if pos_category not in ['NN', 'VB', 'JJ', ...]:
+        continue
+
+    # ⭐ 保底机制：允许非核心动词和名词
+    if not is_core and pos_category not in ['VB', 'NN']:
+        # 非核心动词和名词仍可考虑
+        continue
+```
+
+**修复效果**：
+
+| 句子 | 修复前 | 修复后 | 状态 |
+|------|--------|--------|------|
+| How can I help you? | 无（前端挖 I）❌ | **help** ✅ | 正确 |
+| Why are you crying? | 无 | **crying** ✅ | 正确 |
+| That's too bad. | **bad** ✅ | **bad** ✅ | 保持正确 |
+
+**保底优先级**（降序）：
+1. 实义动词/名词/形容词（核心或非核心）
 2. 不定代词（everything, something等）
 3. 数词（seven, five等）
-4. 实义缩写（o'clock等）
 
-# 只有完全没有实词时才不挖空
-# 例如：Hi. Thank you. → 不挖空
-```
+**只有完全没有实词时才不挖空**：
+- 例如："Hi. Thank you." → 不挖空 ✅
+
+#### 技术细节
+
+- **修改文件**：`scripts/improve_blanks.py`
+- **修改位置**：第 585-587 行
+- **Commit**：`8db1763`
+
+---
 
 **示例对比**：
 
 | 句子 | 候选词 | 词性 | 核心词 | 得分 | 选择 |
 |------|--------|------|--------|------|------|
+| How can I help you? | help | VB | ✗ | 30 | ✅ |
+| Why are you crying? | crying | VBG | ✓ | 80 | ✅ |
 | The clouds were very Gray. | clouds | NN | ✓ | 95 | ✅ |
 | | Gray | NNP | ✗ | 40 | |
 | Jane wanted to take pictures. | wanted | VBD | ✓ | 100 | ✅ |
@@ -801,6 +851,29 @@ python3 scripts/fix_proper_nouns.py --silent  # 不再需要
 
 ---
 
+### v1.2.4 (2026-03-19) - 修复短句保底机制
+
+**问题描述**：
+- 短句规则过于严格，非核心动词被跳过
+- "How can I help you?" 因无候选词而不挖空
+- 前端回退到随机算法，错误地挖空 "I"
+
+**解决方案**：
+- 放宽短句规则，允许非核心动词和名词作为候选词
+- 实现真正的保底机制
+
+**修复效果**：
+- "How can I help you?" → 挖空 **help** ✅（之前挖 I ❌）
+- "Why are you crying?" → 挖空 **crying** ✅
+- 所有短句现在都有合理的挖空
+
+**技术细节**：
+- 修改文件：`scripts/improve_blanks.py`
+- 修改位置：第 585-587 行
+- 核心改动：`if not is_core and pos_category not in ['VB', 'NN']`
+
+---
+
 ### v1.2.2 (2026-03-19) - 动词 -ing 形式归一化
 
 **问题描述**：
@@ -825,4 +898,4 @@ python3 scripts/fix_proper_nouns.py --silent  # 不再需要
 
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.2.3
+**版本**：v1.2.4
