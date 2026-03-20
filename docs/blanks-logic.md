@@ -48,6 +48,51 @@ thank, thanks, hello, hi, hey, sorry, excuse, forgive,
 pardon, bye, goodbye, bless, cheers, greetings...
 ```
 
+#### ⭐ 白名单：允许挖空的词（新增）
+
+**实义代词（不定代词）**：
+```python
+# 这些词有实际意义，应该保留挖空价值
+everything, something, anything, nothing,
+everyone, someone, anyone, noone, nobody,
+everybody, somebody, anybody, one, none, all, some, any, most, few
+```
+
+**实义缩写词**：
+```python
+# 有实际意义的缩写，允许挖空
+o'clock  # 时间表达
+```
+
+#### ⭐ 黑名单：禁止挖空的缩写词（新增）
+
+**代词+系动词组合**：
+```python
+# 正则匹配：^[A-Za-z]+'s$ (That's, It's)
+that's, it's, he's, she's, we're, they're,
+that'll, it'll, i'll, you'll, he'll, she'll, we'll, they'll,
+that'd, it'd, i'd, you'd, he'd, she'd, we'd, they'd,
+this's, these're, those're
+```
+
+**代词+助动词组合**：
+```python
+# 正则匹配：^[A-Za-z]+'m$ (I'm)
+i'm, you're, we're, they're
+```
+
+**助动词+not缩写**：
+```python
+# 正则匹配：^[A-Za-z]+n't$ (can't, don't...)
+isn't, aren't, wasn't, weren't, don't, doesn't, didn't,
+can't, couldn't, shouldn't, wouldn't, won't, mightn't, mustn't,
+haven't, hasn't, hadn't
+```
+
+**设计理念**：
+- ❌ 禁止挖空：语法结构词（That's, I'm, You're）
+- ✅ 允许挖空：有实际意义的词（everything, o'clock）
+
 #### 专有名词（PROPER_NOUNS）
 ```python
 # 人名识别（约 200 个常见英文名）
@@ -102,40 +147,89 @@ if 3 <= word_count <= 5:
 - "Jane asked." → 挖空 **asked** ✓（核心动词）
 - ❌ "The clouds were very Gray." → 不挖空 were（助动词）
 
-### 4. 优先级算法
+### 4. 优先级算法（v1.1 更新）
 
 **词性优先级**：
 ```
-动词 (VB) > 名词 (NN) > 形容词 (JJ) > 副词 (RB)
+实义动词 (VB) > 名词 (NN) > 形容词 (JJ) > 不定代词 > 数词 (CD) > 缩写实词
 ```
 
-**得分计算**：
+**得分计算（v1.1）**：
 ```python
 score = 0
+
+# ⭐ 白名单加分：不定代词
+if word_clean in MEANINGFUL_PRONOUNS:
+    score += 25
+    reason.append('meaningful_pronoun')
+
+# ⭐ 白名单加分：实义缩写
+if word in MEANINGFUL_CONTRACTIONS:
+    score += 20
+    reason.append('meaningful_contraction')
 
 # 核心词汇加分
 if is_core:
     score += 50
 
 # 实词加分
-if pos in ['NN', 'VB', 'JJ']:
+if pos_category in ['NN', 'VB', 'JJ']:
     score += 30
 
-# 词性加分
-if pos == 'VB':  score += 20
-elif pos == 'NN': score += 15
-elif pos == 'JJ': score += 10
+# 词性加分（动词 > 名词 > 形容词）
+if pos_category in ['VB', 'VBP', 'VBZ', 'VBD', 'VBG', 'VBN']:
+    score += 20
+    reason.append('verb')
+elif pos_category in ['NN', 'NNS', 'NNP']:
+    score += 15
+    reason.append('noun')
+elif pos_category in ['JJ', 'JJR', 'JJS']:
+    score += 10
+    reason.append('adjective')
+
+# 数词加分（保底机制）
+if pos_category == 'CD':
+    score += 8
+    reason.append('number')
 
 # 短句核心词加分
-if is_short_sentence and is_core:
+if is_short_sentence:
     score += 30
+    reason.append('short_sentence_key_word')
 
-# 单词长度加分
-if 3 <= len(word) <= 10:
+# 单词长度适中
+if 3 <= len(word_clean) <= 10:
     score += 5
+    reason.append('good_length')
 
-# 添加随机性（避免总是选择同一个词）
-score += random(0, 5)
+# 添加随机性
+score += random.uniform(0, 5)
+```
+
+**优先级示例对比**：
+
+| 句子 | 挖空词 | 原因 | 优先级 |
+|------|--------|------|--------|
+| She's **everything** to me. | everything | 不定代词 | +25 分 |
+| It's **seven** o'clock. | seven | 数词 | +8 分 |
+| That's **bad** for you. | bad | 形容词 | +10 分 |
+| I **like** everything. | like | 动词 | +20 分 |
+| They're **open** from 7:30... | open | 动词 | +20 分 |
+
+### 5. 保底机制（新增）
+
+**问题**：某些句子全是简单词（如 "It's seven o'clock."），如果严格过滤可能无词可挖。
+
+**解决方案**：
+```python
+# 保底优先级（降序）：
+1. 实义动词/名词/形容词（最高优先级）
+2. 不定代词（everything, something等）
+3. 数词（seven, five等）
+4. 实义缩写（o'clock等）
+
+# 只有完全没有实词时才不挖空
+# 例如：Hi. Thank you. → 不挖空
 ```
 
 **示例对比**：
@@ -505,6 +599,48 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 
 ---
 
+## 更新日志
+
+### v1.2.0 (2026-03-19) - 缩写词和代词优化
+
+**问题背景**：
+- 之前的修复逻辑过于严格，删除了有价值的练习（everything, o'clock）
+- 需要区分"禁止挖空"和"允许挖空"的缩写词和代词
+
+**新增功能**：
+
+1. **白名单机制**：
+   - ✅ 不定代词：everything, something, anything, nothing, everyone 等
+   - ✅ 实义缩写：o'clock（时间表达）
+
+2. **黑名单机制**：
+   - ❌ 禁止挖空：That's, It's, I'm, You're（代词+系动词）
+   - ❌ 禁止挖空：isn't, don't, can't, couldn't（助动词+not）
+
+3. **精细化优先级**：
+   - 实义动词/名词/形容词：基础优先级
+   - **不定代词**：+25 分（保留挖空价值）
+   - **实义缩写**：+20 分
+   - **数词**：+8 分（保底选项）
+
+4. **保底机制**：
+   - 短句全是简单词时，优先挖数字或形容词
+   - 只有完全无实词时才不挖空
+
+**修复效果**：
+- "She's **everything** to me." ✓（已恢复）
+- "They're **open** from 7:30..." ✓（跳过 o'clock）
+- "That's **bad**." ✓（挖空形容词）
+- "I **like** everything." ✓（挖空动词）
+
+**技术细节**：
+- 正则匹配：`^[A-Za-z]+'s$` 识别 That's, It's
+- 正则匹配：`^[A-Za-z]+'m$` 识别 I'm
+- 正则匹配：`^[A-Za-z]+n't$` 识别 can't, don't
+- 强制全量覆盖：重写所有 blanks 字段，确保逻辑统一
+
+---
+
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.1.0
+**版本**：v1.2.0

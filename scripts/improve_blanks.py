@@ -67,6 +67,38 @@ EXCLUDE_PHRASES = {
     'welcome', 'congratulations', 'congrats'
 }
 
+# ============ 白名单：允许挖空的词 ============
+# 实义代词（不定代词，有实际意义）
+MEANINGFUL_PRONOUNS = {
+    'everything', 'something', 'anything', 'nothing',
+    'everyone', 'someone', 'anyone', 'noone', 'nobody', 'everyone',
+    'everybody', 'somebody', 'anybody', 'everybody',
+    'one', 'none', 'all', 'some', 'any', 'most', 'few'
+}
+
+# 实义缩写词（有实际意义，允许挖空）
+MEANINGFUL_CONTRACTIONS = {
+    "o'clock",  # 时间表达
+    'yesterday', 'today', 'tomorrow'  # 虽然可能有缩写，但保留
+}
+
+# ============ 黑名单：禁止挖空的缩写词 ============
+FORBIDDEN_CONTRACTIONS = {
+    # 代词 + 系动词组合（正则：^[A-Za-z]+'s$）
+    "that's", "it's", "he's", "she's", "we're", "they're",
+    "that'll", "it'll", "i'll", "you'll", "he'll", "she'll", "we'll", "they'll",
+    "that'd", "it'd", "i'd", "you'd", "he'd", "she'd", "we'd", "they'd",
+    "that're", "this's", "these're", "those're",
+
+    # 代词 + 助动词组合（正则：^[A-Za-z]+'m$）
+    "i'm", "you're", "we're", "they're", "he's", "she's", "it's",
+
+    # 助动词 + not 缩写（正则：^[A-Za-z]+n't$）
+    "isn't", "aren't", "wasn't", "weren't", "don't", "doesn't", "didn't",
+    "can't", "couldn't", "shouldn't", "wouldn't", "won't", "mightn't", "mustn't",
+    "haven't", "hasn't", "hadn't"
+}
+
 # 核心词汇集合（Oxford 3000 的子集，按词频排序）
 # 这个列表会在运行时从网络或本地文件加载
 CORE_VOCABULARY: Set[str] = set()
@@ -444,9 +476,17 @@ def select_best_blank(
         if word_clean in EXCLUDE_PHRASES:
             continue
 
-        # 跳过非字母词（数字、标点等）
-        if not word_clean.isalpha() or len(word_clean) < 2:
+        # ⛔ 黑名单：禁止挖空的缩写词（That's, It's, I'm, You're等）
+        word_normalized = word.lower().replace("'", "").replace(".", "")
+        if word_normalized in FORBIDDEN_CONTRACTIONS:
             continue
+
+        # 跳过非字母词（数字、标点等）
+        # 但允许缩写词中的撇号
+        if not word_clean.replace("'", "").replace(".", "").isalpha() or len(word_clean) < 2:
+            # 特殊处理：允许 o'clock 等实义缩写
+            if word not in MEANINGFUL_CONTRACTIONS:
+                continue
 
         # 获取词性大类
         pos_category = pos[:2]  # NN=名词, VB=动词, JJ=形容词, RB=副词
@@ -470,6 +510,16 @@ def select_best_blank(
         score = 0
         reason = []
 
+        # ⭐ 白名单加分：不定代词（everything, nothing等）
+        if word_clean in MEANINGFUL_PRONOUNS:
+            score += 25
+            reason.append('meaningful_pronoun')
+
+        # ⭐ 白名单加分：实义缩写（o'clock等）
+        if word in MEANINGFUL_CONTRACTIONS:
+            score += 20
+            reason.append('meaningful_contraction')
+
         # 核心词汇加分（短句中权重更高）
         if is_core:
             score += 50 if not is_short_sentence else 70
@@ -490,6 +540,11 @@ def select_best_blank(
         elif pos_category in ['JJ', 'JJR', 'JJS']:
             score += 10
             reason.append('adjective')
+
+        # 数词加分（保底机制）
+        if pos_category == 'CD':
+            score += 8
+            reason.append('number')
 
         # 短句额外加分
         if is_short_sentence:
@@ -641,6 +696,50 @@ def process_material_transcript(material: Dict) -> Tuple[List[Dict], Dict]:
 
     return updated_transcript, stats
 
+def show_sentence_previews(client):
+    """显示特定句子的挖空预览"""
+    target_sentences = [
+        "She's everything to me.",
+        "It's seven o'clock.",
+        "That's too bad."
+    ]
+
+    # 查找包含这些句子的素材
+    result = client.table('materials').select('title, transcript').execute()
+
+    found_count = 0
+    for material in result.data:
+        transcript = material.get('transcript', [])
+        for sentence in transcript:
+            text = sentence.get('text', '')
+            blanks = sentence.get('blanks', [])
+
+            # 检查是否匹配目标句子
+            for target in target_sentences:
+                if target.lower() in text.lower():
+                    print(f"\n📌 {text}")
+                    if blanks and len(blanks) > 0:
+                        blank = blanks[0]
+                        word = blank.get('word', '')
+                        index = blank.get('index', 0)
+                        is_core = blank.get('is_core', False)
+
+                        # 构建挖空后的文本
+                        words = text.split()
+                        if 0 <= index < len(words):
+                            words[index] = f"______"
+                            blanked_text = ' '.join(words)
+
+                            print(f"   挖空: {blanked_text}")
+                            print(f"   答案: {word} (位置: {index}, 核心词: {'✓' if is_core else '✗'})")
+                    else:
+                        print(f"   ⏭️  无挖空")
+                    found_count += 1
+                    break
+
+            if found_count >= len(target_sentences):
+                break
+
 def preview_blanks(materials: List[Dict], num_samples: int = 5):
     """预览挖空结果"""
     print("\n" + "="*70)
@@ -747,12 +846,14 @@ def main():
     parser.add_argument('--batch-size', type=int, default=10, help='批量处理时每批的素材数量（默认：10）')
     parser.add_argument('--resume', action='store_true', help='从断点恢复处理')
     parser.add_argument('--silent', action='store_true', help='静默模式，减少输出')
+    parser.add_argument('--preview-only', action='store_true', help='仅预览，不更新数据库')
     args = parser.parse_args()
 
     test_mode = bool(args.test_slug)
     single_mode = bool(args.test_slug or args.update_slug)
     batch_mode = not single_mode and not test_mode
     silent_mode = args.silent or batch_mode
+    preview_only = args.preview_only
 
     if not silent_mode:
         print("="*70)
@@ -763,6 +864,8 @@ def main():
             mode_str = f" (单素材更新: {args.update_slug})"
         elif batch_mode:
             mode_str = f" (批量模式，每批 {args.batch_size} 个素材)"
+        if preview_only:
+            mode_str += " [预览模式]"
         print("🚀 优化单词听写挖空逻辑" + mode_str)
         print("="*70)
 
@@ -847,7 +950,7 @@ def main():
             total_stats['skipped'] += stats['skipped']
 
             # 更新数据库
-            should_update_db = not test_mode
+            should_update_db = not test_mode and not preview_only
             if stats['updated'] > 0:
                 if not silent_mode and not batch_mode:
                     print(f"  📊 处理 {stats['processed']} 句，更新 {stats['updated']} 句")
@@ -869,7 +972,10 @@ def main():
                             print(f"  ❌ 更新失败")
                 else:
                     if not silent_mode and not batch_mode:
-                        print(f"  🧪 测试模式：跳过数据库更新")
+                        if test_mode:
+                            print(f"  🧪 测试模式：跳过数据库更新")
+                        elif preview_only:
+                            print(f"  👁️ 预览模式：跳过数据库更新")
             else:
                 if not silent_mode and not batch_mode:
                     print(f"  ⏭️  无需更新")
@@ -914,8 +1020,15 @@ def main():
         print(f"  跳过句子数: {total_stats['skipped']}")
         print(f"  错误数: {total_stats['errors']}")
 
+        # 🔍 显示特定句子预览
+        if not silent_mode:
+            print("\n" + "="*70)
+            print("🔍 关键句子预览")
+            print("="*70)
+            show_sentence_previews(client)
+
         # 预览结果（仅在非批量模式下）
-        if not batch_mode:
+        if not batch_mode and not preview_only:
             print("\n⏳ 获取预览数据...")
             materials = get_all_materials(client)
             preview_blanks(materials, num_samples=5)
