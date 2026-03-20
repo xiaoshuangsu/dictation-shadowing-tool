@@ -21,6 +21,7 @@ import random
 import argparse
 from typing import List, Dict, Any, Tuple, Set
 from dataclasses import dataclass
+from datetime import datetime
 
 from dotenv import load_dotenv
 from supabase import create_client
@@ -549,6 +550,36 @@ def get_all_materials(client, slug: str = None):
     print(f"✅ 找到 {len(result.data)} 个素材")
     return result.data
 
+def save_checkpoint(last_id: str, batch_num: int, stats: dict):
+    """保存断点记录"""
+    checkpoint_file = os.path.join(os.path.dirname(__file__), '.improve_blanks_checkpoint.json')
+    with open(checkpoint_file, 'w', encoding='utf-8') as f:
+        json.dump({
+            'last_id': last_id,
+            'batch_num': batch_num,
+            'timestamp': json.dumps(datetime.now().isoformat()),
+            'stats': stats
+        }, f, indent=2)
+
+def load_checkpoint():
+    """加载断点记录"""
+    checkpoint_file = os.path.join(os.path.dirname(__file__), '.improve_blanks_checkpoint.json')
+    if os.path.exists(checkpoint_file):
+        with open(checkpoint_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return None
+
+def save_report(stats: dict, total_batches: int, errors: list):
+    """保存处理报告"""
+    report_file = os.path.join(os.path.dirname(__file__), 'process_report.json')
+    with open(report_file, 'w', encoding='utf-8') as f:
+        json.dump({
+            'completed_at': json.dumps(datetime.now().isoformat()),
+            'total_batches': total_batches,
+            'stats': stats,
+            'errors': errors
+        }, f, indent=2)
+
 def update_material_blanks(client, material_id: str, transcript: List[Dict]) -> bool:
     """更新素材的 transcript blanks 字段"""
     try:
@@ -713,25 +744,34 @@ def main():
     parser = argparse.ArgumentParser(description='优化单词听写挖空逻辑')
     parser.add_argument('--test-slug', type=str, help='测试模式：仅处理指定 slug 的素材，不更新数据库')
     parser.add_argument('--update-slug', type=str, help='更新模式：仅处理指定 slug 的素材，并更新到数据库')
+    parser.add_argument('--batch-size', type=int, default=10, help='批量处理时每批的素材数量（默认：10）')
+    parser.add_argument('--resume', action='store_true', help='从断点恢复处理')
+    parser.add_argument('--silent', action='store_true', help='静默模式，减少输出')
     args = parser.parse_args()
 
     test_mode = bool(args.test_slug)
     single_mode = bool(args.test_slug or args.update_slug)
+    batch_mode = not single_mode and not test_mode
+    silent_mode = args.silent or batch_mode
 
-    print("="*70)
-    mode_str = ""
-    if test_mode:
-        mode_str = " (测试模式)"
-    elif args.update_slug:
-        mode_str = f" (单素材更新: {args.update_slug})"
-    print("🚀 优化单词听写挖空逻辑" + mode_str)
-    print("="*70)
+    if not silent_mode:
+        print("="*70)
+        mode_str = ""
+        if test_mode:
+            mode_str = " (测试模式)"
+        elif args.update_slug:
+            mode_str = f" (单素材更新: {args.update_slug})"
+        elif batch_mode:
+            mode_str = f" (批量模式，每批 {args.batch_size} 个素材)"
+        print("🚀 优化单词听写挖空逻辑" + mode_str)
+        print("="*70)
 
     # 检查环境变量
     if not SUPABASE_KEY:
-        print("❌ 错误: 未找到 SUPABASE_ANON_KEY")
-        print("\n请设置环境变量:")
-        print("  export NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key")
+        if not silent_mode:
+            print("❌ 错误: 未找到 SUPABASE_ANON_KEY")
+            print("\n请设置环境变量:")
+            print("  export NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key")
         sys.exit(1)
 
     # 初始化 NLTK
@@ -739,11 +779,13 @@ def main():
         sys.exit(1)
 
     # 加载核心词汇
-    print("\n📚 加载核心词汇列表...")
+    if not silent_mode:
+        print("\n📚 加载核心词汇列表...")
     load_core_vocabulary()
 
     # 连接 Supabase
-    print("\n🔗 连接 Supabase...")
+    if not silent_mode:
+        print("\n🔗 连接 Supabase...")
     client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
     # 获取素材
@@ -753,75 +795,147 @@ def main():
     if not materials:
         sys.exit(1)
 
+    # 断点恢复
+    start_index = 0
+    if args.resume and batch_mode:
+        checkpoint = load_checkpoint()
+        if checkpoint:
+            last_id = checkpoint.get('last_id')
+            start_index = next((i for i, m in enumerate(materials) if m.get('id') == last_id), 0) + 1
+            if not silent_mode:
+                print(f"\n🔄 从断点恢复：Batch {checkpoint.get('batch_num') + 1}, 素材 {start_index + 1}/{len(materials)}")
+
     # 处理每个素材
-    print("\n🔧 开始处理...")
-    print("="*70)
+    if not silent_mode:
+        print("\n🔧 开始处理...")
+        print("="*70)
 
     total_stats = {'processed': 0, 'updated': 0, 'skipped': 0, 'errors': 0}
-    processed_materials = []
+    error_list = []
+    processed_count = 0
 
-    for i, material in enumerate(materials, 1):
-        material_id = material.get('id')
-        title = material.get('title', 'Unknown')
+    # 批量处理
+    batch_size = args.batch_size if batch_mode else len(materials)
+    total_batches = (len(materials) + batch_size - 1) // batch_size
 
-        print(f"\n[{i}/{len(materials)}] 处理: {title}")
+    for batch_num in range(total_batches):
+        start_idx = start_index + batch_num * batch_size
+        end_idx = min(start_idx + batch_size, len(materials))
 
-        # 处理 transcript
-        updated_transcript, stats = process_material_transcript(material)
+        if start_idx >= len(materials):
+            break
 
-        total_stats['processed'] += stats['processed']
-        total_stats['updated'] += stats['updated']
-        total_stats['skipped'] += stats['skipped']
+        batch = materials[start_idx:end_idx]
 
-        # 更新 material 对象的 transcript（用于预览）
-        material['transcript'] = updated_transcript
-        processed_materials.append(material)
+        if batch_mode:
+            print(f"\n📦 Batch {batch_num + 1}/{total_batches} (素材 {start_idx + 1}-{end_idx})")
 
-        # 更新数据库（在测试模式下跳过）
-        should_update_db = not test_mode  # update-slug 模式会更新数据库
-        if stats['updated'] > 0:
-            print(f"  📊 处理 {stats['processed']} 句，更新 {stats['updated']} 句，跳过 {stats['skipped']} 句")
+        batch_updated = 0
 
-            if should_update_db:
-                success = update_material_blanks(client, material_id, updated_transcript)
-                if success:
-                    print(f"  ✅ 已更新到数据库")
+        for i, material in enumerate(batch, start_idx):
+            material_id = material.get('id')
+            title = material.get('title', 'Unknown')
+
+            if not silent_mode and not batch_mode:
+                print(f"\n[{i + 1}/{len(materials)}] 处理: {title}")
+
+            # 处理 transcript
+            updated_transcript, stats = process_material_transcript(material)
+
+            total_stats['processed'] += stats['processed']
+            total_stats['updated'] += stats['updated']
+            total_stats['skipped'] += stats['skipped']
+
+            # 更新数据库
+            should_update_db = not test_mode
+            if stats['updated'] > 0:
+                if not silent_mode and not batch_mode:
+                    print(f"  📊 处理 {stats['processed']} 句，更新 {stats['updated']} 句")
+
+                if should_update_db:
+                    success = update_material_blanks(client, material_id, updated_transcript)
+                    if success:
+                        batch_updated += 1
+                        if not silent_mode and not batch_mode:
+                            print(f"  ✅ 已更新到数据库")
+                    else:
+                        total_stats['errors'] += 1
+                        error_list.append({
+                            'material_id': material_id,
+                            'title': title,
+                            'error': 'Database update failed'
+                        })
+                        if not silent_mode and not batch_mode:
+                            print(f"  ❌ 更新失败")
                 else:
-                    print(f"  ❌ 更新失败")
-                    total_stats['errors'] += 1
+                    if not silent_mode and not batch_mode:
+                        print(f"  🧪 测试模式：跳过数据库更新")
             else:
-                print(f"  🧪 测试模式：跳过数据库更新")
-        else:
-            print(f"  ⏭️  无需更新")
+                if not silent_mode and not batch_mode:
+                    print(f"  ⏭️  无需更新")
+
+            processed_count += 1
+
+            # 保存断点
+            if batch_mode and processed_count % batch_size == 0:
+                save_checkpoint(material_id, batch_num, total_stats)
+
+        # 批次总结
+        if batch_mode:
+            print(f"  ✅ Batch {batch_num + 1}/{total_batches} 完成 - 更新了 {batch_updated}/{len(batch)} 个素材")
+
+            # 每5个批次保存一次报告
+            if (batch_num + 1) % 5 == 0:
+                save_report(total_stats, total_batches, error_list)
+                print(f"  💾 进度已保存到 process_report.json")
 
     # 测试模式：显示详细预览
-    if test_mode and processed_materials:
-        for material in processed_materials:
-            print_blanks_preview(material)
-        print("\n" + "="*70)
-        print("🧪 测试模式完成 - 未修改数据库")
-        print("="*70)
+    if test_mode:
+        if not silent_mode:
+            # 获取处理后的数据用于预览
+            for material in materials:
+                updated_transcript, _ = process_material_transcript(material)
+                material['transcript'] = updated_transcript
+                print_blanks_preview(material)
+            print("\n" + "="*70)
+            print("🧪 测试模式完成 - 未修改数据库")
+            print("="*70)
         return
 
     # 总结
-    print("\n" + "="*70)
-    print("✅ 处理完成！")
-    print("="*70)
-    print(f"\n统计:")
-    print(f"  总素材数: {len(materials)}")
-    print(f"  总句子数: {total_stats['processed']}")
-    print(f"  更新句子数: {total_stats['updated']}")
-    print(f"  跳过句子数: {total_stats['skipped']}")
-    print(f"  错误数: {total_stats['errors']}")
+    if not silent_mode:
+        print("\n" + "="*70)
+        print("✅ 处理完成！")
+        print("="*70)
+        print(f"\n统计:")
+        print(f"  总素材数: {len(materials)}")
+        print(f"  总句子数: {total_stats['processed']}")
+        print(f"  更新句子数: {total_stats['updated']}")
+        print(f"  跳过句子数: {total_stats['skipped']}")
+        print(f"  错误数: {total_stats['errors']}")
 
-    # 预览结果
-    print("\n⏳ 获取预览数据...")
-    materials = get_all_materials(client)
-    preview_blanks(materials, num_samples=5)
+        # 预览结果（仅在非批量模式下）
+        if not batch_mode:
+            print("\n⏳ 获取预览数据...")
+            materials = get_all_materials(client)
+            preview_blanks(materials, num_samples=5)
 
-    print("\n" + "="*70)
-    print("🎉 全部完成！")
-    print("="*70)
+        print("\n" + "="*70)
+        print("🎉 全部完成！")
+        print("="*70)
+
+    # 保存最终报告
+    if batch_mode:
+        save_report(total_stats, total_batches, error_list)
+        if not silent_mode:
+            print(f"\n📄 报告已保存到 process_report.json")
+
+        # 清除断点文件
+        checkpoint_file = os.path.join(os.path.dirname(__file__), '.improve_blanks_checkpoint.json')
+        if os.path.exists(checkpoint_file):
+            os.remove(checkpoint_file)
+            if not silent_mode:
+                print(f"🗑️  已清除断点文件")
 
 if __name__ == '__main__':
     try:
