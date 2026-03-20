@@ -46,9 +46,15 @@
 
 **词形归一化**：
 ```python
+# 复数形式
 clouds  → cloud   # 去除复数 -s
 cities  → city    # -ies → -y
 boxes   → box     # 去除复数 -es
+
+# 动词 -ing 形式（v1.2.2 新增）
+crying  → cry     # 去除 -ing
+running → run     # 去除 -ing + 双写字母
+making  → make    # 去除 -ing + 恢复 e
 ```
 
 ### 2. 排除规则
@@ -750,6 +756,28 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 
 ---
 
+### v1.2.2 (2026-03-19) - 动词 -ing 形式归一化
+
+**问题描述**：
+- `crying` 无法匹配核心词汇表中的 `cry`
+- 短句 "Why are you crying?" 因无候选词而不挖空
+
+**解决方案**：
+- 扩展 `normalize_word` 函数，处理动词 -ing 形式
+- 支持：crying → cry, running → run, making → make
+
+**修复效果**：
+- "Why are you crying?" → 挖空 **crying** ✅（之前为空）
+
+**技术细节**：
+- 修改文件：`scripts/improve_blanks.py`
+- 归一化规则：
+  1. 去掉 -ing 后双写字母：running → run
+  2. 短词加 e：making → make
+  3. 直接去掉 -ing：crying → cry
+
+---
+
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.2.1
+**版本**：v1.2.2
