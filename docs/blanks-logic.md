@@ -580,16 +580,22 @@ if (foundIndex === -1) {
 
 ### 更新所有素材的挖空数据
 
+**v1.2.3 重要更新**：脚本已合并，现在**只需运行一个脚本**！
+
 ```bash
-# 全量更新（谨慎使用）
-python3 scripts/improve_blanks.py
+# ✅ 推荐方式：静默模式批量更新（只需运行这一个脚本）
+python3 scripts/improve_blanks.py --silent
 
 # 单个素材测试
-python3 scripts/improve_blanks.py --test-slug a-rainy-day
-
-# 单个素材更新
 python3 scripts/improve_blanks.py --update-slug a-rainy-day
+
+# ❌ 旧方式（已废弃）：不再需要运行 fix_proper_nouns.py
 ```
+
+**说明**：
+- `improve_blanks.py` 现已内置专有名词识别逻辑
+- 只需运行这一个脚本即可完成所有挖空处理
+- 逻辑始终同步，避免两步处理的不一致性
 
 ### 环境要求
 
@@ -756,6 +762,45 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 
 ---
 
+### v1.2.3 (2026-03-19) - 脚本合并
+
+**重大改进**：将专有名词识别逻辑整合到主脚本
+
+**问题描述**：
+- 需要运行两个脚本（improve_blanks.py + fix_proper_nouns.py）
+- 逻辑分散，难以维护
+- 可能出现两步处理的不一致性
+
+**解决方案**：
+- 合并脚本：将 `fix_proper_nouns.py` 的专有名词识别逻辑整合到 `improve_blanks.py`
+- 新增功能：
+  - 常见人名列表（约200个）
+  - `is_proper_noun()` 函数
+  - 在初始挖空时直接排除专有名词
+
+**使用方法**：
+```bash
+# ✅ 新方式：只需运行一个脚本
+python3 scripts/improve_blanks.py --silent
+
+# ❌ 旧方式（已废弃）
+python3 scripts/improve_blanks.py --silent
+python3 scripts/fix_proper_nouns.py --silent  # 不再需要
+```
+
+**优势**：
+1. 只需运行一个脚本
+2. 逻辑始终同步
+3. 避免两步处理的不一致性
+
+**技术细节**：
+- 修改文件：`scripts/improve_blanks.py`
+- 新增：COMMON_NAMES 集合（约200个常见人名）
+- 新增：`is_proper_noun()` 函数
+- 在候选词筛选中直接调用 `is_proper_noun()`
+
+---
+
 ### v1.2.2 (2026-03-19) - 动词 -ing 形式归一化
 
 **问题描述**：
@@ -780,4 +825,4 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.2.2
+**版本**：v1.2.3
