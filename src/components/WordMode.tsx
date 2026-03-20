@@ -57,6 +57,9 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       // 需要处理大小写和标点符号的差异
       let foundIndex = -1
 
+      // 辅助函数：去除标点符号
+      const removePunctuation = (word: string) => word.replace(/[.,!?;:'""]/g, '')
+
       // 首先尝试精确匹配
       foundIndex = sentenceWords.findIndex(w => w === blankWord)
 
@@ -64,6 +67,13 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       if (foundIndex === -1) {
         foundIndex = sentenceWords.findIndex(w =>
           w.toLowerCase() === blankWord.toLowerCase()
+        )
+      }
+
+      // 如果还没有找到，尝试去除标点符号后匹配（处理 "bad." vs "bad" 的情况）
+      if (foundIndex === -1) {
+        foundIndex = sentenceWords.findIndex(w =>
+          removePunctuation(w).toLowerCase() === removePunctuation(blankWord).toLowerCase()
         )
       }
 

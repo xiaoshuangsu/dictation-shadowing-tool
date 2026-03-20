@@ -464,6 +464,7 @@ const { hiddenWordIndex, hiddenWord, visibleWordsBefore, visibleWordsAfter } = u
 **匹配优先级**：
 1. 精确匹配：`clouds === "clouds"`
 2. 忽略大小写：`"Clouds".toLowerCase() === "clouds"`
+3. **去除标点符号**：`removePunctuation("bad.") === "bad"`
 
 **示例**：
 
@@ -471,7 +472,67 @@ const { hiddenWordIndex, hiddenWord, visibleWordsBefore, visibleWordsAfter } = u
 |-------------|------------|----------|
 | clouds | clouds | ✅ 精确匹配 |
 | Clouds | clouds | ✅ 忽略大小写 |
-| clouds | cloud | ❌ 不匹配 |
+| bad | bad. | ✅ 去除标点符号 |
+| That's | That's | ❌ 黑名单缩写（不应匹配）|
+
+### 4. ⭐ 标点符号匹配问题（v1.2.1 修复）
+
+#### 问题背景
+
+**问题描述**：后端 `blank.word` 存储的是纯单词（如 `"bad"`），但前端 `sentenceWords` 分割时保留了标点符号（如 `"bad."`），导致匹配失败。
+
+**示例**：
+```javascript
+// 后端数据
+blank.word = "bad"
+
+// 前端分割
+sentenceWords = "That's too bad.".split(/\s+/)
+// 结果：["That's", "too", "bad."]  ← 注意 "bad." 有句号
+
+// 匹配尝试
+"bad." === "bad"           // ❌ 失败
+"bad.".toLowerCase() === "bad".toLowerCase()  // ❌ 失败
+// 回退到随机算法 → 可能挖空 "That's"
+```
+
+#### 解决方案
+
+**增加第三级匹配**：去除标点符号后比较
+
+```typescript
+// 辅助函数：去除标点符号
+const removePunctuation = (word: string) => word.replace(/[.,!?;:'""]/g, '')
+
+// 匹配优先级（v1.2.1）
+// 1. 精确匹配
+foundIndex = sentenceWords.findIndex(w => w === blankWord)
+
+// 2. 忽略大小写
+if (foundIndex === -1) {
+  foundIndex = sentenceWords.findIndex(w =>
+    w.toLowerCase() === blankWord.toLowerCase()
+  )
+}
+
+// 3. 去除标点符号后匹配（新增）
+if (foundIndex === -1) {
+  foundIndex = sentenceWords.findIndex(w =>
+    removePunctuation(w).toLowerCase() === removePunctuation(blankWord).toLowerCase()
+  )
+}
+```
+
+#### 影响范围
+
+**修复前**：所有句末单词的挖空都失效，回退到随机算法
+
+**修复后**：正确匹配句末单词，遵循后端挖空逻辑
+
+**测试案例**：
+- "That's too bad." → 挖空 **bad** ✅
+- "Kate is sick." → 挖空 **sick** ✅
+- "I like everything." → 挖空 **everything** ✅
 
 ---
 
@@ -667,6 +728,28 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 
 ---
 
+### v1.2.1 (2026-03-19) - 前端标点符号匹配修复
+
+**问题描述**：
+- 后端 `blank.word` 存储纯单词（如 `"bad"`）
+- 前端 `sentenceWords` 保留标点符号（如 `"bad."`）
+- 导致匹配失败，回退到随机算法
+
+**解决方案**：
+- 新增第三级匹配：去除标点符号后比较
+- `removePunctuation("bad.") === "bad"`
+
+**修复效果**：
+- "That's too bad." → 挖空 **bad** ✅（而非回退到随机）
+- "Kate is sick." → 挖空 **sick** ✅
+- 所有句末单词现在正确匹配
+
+**技术细节**：
+- 修改文件：`src/components/WordMode.tsx`
+- 正则表达式：`/[.,!?;:'""]/g` 用于去除标点符号
+
+---
+
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.2.0
+**版本**：v1.2.1
