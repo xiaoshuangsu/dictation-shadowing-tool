@@ -1087,6 +1087,78 @@ python3 scripts/fix_proper_nouns.py --silent  # 不再需要
 
 ---
 
+### v1.2.7 (2026-03-19) - 细化专有名词处理逻辑
+
+**问题描述**："April Fools, Bob." 误挖空 "Bob"
+
+**背景**：
+- 之前的逻辑将所有 NNP（专有名词）一律排除
+- 导致无法挖空有语义价值的专有名词（月份、星期、节日等）
+- 即使是人名黑名单也不够精细，需要区分"人名"和"概念专有名词"
+
+**示例问题**：
+
+| 句子 | 之前逻辑 | 问题 |
+|------|----------|------|
+| April Fools, Bob. | 无或 Bob | ❌ 无法挖空月份/节日 |
+| Merry Christmas, Bob! | 无或 Bob | ❌ 无法挖空节日 |
+| Happy Friday, Bob. | 无或 Bob | ❌ 无法挖空星期 |
+
+**解决方案**：
+
+1. **人名黑名单**：
+   - 利用现有的 `COMMON_NAMES`（约 200 个常见人名）
+   - 严禁挖空人名
+
+2. **概念专有名词白名单**：
+   ```python
+   MEANINGFUL_PROPER_NOUNS = {
+       # 月份
+       'january', 'february', 'march', 'april', 'may', 'june', 'july',
+       'august', 'september', 'october', 'november', 'december',
+       # 星期
+       'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+       'saturday', 'sunday',
+       # 节日
+       'easter', 'christmas', 'halloween', 'thanksgiving',
+       # 其他
+       'fools', 'april', 'yesterday', 'today', 'tomorrow', 'earth', 'mars'
+   }
+   ```
+
+3. **强制兜底逻辑**：
+   ```python
+   # 检测：所有词都是 NNP
+   if all_nnp:
+       # 优先选择白名单中的概念专有名词
+       if word in MEANINGFUL_PROPER_NOUNS:
+           return word  # April, Fools, Christmas, Friday...
+
+       # 其次选择非人名的专有名词
+       if word not in COMMON_NAMES:
+           return word  # 避开 Bob
+   ```
+
+**修复效果**：
+
+| 句子 | 修复前 | 修复后 | 状态 |
+|------|--------|--------|------|
+| April Fools, Bob. | Bob 或无 | **April** ✅ | 月份 |
+| Merry Christmas, Bob! | Bob 或无 | **Christmas** ✅ | 节日 |
+| Happy Friday, Bob. | Bob 或无 | **Friday** ✅ | 星期 |
+
+**技术细节**：
+- 修改文件：`scripts/improve_blanks.py`
+- 新增 `MEANINGFUL_PROPER_NOUNS` 集合（概念专有名词白名单）
+- 修改 `is_proper_noun()` 函数，细分为：
+  1. 人名检查（黑名单）
+  2. 概念专有名词检查（白名单）
+  3. 其他专有名词检查（默认排除）
+- 添加强制兜底逻辑（全 NNP 句子处理）
+- Commit：`053d8dc`
+
+---
+
 ### v1.2.2 (2026-03-19) - 动词 -ing 形式归一化
 
 **问题描述**：
@@ -1111,4 +1183,4 @@ python3 scripts/fix_proper_nouns.py --silent  # 不再需要
 
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.2.6
+**版本**：v1.2.7
