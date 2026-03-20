@@ -111,11 +111,10 @@ def setup_nltk():
         import nltk
         print("📦 NLTK 已安装")
 
-        # 下载必要的数据包（包括新版本所需的数据包）
-        required_packages = [
-            'punkt', 'averaged_perceptron_tagger', 'punkt_tab',
-            'averaged_perceptron_tagger_eng', 'punkt_eng'
-        ]
+        # 下载必要的数据包
+        required_packages = ['punkt', 'averaged_perceptron_tagger']
+        optional_packages = ['punkt_tab', 'averaged_perceptron_tagger_eng', 'punkt_eng']
+
         for package in required_packages:
             try:
                 nltk.data.find(f'tokenizers/{package}')
@@ -123,11 +122,14 @@ def setup_nltk():
                 try:
                     nltk.data.find(f'taggers/{package}')
                 except LookupError:
-                    print(f"⬇️  下载 NLTK 数据包: {package}")
-                    try:
-                        nltk.download(package, quiet=True)
-                    except:
-                        pass
+                    nltk.download(package, quiet=True)
+
+        # 尝试下载可选数据包（忽略失败）
+        for package in optional_packages:
+            try:
+                nltk.download(package, quiet=True)
+            except:
+                pass
 
         return True
     except ImportError:
