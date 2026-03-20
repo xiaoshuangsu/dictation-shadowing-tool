@@ -51,6 +51,7 @@ STOP_WORDS = {
     'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being',
     'have', 'has', 'had', 'do', 'does', 'did',
     'will', 'would', 'could', 'should', 'may', 'might', 'can',
+    'let',  # Let's 中的 let（语法结构词）
     # 其他
     'yes', 'no', 'not', 'oh', 'hey', 'well', 'now', 'then', 'here', 'there',
     'what', 'when', 'where', 'who', 'why', 'how',
