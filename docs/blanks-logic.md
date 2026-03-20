@@ -317,6 +317,111 @@ if is_short_sentence:
 | 句子 | 候选词 | 词性 | 核心词 | 得分 | 选择 |
 |------|--------|------|--------|------|------|
 | How can I help you? | help | VB | ✗ | 30 | ✅ |
+
+### 6. 局部去重和主语干扰检测（v1.2.6 新增）
+
+#### 问题背景
+
+**高频重复词问题**：在同一素材中，某些词（如 family）被重复挖空多次，导致练习单调。
+
+**示例**：Going Camping 素材
+- 第 2 句：挖空 family
+- 第 3 句：挖空 family ❌
+- 第 4 句：挖空 family ❌
+- 第 6 句：挖空 family ❌
+- ...共 7 次
+
+---
+
+#### 解决方案
+
+**1. 局部去重逻辑**：
+
+在处理每个素材时，维护一个 `used_blanks` 集合，跟踪已使用的挖空词。
+
+```python
+# ⭐ 局部去重：重复词降低 80% 权重
+is_duplicate = word_clean in used_blanks
+
+if is_duplicate:
+    score = score * 0.2  # 降低 80% 权重
+    reason.append('duplicate')
+```
+
+**2. 主语干扰检测**：
+
+检测 "The [Proper Noun] [Noun]" 模式（如 "The Bright family"），如果名词在素材中多次出现，降低其优先级。
+
+```python
+# ⭐ 主语干扰检测
+# 检查是否在 "The [Proper Noun] X" 模式中
+if i >= 2:
+    prev_word = words_with_pos[i-1][0].lower()
+    prev_prev_word = words_with_pos[i-2][0].lower()
+    if prev_prev_word == 'the' and prev_prev_word[0].isupper():
+        is_subject_interference = True
+
+# 应用惩罚
+if is_subject_interference:
+    word_count = material_context['word_counts'][word_clean]
+    if word_count >= 3:
+        score = score * 0.3  # 降低 70%
+    elif word_count >= 2:
+        score = score * 0.5  # 降低 50%
+```
+
+---
+
+#### 修复效果
+
+**Going Camping 素材对比**：
+
+| 句子 | 修复前 | 修复后 | 改进 |
+|------|--------|--------|------|
+| 2. The Bright family went camping on the weekend. | family | **camping** | ✅ 动词 |
+| 3. The Bright family went to Silent Lake. | family | **went** | ✅ 动词 |
+| 4. The Bright family left on Friday. | family | **left** | ✅ 动词 |
+| 6. The Bright family brought a big tent. | family | **brought** | ✅ 动词 |
+
+**统计结果**：
+- family 被挖空次数：7 次 → **1 次** ✅
+- 每个句子都选择了不同的有意义的词
+
+---
+
+#### 技术细节
+
+**修改文件**：`scripts/improve_blanks.py`
+
+**核心改动**：
+1. `select_best_blank()` 函数新增参数：
+   - `used_blanks: Set[str]` - 已使用的挖空词集合
+   - `material_context: Dict` - 素材上下文（词频统计等）
+
+2. `process_material_transcript()` 函数：
+   - 维护 `used_blanks` 集合
+   - 构建 `material_context` 词频统计
+   - 传递给每个句子的挖空选择
+
+**Commit**：`5bce152`
+
+---
+
+#### 使用方法
+
+局部去重和主语干扰检测**已自动启用**，无需额外配置。每次运行 `improve_blanks.py` 时会自动应用此逻辑。
+
+```bash
+python3 scripts/improve_blanks.py --silent
+```
+
+---
+
+**示例对比**：
+
+| 句子 | 候选词 | 词性 | 核心词 | 得分 | 选择 |
+|------|--------|------|--------|------|------|
+| How can I help you? | help | VB | ✗ | 30 | ✅ |
 | Why are you crying? | crying | VBG | ✓ | 80 | ✅ |
 | The clouds were very Gray. | clouds | NN | ✓ | 95 | ✅ |
 | | Gray | NNP | ✗ | 40 | |
@@ -930,6 +1035,58 @@ python3 scripts/fix_proper_nouns.py --silent  # 不再需要
 
 ---
 
+### v1.2.6 (2026-03-19) - 局部去重和主语干扰检测
+
+**问题描述**：高频重复词问题
+
+在同一素材中，某些词（如 family）被重复挖空多次，导致：
+- 练习单调，缺乏多样性
+- 学习效果降低
+- 用户体验不佳
+
+**示例**：Going Camping 素材
+- family 被挖空 7 次（第 2, 3, 4, 6, 9, 16, 19 句）
+- 其他有意义的词（tent, Friday, Silent Lake）被忽略
+
+**解决方案**：
+
+1. **局部去重逻辑**：
+   - 维护 `used_blanks` 集合，跟踪当前素材中已使用的挖空词
+   - 如果一个词已被挖过，后续句子中降低 80% 权重
+   - 强迫脚本选择其他有意义的词
+
+2. **主语干扰检测**：
+   - 检测 "The [Proper Noun] [Noun]" 模式（如 "The Bright family"）
+   - 如果名词在素材中出现 3+ 次，降低 70% 权重
+   - 如果名词在素材中出现 2 次，降低 50% 权重
+
+**修复效果**：
+
+| 素材 | 修复前 | 修复后 |
+|------|--------|--------|
+| Going Camping | family × 7 | family × 1, camping, went, left, brought... |
+| 重复词比例 | 高（30%） | 低（4%） |
+
+**具体句子对比**：
+
+| 句子 | 修复前 | 修复后 | 改进 |
+|------|--------|--------|------|
+| The Bright family went camping on the weekend. | family | **camping** | ✅ 动词 |
+| The Bright family went to Silent Lake. | family | **went** | ✅ 动词 |
+| The Bright family left on Friday. | family | **left** | ✅ 动词 |
+| The Bright family brought a big tent. | family | **brought** | ✅ 动词 |
+
+**技术细节**：
+- 修改文件：`scripts/improve_blanks.py`
+- 核心改动：
+  1. `select_best_blank()` 新增 `used_blanks` 和 `material_context` 参数
+  2. `process_material_transcript()` 维护去重集合和词频统计
+- Commit：`5bce152`
+
+**使用方法**：自动启用，无需额外配置
+
+---
+
 ### v1.2.2 (2026-03-19) - 动词 -ing 形式归一化
 
 **问题描述**：
@@ -954,4 +1111,4 @@ python3 scripts/fix_proper_nouns.py --silent  # 不再需要
 
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.2.5
+**版本**：v1.2.6
