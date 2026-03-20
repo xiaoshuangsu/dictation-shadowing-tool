@@ -874,6 +874,62 @@ python3 scripts/fix_proper_nouns.py --silent  # 不再需要
 
 ---
 
+### v1.2.5 (2026-03-19) - 完善短句保底机制
+
+**问题描述**：
+- 短句保底机制仍然不够完整
+- "Kate is sick." 中的 sick（形容词，非核心）被跳过
+- 专有名词误判：sick 因首字母大写被误判为专有名词
+
+**解决方案**：
+1. **修复专有名词误判**（Commit `63eea01`）：
+   - 只对名词（NN, NNS）应用首字母大写规则
+   - 形容词、动词等不受影响
+
+   ```python
+   # 修复前
+   if word_index > 0 and word[0].isupper() and word.isalpha():
+       return True  # ❌ sick 被误判
+
+   # 修复后
+   if word_index > 0 and word[0].isupper() and word.isalpha() and pos_category in ['NN', 'NNS']:
+       return True  # ✅ 只判断名词
+   ```
+
+2. **完全移除短句中的非核心词限制**（Commit `ed5550d`）：
+   - 让所有实词（动词、名词、形容词）都能作为候选词
+   - 核心词通过更高的得分来优先选择
+
+   ```python
+   # 修复前
+   if not is_core and pos_category not in ['VB', 'NN']:
+       continue  # ❌ 非核心形容词被跳过
+
+   # 修复后
+   # 完全移除此限制
+   # 所有实词都可以作为候选词
+   ```
+
+**修复效果**：
+
+| 句子 | 修复前 | 修复后 | 问题 |
+|------|--------|--------|------|
+| Kate is sick. | 无 ❌ | **sick** ✅ | 专有名词误判 + 短句限制 |
+| How can I help you? | help ✅ | help ✅ | 保底机制已修复 |
+| Why are you crying? | crying ✅ | crying ✅ | 保底机制已修复 |
+| That's too bad. | bad ✅ | bad ✅ | 保底机制已修复 |
+
+**统计结果**：
+- 总句子数：8,131
+- 空白挖空数：439
+- 覆盖率：94.6%（从 93.8% 提升）
+
+**技术细节**：
+- 修改文件：`scripts/improve_blanks.py`
+- Commit：`63eea01`, `ed5550d`
+
+---
+
 ### v1.2.2 (2026-03-19) - 动词 -ing 形式归一化
 
 **问题描述**：
@@ -898,4 +954,4 @@ python3 scripts/fix_proper_nouns.py --silent  # 不再需要
 
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.2.4
+**版本**：v1.2.5
