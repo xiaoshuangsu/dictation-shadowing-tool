@@ -515,7 +515,9 @@ def analyze_sentence_words(sentence: str) -> List[Tuple[str, str]]:
 def select_best_blank(
     words_with_pos: List[Tuple[str, str]],
     word_indices: List[int],
-    sentence_text: str
+    sentence_text: str,
+    used_blanks: Set[str] = None,
+    material_context: Dict[str, Any] = None
 ) -> Dict[str, Any]:
     """选择最适合挖空的单词
 
@@ -593,6 +595,23 @@ def select_best_blank(
         score = 0
         reason = []
 
+        # ⭐ 局部去重：如果一个词已被挖过，降低权重 80%
+        is_duplicate = used_blanks and word_clean in used_blanks
+        if is_duplicate:
+            reason.append('duplicate')
+            # 注意：实际降低会在最后应用
+
+        # ⭐ 主语干扰检测：检测 "The [Proper Noun] [Noun]" 模式
+        is_subject_interference = False
+        if material_context and pos_category == 'NN':
+            # 检查是否在 "The [Proper Noun] X" 模式中
+            if i >= 2:
+                prev_word = words_with_pos[i-1][0].lower()
+                prev_prev_word = words_with_pos[i-2][0].lower()
+                if prev_prev_word == 'the' and prev_prev_word[0].isupper():
+                    is_subject_interference = True
+                    reason.append('subject_interference')
+
         # ⭐ 白名单加分：不定代词（everything, nothing等）
         if word_clean in MEANINGFUL_PRONOUNS:
             score += 25
@@ -612,6 +631,21 @@ def select_best_blank(
         if pos_category in ['NN', 'VB', 'JJ']:
             score += 30
             reason.append('content_word')
+
+        # ⭐ 应用去重惩罚：如果是重复词，降低 80% 权重
+        if is_duplicate:
+            score = score * 0.2  # 降低 80%
+
+        # ⭐ 应用主语干扰惩罚：如果是主语干扰词，降低权重
+        if is_subject_interference:
+            # 如果这个词在素材中已出现多次，大幅降低优先级
+            word_count = material_context.get('word_counts', {}).get(word_clean, 0)
+            if word_count >= 3:
+                score = score * 0.3  # 降低 70%
+                reason.append('high_frequency_subject')
+            elif word_count >= 2:
+                score = score * 0.5  # 降低 50%
+                reason.append('medium_frequency_subject')
 
         # 动词、名词、形容词优先级（保持原有优先级：动词 > 名词 > 形容词）
         if pos_category in ['VB', 'VBP', 'VBZ', 'VBD', 'VBG', 'VBN']:
@@ -743,6 +777,25 @@ def process_material_transcript(material: Dict) -> Tuple[List[Dict], Dict]:
     stats = {'processed': 0, 'updated': 0, 'skipped': 0}
     updated_transcript = []
 
+    # ⭐ 局部去重：跟踪当前素材中已使用的挖空词
+    used_blanks = set()
+
+    # ⭐ 主语干扰检测：构建素材上下文
+    material_context = {
+        'word_counts': {},
+        'proper_noun_patterns': set()
+    }
+
+    # 统计所有词的出现频率
+    for sentence in transcript:
+        sentence_text = sentence.get('text', '')
+        if sentence_text:
+            words_with_pos = analyze_sentence_words(sentence_text)
+            for word, pos in words_with_pos:
+                if word.isalpha():
+                    word_lower = word.lower()
+                    material_context['word_counts'][word_lower] = material_context['word_counts'].get(word_lower, 0) + 1
+
     for sentence in transcript:
         sentence_text = sentence.get('text', '')
 
@@ -753,14 +806,11 @@ def process_material_transcript(material: Dict) -> Tuple[List[Dict], Dict]:
 
         stats['processed'] += 1
 
-        # 强制重新处理所有句子（忽略现有的 blanks 字段）
-        # 这样可以修复之前不正确的挖空结果
-
         # 分析句子
         words_with_pos = analyze_sentence_words(sentence_text)
 
-        # 选择最佳挖空词
-        blank_info = select_best_blank(words_with_pos, [], sentence_text)
+        # 选择最佳挖空词（传入 used_blanks 和 material_context）
+        blank_info = select_best_blank(words_with_pos, [], sentence_text, used_blanks, material_context)
 
         if blank_info and 'word' in blank_info:
             # 更新句子
@@ -770,6 +820,10 @@ def process_material_transcript(material: Dict) -> Tuple[List[Dict], Dict]:
                 'pos': blank_info['pos'],
                 'is_core': blank_info['is_core']
             }]
+
+            # ⭐ 将挖空的词添加到 used_blanks
+            used_blanks.add(blank_info['word'].lower())
+
             stats['updated'] += 1
         else:
             # 没有找到合适的词，设置空的 blanks
