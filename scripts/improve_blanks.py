@@ -100,6 +100,60 @@ FORBIDDEN_CONTRACTIONS = {
     "haven't", "hasn't", "hadn't"
 }
 
+# ============ 专有名词识别 ============
+# 常见英美人名列表（约 200 个）
+COMMON_NAMES = {
+    # 男性名字
+    'james', 'john', 'robert', 'michael', 'william', 'david', 'richard', 'joseph', 'thomas', 'charles',
+    'christopher', 'daniel', 'matthew', 'anthony', 'donald', 'mark', 'paul', 'steven', 'andrew', 'kenneth',
+    'joshua', 'kevin', 'brian', 'george', 'edward', 'ronald', 'timothy', 'jason', 'jeffrey', 'ryan',
+    'jacob', 'gary', 'nicholas', 'eric', 'jonathan', 'stephen', 'larry', 'justin', 'scott', 'brandon',
+    'benjamin', 'samuel', 'frank', 'gregory', 'raymond', 'alexander', 'patrick', 'jack', 'dennis', 'jerry',
+
+    # 女性名字
+    'mary', 'patricia', 'jennifer', 'linda', 'barbara', 'elizabeth', 'susan', 'jessica', 'sarah', 'karen',
+    'nancy', 'lisa', 'betty', 'margaret', 'sandra', 'ashley', 'kimberly', 'emily', 'donna', 'michelle',
+    'dorothy', 'carol', 'amanda', 'melissa', 'deborah', 'stephanie', 'rebecca', 'sharon', 'laura', 'cynthia',
+    'kathleen', 'amy', 'shirley', 'angela', 'helen', 'anna', 'brenda', 'pamela', 'emma', 'nicole',
+    'hannah', 'samantha', 'katherine', 'christine', 'debra', 'rachel', 'catherine', 'carolyn', 'janet', 'ruth',
+
+    # 常见名字变体
+    'kate', 'katie', 'lizzy', 'liz', 'beth', 'becky', 'sue', 'maggie', 'meg', 'annie',
+    'abby', 'cathy', 'chrissy', 'debbie', 'gina', 'jenny', 'kathy', 'missy', 'molly', 'patty',
+    'bob', 'bill', 'jim', 'joe', 'tom', 'tim', 'tony', 'mike', 'rick', 'steve',
+    'dan', 'dave', 'greg', 'jeff', 'johnny', 'kenny', 'pete', 'phil', 'ron', 'rob',
+
+    # 常见姓氏
+    'smith', 'jones', 'williams', 'brown', 'davis', 'miller', 'wilson', 'moore', 'taylor', 'anderson',
+    'thomas', 'jackson', 'white', 'harris', 'martin', 'thompson', 'garcia', 'martinez', 'robinson', 'clark'
+}
+
+def is_proper_noun(word: str, pos: str, word_index: int, sentence_length: int) -> bool:
+    """判断是否为专有名词
+
+    Args:
+        word: 单词
+        pos: 词性标注
+        word_index: 单词在句子中的位置
+        sentence_length: 句子总词数
+
+    Returns:
+        是否为专有名词
+    """
+    # 1. 词性标注判断
+    if pos in ['NNP', 'NNPS']:
+        return True
+
+    # 2. 常用人名判断
+    if word.lower() in COMMON_NAMES:
+        return True
+
+    # 3. 首字母大写且不在句首
+    if word_index > 0 and word[0].isupper() and word.isalpha():
+        return True
+
+    return False
+
 # 核心词汇集合（Oxford 3000 的子集，按词频排序）
 # 这个列表会在运行时从网络或本地文件加载
 CORE_VOCABULARY: Set[str] = set()
@@ -501,6 +555,10 @@ def select_best_blank(
         # ⛔ 黑名单：禁止挖空的缩写词（That's, It's, I'm, You're等）
         word_normalized = word.lower().replace("'", "").replace(".", "")
         if word_normalized in FORBIDDEN_CONTRACTIONS:
+            continue
+
+        # ⛔ 专有名词排除（人名、地名等）
+        if is_proper_noun(word, pos, i, len(words_with_pos)):
             continue
 
         # 跳过非字母词（数字、标点等）
