@@ -397,12 +397,31 @@ def load_core_vocabulary() -> Set[str]:
 def normalize_word(word: str) -> str:
     """将单词归一化为基本形式
 
-    简单的词形归一化（处理常见复数形式）：
+    简单的词形归一化（处理常见复数和动词形式）：
     - clouds → cloud
     - cities → city
     - babies → baby
+    - crying → cry
+    - running → run
+    - making → make
     """
     word_lower = word.lower()
+
+    # 处理 -ing 形式（动词现在分词）
+    if word_lower.endswith('ing') and len(word_lower) > 5:
+        base = word_lower[:-3]  # 去掉 -ing
+
+        # 情况1: 去掉 -ing 后双写结尾字母（running → runn → run）
+        if len(base) >= 2 and base[-1] == base[-2]:
+            return base[:-1]
+
+        # 情况2: 以辅音字母结尾的短词，可能需要加 e（making → mak → make）
+        # 但要排除以 y 结尾的词（crying → cry）
+        if len(base) <= 4 and not base.endswith(('a', 'e', 'i', 'o', 'u', 'y')):
+            return base + 'e'
+
+        # 情况3: 直接去掉 -ing（crying → cry）
+        return base
 
     # 处理 -ies 结尾（如：cities → city, babies → baby）
     if word_lower.endswith('ies'):
