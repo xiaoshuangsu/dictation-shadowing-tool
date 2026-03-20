@@ -48,6 +48,39 @@ thank, thanks, hello, hi, hey, sorry, excuse, forgive,
 pardon, bye, goodbye, bless, cheers, greetings...
 ```
 
+#### 专有名词（PROPER_NOUNS）
+```python
+# 人名识别（约 200 个常见英文名）
+james, john, mary, kate, joe, bill, tom, jane...
+
+# NLTK 词性标注排除
+NNP  # 单数专有名词
+NNPS # 复数专有名词
+
+# 辅助规则
+- 首字母大写且不在句首
+- 在常用人名列表中
+```
+
+**重要**：专有名词修复逻辑 (`scripts/fix_proper_nouns.py`)
+
+初始挖空可能包含专有名词（人名、地名、星期等），需要后处理修复：
+
+1. **识别专有名词**：
+   - NLTK 词性标注为 `NNP` 或 `NNPS`
+   - 在常用人名列表中
+   - 首字母大写且不在句首
+
+2. **二次重选**：
+   - 丢弃当前的专有名词挖空
+   - 重新从剩余词中选择：动词 > 普通名词(NN) > 形容词
+   - 如果没有合适的词，移除挖空
+
+3. **修复示例**：
+   - "Milo cannot have kittens." → **Milo** → **kittens**
+   - "The Bright family went camping." → **Bright** → **camping**
+   - "On Saturday, they went canoeing." → **Saturday** → **went**
+
 ### 3. 短句特殊处理
 
 **短句定义**：3-5 个单词
@@ -132,6 +165,127 @@ score += random(0, 5)
 - `index`: 单词在 NLTK tokenize 结果中的位置
 - `pos`: 词性标注（Penn Treebank 格式）
 - `is_core`: 是否为核心词汇
+
+---
+
+## 专有名词修复逻辑 (`scripts/fix_proper_nouns.py`)
+
+### 问题背景
+
+初始挖空算法没有完全排除专有名词，导致人名、地名、星期等被错误挖空：
+
+**错误示例**：
+- "Milo cannot have kittens." → 挖空 **Milo** ❌
+- "The Bright family went camping." → 挖空 **Bright** ❌
+- "On Saturday, they went canoeing." → 挖空 **Saturday** ❌
+
+### 修复流程
+
+#### 1. 识别专有名词
+
+**识别规则**（满足任一条件即为专有名词）：
+
+```python
+def is_proper_noun(word, pos, word_index, sentence_length):
+    # 规则 1: NLTK 词性标注
+    if pos in ['NNP', 'NNPS']:
+        return True
+
+    # 规则 2: 常用人名列表（约 200 个）
+    if word.lower() in COMMON_NAMES:
+        return True
+
+    # 规则 3: 首字母大写且不在句首
+    if word_index > 0 and word[0].isupper():
+        return True
+
+    return False
+```
+
+**常见人名列表**：
+- 男性：james, john, robert, michael, william, david, joe, bill, tom...
+- 女性：mary, kate, jane, susan, lisa, sarah, emily, anna...
+- 变体：katie, lizzy, becky, bob, jim, tony, mike...
+
+#### 2. 二次重选算法
+
+**重选逻辑**：
+```python
+def reselect_blank(words_with_pos, exclude_index):
+    candidates = []
+
+    for word, pos in words_with_pos:
+        # 跳过被排除的专有名词
+        if index == exclude_index:
+            continue
+
+        # 跳过停用词和专有名词
+        if word in STOP_WORDS or is_proper_noun(word, pos, index, length):
+            continue
+
+        # 只考虑动词、普通名词、形容词
+        if pos_category not in ['VB', 'NN', 'JJ', 'NNS']:
+            continue
+
+        # 排除专有名词变体（复数大写）
+        if pos == 'NNS' and word[0].isupper():
+            continue
+
+        # 计算得分并选择最佳候选
+        candidates.append({...})
+
+    return best_candidate if candidates else None
+```
+
+**优先级**：动词 (VB) > 普通名词 (NN) > 形容词 (JJ)
+
+#### 3. 处理结果
+
+- **找到替代词**：用新的词替换专有名词
+- **无合适替代**：移除挖空（设置 `blanks = []`）
+
+**示例**：
+| 句子 | 原挖空 | 类型 | 新挖空 | 结果 |
+|------|--------|------|--------|------|
+| Milo cannot have kittens. | Milo | 人名 | kittens | ✅ 修复 |
+| The Bright family went camping. | Bright | 姓氏 | camping | ✅ 修复 |
+| On Saturday, they went canoeing. | Saturday | 星期 | went | ✅ 修复 |
+| It is Joe. | Joe | 人名 | (无) | ✅ 移除 |
+
+### 执行统计
+
+**2026-03-19 修复结果**：
+- 总素材数：201 个
+- 处理句子数：7,714 句
+- 修复句子数：276 句（重新选择挖空词）
+- 移除挖空数：181 句（无其他可用词）
+- 跳过句子数：7,674 句（原本正确）
+
+**修复类型分布**：
+- 人名（Milo, Bill, Jane, Kate...）：约 40%
+- 姓氏（Bright, Smith, Jones...）：约 30%
+- 地名（Silent Lake, Australia...）：约 20%
+- 时间（Saturday, Friday, January...）：约 10%
+
+### 使用方法
+
+```bash
+# 修复所有素材
+python3 scripts/fix_proper_nouns.py
+
+# 批量模式（每批 10 个素材）
+python3 scripts/fix_proper_nouns.py --batch-size 10
+
+# 静默模式
+python3 scripts/fix_proper_nouns.py --silent
+```
+
+### 生成报告
+
+修复完成后生成 `fix_proper_nouns_report.json`，包含：
+- 修复统计
+- 前 10 个修复示例
+- 修复类型分布
 
 ---
 
@@ -342,7 +496,9 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 
 ## 相关文件
 
-- **后端脚本**：`scripts/improve_blanks.py`
+- **后端脚本**：
+  - `scripts/improve_blanks.py` - 智能挖空算法
+  - `scripts/fix_proper_nouns.py` - 专有名词修复
 - **前端组件**：`src/components/WordMode.tsx`
 - **类型定义**：`src/types/index.ts`
 - **数据模型**：Supabase `materials.transcript`
@@ -351,4 +507,4 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 
 **最后更新**：2026-03-19
 **维护者**：Claude
-**版本**：v1.0.0
+**版本**：v1.1.0
