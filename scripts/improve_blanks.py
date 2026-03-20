@@ -584,11 +584,10 @@ def select_best_blank(
             if pos_category not in ['NN', 'VB', 'JJ', 'VBP', 'VBZ', 'VBD', 'VBG', 'VBN', 'NNS', 'NNP']:
                 continue
 
-            # ⭐ 保底机制：如果都不是核心词汇，也允许实义动词和普通名词
-            # 这样可以避免像 "How can I help you?" 这样的句子完全没有词可挖
-            if not is_core and pos_category not in ['VB', 'NN']:
-                # 非核心动词和名词仍然可以考虑，只是得分会低一些
-                continue
+            # ⭐ 保底机制：如果都不是核心词汇，也允许所有实词（动词、名词、形容词）
+            # 这样可以避免像 "How can I help you?" 或 "Kate is sick." 这样的句子完全没有词可挖
+            # 不再跳过任何实词，核心词会有更高的得分来优先选择
+            # （所以不需要 continue 语句）
 
         # 计算得分
         score = 0
