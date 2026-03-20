@@ -37,7 +37,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     .split(/\s+/)  // 使用正则表达式分割所有空白字符（空格、制表符等）
     .filter(w => w.length > 0)
 
-  // Randomly select a word to hide (using seeded random based on sentence.id for consistency)
+  // Select word to hide:优先使用 sentence.blanks，否则使用随机算法
   const { hiddenWordIndex, hiddenWord, visibleWordsBefore, visibleWordsAfter } = useMemo(() => {
     if (sentenceWords.length === 0) {
       return {
@@ -48,7 +48,42 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       }
     }
 
-    // Use sentence.id as a seed for consistent random selection
+    // 优先使用 sentence.blanks 字段（如果存在且有效）
+    if (sentence.blanks && sentence.blanks.length > 0 && sentence.blanks[0]) {
+      const blank = sentence.blanks[0]
+      const blankWord = blank.word
+
+      // 在 sentenceWords 中找到匹配的词
+      // 需要处理大小写和标点符号的差异
+      let foundIndex = -1
+
+      // 首先尝试精确匹配
+      foundIndex = sentenceWords.findIndex(w => w === blankWord)
+
+      // 如果没有找到，尝试忽略大小写匹配
+      if (foundIndex === -1) {
+        foundIndex = sentenceWords.findIndex(w =>
+          w.toLowerCase() === blankWord.toLowerCase()
+        )
+      }
+
+      // 如果找到了，使用该索引
+      if (foundIndex >= 0) {
+        console.log('🎯 使用 blanks 字段挖空:', {
+          word: blankWord,
+          index: foundIndex,
+          isCore: blank.is_core
+        })
+        return {
+          hiddenWordIndex: foundIndex,
+          hiddenWord: sentenceWords[foundIndex],
+          visibleWordsBefore: sentenceWords.slice(0, foundIndex),
+          visibleWordsAfter: sentenceWords.slice(foundIndex + 1)
+        }
+      }
+    }
+
+    // 如果没有有效的 blanks 字段，使用原来的随机算法
     const seed = sentence.id || 1
     const randomIndex = seed % sentenceWords.length
 
@@ -58,7 +93,7 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
       visibleWordsBefore: sentenceWords.slice(0, randomIndex),
       visibleWordsAfter: sentenceWords.slice(randomIndex + 1)
     }
-  }, [sentence.id, sentenceWords])
+  }, [sentence.id, sentenceWords, sentence.blanks])
 
   // V3.1: 启动计时
   const startTiming = () => {

@@ -1,0 +1,836 @@
+#!/usr/bin/env python3
+"""
+优化单词听写挖空逻辑
+
+功能：
+1. 加载核心英语词汇列表（Oxford 3000）
+2. 扫描数据库中所有素材的 transcript
+3. 使用 NLTK 智能识别动词、名词、形容词
+4. 优先选择核心词汇中的"实词"作为挖空对象
+5. 排除简单词（a, an, the, I, you, he 等）
+6. 更新 transcript 的 blanks 字段
+
+作者: Claude
+日期: 2026-03-19
+"""
+
+import os
+import sys
+import json
+import random
+import argparse
+from typing import List, Dict, Any, Tuple, Set
+from dataclasses import dataclass
+
+from dotenv import load_dotenv
+from supabase import create_client
+
+# ============ 配置 ============
+# 尝试加载多个可能的 .env 文件
+load_dotenv('.env.local')  # 优先从项目根目录加载 .env.local
+load_dotenv()  # 再尝试加载默认的 .env
+
+SUPABASE_URL = os.getenv('NEXT_PUBLIC_SUPABASE_URL', 'https://cuxotlijjnxbsirpdkgr.supabase.co')
+SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY') or os.getenv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+
+# 停用词列表（过于简单的词，不作为挖空对象）
+STOP_WORDS = {
+    # 冠词
+    'a', 'an', 'the',
+    # 代词
+    'i', 'you', 'he', 'she', 'it', 'we', 'they',
+    'me', 'him', 'her', 'us', 'them',
+    'my', 'your', 'his', 'its', 'our', 'their',
+    'this', 'that', 'these', 'those',
+    # 介词
+    'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as',
+    # 连词
+    'and', 'but', 'or', 'so', 'because',
+    # 助动词
+    'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did',
+    'will', 'would', 'could', 'should', 'may', 'might', 'can',
+    # 其他
+    'yes', 'no', 'not', 'oh', 'hey', 'well', 'now', 'then', 'here', 'there',
+    'what', 'when', 'where', 'who', 'why', 'how',
+    # 常用副词和程度词
+    'very', 'really', 'quite', 'rather', 'too', 'also', 'just', 'only', 'still', 'already'
+}
+
+# 礼貌套话和固定表达（这些句子中的词不挖空）
+EXCLUDE_PHRASES = {
+    'thank', 'thanks', 'hello', 'hi', 'hey',
+    'sorry', 'excuse', 'forgive', 'pardon',
+    'bye', 'goodbye', 'farewell',
+    'bless', 'cheers', 'greetings',
+    'welcome', 'congratulations', 'congrats'
+}
+
+# 核心词汇集合（Oxford 3000 的子集，按词频排序）
+# 这个列表会在运行时从网络或本地文件加载
+CORE_VOCABULARY: Set[str] = set()
+
+# ============ NLTK 初始化 ============
+def setup_nltk():
+    """初始化 NLTK 并下载必要的数据"""
+    try:
+        import nltk
+        print("📦 NLTK 已安装")
+
+        # 下载必要的数据包（包括新版本所需的数据包）
+        required_packages = [
+            'punkt', 'averaged_perceptron_tagger', 'punkt_tab',
+            'averaged_perceptron_tagger_eng', 'punkt_eng'
+        ]
+        for package in required_packages:
+            try:
+                nltk.data.find(f'tokenizers/{package}')
+            except LookupError:
+                try:
+                    nltk.data.find(f'taggers/{package}')
+                except LookupError:
+                    print(f"⬇️  下载 NLTK 数据包: {package}")
+                    try:
+                        nltk.download(package, quiet=True)
+                    except:
+                        pass
+
+        return True
+    except ImportError:
+        print("❌ NLTK 未安装")
+        print("   请运行: pip install nltk")
+        return False
+
+# ============ 核心词汇加载 ============
+def load_core_vocabulary() -> Set[str]:
+    """加载核心英语词汇列表（Oxford 3000）"""
+    global CORE_VOCABULARY
+
+    # 尝试从本地缓存加载
+    cache_file = os.path.join(os.path.dirname(__file__), '.core_vocab_cache.json')
+    if os.path.exists(cache_file):
+        print(f"📂 从本地缓存加载核心词汇: {cache_file}")
+        with open(cache_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            CORE_VOCABULARY = set(data.get('words', []))
+            print(f"✅ 已加载 {len(CORE_VOCABULARY)} 个核心词汇")
+            return CORE_VOCABULARY
+
+    # 内置核心词汇（Oxford 3000，约 2000 词）
+    # 按词频和重要性排序
+    core_words = [
+        # ========== 动词 (500) ==========
+        # 最常用动词
+        'be', 'have', 'do', 'say', 'go', 'get', 'make', 'see', 'know', 'think',
+        'take', 'come', 'give', 'want', 'use', 'find', 'tell', 'ask', 'work', 'seem',
+        'feel', 'try', 'leave', 'call', 'keep', 'let', 'become', 'show', 'play', 'run',
+        'move', 'live', 'believe', 'bring', 'happen', 'write', 'sit', 'stand', 'lose', 'pay',
+        'meet', 'include', 'continue', 'set', 'change', 'lead', 'understand', 'watch', 'follow', 'stop',
+        'create', 'speak', 'read', 'allow', 'add', 'spend', 'grow', 'open', 'walk', 'win',
+        'offer', 'remember', 'love', 'consider', 'appear', 'buy', 'wait', 'serve', 'die', 'send',
+        'expect', 'build', 'stay', 'fall', 'cut', 'reach', 'kill', 'remain', 'suggest', 'raise',
+        'pass', 'sell', 'require', 'report', 'decide', 'pull', 'break', 'receive', 'join', 'catch',
+
+        # 情绪和表达动词
+        'miss', 'wish', 'hope', 'care', 'mind', 'enjoy', 'like', 'love', 'hate', 'fear',
+        'worry', 'panic', 'scream', 'shout', 'cry', 'laugh', 'smile', 'dance', 'sing', 'dream',
+        'imagine', 'believe', 'trust', 'doubt', 'realize', 'notice', 'recognize', 'remember', 'forget', 'learn',
+        'study', 'teach', 'train', 'practice', 'improve', 'develop', 'achieve', 'succeed', 'fail', 'attempt',
+
+        # 日常活动动词
+        'eat', 'drink', 'sleep', 'wake', 'wash', 'clean', 'cook', 'bake', 'taste', 'smell',
+        'listen', 'look', 'watch', 'stare', 'observe', 'notice', 'check', 'test', 'examine', 'search',
+        'drive', 'ride', 'fly', 'travel', 'visit', 'explore', 'discover', 'arrive', 'depart', 'return',
+        'start', 'begin', 'end', 'finish', 'complete', 'continue', 'pause', 'stop', 'wait', 'stay',
+
+        # 交流和社交动词
+        'talk', 'speak', 'tell', 'say', 'ask', 'answer', 'reply', 'explain', 'describe', 'discuss',
+        'argue', 'debate', 'agree', 'disagree', 'promise', 'apologize', 'forgive', 'thank', 'invite', 'welcome',
+        'introduce', 'present', 'represent', 'announce', 'declare', 'state', 'claim', 'mention', 'note', 'remark',
+
+        # 工作和商务动词
+        'work', 'employ', 'manage', 'lead', 'direct', 'control', 'supervise', 'organize', 'plan', 'prepare',
+        'produce', 'manufacture', 'construct', 'build', 'create', 'design', 'invent', 'develop', 'improve', 'maintain',
+        'sell', 'buy', 'purchase', 'trade', 'exchange', 'market', 'advertise', 'promote', 'launch', 'release',
+        'earn', 'spend', 'save', 'invest', 'borrow', 'lend', 'owe', 'pay', 'afford', 'cost',
+
+        # 思维和认知动词
+        'think', 'consider', 'ponder', 'reflect', 'analyze', 'evaluate', 'assess', 'judge', 'conclude', 'decide',
+        'choose', 'select', 'pick', 'prefer', 'reject', 'accept', 'approve', 'support', 'oppose', 'resist',
+        'understand', 'comprehend', 'realize', 'recognize', 'know', 'learn', 'remember', 'forget', 'recall', 'imagine',
+
+        # 变化和影响动词
+        'change', 'transform', 'convert', 'alter', 'modify', 'adjust', 'adapt', 'evolve', 'develop', 'grow',
+        'increase', 'decrease', 'raise', 'lower', 'expand', 'reduce', 'improve', 'worsen', 'enhance', 'decline',
+        'affect', 'influence', 'impact', 'shape', 'determine', 'control', 'direct', 'guide', 'lead', 'manage',
+
+        # 运动和位置动词
+        'go', 'come', 'arrive', 'depart', 'leave', 'return', 'enter', 'exit', 'approach', 'reach',
+        'move', 'shift', 'transfer', 'transport', 'carry', 'bring', 'take', 'fetch', 'deliver', 'send',
+        'put', 'place', 'set', 'lay', 'stand', 'sit', 'lie', 'hang', 'attach', 'connect',
+
+        # 状态和存在动词
+        'be', 'exist', 'live', 'survive', 'die', 'remain', 'stay', 'continue', 'last', 'endure',
+        'appear', 'seem', 'look', 'sound', 'feel', 'smell', 'taste', 'become', 'turn', 'grow',
+
+        # ========== 名词 (800) ==========
+        # 时间和空间
+        'time', 'moment', 'minute', 'hour', 'day', 'week', 'month', 'year', 'decade', 'century',
+        'past', 'present', 'future', 'history', 'period', 'era', 'age', 'schedule', 'deadline', 'date',
+        'space', 'place', 'area', 'region', 'zone', 'location', 'position', 'spot', 'point', 'site',
+        'world', 'earth', 'universe', 'nature', 'environment', 'surroundings', 'atmosphere', 'climate', 'weather', 'temperature',
+
+        # 人物和身份
+        'person', 'people', 'human', 'individual', 'man', 'woman', 'child', 'boy', 'girl', 'kid',
+        'family', 'parent', 'father', 'mother', 'brother', 'sister', 'son', 'daughter', 'child', 'baby',
+        'friend', 'companion', 'partner', 'colleague', 'neighbor', 'stranger', 'enemy', 'rival', 'opponent', 'competitor',
+        'teacher', 'student', 'doctor', 'nurse', 'police', 'lawyer', 'engineer', 'artist', 'musician', 'writer',
+
+        # 社会和机构
+        'society', 'community', 'culture', 'civilization', 'nation', 'country', 'state', 'city', 'town', 'village',
+        'government', 'politics', 'democracy', 'republic', 'monarchy', 'kingdom', 'empire', 'dynasty', 'regime', 'administration',
+        'company', 'business', 'corporation', 'organization', 'institution', 'association', 'foundation', 'institute', 'agency', 'bureau',
+        'school', 'university', 'college', 'academy', 'library', 'museum', 'hospital', 'clinic', 'bank', 'store',
+
+        # 抽象概念
+        'idea', 'concept', 'thought', 'notion', 'belief', 'opinion', 'view', 'perspective', 'attitude', 'approach',
+        'theory', 'hypothesis', 'principle', 'rule', 'law', 'regulation', 'policy', 'guideline', 'standard', 'criterion',
+        'fact', 'truth', 'reality', 'knowledge', 'information', 'data', 'evidence', 'proof', 'argument', 'case',
+        'problem', 'issue', 'challenge', 'difficulty', 'trouble', 'crisis', 'emergency', 'disaster', 'catastrophe', 'tragedy',
+        'solution', 'answer', 'result', 'outcome', 'consequence', 'effect', 'impact', 'influence', 'change', 'development',
+        'goal', 'objective', 'aim', 'purpose', 'target', 'ambition', 'dream', 'wish', 'desire', 'hope',
+
+        # 日常生活
+        'house', 'home', 'room', 'kitchen', 'bedroom', 'bathroom', 'living', 'office', 'desk', 'chair',
+        'food', 'meal', 'breakfast', 'lunch', 'dinner', 'dish', 'cuisine', 'restaurant', 'cafe', 'bar',
+        'clothes', 'clothing', 'shirt', 'pants', 'dress', 'shoes', 'hat', 'coat', 'jacket', 'uniform',
+        'money', 'cash', 'currency', 'dollar', 'euro', 'pound', 'cent', 'coin', 'bill', 'check',
+        'phone', 'mobile', 'computer', 'laptop', 'tablet', 'internet', 'email', 'message', 'letter', 'post',
+
+        # 工具和设备
+        'tool', 'instrument', 'device', 'machine', 'engine', 'motor', 'vehicle', 'car', 'bus', 'train',
+        'plane', 'boat', 'ship', 'bicycle', 'motorcycle', 'truck', 'van', 'taxi', 'subway', 'metro',
+        'book', 'paper', 'pen', 'pencil', 'notebook', 'document', 'file', 'folder', 'report', 'article',
+
+        # 身体和健康
+        'body', 'head', 'face', 'eye', 'ear', 'nose', 'mouth', 'hand', 'arm', 'leg',
+        'foot', 'finger', 'toe', 'hair', 'skin', 'bone', 'muscle', 'blood', 'heart', 'brain',
+        'health', 'medicine', 'doctor', 'hospital', 'disease', 'illness', 'sickness', 'pain', 'ache', 'fever',
+        'treatment', 'cure', 'therapy', 'surgery', 'operation', 'recovery', 'healing', 'death', 'life', 'birth',
+
+        # 情感和品质
+        'love', 'hate', 'anger', 'fear', 'joy', 'happiness', 'sadness', 'pleasure', 'pain', 'suffering',
+        'hope', 'dream', 'wish', 'desire', 'passion', 'emotion', 'feeling', 'mood', 'spirit', 'soul',
+        'courage', 'strength', 'power', 'weakness', 'confidence', 'doubt', 'faith', 'trust', 'belief', 'hope',
+        'beauty', 'ugliness', 'goodness', 'evil', 'truth', 'lie', 'honesty', 'dishonesty', 'kindness', 'cruelty',
+
+        # 科学和技术
+        'science', 'technology', 'research', 'experiment', 'discovery', 'invention', 'innovation', 'progress', 'development', 'advancement',
+        'physics', 'chemistry', 'biology', 'mathematics', 'geometry', 'algebra', 'statistics', 'probability', 'logic', 'reason',
+        'energy', 'power', 'electricity', 'electronics', 'mechanics', 'engineering', 'software', 'hardware', 'system', 'network',
+        'internet', 'web', 'site', 'page', 'link', 'connection', 'signal', 'message', 'code', 'program',
+
+        # 艺术和媒体
+        'art', 'music', 'song', 'dance', 'painting', 'drawing', 'sculpture', 'film', 'movie', 'video',
+        'photo', 'picture', 'image', 'story', 'novel', 'poem', 'poetry', 'literature', 'book', 'magazine',
+        'news', 'media', 'television', 'radio', 'newspaper', 'journal', 'report', 'article', 'blog', 'website',
+        'theater', 'cinema', 'concert', 'performance', 'show', 'exhibition', 'gallery', 'museum', 'festival', 'celebration',
+
+        # 自然和地理
+        'nature', 'world', 'earth', 'planet', 'star', 'sun', 'moon', 'sky', 'cloud', 'rain',
+        'snow', 'wind', 'storm', 'thunder', 'lightning', 'fog', 'mist', 'ice', 'water', 'fire',
+        'mountain', 'hill', 'valley', 'river', 'lake', 'sea', 'ocean', 'beach', 'coast', 'shore',
+        'forest', 'tree', 'plant', 'flower', 'grass', 'field', 'garden', 'park', 'desert', 'island',
+        'animal', 'bird', 'fish', 'dog', 'cat', 'horse', 'cow', 'pig', 'sheep', 'chicken',
+
+        # 运动和娱乐
+        'sport', 'game', 'match', 'competition', 'contest', 'tournament', 'championship', 'league', 'team', 'player',
+        'football', 'basketball', 'tennis', 'golf', 'swimming', 'running', 'athletics', 'gymnastics', 'boxing', 'wrestling',
+        'music', 'band', 'orchestra', 'choir', 'singer', 'musician', 'composer', 'song', 'melody', 'rhythm',
+        'hobby', 'interest', 'passion', 'activity', 'entertainment', 'fun', 'enjoyment', 'pleasure', 'leisure', 'vacation',
+
+        # ========== 形容词 (500) ==========
+        # 大小和数量
+        'big', 'large', 'huge', 'enormous', 'giant', 'massive', 'small', 'little', 'tiny', 'miniature',
+        'long', 'short', 'tall', 'high', 'low', 'deep', 'shallow', 'wide', 'narrow', 'thick',
+        'thin', 'heavy', 'light', 'strong', 'weak', 'hard', 'soft', 'rough', 'smooth', 'sharp',
+        'many', 'much', 'few', 'little', 'some', 'any', 'all', 'every', 'each', 'none',
+        'enough', 'plenty', 'lots', 'more', 'most', 'less', 'least', 'multiple', 'single', 'double',
+
+        # 质量和评价
+        'good', 'great', 'excellent', 'perfect', 'wonderful', 'amazing', 'awesome', 'fantastic', 'terrific', 'superb',
+        'bad', 'poor', 'terrible', 'awful', 'horrible', 'dreadful', 'disgusting', 'nasty', 'lousy', 'worst',
+        'nice', 'kind', 'friendly', 'pleasant', 'agreeable', 'delightful', 'enjoyable', 'satisfying', 'pleasing', 'lovely',
+        'mean', 'cruel', 'harsh', 'rough', 'tough', 'severe', 'strict', 'stern', 'firm', 'strong',
+
+        # 重要性和优先级
+        'important', 'significant', 'major', 'minor', 'essential', 'crucial', 'critical', 'vital', 'key', 'main',
+        'primary', 'secondary', 'central', 'basic', 'fundamental', 'core', 'basic', 'simple', 'complex', 'complicated',
+        'urgent', 'pressing', 'immediate', 'quick', 'rapid', 'fast', 'slow', 'gradual', 'steady', 'stable',
+
+        # 新旧和时间
+        'new', 'young', 'fresh', 'modern', 'current', 'recent', 'latest', 'present', 'contemporary', 'up-to-date',
+        'old', 'ancient', 'antique', 'aged', 'elderly', 'past', 'previous', 'former', 'earlier', 'original',
+        'early', 'late', 'early', ' timely', 'punctual', 'prompt', 'quick', 'rapid', 'swift', 'speedy',
+
+        # 美丑和外观
+        'beautiful', 'pretty', 'attractive', 'gorgeous', 'handsome', 'good-looking', 'stunning', 'lovely', 'cute', 'charming',
+        'ugly', 'hideous', 'unattractive', 'plain', 'ordinary', 'average', 'common', 'typical', 'normal', 'regular',
+        'clean', 'dirty', 'messy', 'tidy', 'neat', 'bright', 'dark', 'light', 'colorful', 'colorless',
+
+        # 情感和态度
+        'happy', 'glad', 'pleased', 'delighted', 'satisfied', 'content', 'joyful', 'cheerful', 'excited', 'thrilled',
+        'sad', 'unhappy', 'miserable', 'depressed', 'upset', 'disappointed', 'worried', 'anxious', 'nervous', 'stressed',
+        'angry', 'mad', 'furious', 'annoyed', 'irritated', 'frustrated', 'upset', 'disturbed', 'concerned', 'troubled',
+        'afraid', 'scared', 'frightened', 'terrified', 'shocked', 'surprised', 'amazed', 'astonished', 'stunned', 'speechless',
+        'calm', 'relaxed', 'peaceful', 'quiet', 'silent', 'still', 'noisy', 'loud', 'busy', 'active',
+
+        # 智力和能力
+        'smart', 'intelligent', 'clever', 'bright', 'brilliant', 'genius', 'wise', 'stupid', 'dumb', 'foolish',
+        'able', 'capable', 'competent', 'skilled', 'talented', 'gifted', 'expert', 'experienced', 'qualified', 'trained',
+        'useful', 'helpful', 'practical', 'effective', 'efficient', 'successful', 'productive', 'powerful', 'strong', 'weak',
+        'possible', 'impossible', 'probable', 'likely', 'unlikely', 'certain', 'sure', 'confident', 'aware', 'conscious',
+
+        # 真假和确定性
+        'true', 'real', 'actual', 'genuine', 'authentic', 'false', 'fake', 'artificial', 'unreal', 'imaginary',
+        'right', 'wrong', 'correct', 'incorrect', 'accurate', 'inaccurate', 'exact', 'precise', 'approximate', 'rough',
+        'clear', 'obvious', 'evident', 'apparent', 'certain', 'sure', 'confident', 'doubtful', 'uncertain', 'unsure',
+        'honest', 'dishonest', 'truthful', 'deceitful', 'sincere', 'genuine', 'fake', 'false', 'true', 'real',
+
+        # 开闭和状态
+        'open', 'closed', 'shut', 'locked', 'unlocked', 'free', 'occupied', 'available', 'unavailable', 'accessible',
+        'full', 'empty', 'vacant', 'blank', 'complete', 'incomplete', 'finished', 'unfinished', 'done', 'undone',
+        'ready', 'prepared', 'set', 'fixed', 'stable', 'steady', 'secure', 'safe', 'dangerous', 'risky',
+
+        # 社会和政治
+        'public', 'private', 'personal', 'individual', 'collective', 'social', 'cultural', 'political', 'economic', 'financial',
+        'national', 'international', 'global', 'worldwide', 'local', 'regional', 'urban', 'rural', 'suburban', 'remote',
+        'democratic', 'republican', 'liberal', 'conservative', 'radical', 'moderate', 'extreme', 'moderate', 'neutral', 'independent',
+
+        # 难易和复杂度
+        'easy', 'simple', 'difficult', 'hard', 'tough', 'challenging', 'demanding', 'complex', 'complicated', 'sophisticated',
+        'basic', 'elementary', 'advanced', 'expert', 'professional', 'amateur', 'beginner', 'novice', 'experienced', 'inexperienced',
+
+        # ========== 副词 (200) ==========
+        # 时间
+        'now', 'then', 'today', 'tomorrow', 'yesterday', 'soon', 'later', 'earlier', 'before', 'after',
+        'always', 'never', 'often', 'sometimes', 'rarely', 'seldom', 'usually', 'normally', 'generally', 'frequently',
+        'already', 'yet', 'still', 'just', 'recently', 'lately', 'currently', 'presently', 'briefly', 'momentarily',
+
+        # 程度和方式
+        'very', 'extremely', 'incredibly', 'absolutely', 'completely', 'totally', 'entirely', 'fully', 'quite', 'rather',
+        'fairly', 'pretty', 'somewhat', 'slightly', 'hardly', 'barely', 'scarcely', 'almost', 'nearly', 'approximately',
+        'exactly', 'precisely', 'accurately', 'correctly', 'rightly', 'wrongly', 'properly', 'appropriately', 'suitably', 'fittingly',
+
+        # 方向和位置
+        'here', 'there', 'everywhere', 'nowhere', 'somewhere', 'anywhere', 'inside', 'outside', 'indoors', 'outdoors',
+        'up', 'down', 'upstairs', 'downstairs', 'above', 'below', 'over', 'under', 'around', 'round',
+        'back', 'forward', 'backward', 'sideways', 'across', 'through', 'along', 'past', 'beyond', 'behind',
+
+        # 肯定和否定
+        'yes', 'no', 'certainly', 'definitely', 'surely', 'absolutely', 'positively', 'undoubtedly', 'clearly', 'obviously',
+        'not', 'never', 'no', 'neither', 'nor', 'hardly', 'barely', 'scarcely', 'rarely', 'seldom',
+
+        # 语气和态度
+        'fortunately', 'unfortunately', 'luckily', 'sadly', 'happily', 'ironically', 'surprisingly', 'shockingly', 'amazingly', 'incredibly',
+        'hopefully', 'ideally', 'technically', 'theoretically', 'practically', 'basically', 'essentially', 'fundamentally', 'ultimately', 'finally',
+
+        # 方式和方法
+        'quickly', 'rapidly', 'swiftly', 'slowly', 'gradually', 'steadily', 'carefully', 'carelessly', 'cautiously', 'recklessly',
+        'easily', 'effortlessly', 'hardly', 'with difficulty', 'simply', 'merely', 'barely', 'just', 'only', 'alone',
+
+        # 因果和逻辑
+        'therefore', 'thus', 'hence', 'consequently', 'accordingly', 'so', 'then', 'thereby', 'therefore', 'because',
+        'however', 'nevertheless', 'nonetheless', 'still', 'yet', 'though', 'although', 'even', 'despite', 'instead',
+    ]
+
+    CORE_VOCABULARY = set(word.lower() for word in core_words)
+
+    # 保存到缓存
+    try:
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump({'words': list(CORE_VOCABULARY)}, f, ensure_ascii=False, indent=2)
+        print(f"💾 已缓存 {len(CORE_VOCABULARY)} 个核心词汇")
+    except Exception as e:
+        print(f"⚠️  无法保存缓存: {e}")
+
+    print(f"✅ 已加载 {len(CORE_VOCABULARY)} 个核心词汇（内置）")
+    return CORE_VOCABULARY
+
+# ============ 词形归一化 ============
+def normalize_word(word: str) -> str:
+    """将单词归一化为基本形式
+
+    简单的词形归一化（处理常见复数形式）：
+    - clouds → cloud
+    - cities → city
+    - babies → baby
+    """
+    word_lower = word.lower()
+
+    # 处理 -ies 结尾（如：cities → city, babies → baby）
+    if word_lower.endswith('ies'):
+        return word_lower[:-3] + 'y'
+
+    # 处理 -es 结尾（如：boxes → box）
+    if word_lower.endswith('es') and len(word_lower) > 3:
+        # 排除 -ss, -ch, -sh, -x 结尾的复数形式
+        if not (word_lower.endswith('sses') or word_lower.endswith('ches') or word_lower.endswith('shes')):
+            return word_lower[:-2]
+
+    # 处理 -s 结尾（如：clouds → cloud）
+    if word_lower.endswith('s') and len(word_lower) > 2:
+        return word_lower[:-1]
+
+    return word_lower
+
+# ============ 词性分析 ============
+def analyze_sentence_words(sentence: str) -> List[Tuple[str, str]]:
+    """分析句子中的单词及其词性
+
+    返回: [(word, pos_tag), ...]
+    """
+    import nltk
+
+    # 分词
+    tokens = nltk.word_tokenize(sentence)
+
+    # 词性标注
+    pos_tags = nltk.pos_tag(tokens)
+
+    return pos_tags
+
+def select_best_blank(
+    words_with_pos: List[Tuple[str, str]],
+    word_indices: List[int],
+    sentence_text: str
+) -> Dict[str, Any]:
+    """选择最适合挖空的单词
+
+    优先级：
+    1. 核心词汇中的实词（动词、名词、形容词）
+    2. 排除停用词和礼貌套话
+    3. 优先选择有意义的词汇
+    4. 短句（3-5词）：必须挖空核心实词，严禁挖空无意义词汇
+
+    返回: {
+        'word': 'selected_word',
+        'index': 5,
+        'pos': 'VB',
+        'is_core': True,
+        'reason': '...'
+    }
+    """
+    # 判断句子长度（单词数量）
+    actual_words = [w for w, p in words_with_pos if w.isalpha()]
+    sentence_length = len(actual_words)
+    is_short_sentence = 3 <= sentence_length <= 5
+
+    # 过滤停用词后的候选词
+    candidates = []
+
+    for i, (word, pos) in enumerate(words_with_pos):
+        original_word = word
+
+        # 规范化单词（小写，去除标点）
+        word_clean = word.lower().replace('.', '').replace(',', '').replace('!', '').replace('?', '').replace("'", '')
+
+        # 跳过停用词
+        if word_clean in STOP_WORDS:
+            continue
+
+        # 跳过礼貌套话和固定表达
+        if word_clean in EXCLUDE_PHRASES:
+            continue
+
+        # 跳过非字母词（数字、标点等）
+        if not word_clean.isalpha() or len(word_clean) < 2:
+            continue
+
+        # 获取词性大类
+        pos_category = pos[:2]  # NN=名词, VB=动词, JJ=形容词, RB=副词
+
+        # 判断是否为核心词汇（使用词形归一化）
+        word_normalized = normalize_word(word_clean)
+        is_core = word_normalized in CORE_VOCABULARY or word_clean in CORE_VOCABULARY
+
+        # 短句特殊处理：必须挖空核心实词（动词、名词、形容词）
+        if is_short_sentence:
+            # 短句中，只考虑实词
+            if pos_category not in ['NN', 'VB', 'JJ', 'VBP', 'VBZ', 'VBD', 'VBG', 'VBN', 'NNS', 'NNP']:
+                continue
+
+            # 短句中，优先核心词汇
+            if not is_core and pos_category != 'NN':
+                # 短句中非核心词跳过（除非是名词，因为名词可能有意义）
+                continue
+
+        # 计算得分
+        score = 0
+        reason = []
+
+        # 核心词汇加分（短句中权重更高）
+        if is_core:
+            score += 50 if not is_short_sentence else 70
+            reason.append('core_word')
+
+        # 实词加分
+        if pos_category in ['NN', 'VB', 'JJ']:
+            score += 30
+            reason.append('content_word')
+
+        # 动词、名词、形容词优先级（保持原有优先级：动词 > 名词 > 形容词）
+        if pos_category in ['VB', 'VBP', 'VBZ', 'VBD', 'VBG', 'VBN']:
+            score += 20
+            reason.append('verb')
+        elif pos_category in ['NN', 'NNS', 'NNP']:
+            score += 15
+            reason.append('noun')
+        elif pos_category in ['JJ', 'JJR', 'JJS']:
+            score += 10
+            reason.append('adjective')
+
+        # 短句额外加分
+        if is_short_sentence:
+            score += 30
+            reason.append('short_sentence_key_word')
+
+        # 单词长度适中（3-10个字母）
+        if 3 <= len(word_clean) <= 10:
+            score += 5
+            reason.append('good_length')
+
+        # 添加随机性（避免总是选择同一个词）
+        score += random.uniform(0, 5)
+
+        candidates.append({
+            'word': original_word,
+            'word_clean': word_clean,
+            'index': i,
+            'pos': pos,
+            'pos_category': pos_category,
+            'is_core': is_core,
+            'score': score,
+            'reason': ', '.join(reason)
+        })
+
+    # 如果没有候选词，返回空
+    if not candidates:
+        return {}
+
+    # 按得分排序
+    candidates.sort(key=lambda x: x['score'], reverse=True)
+
+    # 返回得分最高的
+    best = candidates[0]
+    return {
+        'word': best['word'],
+        'index': best['index'],
+        'pos': best['pos'],
+        'is_core': best['is_core'],
+        'score': best['score'],
+        'reason': best['reason']
+    }
+
+# ============ 数据库操作 ============
+def get_all_materials(client, slug: str = None):
+    """获取所有素材或指定 slug 的单个素材"""
+    if slug:
+        print(f"📥 获取素材 (slug: {slug})...")
+        result = client.table('materials').select('id, title, slug, transcript').eq('slug', slug).execute()
+    else:
+        print("📥 获取所有素材...")
+        result = client.table('materials').select('id, title, slug, transcript').execute()
+
+    if not result.data:
+        print("❌ 没有找到素材")
+        return []
+
+    print(f"✅ 找到 {len(result.data)} 个素材")
+    return result.data
+
+def update_material_blanks(client, material_id: str, transcript: List[Dict]) -> bool:
+    """更新素材的 transcript blanks 字段"""
+    try:
+        client.table('materials').update({
+            'transcript': transcript
+        }).eq('id', material_id).execute()
+        return True
+    except Exception as e:
+        print(f"   ❌ 更新失败: {e}")
+        return False
+
+# ============ 主处理逻辑 ============
+def process_material_transcript(material: Dict) -> Tuple[List[Dict], Dict]:
+    """处理单个素材的 transcript
+
+    返回: (updated_transcript, statistics)
+    """
+    transcript = material.get('transcript', [])
+
+    if not transcript or not isinstance(transcript, list):
+        return transcript, {'processed': 0, 'updated': 0, 'skipped': 0}
+
+    stats = {'processed': 0, 'updated': 0, 'skipped': 0}
+    updated_transcript = []
+
+    for sentence in transcript:
+        sentence_text = sentence.get('text', '')
+
+        if not sentence_text:
+            updated_transcript.append(sentence)
+            stats['skipped'] += 1
+            continue
+
+        stats['processed'] += 1
+
+        # 强制重新处理所有句子（忽略现有的 blanks 字段）
+        # 这样可以修复之前不正确的挖空结果
+
+        # 分析句子
+        words_with_pos = analyze_sentence_words(sentence_text)
+
+        # 选择最佳挖空词
+        blank_info = select_best_blank(words_with_pos, [], sentence_text)
+
+        if blank_info and 'word' in blank_info:
+            # 更新句子
+            sentence['blanks'] = [{
+                'word': blank_info['word'],
+                'index': blank_info['index'],
+                'pos': blank_info['pos'],
+                'is_core': blank_info['is_core']
+            }]
+            stats['updated'] += 1
+        else:
+            # 没有找到合适的词，设置空的 blanks
+            sentence['blanks'] = []
+
+        updated_transcript.append(sentence)
+
+    return updated_transcript, stats
+
+def preview_blanks(materials: List[Dict], num_samples: int = 5):
+    """预览挖空结果"""
+    print("\n" + "="*70)
+    print(f"📝 随机预览 {num_samples} 个素材的挖空结果")
+    print("="*70)
+
+    # 过滤出有更新的素材
+    updated_materials = [
+        m for m in materials
+        if m.get('transcript') and
+        any(s.get('blanks') for s in m.get('transcript', []))
+    ]
+
+    if not updated_materials:
+        print("⚠️  没有找到有挖空数据的素材")
+        return
+
+    # 随机选择
+    samples = random.sample(updated_materials, min(num_samples, len(updated_materials)))
+
+    for i, material in enumerate(samples, 1):
+        print(f"\n{'─'*70}")
+        print(f"【{i}】{material.get('title', 'Unknown')}")
+        print(f"{'─'*70}")
+
+        transcript = material.get('transcript', [])
+        blank_sentences = [s for s in transcript if s.get('blanks')]
+
+        if not blank_sentences:
+            print("  (无挖空数据)")
+            continue
+
+        # 显示前 3 个有挖空的句子
+        for j, sentence in enumerate(blank_sentences[:3], 1):
+            text = sentence.get('text', '')
+            blanks = sentence.get('blanks', [])
+
+            if blanks and len(blanks) > 0:
+                blank = blanks[0]
+                word = blank.get('word', '')
+                index = blank.get('index', 0)
+                is_core = blank.get('is_core', False)
+
+                # 构建显示文本
+                words = text.split()
+                if 0 <= index < len(words):
+                    words[index] = f"[{word}]"
+                    display_text = ' '.join(words)
+
+                    print(f"\n  句子 {j}:")
+                    print(f"  原文: {text}")
+                    print(f"  挖空: {display_text}")
+                    print(f"  挖空词: {word} (核心词汇: {'✓' if is_core else '✗'})")
+
+        print()
+
+def print_blanks_preview(material: Dict):
+    """打印单个素材的 blanks 预览"""
+    print("\n" + "="*70)
+    print("📝 Blanks 字段预览")
+    print("="*70)
+    print(f"素材: {material.get('title', 'Unknown')} (slug: {material.get('slug', 'N/A')})")
+    print("="*70)
+
+    transcript = material.get('transcript', [])
+
+    if not transcript:
+        print("⚠️  该素材没有 transcript 数据")
+        return
+
+    print(f"\n共 {len(transcript)} 个句子\n")
+
+    for i, sentence in enumerate(transcript, 1):
+        text = sentence.get('text', '')
+        blanks = sentence.get('blanks', [])
+
+        print(f"[{i}] {text}")
+
+        if blanks and len(blanks) > 0:
+            for blank in blanks:
+                word = blank.get('word', '')
+                index = blank.get('index', 0)
+                pos = blank.get('pos', '')
+                is_core = blank.get('is_core', False)
+
+                # 构建挖空后的文本
+                words = text.split()
+                if 0 <= index < len(words):
+                    words[index] = f"______"
+                    blanked_text = ' '.join(words)
+
+                    print(f"    🔲 挖空: {blanked_text}")
+                    print(f"       答案: {word} (位置: {index}, 词性: {pos}, 核心词: {'✓' if is_core else '✗'})")
+        else:
+            print(f"    ⏭️  无挖空")
+        print()
+
+def main():
+    """主函数"""
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description='优化单词听写挖空逻辑')
+    parser.add_argument('--test-slug', type=str, help='测试模式：仅处理指定 slug 的素材，不更新数据库')
+    parser.add_argument('--update-slug', type=str, help='更新模式：仅处理指定 slug 的素材，并更新到数据库')
+    args = parser.parse_args()
+
+    test_mode = bool(args.test_slug)
+    single_mode = bool(args.test_slug or args.update_slug)
+
+    print("="*70)
+    mode_str = ""
+    if test_mode:
+        mode_str = " (测试模式)"
+    elif args.update_slug:
+        mode_str = f" (单素材更新: {args.update_slug})"
+    print("🚀 优化单词听写挖空逻辑" + mode_str)
+    print("="*70)
+
+    # 检查环境变量
+    if not SUPABASE_KEY:
+        print("❌ 错误: 未找到 SUPABASE_ANON_KEY")
+        print("\n请设置环境变量:")
+        print("  export NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key")
+        sys.exit(1)
+
+    # 初始化 NLTK
+    if not setup_nltk():
+        sys.exit(1)
+
+    # 加载核心词汇
+    print("\n📚 加载核心词汇列表...")
+    load_core_vocabulary()
+
+    # 连接 Supabase
+    print("\n🔗 连接 Supabase...")
+    client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    # 获取素材
+    slug_filter = args.test_slug if test_mode else (args.update_slug if args.update_slug else None)
+    materials = get_all_materials(client, slug=slug_filter)
+
+    if not materials:
+        sys.exit(1)
+
+    # 处理每个素材
+    print("\n🔧 开始处理...")
+    print("="*70)
+
+    total_stats = {'processed': 0, 'updated': 0, 'skipped': 0, 'errors': 0}
+    processed_materials = []
+
+    for i, material in enumerate(materials, 1):
+        material_id = material.get('id')
+        title = material.get('title', 'Unknown')
+
+        print(f"\n[{i}/{len(materials)}] 处理: {title}")
+
+        # 处理 transcript
+        updated_transcript, stats = process_material_transcript(material)
+
+        total_stats['processed'] += stats['processed']
+        total_stats['updated'] += stats['updated']
+        total_stats['skipped'] += stats['skipped']
+
+        # 更新 material 对象的 transcript（用于预览）
+        material['transcript'] = updated_transcript
+        processed_materials.append(material)
+
+        # 更新数据库（在测试模式下跳过）
+        should_update_db = not test_mode  # update-slug 模式会更新数据库
+        if stats['updated'] > 0:
+            print(f"  📊 处理 {stats['processed']} 句，更新 {stats['updated']} 句，跳过 {stats['skipped']} 句")
+
+            if should_update_db:
+                success = update_material_blanks(client, material_id, updated_transcript)
+                if success:
+                    print(f"  ✅ 已更新到数据库")
+                else:
+                    print(f"  ❌ 更新失败")
+                    total_stats['errors'] += 1
+            else:
+                print(f"  🧪 测试模式：跳过数据库更新")
+        else:
+            print(f"  ⏭️  无需更新")
+
+    # 测试模式：显示详细预览
+    if test_mode and processed_materials:
+        for material in processed_materials:
+            print_blanks_preview(material)
+        print("\n" + "="*70)
+        print("🧪 测试模式完成 - 未修改数据库")
+        print("="*70)
+        return
+
+    # 总结
+    print("\n" + "="*70)
+    print("✅ 处理完成！")
+    print("="*70)
+    print(f"\n统计:")
+    print(f"  总素材数: {len(materials)}")
+    print(f"  总句子数: {total_stats['processed']}")
+    print(f"  更新句子数: {total_stats['updated']}")
+    print(f"  跳过句子数: {total_stats['skipped']}")
+    print(f"  错误数: {total_stats['errors']}")
+
+    # 预览结果
+    print("\n⏳ 获取预览数据...")
+    materials = get_all_materials(client)
+    preview_blanks(materials, num_samples=5)
+
+    print("\n" + "="*70)
+    print("🎉 全部完成！")
+    print("="*70)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n❌ 用户中断")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n❌ 错误: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
