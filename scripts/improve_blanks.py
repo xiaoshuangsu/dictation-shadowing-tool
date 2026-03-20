@@ -140,7 +140,7 @@ def is_proper_noun(word: str, pos: str, word_index: int, sentence_length: int) -
     Returns:
         是否为专有名词
     """
-    # 1. 词性标注判断
+    # 1. 词性标注判断（最可靠）
     if pos in ['NNP', 'NNPS']:
         return True
 
@@ -148,8 +148,11 @@ def is_proper_noun(word: str, pos: str, word_index: int, sentence_length: int) -
     if word.lower() in COMMON_NAMES:
         return True
 
-    # 3. 首字母大写且不在句首
-    if word_index > 0 and word[0].isupper() and word.isalpha():
+    # 3. 首字母大写且不在句首的名词
+    # 注意：只有名词（NN, NNS）才可能是因为专有名词而大写
+    # 形容词、动词等的大写通常是其他原因（如句首、强调等）
+    pos_category = pos[:2]
+    if word_index > 0 and word[0].isupper() and word.isalpha() and pos_category in ['NN', 'NNS']:
         return True
 
     return False
