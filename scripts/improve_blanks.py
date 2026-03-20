@@ -128,8 +128,30 @@ COMMON_NAMES = {
     'thomas', 'jackson', 'white', 'harris', 'martin', 'thompson', 'garcia', 'martinez', 'robinson', 'clark'
 }
 
+# ============ 概念专有名词白名单 ============
+# 这些专有名词有实际语义价值，应该被挖空
+MEANINGFUL_PROPER_NOUNS = {
+    # 月份
+    'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december',
+
+    # 星期
+    'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+    'weekdays', 'weekend',
+
+    # 节日
+    'easter', 'christmas', 'halloween', 'thanksgiving', 'valentine', 'independence',
+    'fools', 'april', 'fools', 'yesterday', 'today', 'tomorrow', 'new_year', 'year',
+
+    # 星球和自然
+    'earth', 'mars', 'jupiter', 'saturn', 'venus', 'mercury', 'moon', 'sun',
+    'world', 'nature', 'universe', 'space', 'sky',
+
+    # 抽象概念
+    'life', 'death', 'time', 'history', 'culture', 'nature', 'science', 'art', 'music'
+}
+
 def is_proper_noun(word: str, pos: str, word_index: int, sentence_length: int) -> bool:
-    """判断是否为专有名词
+    """判断是否为专有名词（v1.2.7 细化版本）
 
     Args:
         word: 单词
@@ -138,20 +160,29 @@ def is_proper_noun(word: str, pos: str, word_index: int, sentence_length: int) -
         sentence_length: 句子总词数
 
     Returns:
-        是否为专有名词
+        是否为专有名词（需要被排除的）
+
+    注意：
+    - 返回 True 表示该词应该被排除
+    - 但如果是概念专有名词（在白名单中），会单独处理
     """
-    # 1. 词性标注判断（最可靠）
-    if pos in ['NNP', 'NNPS']:
-        return True
+    word_lower = word.lower()
 
-    # 2. 常用人名判断
-    if word.lower() in COMMON_NAMES:
-        return True
+    # 1. 词性标注判断（NNP, NNPS）
+    if pos not in ['NNP', 'NNPS']:
+        return False
 
-    # 3. 首字母大写且不在句首的名词
-    # 注意：只有名词（NN, NNS）才可能是因为专有名词而大写
-    # 形容词、动词等的大写通常是其他原因（如句首、强调等）
-    pos_category = pos[:2]
+    # 2. ⭐ 人名黑名单：严禁挖空人名
+    # 检查是否在常用人名列表中
+    if word_lower in COMMON_NAMES:
+        return True  # 人名，排除
+
+    # 3. ⭐ 概念专有名词白名单：允许挖空
+    if word_lower in MEANINGFUL_PROPER_NOUNS:
+        return False  # 白名单中的词，允许挖空
+
+    # 4. 其他专有名词（姓氏、地名等），排除
+    return True
     if word_index > 0 and word[0].isupper() and word.isalpha() and pos_category in ['NN', 'NNS']:
         return True
 
@@ -563,8 +594,18 @@ def select_best_blank(
             continue
 
         # ⛔ 专有名词排除（人名、地名等）
-        if is_proper_noun(word, pos, i, len(words_with_pos)):
-            continue
+        # 但概念专有名词白名单中的词允许挖空
+        is_nnp = pos in ['NNP', 'NNPS']
+        word_lower = word.lower()
+
+        if is_nnp:
+            # 检查是否在概念专有名词白名单中
+            if word_lower in MEANINGFUL_PROPER_NOUNS:
+                # ⭐ 概念专有名词白名单：允许挖空
+                pass  # 不跳过，后续会作为候选词
+            elif is_proper_noun(word, pos, i, len(words_with_pos)):
+                # 人名或其他专有名词，排除
+                continue
 
         # 跳过非字母词（数字、标点等）
         # 但允许缩写词中的撇号
@@ -690,6 +731,41 @@ def select_best_blank(
     # 如果没有候选词，返回空
     if not candidates:
         return {}
+
+    # ⭐ 强制兜底逻辑：所有词都是 NNP 的情况
+    # 检查是否所有词都是专有名词（这种情况需要特殊处理）
+    all_nnp = all(
+        word_pos in ['NNP', 'NNPS']
+        for word, word_pos in [(w[0], w[1]) for w in words_with_pos if w[0].isalpha()]
+    )
+
+    if all_nnp:
+        # ⭐ 强制兜底：所有词都是 NNP 时，必须避开人名
+        # 优先选择概念专有名词白名单中的词
+        meaningful_candidates = [
+            c for c in candidates
+            if c['word_clean'] in MEANINGFUL_PROPER_NOUNS
+        ]
+
+        if meaningful_candidates:
+            # 选择概念专有名词（月份、星期、节日等）
+            meaningful_candidates.sort(key=lambda x: x['score'], reverse=True)
+            best = meaningful_candidates[0]
+            best['reason'] = best['reason'] + ', meaningful_proper_noun'
+            return best
+        else:
+            # 如果没有概念专有名词，选择任何非人名的专有名词
+            # 人名检查（使用 COMMON_NAMES）
+            non_name_candidates = [
+                c for c in candidates
+                if c['word_clean'] not in COMMON_NAMES
+            ]
+
+            if non_name_candidates:
+                non_name_candidates.sort(key=lambda x: x['score'], reverse=True)
+                best = non_name_candidates[0]
+                best['reason'] = best['reason'] + ', non_name_proper_noun'
+                return best
 
     # 按得分排序
     candidates.sort(key=lambda x: x['score'], reverse=True)
