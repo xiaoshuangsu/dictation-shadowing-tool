@@ -528,10 +528,40 @@ def normalize_word(word: str) -> str:
     return word_lower
 
 # ============ 词性分析 ============
+def build_blanked_text(sentence_text: str, blank_word: str, blank_index: int) -> str:
+    """构建挖空后的文本（正确处理连字符词）
+
+    Args:
+        sentence_text: 原始句子文本
+        blank_word: 被挖空的词
+        blank_index: 被挖空词的索引位置
+
+    Returns:
+        挖空后的文本
+    """
+    import nltk
+
+    # 使用 NLTK 分词，保持与 analyze_sentence_words 一致
+    words_with_pos = analyze_sentence_words(sentence_text)
+    tokens = [word for word, _ in words_with_pos]
+
+    # 替换目标词为挖空标记
+    if 0 <= blank_index < len(tokens):
+        tokens[blank_index] = "______"
+
+    # 重建句子（保留空格）
+    result = ' '.join(tokens)
+    return result
+
+# ============ 词性分析 ============
 def analyze_sentence_words(sentence: str) -> List[Tuple[str, str]]:
     """分析句子中的单词及其词性
 
     返回: [(word, pos_tag), ...]
+
+    特殊处理：
+    - 合并连字符词组（如 self-esteem 视为一个词）
+    - 保留标点符号和特殊字符的位置
     """
     import nltk
 
@@ -541,7 +571,40 @@ def analyze_sentence_words(sentence: str) -> List[Tuple[str, str]]:
     # 词性标注
     pos_tags = nltk.pos_tag(tokens)
 
-    return pos_tags
+    # 🔧 合并连字符词组
+    # 识别模式：word, "-", word → 合并为 word-word
+    merged_tokens = []
+    merged_tags = []
+    i = 0
+
+    while i < len(tokens):
+        # 检查是否是连字符词模式：word, "-", word
+        if (
+            i + 2 < len(tokens) and
+            tokens[i].isalpha() and  # 第一个词
+            tokens[i + 1] == '-' and   # 连字符
+            tokens[i + 2].isalpha()    # 第二个词
+        ):
+            # 合并连字符词
+            hyphenated_word = f"{tokens[i]}-{tokens[i + 2]}"
+
+            # 词性选择：使用第一个词的词性（通常更准确）
+            # 例如：self-esteem (NN) 或 well-known (JJ)
+            pos = pos_tags[i][1]
+
+            merged_tokens.append(hyphenated_word)
+            merged_tags.append(pos)
+
+            # 跳过已处理的 3 个 token
+            i += 3
+        else:
+            # 非连字符词，直接保留
+            merged_tokens.append(tokens[i])
+            merged_tags.append(pos_tags[i][1])
+            i += 1
+
+    # 返回合并后的结果
+    return list(zip(merged_tokens, merged_tags))
 
 def select_best_blank(
     words_with_pos: List[Tuple[str, str]],
@@ -996,16 +1059,13 @@ def preview_blanks(materials: List[Dict], num_samples: int = 5):
                 index = blank.get('index', 0)
                 is_core = blank.get('is_core', False)
 
-                # 构建显示文本
-                words = text.split()
-                if 0 <= index < len(words):
-                    words[index] = f"[{word}]"
-                    display_text = ' '.join(words)
+                # 构建显示文本（使用辅助函数，正确处理连字符词）
+                display_text = build_blanked_text(text, word, index).replace("______", f"[{word}]")
 
-                    print(f"\n  句子 {j}:")
-                    print(f"  原文: {text}")
-                    print(f"  挖空: {display_text}")
-                    print(f"  挖空词: {word} (核心词汇: {'✓' if is_core else '✗'})")
+                print(f"\n  句子 {j}:")
+                print(f"  原文: {text}")
+                print(f"  挖空: {display_text}")
+                print(f"  挖空词: {word} (核心词汇: {'✓' if is_core else '✗'})")
 
         print()
 
@@ -1038,14 +1098,11 @@ def print_blanks_preview(material: Dict):
                 pos = blank.get('pos', '')
                 is_core = blank.get('is_core', False)
 
-                # 构建挖空后的文本
-                words = text.split()
-                if 0 <= index < len(words):
-                    words[index] = f"______"
-                    blanked_text = ' '.join(words)
+                # 构建挖空后的文本（使用辅助函数，正确处理连字符词）
+                blanked_text = build_blanked_text(text, word, index)
 
-                    print(f"    🔲 挖空: {blanked_text}")
-                    print(f"       答案: {word} (位置: {index}, 词性: {pos}, 核心词: {'✓' if is_core else '✗'})")
+                print(f"    🔲 挖空: {blanked_text}")
+                print(f"       答案: {word} (位置: {index}, 词性: {pos}, 核心词: {'✓' if is_core else '✗'})")
         else:
             print(f"    ⏭️  无挖空")
         print()
