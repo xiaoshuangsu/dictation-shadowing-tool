@@ -167,9 +167,22 @@ b) 📚 Khoa học (TED/Khoa học):
    - Thuật ngữ chính xác, không cảm xúc
    - Giải thích rõ ràng, dễ hiểu
 
-c) 💼 Công sở (Formal):
-   - Từ ngữ trang trọng, không dùng slang
-   - Giọng văn trung tính, chuyên nghiệp
+c) 💼 Công sở / Kinh doanh (Business/Workplace):
+   - Từ ngữ trang trọng, chuyên nghiệp
+   - ❌ KHÔNG dùng từ lóng, tiếng nói suồng sã
+   - ❌ KHÔNG dùng từ cảm xúc: "đấy", "à mà", "nhỉ", "thế", "thì"
+   - ✅ Dùng xưng hô trang trọng: "ông", "bà", "người", "chúng ta"
+   - ✅ Thuật ngữ chuyên ngành:
+     * corruption → "tham nhũng" (CHUẨN)
+     * bribe → "hối lộ" (CHUẨN)
+     * kickback → "hoa hồng" (trong kinh doanh)
+     * formal → "chính thức", "trang trọng"
+   - ✅ Phong cách: trung tính, khách quan, chuyên nghiệp
+   - ✅ Ví dụ:
+     * EN: "How can corruption be stopped?"
+       VI: "Làm thế nào để ngăn chặn tham nhũng?" (❌ "Làm sao để chặn nghịch cái đấy á?")
+     * EN: "A kickback is similar to a bribe"
+       VI: "Hoa hồng trong kinh doanh tương tự như hối lộ." (❌ "Kickback giống với cái bribery đấy")
 
 d) 🏠 Đời sống (Dialogue):
    - Dùng slang đời thường, phải có từ cảm xúc
@@ -284,7 +297,22 @@ Nội dung phụ đề (có索引 [Line N]):
 """
 
         # 根据分类添加特殊要求
-        if "IELTS" in category or "Academic" in category or "Test" in video_title:
+        if category == "business" or "Business" in category:
+            user_content += """
+💼 职场商务类素材特殊要求 (Business/Workplace):
+- ❌ KHÔNG dùng từ lóng: "đấy", "à mà", "nhỉ", "thế", "thì", "vậy"
+- ❌ KHÔNG dùng xưng hô thân mật: "cậu", "tớ", "mày", "tao"
+- ✅ Dùng trang trọng: "ông", "bà", "người", "chúng ta", "tôi"
+- ✅ Thuật ngữ chuyên ngành:
+  * corruption → "tham nhũng" (CHUẨN)
+  * bribe → "hối lộ" (CHUẨN)
+  * kickback → "hoa hồng" (trong kinh doanh)
+- ✅ Phong cách: trung tính, khách quan, chuyên nghiệp
+- ✅ Ví dụ:
+  * "How can corruption be stopped?" → "Làm thế nào để ngăn chặn tham nhũng?"
+  * "A kickback is similar to a bribe" → "Hoa hồng trong kinh doanh tương tự như hối lộ."
+"""
+        elif "IELTS" in category or "Academic" in category or "Test" in video_title:
             user_content += """
 🎯 IELTS / Academic素材特殊要求:
 - ❌ KHÔNG dùng语气词: "đấy", "à mà", "nhỉ", "thì", "vậy"
