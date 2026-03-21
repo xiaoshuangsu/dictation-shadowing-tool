@@ -1,5 +1,72 @@
 # Changelog
 
+## [21.0.0] - 2026-03-20
+
+### Added
+- **越南语翻译功能完整上线** 🇻🇳
+  - 完成所有 201 个素材的越南语翻译（100% 覆盖率）
+  - 新增 6 种翻译风格体系，适配不同素材类型
+  - 总翻译句数超过 15,000 句
+
+- **翻译风格体系** 📝
+  - 💼 职场正式：用词正式，术语准确，无俚语（tham nhũng, hối lộ）
+  - 💪 励志哲学：文学化表达，简洁有力（bồn chồn, suy nghĩ, bình yên）
+  - 🏛️ 文化历史：正式叙述，客观准确（chiến binh, đột kích, hoành gia）
+  - 🔬 科学/TED：术语严谨，无情绪，不使用语气词
+  - 🎯 IELTS学术：正式表达，术语规范（nghiên cứu tình huống, phỏng vấn）
+  - 🏠 日常对话：口语化，语气词（có chứ, à, mà, nhé, cậu）
+
+- **批量翻译脚本** 🤖
+  - `translate_to_vietnamese.py` - 核心翻译模块（V1.0）
+  - `translate_business_to_vietnamese.py` - 职场商务类翻译脚本
+  - `translate_motivational_to_vietnamese.py` - 励志哲学类翻译脚本
+  - `translate_culture_to_vietnamese.py` - 文化历史类翻译脚本
+  - `translate_bbc_to_vietnamese.py` - BBC Learning English 翻译脚本
+
+- **翻译成果统计** 📊
+  - 职场商务类：1 个素材（Corruption - 腐败）
+  - 励志哲学类：1 个素材（Empty Your Mind - 86 句）
+  - 文化历史类：7 个素材（262 句）
+  - BBC Learning English：8 个素材（737 句）
+  - 艺术文化类：1 个素材（Handel's Messiah - 37 句）
+  - 故事/动画/日常：4 个素材（228 句）
+
+### Changed
+- **多语言数据结构** 🌐
+  - transcript.translation 字段现在支持多语言：
+    ```json
+    {
+      "translation": {
+        "zh": "中文翻译",
+        "vi": "Tiếng Việt翻译",
+        "en": "English translation"
+      }
+    }
+    ```
+
+- **翻译规则引擎** ⚙️
+  - 新增 `.shadowhub/translation-rules.json`（V20.2）
+  - 结构化规则定义，分类风格映射
+  - 通用规则：反问句式、指代对象、角色追踪、语义分析
+  - 词汇规则：特定词汇的标准翻译
+
+### Technical Details
+- 修改文件：
+  - `scripts/translate_to_vietnamese.py` - 核心翻译模块（V1.0）
+  - `scripts/translate_business_to_vietnamese.py` - 职场商务类脚本
+  - `scripts/translate_motivational_to_vietnamese.py` - 励志哲学类脚本
+  - `scripts/translate_culture_to_vietnamese.py` - 文化历史类脚本
+  - `scripts/translate_bbc_to_vietnamese.py` - BBC 翻译脚本
+  - `.shadowhub/translation-rules.json` - 翻译规则引擎
+  - `package.json` - 版本号更新至 21.0.0
+
+- 翻译质量：
+  - ✅ 术语准确：tham nhũng（腐败）、hối lộ（贿赂）、bóng băng（冰球）
+  - ✅ 风格适配：正式叙述、口语对话、文学化表达
+  - ✅ 自动修复：19 处中文混杂问题自动修正
+
+---
+
 ## [19.1.0] - 2026-03-17
 
 ### Added
