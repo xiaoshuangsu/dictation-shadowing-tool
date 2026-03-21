@@ -11,6 +11,29 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [24.3.0] - 2026-03-21
+
+### Changed
+- **多语言翻译按钮布局优化（第二版）** 🎨
+  - 优化按钮位置，确保始终在卡片内部
+  - 消除按钮占据的垂直空间，原文紧贴卡片顶部
+  - 压缩容器 padding（Dictation: pt-2, Shadowing: p-4）
+  - 按钮尺寸精简（padding: 1, 图标: 3）
+
+### Technical
+- **修改文件**：
+  - `src/components/TranslationLanguageSelector.tsx` - 压缩按钮尺寸
+  - `src/components/DictationBox.tsx` - 优化按钮定位和容器布局
+  - `src/components/WordMode.tsx` - 绝对定位在卡片右上角
+  - `src/components/ShadowingPanel.tsx` - 保持原有 padding
+
+### Detail
+- **Dictation-Word 模式**：按钮在挖空卡片右上角（absolute top-2 right-2）
+- **Dictation-Sentence 模式**：显示翻译时在翻译卡片内，未显示时在 Label 区域
+- **Shadowing 模式**：按钮在参考文本卡片右上角，保持 1rem padding
+
+---
+
 ## [24.2.0] - 2026-03-21
 
 ### Changed

@@ -367,25 +367,32 @@ export default function DictationBox({
 
   return (
     <div>
-      {/* Translation display */}
-      {sentence.translation && (
-        <div className="relative mb-4 p-4 bg-gray-50 rounded-lg">
-          {/* Language selector - 绝对定位在右上角 */}
+      {/* Translation display - 只在显示翻译内容时才渲染容器 */}
+      {sentence.translation && showTranslation && currentTranslation && (
+        <div className="relative mb-4 pt-2 pr-10 pb-4 pl-4 bg-gray-50 rounded-lg">
+          {/* Language selector - 绝对定位在卡片右上角 */}
           <div className="absolute top-2 right-2">
             <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
           </div>
 
           {/* Translation text */}
-          {showTranslation && currentTranslation && (
-            <p className="text-sm text-gray-600 italic">
-              <span className="font-medium text-gray-700">{languageLabel}:</span> {currentTranslation}
-            </p>
-          )}
+          <p className="text-sm text-gray-600 italic">
+            <span className="font-medium text-gray-700">{languageLabel}:</span> {currentTranslation}
+          </p>
+        </div>
+      )}
+
+      {/* Language selector - 独立显示在 Label 区域右上角（未显示翻译时） */}
+      {sentence.translation && !showTranslation && (
+        <div className="mb-2 relative">
+          <div className="absolute top-0 right-0">
+            <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
+          </div>
         </div>
       )}
 
       {/* Label with Filter */}
-      <div className="mb-2 relative">
+      <div className="mb-2">
         <label className="text-sm font-medium text-gray-700">
           {"Type what you hear"}:
         </label>

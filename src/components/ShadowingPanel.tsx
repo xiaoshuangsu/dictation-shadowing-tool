@@ -1283,7 +1283,7 @@ export default function ShadowingPanel({
       </div>
 
       {/* 参考文本 */}
-      <div className="relative bg-gray-50 rounded-lg p-4 mb-4">
+      <div className="relative bg-gray-50 rounded-lg p-4 pr-10 mb-4">
         {/* Translation Language Selector - 绝对定位在右上角 */}
         {sentence.translation && (
           <div className="absolute top-2 right-2">

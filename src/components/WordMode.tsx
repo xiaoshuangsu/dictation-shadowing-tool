@@ -324,10 +324,10 @@ export default function WordMode({
   return (
     <div>
       {/* Display Text with One Hidden Word */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        {/* First row: Language selector */}
+      <div className="relative mb-6 p-4 pr-10 bg-gray-50 rounded-lg">
+        {/* Language selector - 绝对定位在卡片右上角 */}
         {sentence.translation && (
-          <div className="flex justify-end mb-3">
+          <div className="absolute top-2 right-2">
             <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
           </div>
         )}
@@ -366,7 +366,7 @@ export default function WordMode({
       </div>
 
       {/* Label with Filter */}
-      <div className="mb-2 relative">
+      <div className="mb-2">
         <label className="text-sm font-medium text-gray-700">
           {"Type what you hear"}:
         </label>
