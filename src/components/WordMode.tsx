@@ -302,6 +302,7 @@ export default function WordMode({
   const getLanguageLabel = (lang: TranslationLanguage): string => {
     const labels = {
       'zh': '中文 (简体)',
+      'zh_hant': '中文 (繁體)',
       'vi': 'Tiếng Việt',
       'hide': ''
     }

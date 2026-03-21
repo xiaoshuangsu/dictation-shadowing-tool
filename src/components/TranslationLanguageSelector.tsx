@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { Languages, ChevronDown, X } from 'lucide-react'
 
-export type TranslationLanguage = 'zh' | 'vi' | 'hide'
+export type TranslationLanguage = 'zh' | 'zh_hant' | 'vi' | 'hide'
 
 const LANGUAGE_OPTIONS = [
   { value: 'zh' as TranslationLanguage, label: '中文 (简体)' },
+  { value: 'zh_hant' as TranslationLanguage, label: '中文 (繁體)' },
   { value: 'vi' as TranslationLanguage, label: 'Tiếng Việt' },
   { value: 'hide' as TranslationLanguage, label: '隐藏 (Hide)' }
 ]
@@ -30,7 +31,7 @@ export function getStoredLanguage(): TranslationLanguage {
       return 'zh'
     }
 
-    if (stored && ['zh', 'vi', 'hide'].includes(stored)) {
+    if (stored && ['zh', 'zh_hant', 'vi', 'hide'].includes(stored)) {
       return stored as TranslationLanguage
     }
   } catch (e) {
