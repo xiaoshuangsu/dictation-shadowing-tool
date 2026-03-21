@@ -55,8 +55,8 @@ export default function DictationBox({
   const lastActivityRef = useRef<number>(Date.now())
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Word-level state - 使用正则匹配，支持连字符单词（如 self-esteem）
-  const words = sentence.text.match(/[a-zA-Z0-9-]+/g)
+  // Word-level state - 使用正则匹配，支持连字符单词（如 self-esteem）和缩写词（如 what's）
+  const words = sentence.text.match(/[a-zA-Z0-9-']+/g)
   const sentenceWords = words || []
   const [wordStatuses, setWordStatuses] = useState<Map<number, WordStatus>>(new Map())
   const [peekedWords, setPeekedWords] = useState<Set<number>>(new Set()) // Track peeked words

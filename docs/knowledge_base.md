@@ -194,49 +194,47 @@ useEffect(() => {
 
 ---
 
-## 6. 连字符词分词问题
+## 6. 连字符词与缩写词分词问题
 
 ### 症状
-- 连字符单词（如 `self-esteem`、`well-known`、`mother-in-law`）被错误拆分
-- 前端单词块显示时，`self-esteem` 被拆成 `self` 和 `-esteem` 两个独立块
+- **连字符单词**（如 `self-esteem`、`well-known`、`mother-in-law`）被错误拆分
+- **缩写词**（如 `what's`、`don't`、`can't`、`it's`）被错误拆分
+- 前端单词块显示时，`self-esteem` 被拆成 `self` 和 `esteem`，`what's` 被拆成 `what` 和 `s`
 - 后端分词脚本也可能出现类似问题
 
 ### 根本原因
 1. **前端分词逻辑缺陷**
    - 使用 `sentence.text.split(" ")` 只按空格分割
    - 或使用 `split(/\s+/)` 按空白字符分割
-   - 连字符 `-` 被视为单词边界，导致 `self-esteem` 被拆分
+   - 连字符 `-` 和撇号 `'` 被视为单词边界
 
 2. **正则表达式不完整**
-   - 原正则 `/[a-zA-Z]+/g` 不包含连字符
-   - 导致连字符被排除在单词匹配之外
+   - 原正则 `/[a-zA-Z]+/g` 不包含连字符和撇号
+   - 导致这些特殊字符被排除在单词匹配之外
 
 ### 解决方案
 
-**核心原则**：使用 `/[a-zA-Z0-9-]+/g` 正则匹配，将连字符视为单词的一部分
+**核心原则**：使用 `/[a-zA-Z0-9-']+/g` 正则匹配，将连字符和撇号视为单词的一部分
 
 **前端修复**：
 
 1. **DictationBox.tsx**（Sentence 模式单词块显示）
 ```typescript
 // 修改前：
-const sentenceWords = sentence.text.split(" ")
+const words = sentence.text.match(/[a-zA-Z0-9-]+/g)  // V1: 支持连字符
 
 // 修改后：
-const words = sentence.text.match(/[a-zA-Z0-9-]+/g)
+const words = sentence.text.match(/[a-zA-Z0-9-']+/g) // V2: 同时支持连字符和缩写
 const sentenceWords = words || []
 ```
 
 2. **WordMode.tsx**（Word 模式单词块显示）
 ```typescript
 // 修改前：
-const sentenceWords = sentence.text
-  .trim()
-  .split(/\s+/)
-  .filter(w => w.length > 0)
+const words = sentence.text.match(/[a-zA-Z0-9-]+/g)  // V1: 支持连字符
 
 // 修改后：
-const words = sentence.text.match(/[a-zA-Z0-9-]+/g)
+const words = sentence.text.match(/[a-zA-Z0-9-']+/g) // V2: 同时支持连字符和缩写
 const sentenceWords = words || []
 ```
 
@@ -247,16 +245,34 @@ const sentenceWords = words || []
 ```python
 import re
 
-# 推荐的分词方式
-words = re.findall(r"[a-zA-Z0-9-]+", sentence_text)
+# 推荐的分词方式（V2: 支持连字符和缩写）
+words = re.findall(r"[a-zA-Z0-9-']+", sentence_text)
 ```
 
+**数据库说明**：
+- 数据库中存储的是原始文本（包含连字符和撇号）
+- 分词由前端实时进行，无需数据库更新
+- 只要数据库存储的是原始文本（如 "What's your name?"），前端就能正确识别
+
 ### 测试用例
+
+**连字符词**：
 - `self-esteem` → 1 个单词块 ✓
 - `well-known` → 1 个单词块 ✓
 - `mother-in-law` → 1 个单词块 ✓
 - `co-worker` → 1 个单词块 ✓
 - `twenty-one` → 1 个单词块 ✓
+
+**缩写词**：
+- `what's` → 1 个单词块 ✓
+- `don't` → 1 个单词块 ✓
+- `can't` → 1 个单词块 ✓
+- `it's` → 1 个单词块 ✓
+- `I'm` → 1 个单词块 ✓
+- `Jack's` → 1 个单词块 ✓（所有格）
+
+**混合词**：
+- `mother-in-law's` → 1 个单词块 ✓
 
 ### 相关文件
 - 前端：`src/components/DictationBox.tsx`

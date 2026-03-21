@@ -53,8 +53,8 @@ export default function WordMode({
   const lastActivityRef = useRef<number>(Date.now())
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 使用正则匹配，支持连字符单词（如 self-esteem）
-  const words = sentence.text.match(/[a-zA-Z0-9-]+/g)
+  // 使用正则匹配，支持连字符单词（如 self-esteem）和缩写词（如 what's）
+  const words = sentence.text.match(/[a-zA-Z0-9-']+/g)
   const sentenceWords = words || []
 
   // Select word to hide:优先使用 sentence.blanks，否则使用随机算法
