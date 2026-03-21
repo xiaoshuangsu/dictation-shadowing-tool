@@ -294,6 +294,18 @@ Nội dung phụ đề (có索引 [Line N]):
 - ✅ interview → "phỏng vấn", findings → "kết quả nghiên cứu"
 - ✅ Phong cách: học thuật, chính xác, trung tính
 """
+        elif "Science" in category or "TED" in category:
+            user_content += """
+🔬 Science / TED素材特殊要求:
+- ❌ KHÔNG dùng任何口语语气词: "đấy", "mà", "nhỉ", "thì", "à", "vậy", "đâu", "chẳng"
+- ❌ KHÔNG dùng口语化表达: "mà cứ", "à mà"
+- ✅ Dùng正式表达: "tôi", "bạn", "chúng ta"
+- ✅ 术语准确翻译:
+  * self-esteem → "lòng tự trọng"
+  * neurochemicals → "hóa chất thần kinh"
+  * optimism → "lòng lạc quan"
+  - ✅ 客观陈述, 不带情绪, 不使用感叹号
+"""
         else:
             user_content += """
 🏠 Đời sống / Dialogue素材:
