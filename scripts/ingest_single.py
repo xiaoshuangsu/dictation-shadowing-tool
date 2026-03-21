@@ -20,6 +20,9 @@ from bs4 import BeautifulSoup
 from supabase import create_client
 import boto3
 
+# 导入文本规范化工具
+from text_normalizer import normalize_sentence_text
+
 # ==================== 加载环境变量 ====================
 def load_env():
     """从 .env.local 加载环境变量"""
@@ -105,6 +108,9 @@ def parse_transcript(html):
         words_spans = line.find_all('span', class_='word')
         text = ' '.join([w.get_text() for w in words_spans])
         text = text.strip()
+
+        # 🔧 文本规范化：修复连字符词空格问题
+        text = normalize_sentence_text(text)
 
         if text:
             sentences.append({

@@ -24,6 +24,9 @@ from supabase import create_client, Client
 from typing import Optional, List, Dict
 import yt_dlp
 
+# 导入文本规范化工具
+from text_normalizer import normalize_sentence_text
+
 # ============ 配置 ============
 SUPABASE_URL = "https://cuxotlijjnxbsirpdkgr.supabase.co"
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -117,7 +120,7 @@ def merge_segments(raw_segments: List[Dict]) -> List[Dict]:
         if should_split and current_sentence['text']:
             # 保存当前句子
             merged.append({
-                'text': current_sentence['text'].strip(),
+                'text': normalize_sentence_text(current_sentence['text'].strip()),
                 'start': current_sentence['start'],
                 'end': current_sentence['end']
             })
@@ -139,7 +142,7 @@ def merge_segments(raw_segments: List[Dict]) -> List[Dict]:
     # 保存最后一个句子
     if current_sentence['text'].strip():
         merged.append({
-            'text': current_sentence['text'].strip(),
+            'text': normalize_sentence_text(current_sentence['text'].strip()),
             'start': current_sentence['start'],
             'end': current_sentence['end']
         })

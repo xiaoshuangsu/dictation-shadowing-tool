@@ -85,6 +85,74 @@ model.transcribe(
 - ✅ 使用动态冲突检测，确保每句之间有微小间隙
 - ✅ 保留所有字段（如 `translation`），避免数据丢失
 
+### 2.3 连字符词规范化 (Hyphenated Words Normalization)
+
+#### 问题现象
+- 连字符单词被空格分隔（如 `"self -esteem"`、`"t -shirt"`、`"co -workers"`）
+- 前端单词块显示时被错误拆分为两个独立词
+- 影响听写体验和单词挖空功能
+
+#### 根本原因
+1. **原始数据质量问题**：素材来源（如 Engnovate、YouTube 字幕）的文本包含带空格的连字符词
+2. **缺少规范化处理**：素材导入时未对文本进行连字符词空格清理
+3. **前端分词限制**：即使前端使用 `match(/[a-zA-Z0-9-]+/g)`，空格仍会被视为分隔符
+
+#### 解决方案：文本规范化工具模块
+
+**核心原则**：
+- 在素材导入时自动移除连字符周围的空格
+- 确保 `word -word`、`word- word`、`word - word` 统一转换为 `word-word`
+- 在所有素材导入脚本中强制应用规范化处理
+
+**实现文件**：
+- 工具模块：`scripts/text_normalizer.py`
+- 导入脚本：
+  - `scripts/ingest_single.py`
+  - `scripts/ingest_youtube_ytdlp.py`
+  - 其他素材导入脚本...
+
+**使用方法**：
+```python
+from text_normalizer import normalize_sentence_text
+
+# 在文本提取后立即应用规范化
+text = ' '.join([w.get_text() for w in words_spans])
+text = text.strip()
+
+# 🔧 关键：应用文本规范化
+text = normalize_sentence_text(text)
+```
+
+**规范化规则**：
+```python
+# 移除连字符周围的空格
+r'([a-zA-Z0-9])\s+-\s*([a-zA-Z0-9])' → r'\1-\2'
+
+# 示例：
+"self -esteem"  → "self-esteem"
+"t -shirt"      → "t-shirt"
+"co -workers"   → "co-workers"
+"long -term"    → "long-term"
+"well -known"   → "well-known"
+```
+
+#### 验证与测试
+
+**测试脚本**：
+```bash
+python3 scripts/text_normalizer.py
+```
+
+**质量检查**：
+- 素材导入后，使用 `scripts/find_hyphenated_words.py` 检测数据库中的连字符词
+- 如发现带空格的连字符词，使用 `scripts/fix_hyphen_spacing.py` 批量修复
+
+#### 注意事项
+- ❌ 素材导入时跳过文本规范化步骤
+- ❌ 硬编码 Supabase 密钥（必须使用环境变量）
+- ✅ 在所有素材导入脚本中应用规范化处理
+- ✅ 定期检查数据库中的连字符词格式
+
 ---
 
 ## 3. 自动化监控流水线 (Watch Media Script)
