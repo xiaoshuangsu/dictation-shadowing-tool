@@ -184,6 +184,27 @@ c) 💼 Công sở / Kinh doanh (Business/Workplace):
      * EN: "A kickback is similar to a bribe"
        VI: "Hoa hồng trong kinh doanh tương tự như hối lộ." (❌ "Kickback giống với cái bribery đấy")
 
+d) 💪 Truyền cảm hứng / Triết học (Motivational/Philosophical):
+   - ❌ KHÔNG dùng văn phong đời thường, suồng sã
+   - ❌ KHÔNG dùng từ cảm xúc: "đấy", "à mà", "nhỉ", "thế"
+   - ✅ Văn phong văn học: ngắn gọn, súc tích, có感染力
+   - ✅ Từ ngữ đặc thù:
+     * restless → "bồi hồi", "bồn chồn", "bất an" (❌ "không yên")
+     * thoughts (trong tâm hỗn loạn) → "suyn nghĩ", "ý niệm" (❌ "ý kiến")
+     * in this moment → "ngay lúc này", "ở phút giây này" (❌ "vào thời điểm này")
+     * peace → "an yên", "bình an" (✅ văn học hơn "yên tĩnh")
+     * moment → "khoảnh khắc" (✅ văn học hơn "thời điểm")
+   - ✅ Phong cách: cô đọng, sâu sắc, truyền cảm hứng
+   - ✅ Ví dụ:
+     * EN: "Marco was very restless."
+       VI: "Marco cảm thấy bồn chồn." (❌ "Marco là người không yên.")
+     * EN: "His mind was full of thoughts."
+       VI: "Tâm trí anh ngập tràn suy nghĩ." (❌ "Anh có nhiều ý kiến.")
+     * EN: "Live in this moment."
+       VI: "Sống ngay khoảnh khắc này." (❌ "Sống vào thời điểm này.")
+     * EN: "Find your inner peace."
+       VI: "Tìm kiếm sự an yên trong tâm hồn." (✅ văn học)
+
 d) 🏠 Đời sống (Dialogue):
    - Dùng slang đời thường, phải có từ cảm xúc
    - Sử dụng "cậu", "tớ", thân mật
@@ -297,7 +318,27 @@ Nội dung phụ đề (có索引 [Line N]):
 """
 
         # 根据分类添加特殊要求
-        if category == "business" or "Business" in category:
+        if category == "motivational" or "Motivational" in category or "心灵故事" in category:
+            user_content += """
+💪 励志哲学类素材特殊要求 (Motivational/Philosophical):
+- ❌ KHÔNG dùng văn phong đời thường, suồng sã
+- ❌ KHÔNG dùng từ cảm xúc: "đấy", "à mà", "nhỉ", "thế", "thì"
+- ✅ Văn phong văn học: ngắn gọn, súc tích, có感染力
+- ✅ Từ ngữ đặc thù (CHUẨN):
+  * restless → "bồi hồi", "bồn chồn", "bất an" (❌ "không yên")
+  * thoughts (trong tâm hỗn loạn) → "suyn nghĩ", "ý niệm" (❌ "ý kiến")
+  * in this moment → "ngay lúc này", "ở phút giây này" (❌ "vào thời điểm này")
+  * peace → "an yên", "bình an" (✅ văn học hơn "yên tĩnh")
+  * moment → "khoảnh khắc" (✅ văn học hơn "thời điểm")
+  * inner peace → "sự an yên trong tâm hồn"
+- ✅ Phong cách: cô đọng, sâu sắc, truyền cảm hứng
+- ✅ Ví dụ:
+  * "Marco was very restless." → "Marco cảm thấy bồn chồn."
+  * "His mind was full of thoughts." → "Tâm trí anh ngập tràn suy nghĩ."
+  * "Live in this moment." → "Sống ngay khoảnh khắc này."
+  * "Find your inner peace." → "Tìm kiếm sự an yên trong tâm hồn."
+"""
+        elif category == "business" or "Business" in category:
             user_content += """
 💼 职场商务类素材特殊要求 (Business/Workplace):
 - ❌ KHÔNG dùng từ lóng: "đấy", "à mà", "nhỉ", "thế", "thì", "vậy"
@@ -410,7 +451,11 @@ def process_material(material_id: str, video_title: str, category: str, difficul
         return {'success': False, 'reason': 'no_valid_sentences'}
 
     texts = [text for _, text in valid_sentences]
-    batch_size = 4
+    # 根据分类调整批次大小：励志哲学类使用更小的批次以提高成功率
+    if category == "motivational" or "Motivational" in category or "心灵故事" in category:
+        batch_size = 2
+    else:
+        batch_size = 4
     all_translations = []
 
     for i in range(0, len(texts), batch_size):
