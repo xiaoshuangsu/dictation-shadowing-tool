@@ -142,8 +142,11 @@ cat claude-code-guide.md docs/automation_standards.md
 # 代码开发场景
 cat claude-code-guide.md docs/technical_deep_dive.md docs/knowledge_base.md
 
-# 翻译任务
-cat claude-code-guide.md .shadowhub/translation-rules.json
+# 翻译任务（中文翻译）
+cat claude-code-guide.md scripts/translate.js
+
+# 翻译任务（越南语翻译）
+cat claude-code-guide.md scripts/translate_to_vietnamese.py
 
 # 翻译 UI 开发
 cat claude-code-guide.md docs/translation-ui-refactor.md
