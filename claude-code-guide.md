@@ -129,6 +129,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 - **文件操作/批量导入**：`docs/automation_standards.md`
 - **代码开发/Bug 修复**：`docs/technical_deep_dive.md` + `docs/knowledge_base.md`
 - **翻译任务**：`.shadowhub/translation-rules.json`
+- **翻译 UI 开发**：`docs/translation-ui-refactor.md`
 
 ### 快速恢复命令
 ```bash
@@ -143,6 +144,9 @@ cat claude-code-guide.md docs/technical_deep_dive.md docs/knowledge_base.md
 
 # 翻译任务
 cat claude-code-guide.md .shadowhub/translation-rules.json
+
+# 翻译 UI 开发
+cat claude-code-guide.md docs/translation-ui-refactor.md
 ```
 
 ---
