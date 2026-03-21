@@ -367,29 +367,37 @@ export default function DictationBox({
 
   return (
     <div>
-      {/* Translation display - 只在显示翻译内容时才渲染容器 */}
-      {sentence.translation && showTranslation && currentTranslation && (
-        <div className="relative mb-4 pt-2 pr-10 pb-4 pl-4 bg-gray-50 rounded-lg">
-          {/* Language selector - 绝对定位在卡片右上角 */}
+      {/* Original Text & Translation Container - 始终显示，避免布局跳动 */}
+      <div className="relative mb-4 p-4 pr-10 bg-gray-50 rounded-lg min-h-[80px]">
+        {/* Language selector - 绝对定位在卡片右上角 */}
+        {sentence.translation && (
           <div className="absolute top-2 right-2">
             <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
           </div>
+        )}
 
-          {/* Translation text */}
-          <p className="text-sm text-gray-600 italic">
-            <span className="font-medium text-gray-700">{languageLabel}:</span> {currentTranslation}
-          </p>
-        </div>
-      )}
+        {/* Original Text - Sentence 模式下隐藏但保留高度 */}
+        <p className="text-lg leading-relaxed">
+          {dictationMode === "word" ? (
+            // Word 模式：显示占位提示
+            <span className="text-gray-400 italic text-sm">
+              Listen and type the full sentence below...
+            </span>
+          ) : (
+            // Sentence 模式：隐藏原文但保留布局
+            <span className="invisible">{sentence.text}</span>
+          )}
+        </p>
 
-      {/* Language selector - 独立显示在 Label 区域右上角（未显示翻译时） */}
-      {sentence.translation && !showTranslation && (
-        <div className="mb-2 relative">
-          <div className="absolute top-0 right-0">
-            <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
+        {/* Translation text - 根据多语言选择显示 */}
+        {showTranslation && currentTranslation && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-sm text-gray-600 italic">
+              <span className="font-medium text-gray-700">{languageLabel}:</span> {currentTranslation}
+            </p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Label with Filter */}
       <div className="mb-2">
