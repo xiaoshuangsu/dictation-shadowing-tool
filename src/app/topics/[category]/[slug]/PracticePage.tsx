@@ -17,6 +17,8 @@ import AudioPlayer from '@/components/AudioPlayer'
 import DictationBox from '@/components/DictationBox'
 import WordMode from '@/components/WordMode'
 import ShadowingPanel from '@/components/ShadowingPanel'
+import { TranslationLanguageSelector, type TranslationLanguage } from '@/components/TranslationLanguageSelector'
+import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 
 type PracticeMode = 'dictation' | 'shadowing'
 type DictationMode = 'word' | 'whole'
@@ -154,6 +156,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const [incorrectSentences, setIncorrectSentences] = useState<Set<number>>(new Set())
   const [isRevealed, setIsRevealed] = useState(false)
   const [showTranscript, setShowTranscript] = useState(false)
+  const [translationLanguage, setTranslationLanguage] = useState<TranslationLanguage>(getStoredLanguage())
+  const [showTranslation, setShowTranslation] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [playbackRate, setPlaybackRate] = useState(1)
   const [autoPlayTrigger, setAutoPlayTrigger] = useState(0)
@@ -826,6 +830,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     onComplete={handleWordModeComplete}
                     dictationMode={dictationMode}
                     onDictationModeChange={setDictationMode}
+                    translationLanguage={translationLanguage}
+                    showTranslation={showTranslation}
+                    onTranslationLanguageChange={(lang, show) => {
+                      setTranslationLanguage(lang)
+                      setShowTranslation(show)
+                    }}
                   />
                 ) : (
                   <DictationBox
@@ -834,6 +844,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     onComplete={handleDictationComplete}
                     dictationMode={dictationMode}
                     onDictationModeChange={setDictationMode}
+                    translationLanguage={translationLanguage}
+                    showTranslation={showTranslation}
+                    onTranslationLanguageChange={(lang, show) => {
+                      setTranslationLanguage(lang)
+                      setShowTranslation(show)
+                    }}
                   />
                 )
               ) : (() => {
@@ -877,7 +893,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                 <h3 className="font-semibold text-gray-900">Transcript</h3>
                 <button
                   onClick={() => setShowTranscript(!showTranscript)}
-                  className="text-sm text-blue-600 hover:text-blue-700"
+                  className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                 >
                   {showTranscript ? 'Hide' : 'Show'}
                 </button>
@@ -927,10 +943,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
                           </p>
                           {showTranscript && sentence.translation && (
                             <p className="text-sm text-gray-700 italic mt-1">
-                              {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
+                              {/* 支持 Translation JSONB 格式，根据语言选择显示对应翻译 */}
                               {typeof sentence.translation === 'string'
                                 ? sentence.translation
-                                : (sentence.translation?.['zh'] || '')}
+                                : (sentence.translation?.[translationLanguage] || '')}
                             </p>
                           )}
                         </div>

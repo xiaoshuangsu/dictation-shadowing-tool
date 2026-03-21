@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Eye } from "lucide-react"
 import ConfirmModal from "./ConfirmModal"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
+import { TranslationLanguageSelector, type TranslationLanguage, getStoredLanguage } from "@/components/TranslationLanguageSelector"
 import type { Sentence, Translation } from "@/types"
 
 interface DictationBoxProps {
@@ -13,11 +14,24 @@ interface DictationBoxProps {
   isLastSentence?: boolean
   dictationMode?: "word" | "whole"
   onDictationModeChange?: (mode: "word" | "whole") => void
+  translationLanguage?: TranslationLanguage
+  showTranslation?: boolean
+  onTranslationLanguageChange?: (language: TranslationLanguage, showTranslation: boolean) => void
 }
 
 type WordStatus = "correct" | "incorrect" | "pending"
 
-export default function DictationBox({ sentence, onComplete, onNext, isLastSentence, dictationMode = "whole", onDictationModeChange }: DictationBoxProps) {
+export default function DictationBox({
+  sentence,
+  onComplete,
+  onNext,
+  isLastSentence,
+  dictationMode = "whole",
+  onDictationModeChange,
+  translationLanguage: externalTranslationLanguage,
+  showTranslation: externalShowTranslation,
+  onTranslationLanguageChange
+}: DictationBoxProps) {
   const { playSuccessSound } = useSuccessSound() // 使用全局静音状态
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
@@ -25,8 +39,13 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [isRevealed, setIsRevealed] = useState(false)
   const [isLocked, setIsLocked] = useState(false)
-  const [showTranslation, setShowTranslation] = useState(false)  // 控制翻译显示状态
+  const [internalTranslationLanguage, setInternalTranslationLanguage] = useState<TranslationLanguage>(getStoredLanguage())
+  const [internalShowTranslation, setInternalShowTranslation] = useState(false)
   const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false)  // 模式下拉框状态
+
+  // 使用外部翻译语言状态（如果提供），否则使用内部状态
+  const translationLanguage = externalTranslationLanguage ?? internalTranslationLanguage
+  const showTranslation = externalShowTranslation ?? internalShowTranslation
 
   // V3.1 有效作答时间跟踪
   const [timingStarted, setTimingStarted] = useState(false)
@@ -145,7 +164,6 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     setShowConfirmModal(false)
     setIsRevealed(false)
     setIsLocked(false)
-    setShowTranslation(false)  // 重置翻译显示状态
     setWordStatuses(new Map())
     setPeekedWords(new Set()) // Reset peeked words
 
@@ -311,28 +329,54 @@ export default function DictationBox({ sentence, onComplete, onNext, isLastSente
     })
   }
 
+  // 处理翻译语言变化
+  const handleLanguageChange = (language: TranslationLanguage, show: boolean) => {
+    setInternalTranslationLanguage(language)
+    setInternalShowTranslation(show)
+    onTranslationLanguageChange?.(language, show)
+  }
+
+  // 获取当前语言的翻译文本
+  const getCurrentTranslation = (): string => {
+    if (!sentence.translation) return ''
+
+    // 向后兼容：支持旧的 string 格式
+    if (typeof sentence.translation === 'string') {
+      return sentence.translation
+    }
+
+    // 新的 Translation JSONB 格式
+    return sentence.translation[translationLanguage] || ''
+  }
+
+  const currentTranslation = getCurrentTranslation()
+
+  // 获取语言标签
+  const getLanguageLabel = (lang: TranslationLanguage): string => {
+    const labels = {
+      'zh': '中文 (简体)',
+      'vi': 'Tiếng Việt',
+      'hide': ''
+    }
+    return labels[lang] || ''
+  }
+
+  const languageLabel = getLanguageLabel(translationLanguage)
+
   return (
     <div>
       {/* Translation display */}
       {sentence.translation && (
         <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          {/* First row: Show translation button */}
+          {/* First row: Language selector */}
           <div className="flex justify-end mb-3">
-            <button
-              onClick={() => setShowTranslation(!showTranslation)}
-              className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
-            >
-              {showTranslation ? "Hide Translation" : "Show Translation"}
-            </button>
+            <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
           </div>
 
           {/* Second row: Translation text */}
-          {showTranslation && (
+          {showTranslation && currentTranslation && (
             <p className="text-sm text-gray-600 italic">
-              {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
-              {typeof sentence.translation === 'string'
-                ? sentence.translation
-                : (sentence.translation?.['zh'] || '')}
+              <span className="font-medium text-gray-700">{languageLabel}:</span> {currentTranslation}
             </p>
           )}
         </div>

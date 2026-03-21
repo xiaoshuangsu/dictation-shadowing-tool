@@ -11,6 +11,56 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [23.0.0] - 2026-03-20
+
+### Added
+- **翻译 UI 交互重构** 🎨
+  - 新增组合翻译面板：语言选择器 + Translate 按钮合并为一个弹出面板
+  - 语言图标按钮：简洁的多语言图标触发器（移除文字标签）
+  - 二阶段操作：先选择语言，再点击 Translate 应用更改
+  - 面板点击外部自动关闭，提升用户体验
+
+- **翻译语言前缀显示** 🌐
+  - 中栏翻译文本显示语言前缀（如"中文 (简体): [翻译文本]"）
+  - 支持中文（简体）和越南语（Tiếng Việt）两种语言
+  - 自动读取数据库 `translation.zh` 和 `translation.vi` 字段
+
+- **右侧 Transcript 联动优化** 🔗
+  - 恢复独立的 Show/Hide 按钮
+  - 点击 Show 同时显示原文稿和翻译（使用中栏选择的语言）
+  - 翻译语言与中栏练习区域保持同步
+
+### Changed
+- **TranslationLanguageSelector 组件重构** ⚙️
+  - 移除"翻译设置"和"选择语言"标签，简化 UI
+  - 移除"隐藏"选项，改为独立的 Translate 按钮控制
+  - 优化面板尺寸（w-56），更紧凑
+  - 图标尺寸缩小（w-3.5 h-3.5），更精致
+
+### Fixed
+- **localStorage 持久化逻辑** 💾
+  - 新增 `translation-show-preference` 存储键，独立控制显示状态
+  - 解决刷新后翻译状态丢失问题
+  - 用户偏好设置跨素材保持
+
+### Technical
+- **新增文件**：
+  - `src/components/TranslationLanguageSelector.tsx` - 核心翻译选择器组件
+  - `docs/translation-ui-refactor.md` - 完整的重构文档
+
+- **修改文件**：
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 恢复 Show 按钮和联动逻辑
+  - `src/components/DictationBox.tsx` - 添加语言前缀显示
+  - `src/components/WordMode.tsx` - 添加语言前缀显示
+
+### UI/UX 改进
+- 面板样式：白色背景、灰色边框、圆角阴影
+- Translate 按钮：蓝色背景、白色文字、醒目突出
+- 语言标签：粗体显示，翻译文本斜体，层次分明
+- 点击外部自动关闭面板，符合用户习惯
+
+---
+
 ## [22.0.0] - 2026-03-20
 
 ### Added

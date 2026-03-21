@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
+import { TranslationLanguageSelector, type TranslationLanguage, getStoredLanguage } from "@/components/TranslationLanguageSelector"
 import type { Sentence } from "@/types"
 
 interface WordModeProps {
@@ -13,16 +14,36 @@ interface WordModeProps {
   isLastSentence?: boolean
   dictationMode?: "word" | "whole"
   onDictationModeChange?: (mode: "word" | "whole") => void
+  translationLanguage?: TranslationLanguage
+  showTranslation?: boolean
+  onTranslationLanguageChange?: (language: TranslationLanguage, showTranslation: boolean) => void
 }
 
-export default function WordMode({ sentence, onComplete, currentIndex, totalSentences, onNext, isLastSentence, dictationMode = "word", onDictationModeChange }: WordModeProps) {
+export default function WordMode({
+  sentence,
+  onComplete,
+  currentIndex,
+  totalSentences,
+  onNext,
+  isLastSentence,
+  dictationMode = "word",
+  onDictationModeChange,
+  translationLanguage: externalTranslationLanguage,
+  showTranslation: externalShowTranslation,
+  onTranslationLanguageChange
+}: WordModeProps) {
   const { playSuccessSound } = useSuccessSound() // 使用全局静音状态
   const [userInput, setUserInput] = useState("")
   const [showResult, setShowResult] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
   const [showWord, setShowWord] = useState(false)
-  const [showTranslation, setShowTranslation] = useState(false)  // 控制翻译显示状态
+  const [internalTranslationLanguage, setInternalTranslationLanguage] = useState<TranslationLanguage>(getStoredLanguage())
+  const [internalShowTranslation, setInternalShowTranslation] = useState(false)
   const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false)  // 模式下拉框状态
+
+  // 使用外部翻译语言状态（如果提供），否则使用内部状态
+  const translationLanguage = externalTranslationLanguage ?? internalTranslationLanguage
+  const showTranslation = externalShowTranslation ?? internalShowTranslation
 
   // V3.1 有效作答时间跟踪
   const [timingStarted, setTimingStarted] = useState(false)
@@ -189,7 +210,6 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     setShowResult(false)
     setIsCorrect(null)
     setShowWord(false)
-    setShowTranslation(false)  // 重置翻译显示状态
 
     // 重置计时状态
     setTimingStarted(false)
@@ -257,6 +277,40 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     }
   }
 
+  // 处理翻译语言变化
+  const handleLanguageChange = (language: TranslationLanguage, show: boolean) => {
+    setInternalTranslationLanguage(language)
+    setInternalShowTranslation(show)
+    onTranslationLanguageChange?.(language, show)
+  }
+
+  // 获取当前语言的翻译文本
+  const getCurrentTranslation = (): string => {
+    if (!sentence.translation) return ''
+
+    // 向后兼容：支持旧的 string 格式
+    if (typeof sentence.translation === 'string') {
+      return sentence.translation
+    }
+
+    // 新的 Translation JSONB 格式
+    return sentence.translation[translationLanguage] || ''
+  }
+
+  const currentTranslation = getCurrentTranslation()
+
+  // 获取语言标签
+  const getLanguageLabel = (lang: TranslationLanguage): string => {
+    const labels = {
+      'zh': '中文 (简体)',
+      'vi': 'Tiếng Việt',
+      'hide': ''
+    }
+    return labels[lang] || ''
+  }
+
+  const languageLabel = getLanguageLabel(translationLanguage)
+
   // Handle Enter key
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -271,15 +325,10 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
     <div>
       {/* Display Text with One Hidden Word */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-        {/* First row: Show translation button */}
+        {/* First row: Language selector */}
         {sentence.translation && (
           <div className="flex justify-end mb-3">
-            <button
-              onClick={() => setShowTranslation(!showTranslation)}
-              className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
-            >
-              {showTranslation ? "Hide Translation" : "Show Translation"}
-            </button>
+            <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
           </div>
         )}
 
@@ -307,13 +356,10 @@ export default function WordMode({ sentence, onComplete, currentIndex, totalSent
         </p>
 
         {/* 中文翻译显示 */}
-        {showTranslation && sentence.translation && (
+        {showTranslation && currentTranslation && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-sm text-gray-600 italic">
-              {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
-              {typeof sentence.translation === 'string'
-                ? sentence.translation
-                : (sentence.translation?.['zh'] || '')}
+              <span className="font-medium text-gray-700">{languageLabel}:</span> {currentTranslation}
             </p>
           </div>
         )}
