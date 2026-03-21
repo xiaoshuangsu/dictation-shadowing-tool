@@ -227,13 +227,17 @@ export default function MaterialsPage() {
                     {/* Card Grid - 显示前4个素材 */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {categoryMaterials.map((material, index) => {
+                        // 移动端只显示第一个卡片，桌面端显示所有卡片
+                        const isHiddenOnMobile = index > 0
                         const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
                         const imageLoaded = imageLoadedStates[material.id] || false
 
                         return (
                           <div
                             key={material.id}
-                            className="bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group"
+                            className={`bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group ${
+                              isHiddenOnMobile ? 'hidden sm:block' : ''
+                            }`}
                           >
                             {/* 缩略图 */}
                             <div className="w-full relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
