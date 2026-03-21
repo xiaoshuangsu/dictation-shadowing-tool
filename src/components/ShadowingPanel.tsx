@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
 import { intelligentMatch } from "@/lib/audio-checker"
+import { TranslationLanguageSelector, type TranslationLanguage } from "@/components/TranslationLanguageSelector"
 import type { Sentence, Translation } from "@/types"
 
 interface ShadowingPanelProps {
@@ -12,6 +13,9 @@ interface ShadowingPanelProps {
   onComplete?: (isCorrect: boolean, durationSeconds: number) => void
   onNext?: () => void
   isLastSentence?: boolean
+  translationLanguage?: TranslationLanguage
+  showTranslation?: boolean
+  onTranslationLanguageChange?: (language: TranslationLanguage, showTranslation: boolean) => void
 }
 
 // 单词对比结果类型
@@ -206,7 +210,17 @@ const generateLinkingIPA = (first: string, second: string): string => {
   return `/${firstSound}${secondSound}/`
 }
 
-export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComplete, onNext, isLastSentence }: ShadowingPanelProps) {
+export default function ShadowingPanel({
+  sentence,
+  audioSrc,
+  currentTime,
+  onComplete,
+  onNext,
+  isLastSentence,
+  translationLanguage: externalTranslationLanguage,
+  showTranslation: externalShowTranslation,
+  onTranslationLanguageChange
+}: ShadowingPanelProps) {
   const { playSuccessSound } = useSuccessSound() // 使用全局静音状态
   const [isRecording, setIsRecording] = useState(false)
   const [recognition, setRecognition] = useState<any>(null)
@@ -217,9 +231,52 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
   const [sentenceSimilarity, setSentenceSimilarity] = useState<number>(0)  // 句子相似度
   const [wordMatchRate, setWordMatchRate] = useState<number>(0)  // 单词匹配率
 
+  // 翻译语言状态管理
+  const [internalTranslationLanguage, setInternalTranslationLanguage] = useState<TranslationLanguage>('zh')
+  const [internalShowTranslation, setInternalShowTranslation] = useState(false)
+
+  // 使用外部翻译语言状态（如果提供），否则使用内部状态
+  const translationLanguage = externalTranslationLanguage ?? internalTranslationLanguage
+  const showTranslation = externalShowTranslation ?? internalShowTranslation
+
   // 显示控制模式
   type DisplayMode = 'full' | 'translation-only' | 'blind'
   const [displayMode, setDisplayMode] = useState<DisplayMode>('full')  // full: 显示原句+释义, translation-only: 只显示释义, blind: 完全隐藏
+
+  // 处理翻译语言变化
+  const handleLanguageChange = (language: TranslationLanguage, show: boolean) => {
+    setInternalTranslationLanguage(language)
+    setInternalShowTranslation(show)
+    onTranslationLanguageChange?.(language, show)
+  }
+
+  // 获取当前语言的翻译文本
+  const getCurrentTranslation = (): string => {
+    if (!sentence.translation) return ''
+
+    // 向后兼容：支持旧的 string 格式
+    if (typeof sentence.translation === 'string') {
+      return sentence.translation
+    }
+
+    // 新的 Translation JSONB 格式
+    return sentence.translation[translationLanguage] || ''
+  }
+
+  const currentTranslation = getCurrentTranslation()
+
+  // 获取语言标签
+  const getLanguageLabel = (lang: TranslationLanguage): string => {
+    const labels = {
+      'zh': '中文 (简体)',
+      'zh_hant': '中文 (繁體)',
+      'vi': 'Tiếng Việt',
+      'hide': ''
+    }
+    return labels[lang] || ''
+  }
+
+  const languageLabel = getLanguageLabel(translationLanguage)
 
   // 兜底时间跟踪：页面停留时间
   const [pageStartTime, setPageStartTime] = useState<number | null>(null)
@@ -1191,10 +1248,6 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
       {/* 原音播放器（已禁用 - 使用主页面的 AudioPlayer 避免冲突） */}
       {/* <audio ref={originalAudioRef} src={audioSrc} /> */}
 
-      <p className="text-sm text-gray-500 mb-4">
-        💡 Listen to the audio and speak along with it. Try to match the rhythm and intonation.
-      </p>
-
       {/* 显示模式切换按钮 */}
       <div className="mb-3 flex gap-2">
         <button
@@ -1234,24 +1287,23 @@ export default function ShadowingPanel({ sentence, audioSrc, currentTime, onComp
         {/* 原句 - 根据模式显示或隐藏 */}
         {displayMode !== 'translation-only' && displayMode !== 'blind' && (
           <>
-            <p className="text-sm text-gray-500 mb-2">Original:</p>
+            <div className="flex items-center justify-end mb-2">
+              {/* Translation Language Selector - 居右 */}
+              {sentence.translation && (
+                <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
+              )}
+            </div>
             <p className="text-base text-gray-800 leading-relaxed">
               {sentence.text}
             </p>
           </>
         )}
 
-        {/* 中文翻译 - 根据模式显示或隐藏 */}
-        {displayMode !== 'blind' && sentence.translation && (
+        {/* 多语言翻译 - 根据模式显示或隐藏，支持简/繁/越切换 */}
+        {displayMode !== 'blind' && sentence.translation && showTranslation && currentTranslation && (
           <>
-            <p className="text-sm text-gray-500 mb-2 mt-4">
-              Translation:
-            </p>
-            <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed`}>
-              {/* 向后兼容：支持旧的 string 格式和新的 Translation JSONB 格式 */}
-              {typeof sentence.translation === 'string'
-                ? sentence.translation
-                : (sentence.translation?.['zh'] || '')}
+            <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed mt-4`}>
+              {currentTranslation}
             </p>
           </>
         )}

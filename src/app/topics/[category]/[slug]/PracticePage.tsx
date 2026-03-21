@@ -874,6 +874,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     onNext={handleNext}
                     onComplete={handleShadowingComplete}
                     isLastSentence={isLastSentence}
+                    translationLanguage={translationLanguage}
+                    showTranslation={showTranslation}
+                    onTranslationLanguageChange={(lang, show) => {
+                      setTranslationLanguage(lang)
+                      setShowTranslation(show)
+                    }}
                   />
                 )
               })()}

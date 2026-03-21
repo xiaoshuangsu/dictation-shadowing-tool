@@ -11,6 +11,42 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [24.1.0] - 2026-03-21
+
+### Added
+- **Shadowing 模式多语言翻译支持** 🌐
+  - 同步 Dictation 模式的多语言翻译切换功能到 Shadowing 模式
+  - 支持简体中文、繁体中文、越南语三种翻译语言
+  - 新增翻译语言选择器，位于参考文本区域右上角
+  - 翻译文本根据选择的语言动态更新
+
+- **状态同步机制** 🔗
+  - 两个模式使用同一个 localStorage 键值存储语言偏好
+  - 从 Dictation 切换到 Shadowing 时，语言选择自动同步
+  - 右侧 Transcript 列表翻译文本与中栏翻译状态同步
+
+- **UI 优化** 🎨
+  - 移除 "Original:" 和翻译语言标签，界面更简洁
+  - 翻译按钮居右显示，与原文本对齐
+  - 移除提示文字，减少视觉干扰
+
+### Changed
+- **ShadowingPanel 组件**：
+  - 新增 `translationLanguage`, `showTranslation`, `onTranslationLanguageChange` props
+  - 添加内部翻译状态管理（兼容无外部 props 情况）
+  - 集成 `TranslationLanguageSelector` 组件
+
+- **PracticePage 组件**：
+  - 将翻译状态传递给 ShadowingPanel 组件
+  - 统一管理 Dictation 和 Shadowing 两个模式的翻译状态
+
+### Technical
+- **修改文件**：
+  - `src/components/ShadowingPanel.tsx` - 添加多语言翻译支持
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 状态管理同步
+
+---
+
 ## [24.0.0] - 2026-03-20
 
 ### Changed
