@@ -12,6 +12,7 @@
 3. [移动端视频播放问题](#3-移动端视频播放问题)
 4. [模式切换进度丢失](#4-模式切换进度丢失)
 5. [深度链接跳转逻辑](#5-深度链接跳转逻辑)
+6. [连字符词分词问题](#6-连字符词分词问题)
 
 ---
 
@@ -193,6 +194,77 @@ useEffect(() => {
 
 ---
 
+## 6. 连字符词分词问题
+
+### 症状
+- 连字符单词（如 `self-esteem`、`well-known`、`mother-in-law`）被错误拆分
+- 前端单词块显示时，`self-esteem` 被拆成 `self` 和 `-esteem` 两个独立块
+- 后端分词脚本也可能出现类似问题
+
+### 根本原因
+1. **前端分词逻辑缺陷**
+   - 使用 `sentence.text.split(" ")` 只按空格分割
+   - 或使用 `split(/\s+/)` 按空白字符分割
+   - 连字符 `-` 被视为单词边界，导致 `self-esteem` 被拆分
+
+2. **正则表达式不完整**
+   - 原正则 `/[a-zA-Z]+/g` 不包含连字符
+   - 导致连字符被排除在单词匹配之外
+
+### 解决方案
+
+**核心原则**：使用 `/[a-zA-Z0-9-]+/g` 正则匹配，将连字符视为单词的一部分
+
+**前端修复**：
+
+1. **DictationBox.tsx**（Sentence 模式单词块显示）
+```typescript
+// 修改前：
+const sentenceWords = sentence.text.split(" ")
+
+// 修改后：
+const words = sentence.text.match(/[a-zA-Z0-9-]+/g)
+const sentenceWords = words || []
+```
+
+2. **WordMode.tsx**（Word 模式单词块显示）
+```typescript
+// 修改前：
+const sentenceWords = sentence.text
+  .trim()
+  .split(/\s+/)
+  .filter(w => w.length > 0)
+
+// 修改后：
+const words = sentence.text.match(/[a-zA-Z0-9-]+/g)
+const sentenceWords = words || []
+```
+
+**后端脚本修复**：
+
+在素材导入脚本中，确保使用相同的正则表达式：
+
+```python
+import re
+
+# 推荐的分词方式
+words = re.findall(r"[a-zA-Z0-9-]+", sentence_text)
+```
+
+### 测试用例
+- `self-esteem` → 1 个单词块 ✓
+- `well-known` → 1 个单词块 ✓
+- `mother-in-law` → 1 个单词块 ✓
+- `co-worker` → 1 个单词块 ✓
+- `twenty-one` → 1 个单词块 ✓
+
+### 相关文件
+- 前端：`src/components/DictationBox.tsx`
+- 前端：`src/components/WordMode.tsx`
+- 后端脚本：按需在素材导入脚本中应用
+
+---
+
 ## 🎯 快速排查清单
 
 遇到问题时，按以下顺序排查：
@@ -216,7 +288,12 @@ useEffect(() => {
    - [ ] 路径是否为相对路径
    - [ ] 是否通过 `getCdnUrl()` 处理
 
+5. **检查分词逻辑**
+   - [ ] 前端是否使用 `/[a-zA-Z0-9-]+/g` 正则匹配
+   - [ ] 连字符词是否被正确识别为一个单词
+   - [ ] 后端脚本是否使用相同的分词逻辑
+
 ---
 
-**版本**：V19.9
-**更新日期**：2026-03-18
+**版本**：V20.1
+**更新日期**：2026-03-21
