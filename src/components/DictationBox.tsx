@@ -369,13 +369,13 @@ export default function DictationBox({
     <div>
       {/* Translation display */}
       {sentence.translation && (
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-          {/* First row: Language selector */}
-          <div className="flex justify-end mb-3">
+        <div className="relative mb-4 p-4 bg-gray-50 rounded-lg">
+          {/* Language selector - 绝对定位在右上角 */}
+          <div className="absolute top-2 right-2">
             <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
           </div>
 
-          {/* Second row: Translation text */}
+          {/* Translation text */}
           {showTranslation && currentTranslation && (
             <p className="text-sm text-gray-600 italic">
               <span className="font-medium text-gray-700">{languageLabel}:</span> {currentTranslation}

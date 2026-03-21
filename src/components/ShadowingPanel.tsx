@@ -1283,29 +1283,26 @@ export default function ShadowingPanel({
       </div>
 
       {/* 参考文本 */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-4">
+      <div className="relative bg-gray-50 rounded-lg p-4 mb-4">
+        {/* Translation Language Selector - 绝对定位在右上角 */}
+        {sentence.translation && (
+          <div className="absolute top-2 right-2">
+            <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
+          </div>
+        )}
+
         {/* 原句 - 根据模式显示或隐藏 */}
         {displayMode !== 'translation-only' && displayMode !== 'blind' && (
-          <>
-            <div className="flex items-center justify-end mb-2">
-              {/* Translation Language Selector - 居右 */}
-              {sentence.translation && (
-                <TranslationLanguageSelector onLanguageChange={handleLanguageChange} />
-              )}
-            </div>
-            <p className="text-base text-gray-800 leading-relaxed">
-              {sentence.text}
-            </p>
-          </>
+          <p className="text-base text-gray-800 leading-relaxed">
+            {sentence.text}
+          </p>
         )}
 
         {/* 多语言翻译 - 根据模式显示或隐藏，支持简/繁/越切换 */}
         {displayMode !== 'blind' && sentence.translation && showTranslation && currentTranslation && (
-          <>
-            <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed mt-4`}>
-              {currentTranslation}
-            </p>
-          </>
+          <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed mt-4`}>
+            {currentTranslation}
+          </p>
         )}
 
         {/* 盲模式提示 */}

@@ -11,6 +11,23 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [24.2.0] - 2026-03-21
+
+### Changed
+- **多语言翻译按钮布局优化** 🎨
+  - 改为绝对定位（Absolute Positioning），固定在练习卡片右上角
+  - 移除冗余容器间距，正文内容贴近卡片顶部
+  - 压缩按钮尺寸（padding: 1.5 → 1，图标: 3.5 → 3），更精致
+  - Dictation 和 Shadowing 两个模式同步生效
+
+### Technical
+- **修改文件**：
+  - `src/components/TranslationLanguageSelector.tsx` - 压缩按钮尺寸
+  - `src/components/DictationBox.tsx` - 绝对定位布局
+  - `src/components/ShadowingPanel.tsx` - 绝对定位布局
+
+---
+
 ## [24.1.0] - 2026-03-21
 
 ### Added
