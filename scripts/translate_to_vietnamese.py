@@ -212,6 +212,24 @@ d) 🏠 Đời sống (Dialogue):
 e) 💪 Truyền cảm hứng (Motivational):
    - Văn chương, ngắn gọn, từ ngữ đặc thù
 
+f) 🏛️ Văn hóa & Lịch sử (Culture & History):
+   - ❌ KHÔNG dùng từ lóng, ngữ diễn suồng sã
+   - ❌ KHÔNG dùng từ cảm xúc: "đấy", "à mà", "nhỉ", "thế", "thì"
+   - ✅ Văn phong chính thức, khách quan, kể chuyện
+   - ✅ Từ ngữ trang trọng, rõ ràng
+   - ✅ Thuật ngữ lịch sử/văn hóa chính xác:
+     * warriors → "chiến binh", "lính chiến" (CHUẨN)
+     * raids → "đột kích", "tấn công" (CHUẨN)
+     * Scandinavia → "Scandinavia" (giữ nguyên)
+     * provinces → "tỉnh", "bang" (tùy theo quốc gia)
+     * territories → "lãnh thổ"
+   - ✅ Phong cách:叙述性, chính xác, khách quan
+   - ✅ Ví dụ:
+     * EN: "The Vikings were known and feared throughout Europe."
+       VI: "Người Viking được biết đến và được sợ hãi khắp châu Âu." (❌ "Viking bị sợ ở Châu Âu đấy")
+     * EN: "They made their living by farming and fishing."
+       VI: "Họ kiếm sống bằng nông nghiệp và đánh cá." (✅ trang trọng)
+
 【Định dạng输出】:
 ⚠️ Phải返回格式: {"translations": ["[Line 1] dịch 1", "[Line 2] dịch 2", ...]}
 ⚠️ Mỗi dịch phải保留 [Line N] tiền tố
@@ -318,7 +336,25 @@ Nội dung phụ đề (có索引 [Line N]):
 """
 
         # 根据分类添加特殊要求
-        if category == "motivational" or "Motivational" in category or "心灵故事" in category:
+        if category == "culture_history" or "文化历史" in category:
+            user_content += """
+🏛️ 文明历史类素材特殊要求 (Culture & History):
+- ❌ KHÔNG dùng từ lóng, ngữ diễn suồng sã
+- ❌ KHÔNG dùng từ cảm xúc: "đấy", "à mà", "nhỉ", "thế", "thì"
+- ✅ Văn phong chính thức, khách quan, kể chuyện
+- ✅ Từ ngữ trang trọng, rõ ràng
+- ✅ Thuật ngữ lịch sử/văn hóa chính xác:
+  * warriors → "chiến binh", "lính chiến"
+  * raids → "đột kích", "tấn công"
+  * Scandinavia → "Scandinavia" (giữ nguyên)
+  * provinces → "tỉnh", "bang" (tùy theo quốc gia)
+  * territories → "lãnh thổ"
+- ✅ Phong cách:叙述性, chính xác, khách quan
+- ✅ Ví dụ:
+  * "The Vikings were known and feared throughout Europe." → "Người Viking được biết đến và được sợ hãi khắp châu Âu."
+  * "They made their living by farming and fishing." → "Họ kiếm sống bằng nông nghiệp và đánh cá."
+"""
+        elif category == "motivational" or "Motivational" in category or "心灵故事" in category:
             user_content += """
 💪 励志哲学类素材特殊要求 (Motivational/Philosophical):
 - ❌ KHÔNG dùng văn phong đời thường, suồng sã
