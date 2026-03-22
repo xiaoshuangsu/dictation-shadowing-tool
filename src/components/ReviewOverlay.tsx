@@ -246,38 +246,41 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
           >
             {/* 🔴 正面：Question Face */}
             <div
-              className={`absolute w-full h-full bg-white rounded-2xl p-6 flex flex-col transition-shadow duration-300 ${
+              className={`absolute w-full h-full bg-white rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-300 ${
                 isCorrect ? 'shadow-[0_0_30px_rgba(34,197,94,0.5)]' : 'shadow-2xl'
               }`}
               style={{ backfaceVisibility: 'hidden' }}
             >
-              {/* 词性 - 置顶显示 */}
-              {currentWord.pos && (
-                <div className="text-center mb-2">
-                  <span className="text-xs text-gray-400 uppercase tracking-wide">
-                    {currentWord.pos}
-                  </span>
-                </div>
-              )}
+              {/* 顶部区域：词性 + 释义 */}
+              <div>
+                {/* 词性 - 置顶显示 */}
+                {currentWord.pos && (
+                  <div className="text-center mb-3">
+                    <span className="text-xs text-gray-400 uppercase tracking-wide">
+                      {currentWord.pos}
+                    </span>
+                  </div>
+                )}
 
-              {/* 释义区域：中文翻译（主）+ 英文定义（辅）- 增加留白 */}
-              <div className="mb-6">
-                {/* 中文翻译 - 主要提示 */}
-                {chineseDefinition && (
-                  <p className="text-4xl font-bold text-gray-900 text-center mb-2">
-                    {chineseDefinition}
-                  </p>
-                )}
-                {/* 英文定义 - 辅助参考 */}
-                {englishDefinition && (
-                  <p className="text-base text-gray-400 text-center">
-                    {englishDefinition}
-                  </p>
-                )}
+                {/* 释义区域：中文翻译（主）+ 英文定义（辅） */}
+                <div className="text-center">
+                  {/* 中文翻译 - 主要提示 */}
+                  {chineseDefinition && (
+                    <p className="text-[22px] font-bold text-gray-900 text-center mb-2">
+                      {chineseDefinition}
+                    </p>
+                  )}
+                  {/* 英文定义 - 辅助参考 */}
+                  {englishDefinition && (
+                    <p className="text-base text-gray-400 text-center">
+                      {englishDefinition}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              {/* 填空句 - 美化挖空区域 - 淡蓝色背景 */}
-              <div className="bg-blue-50/50 rounded-xl p-6 mb-6 border border-blue-100/50">
+              {/* 中间区域：例句块（正中心） */}
+              <div className="bg-blue-50/50 rounded-xl p-6 border border-blue-100/50 my-4">
                 <p
                   className="text-base text-gray-700 leading-relaxed text-center"
                   dangerouslySetInnerHTML={{
@@ -286,7 +289,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 />
               </div>
 
-              {/* 音标 + US/UK 喇叭 - 整齐横排，用竖线分隔 */}
+              {/* 例句块下方：音标 + 发音按钮 */}
               <div className="flex items-center justify-center gap-3 mb-4">
                 {/* 音标 */}
                 {currentWord.phonetic && (
@@ -330,8 +333,8 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 )}
               </div>
 
-              {/* 输入框 */}
-              <div className="mt-auto space-y-3">
+              {/* 底部区域：输入框 */}
+              <div className="space-y-3">
                 <input
                   ref={inputRef}
                   type="text"
