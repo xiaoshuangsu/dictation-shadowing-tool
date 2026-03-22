@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
+import ReviewOverlay from '@/components/ReviewOverlay'  // 🔴 新增
 
 interface UserWord {
   id: string
@@ -49,6 +50,7 @@ export default function VocabularyPage() {
   const [currentLanguage, setCurrentLanguage] = useState<keyof Definition>('zh-CN')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [materialInfoMap, setMaterialInfoMap] = useState<Record<string, { category: string; slug: string }>>({})
+  const [trainingMode, setTrainingMode] = useState(false)  // 🔴 新增：训练模式状态
 
   // 获取生词列表
   const fetchWords = async () => {
@@ -242,12 +244,23 @@ export default function VocabularyPage() {
                 {words.length} words total
               </p>
             </div>
-            <Link
-              href="/"
-              className="text-blue-600 hover:text-blue-700"
-            >
-              Back to Practice
-            </Link>
+            <div className="flex items-center gap-4">
+              {/* 🔴 新增：开始训练按钮 */}
+              {words.length > 0 && (
+                <button
+                  onClick={() => setTrainingMode(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  Start Training
+                </button>
+              )}
+              <Link
+                href="/"
+                className="text-blue-600 hover:text-blue-700"
+              >
+                Back to Practice
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -390,6 +403,21 @@ export default function VocabularyPage() {
           </div>
         )}
       </div>
+
+      {/* 🔴 新增：训练遮罩层 */}
+      {trainingMode && (
+        <ReviewOverlay
+          words={words.map(w => ({
+            word: w.word,
+            phonetic: w.phonetic || '',
+            definition: parseDefinition(w.definition)['en'] || '',
+            context_sentence: w.context_sentence || '',
+            audio_url_us: undefined,  // 暂不处理音频
+            audio_url_uk: undefined
+          }))}
+          onClose={() => setTrainingMode(false)}
+        />
+      )}
     </div>
   )
 }
