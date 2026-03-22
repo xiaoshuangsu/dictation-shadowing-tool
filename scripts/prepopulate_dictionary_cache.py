@@ -111,6 +111,52 @@ def extract_words_from_transcripts() -> Dict[str, int]:
     return dict(word_counter)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# 音频获取
+# ══════════════════════════════════════════════════════════════════════════════
+
+def fetch_word_audio_urls(word: str) -> Dict[str, str]:
+    """从 dictionaryapi.dev 获取单词音频 URL"""
+    audio_urls = {'us': None, 'uk': None}
+
+    try:
+        response = requests.get(
+            f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}",
+            timeout=10
+        )
+
+        if response.ok:
+            data = response.json()
+            phonetics = data[0]?.phonetics or []
+
+            # 查找美音和英音
+            for phonetic in phonetics:
+                if phonetic.get('audio') and phonetic['audio'].endswith('.mp3'):
+                    audio_url = phonetic['audio']
+                    # 判断是美音还是英音
+                    if not audio_urls['us'] and (phonetic.get('text', '').__contains__('US') or '-us' in audio_url):
+                        audio_urls['us'] = audio_url
+                    elif not audio_urls['uk'] and (phonetic.get('text', '').__contains__('UK') or '-uk' in audio_url):
+                        audio_urls['uk'] = audio_url
+
+            # 如果只找到一个，且没有明确标记，默认为美音
+            if not audio_urls['us'] and not audio_urls['uk'] and phonetics:
+                first_audio = next((p.get('audio') for p in phonetics if p.get('audio')), None)
+                if first_audio:
+                    audio_urls['us'] = first_audio
+    except Exception as e:
+        print(f"  ⚠️  获取音频失败: {e}")
+
+    # 兜底：使用 Google TTS
+    google_tts = lambda lang: f"https://translate.google.com/translate_tts?ie=UTF-8&q={word}&tl={lang}&client=tw-ob"
+
+    if not audio_urls['us']:
+        audio_urls['us'] = google_tts('en-us')
+    if not audio_urls['uk']:
+        audio_urls['uk'] = google_tts('en-GB')
+
+    return audio_urls
+
+# ══════════════════════════════════════════════════════════════════════════════
 # GLM API 调用
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -196,7 +242,7 @@ def fetch_word_definition_from_glm(word: str) -> Dict:
         print(f"  ⚠️  调用 GLM API 失败: {e}")
         return None
 
-def save_word_to_cache(word_data: Dict) -> bool:
+def save_word_to_cache(word_data: Dict, audio_urls: Dict[str, str] = None) -> bool:
     """将单词释义保存到缓存表"""
     try:
         word = word_data.get('word', '').lower().strip()
@@ -207,12 +253,23 @@ def save_word_to_cache(word_data: Dict) -> bool:
             'en': word_data.get('en', '')
         }
 
-        supabase.table('dictionary_cache').upsert({
+        # 准备数据
+        cache_data = {
             'word': word,
             'phonetic': word_data.get('phonetic', ''),
             'definition_json': definition_json,
             'example': word_data.get('example')
-        }, on_conflict='word').execute()
+        }
+
+        # 添加音频 URL（如果有）
+        if audio_urls:
+            cache_data['audio_url_us'] = audio_urls.get('us')
+            cache_data['audio_url_uk'] = audio_urls.get('uk')
+
+        supabase.table('dictionary_cache').upsert(
+            cache_data,
+            on_conflict='word'
+        ).execute()
 
         return True
 
@@ -294,8 +351,11 @@ def main():
             time.sleep(1)  # API 失败后等待
             continue
 
+        # 🔴 获取音频 URL
+        audio_urls = fetch_word_audio_urls(word_data['word'])
+
         # 保存到缓存
-        if save_word_to_cache(word_data):
+        if save_word_to_cache(word_data, audio_urls):
             print("✅ 成功")
             success_count += 1
         else:

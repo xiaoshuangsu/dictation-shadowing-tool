@@ -6,13 +6,15 @@
  * - 提供"学习"按钮保存到生词本
  * - 自动同步中栏全局翻译语言设置（实时联动）
  * - 精简 UI：单词音标、释义+英文对照、例句、按钮
+ * - 单词发音：美音/英音播放，预加载确保秒播
  */
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
+import { Volume2 } from 'lucide-react'
 
 export interface WordDefinition {
   word: string
@@ -64,6 +66,101 @@ export default function WordTooltip({
   const [saved, setSaved] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [currentLanguage, setCurrentLanguage] = useState<keyof WordDefinition['definitions']>('zh-CN')
+
+  // 🔴 音频相关状态
+  const [audioUrls, setAudioUrls] = useState<{ us: string | null; uk: string | null }>({ us: null, uk: null })
+  const [loadingAudio, setLoadingAudio] = useState(false)
+  const usAudioRef = useRef<HTMLAudioElement | null>(null)
+  const ukAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  // 🔴 预加载音频：当 Tooltip 弹出且单词定义加载完成时
+  useEffect(() => {
+    const fetchAudioUrls = async () => {
+      if (!definition || loadingAudio) return
+
+      setLoadingAudio(true)
+      try {
+        // 优先从 dictionaryapi.dev 获取
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${definition.word}`)
+        if (response.ok) {
+          const data = await response.json()
+          const phonetics = data[0]?.phonetics || []
+
+          let usAudio: string | null = null
+          let ukAudio: string | null = null
+
+          // 查找美音和英音
+          for (const phonetic of phonetics) {
+            if (phonetic.audio && phonetic.audio.endsWith('.mp3')) {
+              const audioUrl = phonetic.audio
+              // 判断是美音还是英音
+              if (!usAudio && (phonetic.text?.includes('US') || audioUrl.includes('-us'))) {
+                usAudio = audioUrl
+              } else if (!ukAudio && (phonetic.text?.includes('UK') || audioUrl.includes('-uk'))) {
+                ukAudio = audioUrl
+              }
+            }
+          }
+
+          // 如果只找到一个，且没有明确标记，默认为美音
+          if (!usAudio && !ukAudio && phonetics.length > 0) {
+            const firstAudio = phonetics.find(p => p.audio)?.audio
+            if (firstAudio) {
+              usAudio = firstAudio
+            }
+          }
+
+          // 兜底：使用 Google TTS
+          const googleTTs = (lang: string) =>
+            `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(definition.word)}&tl=${lang}&client=tw-ob`
+
+          setAudioUrls({
+            us: usAudio || googleTTs('en-us'),
+            uk: ukAudio || googleTTs('en-GB')
+          })
+        } else {
+          throw new Error('API request failed')
+        }
+      } catch (error) {
+        console.log('Dictionary API 失败，使用 Google TTS 兜底')
+        // 使用 Google TTS 作为兜底
+        const googleTTs = (lang: string) =>
+          `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(definition.word)}&tl=${lang}&client=tw-ob`
+
+        setAudioUrls({
+          us: googleTTs('en-us'),
+          uk: googleTTs('en-GB')
+        })
+      } finally {
+        setLoadingAudio(false)
+      }
+    }
+
+    fetchAudioUrls()
+  }, [definition])
+
+  // 🔴 预加载音频文件到内存
+  useEffect(() => {
+    if (audioUrls.us && !usAudioRef.current) {
+      const audio = new Audio(audioUrls.us)
+      audio.load()
+      usAudioRef.current = audio
+    }
+    if (audioUrls.uk && !ukAudioRef.current) {
+      const audio = new Audio(audioUrls.uk)
+      audio.load()
+      ukAudioRef.current = audio
+    }
+  }, [audioUrls])
+
+  // 🔴 播放音频
+  const playAudio = (variant: 'us' | 'uk') => {
+    const audioRef = variant === 'us' ? usAudioRef : ukAudioRef
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch(err => console.error('播放失败:', err))
+    }
+  }
 
   // 实时同步全局翻译语言设置
   useEffect(() => {
@@ -216,14 +313,39 @@ export default function WordTooltip({
       {/* 内容区域 */}
       {!loading && definition && (
         <div className="space-y-4">
-          {/* 第一行：单词 + 音标 */}
+          {/* 第一行：单词 + 音标 + 发音按钮 */}
           <div>
-            <h3 className="text-2xl font-bold text-gray-900">
-              {definition.word}
-            </h3>
-            {definition.phonetic && (
-              <p className="text-sm text-gray-500 mt-1">{definition.phonetic}</p>
-            )}
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  {definition.word}
+                </h3>
+                {definition.phonetic && (
+                  <p className="text-sm text-gray-500 mt-1">{definition.phonetic}</p>
+                )}
+              </div>
+              {/* 🔴 发音按钮 */}
+              <div className="flex gap-1 ml-2">
+                <button
+                  onClick={() => playAudio('us')}
+                  disabled={!audioUrls.us || loadingAudio}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="美音"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span className="font-medium">US</span>
+                </button>
+                <button
+                  onClick={() => playAudio('uk')}
+                  disabled={!audioUrls.uk || loadingAudio}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-purple-600 hover:bg-purple-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="英音"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span className="font-medium">UK</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* 第二行：当前语言释义（大字）+ 英文对照 */}
