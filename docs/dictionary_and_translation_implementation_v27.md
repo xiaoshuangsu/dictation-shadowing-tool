@@ -581,6 +581,34 @@ setAudioUrls({
 
 ---
 
+### 问题 5: 点击加入生词本按钮触发句子播放
+
+**症状**: 点击 Tooltip 中的"加入生词本"按钮时，触发了当前句子的播放。
+
+**原因**: 事件冒泡 (Event Bubbling)。点击按钮的事件传播到了父元素。
+
+**解决方案**:
+```typescript
+// src/components/WordTooltip.tsx
+
+// 修改前
+const handleSaveWord = async () => { ... }
+<button onClick={handleSaveWord}>
+
+// 修改后
+const handleSaveWord = async (event?: React.MouseEvent) => {
+  if (event) {
+    event.stopPropagation()  // 阻止事件冒泡
+  }
+  ...
+}
+<button onClick={(e) => handleSaveWord(e)}>
+```
+
+**修复版本**: V27.0.7
+
+---
+
 ## 🚀 部署检查清单
 
 - [ ] 所有数据库迁移已执行
