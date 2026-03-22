@@ -33,6 +33,10 @@ interface UserWord {
   audio_url: string | null
   mastery_status: 'learning' | 'familiar' | 'mastered'
   created_at: string
+  dictionary_cache?: {
+    audio_url_us: string | null
+    audio_url_uk: string | null
+  }
 }
 
 interface Definition {
@@ -71,6 +75,14 @@ export default function VocabularyPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // 🔴 播放单词发音
+  const playAudio = (audioUrl: string) => {
+    const audio = new Audio(audioUrl)
+    audio.play().catch(error => {
+      console.error('播放音频失败:', error)
+    })
   }
 
   // 删除生词
@@ -345,7 +357,32 @@ export default function VocabularyPage() {
                       </button>
                     </div>
                     {userWord.phonetic && (
-                      <p className="text-sm text-gray-500 mt-1">{userWord.phonetic}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-gray-500">{userWord.phonetic}</p>
+                        {/* 🔴 新增：US/UK 发音按钮 */}
+                        {userWord.dictionary_cache?.audio_url_us && (
+                          <button
+                            onClick={() => playAudio(userWord.dictionary_cache!.audio_url_us!)}
+                            className="text-blue-600 hover:text-blue-700 transition-colors"
+                            title="US pronunciation (美音)"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                            </svg>
+                          </button>
+                        )}
+                        {userWord.dictionary_cache?.audio_url_uk && (
+                          <button
+                            onClick={() => playAudio(userWord.dictionary_cache!.audio_url_uk!)}
+                            className="text-purple-600 hover:text-purple-700 transition-colors"
+                            title="UK pronunciation (英音)"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 

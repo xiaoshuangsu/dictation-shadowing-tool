@@ -58,10 +58,16 @@ export async function GET(request: Request) {
     // 🔴 使用函数调用获取客户端
     const supabase = getSupabaseClient()
 
-    // 构建查询
+    // 构建查询：关联 dictionary_cache 获取音频 URL
     let query = supabase
       .from('user_words')
-      .select('*')
+      .select(`
+        *,
+        dictionary_cache (
+          audio_url_us,
+          audio_url_uk
+        )
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
