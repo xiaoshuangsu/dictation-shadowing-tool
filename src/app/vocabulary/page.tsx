@@ -453,10 +453,10 @@ export default function VocabularyPage() {
           words={words.map(w => ({
             word: w.word,
             phonetic: w.phonetic || '',
-            definition: parseDefinition(w.definition)['en'] || '',
+            definition: w.definition,  // 传递完整的 JSON 字符串
             context_sentence: w.context_sentence || '',
-            audio_url_us: undefined,  // 暂不处理音频
-            audio_url_uk: undefined
+            audio_url_us: w.dictionary_cache?.audio_url_us || undefined,
+            audio_url_uk: w.dictionary_cache?.audio_url_uk || undefined
           }))}
           onClose={() => setTrainingMode(false)}
         />

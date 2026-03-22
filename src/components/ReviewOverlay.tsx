@@ -8,9 +8,16 @@
  * - 3D 翻转动画展示答案
  * - 支持切换到下一个单词
  *
+ * 训练模式逻辑（挖空拼写）：
+ * - 正面：隐藏单词标题，显示填空句（目标词替换为____）
+ * - 正面：音标 + US/UK 喇叭辅助拼写
+ * - 正面：自动聚焦输入框，用户拼写
+ * - 背面：显示单词标题，完整原句（高亮目标词）
+ *
  * 修复：
  * - 修复答案泄露问题（Cloze 打码）
  * - 在背面显示完整原句
+ * - 正面添加音标和发音按钮
  */
 
 'use client'
@@ -58,7 +65,8 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
 
   // 解析当前单词的释义
   const definition = parseDefinition(currentWord.definition)
-  const displayDefinition = definition['en'] || definition['zh-CN'] || 'No definition'
+  const chineseDefinition = definition['zh-CN'] || ''
+  const englishDefinition = definition['en'] || ''
 
   // 🔴 自动聚焦输入框
   useEffect(() => {
@@ -129,6 +137,26 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
     return processed
   }
 
+  // 🔴 创建高亮原句（背面显示，高亮目标词）
+  const createHighlightSentence = (sentence: string, word: string) => {
+    const lowerWord = word.toLowerCase().trim()
+
+    // 首先尝试精确匹配
+    let processed = sentence.replace(new RegExp(`\\b${word}\\b`, 'gi'), (match) => {
+      return `<span class="font-bold text-yellow-300 bg-yellow-500/30 px-1 rounded">${match}</span>`
+    })
+
+    // 如果没有替换，尝试匹配单词的任何变形
+    if (!processed.includes('<span')) {
+      const pattern = new RegExp(`\\b\\w*${lowerWord}\\w*\\b`, 'gi')
+      processed = sentence.replace(pattern, (match) => {
+        return `<span class="font-bold text-yellow-300 bg-yellow-500/30 px-1 rounded">${match}</span>`
+      })
+    }
+
+    return processed
+  }
+
   // 🔴 播放音频
   const playAudio = (variant: 'us' | 'uk') => {
     const audioUrl = variant === 'us' ? currentWord.audio_url_us : currentWord.audio_url_uk
@@ -176,15 +204,24 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
               className="absolute w-full h-full bg-white rounded-2xl shadow-2xl p-8 flex flex-col"
               style={{ backfaceVisibility: 'hidden' }}
             >
-              {/* 释义 */}
-              <div className="flex-1 flex items-center justify-center mb-8">
-                <p className="text-4xl font-bold text-gray-900 text-center">
-                  {displayDefinition}
-                </p>
+              {/* 释义区域：中文翻译（主）+ 英文定义（辅） */}
+              <div className="flex-1 flex flex-col items-center justify-center mb-6">
+                {/* 中文翻译 - 主要提示 */}
+                {chineseDefinition && (
+                  <p className="text-3xl font-bold text-gray-900 text-center mb-3">
+                    {chineseDefinition}
+                  </p>
+                )}
+                {/* 英文定义 - 辅助参考 */}
+                {englishDefinition && (
+                  <p className="text-lg text-gray-500 text-center">
+                    {englishDefinition}
+                  </p>
+                )}
               </div>
 
-              {/* 填空句 - 🔴 修复答案泄露 */}
-              <div className="bg-gray-50 rounded-lg p-6 mb-8 border-l-4 border-blue-500">
+              {/* 填空句 - 挖空目标词 */}
+              <div className="bg-gray-50 rounded-lg p-6 mb-6 border-l-4 border-blue-500">
                 <p
                   className="text-lg text-gray-700 leading-relaxed"
                   dangerouslySetInnerHTML={{
@@ -193,8 +230,39 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 />
               </div>
 
-              {/* 输入框 */}
+              {/* 音标 + US/UK 喇叭 + 输入框 */}
               <div className="space-y-4">
+                {/* 音标和发音按钮 */}
+                {currentWord.phonetic && (
+                  <div className="flex items-center justify-center gap-4">
+                    {/* 音标 */}
+                    <p className="text-lg text-gray-600">{currentWord.phonetic}</p>
+
+                    {/* US/UK 发音按钮 */}
+                    {currentWord.audio_url_us && (
+                      <button
+                        onClick={() => playAudio('us')}
+                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors text-sm font-medium"
+                        title="US pronunciation (美音)"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        <span>US</span>
+                      </button>
+                    )}
+                    {currentWord.audio_url_uk && (
+                      <button
+                        onClick={() => playAudio('uk')}
+                        className="flex items-center gap-1 text-purple-600 hover:text-purple-700 transition-colors text-sm font-medium"
+                        title="UK pronunciation (英音)"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        <span>UK</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* 输入框 */}
                 <input
                   ref={inputRef}
                   type="text"
@@ -217,7 +285,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 {!flipped && userInput.length > 0 && (
                   <p className="text-center text-sm">
                     {isCorrect === true ? (
-                      <span className="text-green-600 font-semibold">✓ Correct! Press Enter or wait...</span>
+                      <span className="text-green-600 font-semibold">✓ Correct! Flipping...</span>
                     ) : isCorrect === false ? (
                       <span className="text-red-600">Keep trying...</span>
                     ) : null}
@@ -234,20 +302,23 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 transform: 'rotateY(180deg)'
               }}
             >
-              {/* 单词和音标 */}
-              <div className="flex-1 flex flex-col items-center justify-center mb-8">
+              {/* 单词标题 */}
+              <div className="flex-1 flex flex-col items-center justify-center mb-6">
                 <h2 className="text-5xl font-bold mb-4">{currentWord.word}</h2>
                 {currentWord.phonetic && (
                   <p className="text-xl text-blue-100">{currentWord.phonetic}</p>
                 )}
               </div>
 
-              {/* 🔴 完整原句（仅在背面显示） */}
+              {/* 🔴 完整原句（高亮目标词） */}
               {currentWord.context_sentence && (
                 <div className="bg-white/10 rounded-lg p-4 mb-8 backdrop-blur-sm">
-                  <p className="text-sm text-white/90 text-center leading-relaxed">
-                    {currentWord.context_sentence}
-                  </p>
+                  <p
+                    className="text-base text-white/90 text-center leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: createHighlightSentence(currentWord.context_sentence, currentWord.word)
+                    }}
+                  />
                 </div>
               )}
 
