@@ -210,7 +210,7 @@ npx vercel env ls
 | **翻译引擎** | `.shadowhub/translation-rules.json` | 翻译任务（JSON 格式） |
 | **点词翻译与生词本** | `docs/dictionary_and_translation_implementation.md` | 点词翻译功能、生词本管理、多语言缓存 |
 | **词典缓存优化** | `docs/dictionary_cache_guide.md` | 词典缓存架构、成本优化、监控统计 |
-| **全量预生成恢复** | `docs/resume_dictionary_prepopulation.md` | 方案C：预生成 7,139 个单词的恢复口令 |
+| **词典预生成恢复** | `RESUME_PREPOPULATION.md` | **重要！预生成脚本恢复口令（避免字段名错误和重复进程）** |
 
 ---
 
@@ -254,6 +254,9 @@ cat claude-code-guide.md docs/dictionary_and_translation_implementation.md
 
 # 词典缓存优化与预生成
 cat claude-code-guide.md docs/dictionary_cache_guide.md
+
+# ⚠️ 词典预生成脚本恢复（重要！）
+cat RESUME_PREPOPULATION.md
 ```
 
 ---
