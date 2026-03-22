@@ -113,6 +113,8 @@ export async function GET(request: Request) {
  * - contextSentence: 例句（可选）
  * - materialId: 关联素材 ID（可选）
  * - materialTitle: 素材标题（可选）
+ * - audioTimestamp: 音频时间戳（可选）
+ * - audioUrl: 音频 URL（可选）
  */
 export async function POST(request: Request) {
   try {
@@ -124,7 +126,9 @@ export async function POST(request: Request) {
       definition,
       contextSentence,
       materialId,
-      materialTitle
+      materialTitle,
+      audioTimestamp,
+      audioUrl
     } = body
 
     // 验证必填字段
@@ -138,7 +142,7 @@ export async function POST(request: Request) {
     // 标准化单词（小写）
     const normalizedWord = word.toLowerCase().trim()
 
-    console.log('[API] Adding word:', { userId, word: normalizedWord, materialId })
+    console.log('[API] Adding word:', { userId, word: normalizedWord, materialId, audioTimestamp })
 
     // 🔴 使用函数调用获取客户端
     const supabase = getSupabaseClient()
@@ -191,6 +195,8 @@ export async function POST(request: Request) {
         context_sentence: contextSentence || null,
         material_id: materialId || null,
         material_title: materialTitle || null,
+        audio_timestamp: audioTimestamp ? parseFloat(audioTimestamp) : null,
+        audio_url: audioUrl || null,
         mastery_status: 'learning'
       })
       .select()

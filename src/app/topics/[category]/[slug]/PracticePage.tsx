@@ -60,6 +60,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const startIndexParam = searchParams.get('start')
   const startIndex = startIndexParam ? parseInt(startIndexParam, 10) : 0
 
+  // Get timestamp from URL (for vocabulary page jump-to-play)
+  const timestampParam = searchParams.get('t')
+
   // Material data
   const [material, setMaterial] = useState<Material | null>(null)
   const [loading, setLoading] = useState(true)
@@ -249,6 +252,33 @@ export default function PracticePage({ category, slug }: { category: string; slu
       }
     }
   }, [startIndex, mode])
+
+  // 🔴 处理时间戳参数：当从生词本跳转时，找到对应的句子并播放
+  useEffect(() => {
+    if (!timestampParam || sampleSentences.length === 0) return
+
+    const timestamp = parseFloat(timestampParam)
+    if (isNaN(timestamp)) return
+
+    // 找到包含该时间戳的句子
+    const targetIndex = sampleSentences.findIndex(sentence => {
+      const startTime = typeof sentence.startTime === 'string' ? parseFloat(sentence.startTime) : sentence.startTime
+      const endTime = typeof sentence.endTime === 'string' ? parseFloat(sentence.endTime) : sentence.endTime
+      return timestamp >= startTime && timestamp <= endTime
+    })
+
+    if (targetIndex !== -1) {
+      // 设置对应模式的索引
+      if (mode === 'dictation') {
+        setDictationIndex(targetIndex)
+      } else if (mode === 'shadowing') {
+        setShadowingIndex(targetIndex)
+      }
+      // 自动开始播放
+      setHasStarted(true)
+      setAutoPlayTrigger(prev => prev + 1)
+    }
+  }, [timestampParam, sampleSentences, mode])
 
   // 🔴 显示 Toast 提示（默认 3 秒后自动消失）
   const showToast = (message: string, duration = 3000) => {
@@ -913,6 +943,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
               translationLanguage={translationLanguage}
               materialId={material.id}
               materialTitle={material.title}
+              audioSrc={getPlayerInfo(material).audioSrc}
             />
           </div>
         </div>

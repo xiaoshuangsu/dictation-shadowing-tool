@@ -4,7 +4,8 @@
  * 功能：
  * - 显示单词、音标、多语言释义
  * - 提供"学习"按钮保存到生词本
- * - 根据全局翻译语言设置显示对应语言
+ * - 自动同步中栏全局翻译语言设置（实时联动）
+ * - 精简 UI：单词音标、释义+英文对照、例句、按钮
  */
 
 'use client'
@@ -33,6 +34,8 @@ interface WordTooltipProps {
   sentence: string
   materialId?: string
   materialTitle?: string
+  audioTimestamp?: string
+  audioUrl?: string
   onClose: () => void
 }
 
@@ -52,24 +55,58 @@ export default function WordTooltip({
   sentence,
   materialId,
   materialTitle,
+  audioTimestamp,
+  audioUrl,
   onClose
 }: WordTooltipProps) {
   const { user } = useAuth()
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [currentLanguage, setCurrentLanguage] = useState<keyof WordDefinition['definitions']>('zh-CN')
 
-  // 同步全局翻译语言设置
+  // 实时同步全局翻译语言设置
   useEffect(() => {
-    const storedLang = getStoredLanguage()
-    const mappedLang = LANGUAGE_MAP[storedLang] || 'zh-CN'
-    setCurrentLanguage(mappedLang)
+    const updateLanguage = () => {
+      const storedLang = getStoredLanguage()
+      const mappedLang = LANGUAGE_MAP[storedLang] || 'zh-CN'
+      setCurrentLanguage(mappedLang)
+    }
+
+    // 初始化语言
+    updateLanguage()
+
+    // 监听 storage 变化（实现跨标签页同步）
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'translation-language') {
+        updateLanguage()
+      }
+    }
+
+    // 监听自定义事件（实现同页面内同步）
+    const handleLanguageChange = () => {
+      updateLanguage()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('translation-language-change', handleLanguageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('translation-language-change', handleLanguageChange)
+    }
   }, [])
 
-  // 根据当前选择的语言获取释义
+  // 获取当前语言释义
   const getCurrentDefinition = () => {
     if (!definition) return ''
     return definition.definitions[currentLanguage] || definition.definitions['zh-CN'] || ''
+  }
+
+  // 获取英文释义（作为对照）
+  const getEnglishDefinition = () => {
+    if (!definition) return ''
+    return definition.definitions['en'] || ''
   }
 
   // 保存生词到数据库
@@ -100,13 +137,16 @@ export default function WordTooltip({
           definition: JSON.stringify(definition.definitions),  // 存储多语言 JSON
           contextSentence: sentence,
           materialId,
-          materialTitle
+          materialTitle,
+          audioTimestamp,
+          audioUrl
         })
       })
 
       const data = await response.json()
 
       if (data.success) {
+        setSaved(true)
         setMessage({
           type: 'success',
           text: data.isNew ? '已加入学习列表' : '已更新为学习中'
@@ -125,11 +165,6 @@ export default function WordTooltip({
     } finally {
       setSaving(false)
     }
-  }
-
-  // 切换显示语言
-  const handleLanguageChange = (lang: keyof WordDefinition['definitions']) => {
-    setCurrentLanguage(lang)
   }
 
   // 计算位置：确保气泡不超出屏幕边界
@@ -153,12 +188,8 @@ export default function WordTooltip({
     return { left: `${x}px`, top: `${y}px` }
   }
 
-  const LANGUAGE_OPTIONS = [
-    { code: 'zh-CN', label: '简' },
-    { code: 'zh-Hant', label: '繁' },
-    { code: 'vi', label: 'VN' },
-    { code: 'en', label: 'EN' }
-  ]
+  const currentDef = getCurrentDefinition()
+  const englishDef = getEnglishDefinition()
 
   return (
     <div
@@ -184,10 +215,10 @@ export default function WordTooltip({
 
       {/* 内容区域 */}
       {!loading && definition && (
-        <div className="space-y-3">
-          {/* 单词和音标 */}
+        <div className="space-y-4">
+          {/* 第一行：单词 + 音标 */}
           <div>
-            <h3 className="text-xl font-bold text-gray-900">
+            <h3 className="text-2xl font-bold text-gray-900">
               {definition.word}
             </h3>
             {definition.phonetic && (
@@ -195,49 +226,43 @@ export default function WordTooltip({
             )}
           </div>
 
-          {/* 语言切换 */}
-          <div className="flex gap-1 border-b border-gray-200 pb-2">
-            {LANGUAGE_OPTIONS.map((lang) => (
-              <button
-                key={lang.code}
-                onClick={() => handleLanguageChange(lang.code as keyof WordDefinition['definitions'])}
-                className={`px-2 py-1 text-xs rounded transition-colors ${
-                  currentLanguage === lang.code
-                    ? 'bg-blue-100 text-blue-700 font-semibold'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {lang.label}
-              </button>
-            ))}
+          {/* 第二行：当前语言释义（大字）+ 英文对照 */}
+          <div className="space-y-2">
+            <p className="text-lg font-semibold text-gray-900 leading-relaxed">
+              {currentDef}
+            </p>
+            {englishDef && currentLanguage !== 'en' && (
+              <p className="text-sm text-gray-500 italic">
+                {englishDef}
+              </p>
+            )}
           </div>
 
-          {/* 释义 */}
-          <div>
-            <p className="text-sm text-gray-700">{getCurrentDefinition()}</p>
-          </div>
-
-          {/* 例句（如果有） */}
+          {/* 第三行：例句 */}
           {definition.example && (
-            <div className="bg-gray-50 rounded p-2">
-              <p className="text-xs text-gray-600 italic">{definition.example}</p>
+            <div className="bg-gray-50 rounded-lg p-3 border-l-4 border-blue-500">
+              <p className="text-sm text-gray-700 italic">{definition.example}</p>
             </div>
           )}
 
-          {/* 操作按钮 */}
+          {/* 底部：加入生词本按钮 */}
           <div className="pt-2">
             <button
               onClick={handleSaveWord}
-              disabled={saving || !!message}
-              className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              disabled={saving || saved}
+              className={`w-full px-4 py-3 rounded-lg transition-all font-medium text-base ${
+                saved
+                  ? 'bg-green-600 text-white cursor-default'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed'
+              }`}
             >
-              {saving ? '保存中...' : '加入生词本'}
+              {saved ? '✓ 已添加' : saving ? '保存中...' : '加入生词本'}
             </button>
           </div>
 
           {/* 消息提示 */}
           {message && (
-            <div className={`text-xs text-center py-2 rounded ${
+            <div className={`text-sm text-center py-2 rounded-lg ${
               message.type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
             }`}>
               {message.text}

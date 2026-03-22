@@ -23,6 +23,8 @@ interface ClickableWordProps {
   isHidden?: boolean  // 是否在 Dictation 模式下被隐藏
   materialId?: string
   materialTitle?: string
+  audioTimestamp?: string  // 音频时间戳
+  audioUrl?: string  // 音频 URL
   className?: string
   children?: React.ReactNode  // 自定义渲染内容
 }
@@ -34,6 +36,8 @@ export default function ClickableWord({
   isHidden = false,
   materialId,
   materialTitle,
+  audioTimestamp,
+  audioUrl,
   className = '',
   children
 }: ClickableWordProps) {
@@ -161,6 +165,8 @@ export default function ClickableWord({
           sentence={contextSentence}
           materialId={materialId}
           materialTitle={materialTitle}
+          audioTimestamp={audioTimestamp}
+          audioUrl={audioUrl}
           onClose={closeTooltip}
         />
       )}

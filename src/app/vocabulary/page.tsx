@@ -15,6 +15,9 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 import Link from 'next/link'
+import { supabase } from '@/lib/supabase/client'
+import { titleToSlug } from '@/lib/utils/slug'
+import { categoryToSlug } from '@/lib/utils/category'
 
 interface UserWord {
   id: string
@@ -25,6 +28,8 @@ interface UserWord {
   context_sentence: string
   material_id: string | null
   material_title: string | null
+  audio_timestamp: number | null
+  audio_url: string | null
   mastery_status: 'learning' | 'familiar' | 'mastered'
   created_at: string
 }
@@ -43,6 +48,7 @@ export default function VocabularyPage() {
   const [loading, setLoading] = useState(true)
   const [currentLanguage, setCurrentLanguage] = useState<keyof Definition>('zh-CN')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [materialInfoMap, setMaterialInfoMap] = useState<Record<string, { category: string; slug: string }>>({})
 
   // 获取生词列表
   const fetchWords = async () => {
@@ -93,14 +99,39 @@ export default function VocabularyPage() {
 
   // 同步全局翻译语言
   useEffect(() => {
-    const storedLang = getStoredLanguage()
-    const langMap: Record<string, keyof Definition> = {
-      'zh': 'zh-CN',
-      'zh_hant': 'zh-Hant',
-      'vi': 'vi',
-      'hide': 'zh-CN'
+    const updateLanguage = () => {
+      const storedLang = getStoredLanguage()
+      const langMap: Record<string, keyof Definition> = {
+        'zh': 'zh-CN',
+        'zh_hant': 'zh-Hant',
+        'vi': 'vi',
+        'hide': 'zh-CN'
+      }
+      setCurrentLanguage(langMap[storedLang] || 'zh-CN')
     }
-    setCurrentLanguage(langMap[storedLang] || 'zh-CN')
+
+    // 初始化语言
+    updateLanguage()
+
+    // 监听 storage 变化（实现跨标签页同步）
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'translation-language') {
+        updateLanguage()
+      }
+    }
+
+    // 监听自定义事件（实现同页面内同步）
+    const handleLanguageChange = () => {
+      updateLanguage()
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('translation-language-change', handleLanguageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('translation-language-change', handleLanguageChange)
+    }
   }, [])
 
   // 加载生词列表
@@ -109,6 +140,40 @@ export default function VocabularyPage() {
       fetchWords()
     }
   }, [user, filterStatus])
+
+  // 加载素材信息（用于生成播放链接）
+  useEffect(() => {
+    const fetchMaterialInfo = async () => {
+      if (!words.length) return
+
+      // 收集所有唯一的 material_id
+      const materialIds = Array.from(new Set(words.map(w => w.material_id).filter(Boolean))) as string[]
+
+      if (materialIds.length === 0) return
+
+      try {
+        const { data } = await supabase
+          .from('materials')
+          .select('id, title, category, slug')
+          .in('id', materialIds)
+
+        if (data) {
+          const infoMap: Record<string, { category: string; slug: string }> = {}
+          data.forEach(material => {
+            infoMap[material.id] = {
+              category: categoryToSlug(material.category),  // 将中文分类转换为英文 slug
+              slug: material.slug || titleToSlug(material.title)
+            }
+          })
+          setMaterialInfoMap(infoMap)
+        }
+      } catch (error) {
+        console.error('Error loading material info:', error)
+      }
+    }
+
+    fetchMaterialInfo()
+  }, [words])
 
   // 登录中/未登录
   if (authLoading) {
@@ -288,9 +353,23 @@ export default function VocabularyPage() {
                   {/* 例句 */}
                   {userWord.context_sentence && (
                     <div className="bg-gray-50 rounded p-2 mb-3">
-                      <p className="text-xs text-gray-600 italic">
-                        "{userWord.context_sentence}"
-                      </p>
+                      <div className="flex items-start gap-2">
+                        <p className="text-xs text-gray-600 italic flex-1">
+                          "{userWord.context_sentence}"
+                        </p>
+                        {/* 播放图标 */}
+                        {userWord.audio_url && userWord.material_id && materialInfoMap[userWord.material_id] && (
+                          <Link
+                            href={`/topics/${materialInfoMap[userWord.material_id].category}/${materialInfoMap[userWord.material_id].slug}?t=${userWord.audio_timestamp}`}
+                            className="flex-shrink-0 text-blue-600 hover:text-blue-700"
+                            title="跳转播放"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   )}
 

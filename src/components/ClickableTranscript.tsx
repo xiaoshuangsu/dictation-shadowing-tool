@@ -23,6 +23,7 @@ interface ClickableTranscriptProps {
   translationLanguage: string
   materialId?: string
   materialTitle?: string
+  audioSrc?: string
 }
 
 export default function ClickableTranscript({
@@ -33,7 +34,8 @@ export default function ClickableTranscript({
   onToggleTranscript,
   translationLanguage,
   materialId,
-  materialTitle
+  materialTitle,
+  audioSrc
 }: ClickableTranscriptProps) {
 
   return (
@@ -84,9 +86,10 @@ export default function ClickableTranscript({
                   {showTranscript ? (
                     <ClickableSentence
                       text={displayText}
-                      sentence={sentence.text}
+                      sentence={sentence}
                       materialId={materialId}
                       materialTitle={materialTitle}
+                      audioSrc={audioSrc}
                     />
                   ) : (
                     <p className="text-base text-gray-900 leading-relaxed">
@@ -121,12 +124,13 @@ export default function ClickableTranscript({
  */
 interface ClickableSentenceProps {
   text: string
-  sentence: string
+  sentence: Sentence
   materialId?: string
   materialTitle?: string
+  audioSrc?: string
 }
 
-function ClickableSentence({ text, sentence, materialId, materialTitle }: ClickableSentenceProps) {
+function ClickableSentence({ text, sentence, materialId, materialTitle, audioSrc }: ClickableSentenceProps) {
   // 分词
   const tokens = tokenizeSentence(text)
 
@@ -139,9 +143,11 @@ function ClickableSentence({ text, sentence, materialId, materialTitle }: Clicka
               key={index}
               word={token.text}
               originalWord={token.originalWord}
-              contextSentence={sentence}
+              contextSentence={sentence.text}
               materialId={materialId}
               materialTitle={materialTitle}
+              audioTimestamp={String(sentence.startTime)}
+              audioUrl={audioSrc}
             />
           )
         } else {
