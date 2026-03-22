@@ -117,6 +117,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 | **翻译引擎** | `.shadowhub/translation-rules.json` | 翻译任务（JSON 格式） |
 | **点词翻译与生词本** | `docs/dictionary_and_translation_implementation.md` | 点词翻译功能、生词本管理、多语言缓存 |
 | **词典缓存优化** | `docs/dictionary_cache_guide.md` | 词典缓存架构、成本优化、监控统计 |
+| **全量预生成恢复** | `docs/resume_dictionary_prepopulation.md` | 方案C：预生成 7,139 个单词的恢复口令 |
 
 ---
 
