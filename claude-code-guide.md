@@ -204,6 +204,27 @@ cat claude-code-guide.md docs/dictionary_cache_guide.md
 
 ---
 
-**版本**：V20.0
-**更新日期**：2026-03-18
+**版本**：V27.0.5
+**更新日期**：2026-03-22
 **状态**：生产就绪
+
+---
+
+## 🔄 快速恢复上下文
+
+如果对话终止，快速恢复上下文的方法：
+
+### 方式一：快速恢复命令
+```bash
+# 项目指南
+cat claude-code-guide.md
+
+# V27 最新功能（点词翻译+生词本）
+cat docs/dictionary_and_translation_implementation_v27.md
+
+# 完整上下文恢复
+cat CONTEXT_RESTORE.md
+```
+
+### 方式二：一句话恢复
+> "请先阅读 `claude-code-guide.md` 和 `docs/dictionary_and_translation_implementation_v27.md`，当前版本是 V27.0.5，主要实现了生词采集与复习闭环、Tooltip 优化、优雅跳转体验和单词发音功能。"
