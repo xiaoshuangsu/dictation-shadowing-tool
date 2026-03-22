@@ -17,6 +17,7 @@ import type { Sentence } from '@/types'
 interface ClickableTranscriptProps {
   sentences: Sentence[]
   currentIndex: number
+  highlightIndex?: number | null  // 🔴 跳转播放时高亮的句子索引
   onSelectSentence: (index: number) => void
   showTranscript: boolean
   onToggleTranscript: () => void
@@ -29,6 +30,7 @@ interface ClickableTranscriptProps {
 export default function ClickableTranscript({
   sentences,
   currentIndex,
+  highlightIndex,
   onSelectSentence,
   showTranscript,
   onToggleTranscript,
@@ -57,14 +59,19 @@ export default function ClickableTranscript({
             ? sentence.text
             : sentence.text.split(/\s+/).map(() => '***').join(' ')
 
+          // 🔴 判断是否为高亮句子（跳转播放时的视觉聚焦）
+          const isHighlighted = highlightIndex === index
+
           return (
             <div
               key={sentence.id}
               onClick={() => {
                 onSelectSentence(index)
               }}
-              className={`p-3 rounded cursor-pointer transition-colors ${
-                index === currentIndex
+              className={`p-3 rounded cursor-pointer transition-all ${
+                isHighlighted
+                  ? 'bg-yellow-100 border-2 border-yellow-400 animate-pulse shadow-lg scale-105'  // 🔴 高亮闪烁效果
+                  : index === currentIndex
                   ? 'bg-blue-100 border-2 border-blue-500'
                   : index < currentIndex
                   ? 'bg-green-50 border border-green-200'

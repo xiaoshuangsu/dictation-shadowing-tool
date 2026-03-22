@@ -155,6 +155,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const [videoDegraded, setVideoDegraded] = useState(false)  // 🔴 视频降级状态
   const [toastMessage, setToastMessage] = useState<string | null>(null)  // 🔴 Toast 提示消息
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const [highlightSentenceIndex, setHighlightSentenceIndex] = useState<number | null>(null)  // 🔴 跳转播放的高亮句子索引
   const [completedSentences, setCompletedSentences] = useState<Set<number>>(new Set())
   const [correctSentences, setCorrectSentences] = useState<Set<number>>(new Set())
   const [incorrectSentences, setIncorrectSentences] = useState<Set<number>>(new Set())
@@ -274,11 +275,25 @@ export default function PracticePage({ category, slug }: { category: string; slu
       } else if (mode === 'shadowing') {
         setShadowingIndex(targetIndex)
       }
+
       // 自动开始播放
       setHasStarted(true)
       setAutoPlayTrigger(prev => prev + 1)
+
+      // 🔴 视觉聚焦：2-3 秒高亮闪烁动画
+      setHighlightSentenceIndex(targetIndex)
+      setTimeout(() => {
+        setHighlightSentenceIndex(null)
+      }, 3000)  // 3 秒后移除高亮
+
+      // 🔴 清理 URL：移除 ?t= 参数（使用 router.replace 避免页面刷新）
+      const url = new URL(window.location.href)
+      url.searchParams.delete('t')
+      router.replace(url.pathname + url.search, { scroll: false })
+
+      console.log(`🎯 跳转到句子 ${targetIndex + 1}，时间戳 ${timestamp}秒`)
     }
-  }, [timestampParam, sampleSentences, mode])
+  }, [timestampParam, sampleSentences, mode, router])
 
   // 🔴 显示 Toast 提示（默认 3 秒后自动消失）
   const showToast = (message: string, duration = 3000) => {
@@ -928,6 +943,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
             <ClickableTranscript
               sentences={sampleSentences}
               currentIndex={currentSentenceIndex}
+              highlightIndex={highlightSentenceIndex}
               onSelectSentence={(index) => {
                 // 切换到选中的句子并触发播放
                 // 根据当前模式更新对应的索引
