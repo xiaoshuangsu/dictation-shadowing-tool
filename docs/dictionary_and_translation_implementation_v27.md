@@ -1,7 +1,7 @@
 # 点词翻译与生词本功能实现总结
 
 **项目**: ShadowHub - 英语听写与跟读练习平台
-**版本**: V27.0.6
+**版本**: V27.0.7
 **更新日期**: 2026-03-22
 **状态**: 生产就绪
 
@@ -418,7 +418,7 @@ const playAudio = (variant: 'us' | 'uk', event?: React.MouseEvent) => {
 <button onClick={(e) => playAudio('us', e)}>
 ```
 
-**修复版本**: V27.0.6
+**修复版本**: V27.0.7
 
 ---
 
@@ -499,7 +499,7 @@ if current_time - last_progress_time >= 300:  # 300 秒
     print(f"进度: {progress_pct:.1f}% | 速度: {speed:.1f} 词/分钟 | 剩余: {int(remaining_min)} 分钟")
 ```
 
-**修复版本**: V27.0.6
+**修复版本**: V27.0.7
 
 ---
 
@@ -545,7 +545,8 @@ nohup python -u scripts/prepopulate_dictionary_cache.py --yes > /private/tmp/pre
 | V27.0.3 | 2026-03-22 | 优雅处理：URL清理+视觉聚焦 |
 | V27.0.4 | 2026-03-22 | 导航栏 Vocabulary 入口 |
 | V27.0.5 | 2026-03-22 | 单词发音：美音/英音播放 |
-| V27.0.6 | 2026-03-22 | 修复发音按钮事件冒泡+词典预生成脚本优化 |
+| V27.0.6 | 2026-03-22 | 调整 tooltip 布局为两行设计 |
+| V27.0.7 | 2026-03-22 | 修复发音按钮事件冒泡+词典预生成脚本优化 |
 
 ---
 
