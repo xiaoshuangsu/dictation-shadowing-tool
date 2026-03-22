@@ -63,6 +63,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
   const [userInput, setUserInput] = useState('')
   const [isCorrect, setIsCorrect] = useState(false | null)
   const [showedAnswer, setShowedAnswer] = useState(false)  // 是否点击了"查看答案"
+  const [isShaking, setIsShaking] = useState(false)  // 抖动效果
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentWord = words[currentIndex]
@@ -101,6 +102,11 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
       }, 300)
     } else {
       setIsCorrect(false)
+      // 如果输入完整但错误，触发抖动效果
+      if (value.length > 0 && value.length >= normalizedWord.length) {
+        setIsShaking(true)
+        setTimeout(() => setIsShaking(false), 500)
+      }
     }
   }
 
@@ -254,11 +260,11 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 </div>
               )}
 
-              {/* 释义区域：中文翻译（主）+ 英文定义（辅） */}
-              <div className="mb-3">
+              {/* 释义区域：中文翻译（主）+ 英文定义（辅）- 增加留白 */}
+              <div className="mb-6">
                 {/* 中文翻译 - 主要提示 */}
                 {chineseDefinition && (
-                  <p className="text-4xl font-bold text-gray-900 text-center mb-1">
+                  <p className="text-4xl font-bold text-gray-900 text-center mb-2">
                     {chineseDefinition}
                   </p>
                 )}
@@ -270,8 +276,8 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 )}
               </div>
 
-              {/* 填空句 - 美化挖空区域 */}
-              <div className="bg-blue-50 rounded-xl p-5 mb-3 border border-blue-100">
+              {/* 填空句 - 美化挖空区域 - 淡蓝色背景 */}
+              <div className="bg-blue-50/50 rounded-xl p-6 mb-6 border border-blue-100/50">
                 <p
                   className="text-base text-gray-700 leading-relaxed text-center"
                   dangerouslySetInnerHTML={{
@@ -280,8 +286,8 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 />
               </div>
 
-              {/* 音标 + US/UK 喇叭 - 例句块正下方 */}
-              <div className="flex items-center justify-center gap-5 mb-3">
+              {/* 音标 + US/UK 喇叭 - 整齐横排，用竖线分隔 */}
+              <div className="flex items-center justify-center gap-3 mb-4">
                 {/* 音标 */}
                 {currentWord.phonetic && (
                   <p className="text-base text-gray-600 font-medium">
@@ -289,27 +295,34 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                   </p>
                 )}
 
-                {/* 分隔线 */}
+                {/* 分隔线 - 音标与喇叭之间 */}
                 {currentWord.phonetic && (currentWord.audio_url_us || currentWord.audio_url_uk) && (
-                  <div className="w-px h-4 bg-gray-300"></div>
+                  <div className="w-px h-5 bg-gray-200"></div>
                 )}
 
-                {/* US/UK 发音按钮 */}
+                {/* US 发音按钮 */}
                 {currentWord.audio_url_us && (
                   <button
                     onClick={() => playAudio('us')}
                     className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors text-sm font-medium"
-                    title="US pronunciation (美音)"
+                    title="US pronunciation"
                   >
                     <Volume2 className="w-4 h-4" />
                     <span>US</span>
                   </button>
                 )}
+
+                {/* 分隔线 - US与UK之间 */}
+                {currentWord.audio_url_us && currentWord.audio_url_uk && (
+                  <div className="w-px h-5 bg-gray-200"></div>
+                )}
+
+                {/* UK 发音按钮 */}
                 {currentWord.audio_url_uk && (
                   <button
                     onClick={() => playAudio('uk')}
                     className="flex items-center gap-1.5 text-purple-600 hover:text-purple-700 transition-colors text-sm font-medium"
-                    title="UK pronunciation (英音)"
+                    title="UK pronunciation"
                   >
                     <Volume2 className="w-4 h-4" />
                     <span>UK</span>
@@ -327,11 +340,13 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                   onKeyDown={handleKeyDown}
                   placeholder="Type the word..."
                   className={`w-full px-6 py-4 text-xl text-center border-2 rounded-xl transition-all ${
+                    isShaking ? 'animate-shake' : ''
+                  } ${
                     isCorrect === true
                       ? 'border-green-500 bg-green-50 text-green-900 shadow-sm'
                       : isCorrect === false
                       ? 'border-red-300 bg-red-50 text-red-900'
-                      : 'border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                      : 'border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:shadow-sm'
                   }`}
                   disabled={flipped}
                   autoComplete="off"
@@ -348,13 +363,13 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                   </p>
                 )}
 
-                {/* 查看答案按钮 - 只在未翻转时显示 */}
+                {/* Show Answer 按钮 - 只保留英文 */}
                 {!flipped && !isCorrect && (
                   <button
                     onClick={handleShowAnswer}
-                    className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors py-2"
+                    className="w-full text-center text-sm text-gray-400 hover:text-blue-600 transition-colors py-2 font-medium"
                   >
-                    查看答案 (Show Answer)
+                    Show Answer
                   </button>
                 )}
               </div>
