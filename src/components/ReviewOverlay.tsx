@@ -6,13 +6,16 @@
  * - 显示单词释义和填空句
  * - 实时校验拼写
  * - 3D 翻转动画展示答案
- * - 支持切换到下一个单词
+ * - 查看答案功能（点击或按回车）
+ * - 自评功能（仍需学习/已掌握）
  *
  * 训练模式逻辑（挖空拼写）：
  * - 正面：隐藏单词标题，显示填空句（目标词替换为____）
  * - 正面：音标 + US/UK 喇叭辅助拼写
  * - 正面：自动聚焦输入框，用户拼写
+ * - 正面：查看答案按钮（输入框为空时按回车）
  * - 背面：显示单词标题，完整原句（高亮目标词）
+ * - 背面：自评按钮（仍需学习/已掌握）
  *
  * 修复：
  * - 修复答案泄露问题（Cloze 打码）
@@ -28,6 +31,7 @@ import { Volume2, X } from 'lucide-react'
 interface ReviewWord {
   word: string
   phonetic: string
+  pos?: string  // 词性 (part of speech)
   definition: string  // JSON string 或纯文本
   context_sentence: string
   audio_url_us?: string
@@ -58,6 +62,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
   const [flipped, setFlipped] = useState(false)
   const [userInput, setUserInput] = useState('')
   const [isCorrect, setIsCorrect] = useState(false | null)
+  const [showedAnswer, setShowedAnswer] = useState(false)  // 是否点击了"查看答案"
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentWord = words[currentIndex]
@@ -74,6 +79,11 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
       inputRef.current.focus()
     }
   }, [currentIndex, flipped])
+
+  // 🔴 切换卡片时重置状态
+  useEffect(() => {
+    setShowedAnswer(false)
+  }, [currentIndex])
 
   // 🔴 实时校验拼写
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,22 +106,41 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
 
   // 🔴 处理 Enter 键提交
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && isCorrect && !flipped) {
-      setFlipped(true)
+    if (e.key === 'Enter' && !flipped) {
+      // 如果已答对，翻转
+      if (isCorrect) {
+        setFlipped(true)
+      }
+      // 如果输入框为空，触发"查看答案"
+      else if (userInput.trim() === '') {
+        handleShowAnswer()
+      }
     }
   }
 
+  // 🔴 查看答案
+  const handleShowAnswer = () => {
+    setShowedAnswer(true)
+    setFlipped(true)
+  }
+
   // 🔴 下一个单词
-  const handleNext = () => {
+  const handleNext = (masteryStatus?: 'learning' | 'mastered') => {
     if (isLastCard) {
       onClose()  // 最后一个单词，关闭训练
       return
+    }
+
+    // TODO: 更新数据库掌握状态
+    if (masteryStatus) {
+      console.log(`更新单词 "${currentWord.word}" 掌握状态为: ${masteryStatus}`)
     }
 
     setCurrentIndex(prev => prev + 1)
     setFlipped(false)
     setUserInput('')
     setIsCorrect(null)
+    setShowedAnswer(false)
   }
 
   // 🔴 创建填空句（智能 Cloze 打码，修复答案泄露）
@@ -187,7 +216,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
 
         {/* 3D 翻转容器 */}
         <div
-          className={`relative w-full h-[500px] perspective-1000 ${
+          className={`relative w-full h-[520px] perspective-1000 ${
             flipped ? 'flipped' : ''
           }`}
           style={{ perspective: '1000px' }}
@@ -201,68 +230,85 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
           >
             {/* 🔴 正面：Question Face */}
             <div
-              className="absolute w-full h-full bg-white rounded-2xl shadow-2xl p-8 flex flex-col"
+              className={`absolute w-full h-full bg-white rounded-2xl p-6 flex flex-col transition-shadow duration-300 ${
+                isCorrect ? 'shadow-[0_0_30px_rgba(34,197,94,0.5)]' : 'shadow-2xl'
+              }`}
               style={{ backfaceVisibility: 'hidden' }}
             >
+              {/* 词性 - 置顶显示 */}
+              {currentWord.pos && (
+                <div className="text-center mb-2">
+                  <span className="text-xs text-gray-400 uppercase tracking-wide">
+                    {currentWord.pos}
+                  </span>
+                </div>
+              )}
+
               {/* 释义区域：中文翻译（主）+ 英文定义（辅） */}
-              <div className="flex-1 flex flex-col items-center justify-center mb-6">
+              <div className="mb-3">
                 {/* 中文翻译 - 主要提示 */}
                 {chineseDefinition && (
-                  <p className="text-3xl font-bold text-gray-900 text-center mb-3">
+                  <p className="text-4xl font-bold text-gray-900 text-center mb-1">
                     {chineseDefinition}
                   </p>
                 )}
                 {/* 英文定义 - 辅助参考 */}
                 {englishDefinition && (
-                  <p className="text-lg text-gray-500 text-center">
+                  <p className="text-base text-gray-400 text-center">
                     {englishDefinition}
                   </p>
                 )}
               </div>
 
-              {/* 填空句 - 挖空目标词 */}
-              <div className="bg-gray-50 rounded-lg p-6 mb-6 border-l-4 border-blue-500">
+              {/* 填空句 - 美化挖空区域 */}
+              <div className="bg-blue-50 rounded-xl p-5 mb-3 border border-blue-100">
                 <p
-                  className="text-lg text-gray-700 leading-relaxed"
+                  className="text-base text-gray-700 leading-relaxed text-center"
                   dangerouslySetInnerHTML={{
                     __html: createBlankSentence(currentWord.context_sentence, currentWord.word)
                   }}
                 />
               </div>
 
-              {/* 音标 + US/UK 喇叭 + 输入框 */}
-              <div className="space-y-4">
-                {/* 音标和发音按钮 */}
+              {/* 音标 + US/UK 喇叭 - 例句块正下方 */}
+              <div className="flex items-center justify-center gap-5 mb-3">
+                {/* 音标 */}
                 {currentWord.phonetic && (
-                  <div className="flex items-center justify-center gap-4">
-                    {/* 音标 */}
-                    <p className="text-lg text-gray-600">{currentWord.phonetic}</p>
-
-                    {/* US/UK 发音按钮 */}
-                    {currentWord.audio_url_us && (
-                      <button
-                        onClick={() => playAudio('us')}
-                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors text-sm font-medium"
-                        title="US pronunciation (美音)"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                        <span>US</span>
-                      </button>
-                    )}
-                    {currentWord.audio_url_uk && (
-                      <button
-                        onClick={() => playAudio('uk')}
-                        className="flex items-center gap-1 text-purple-600 hover:text-purple-700 transition-colors text-sm font-medium"
-                        title="UK pronunciation (英音)"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                        <span>UK</span>
-                      </button>
-                    )}
-                  </div>
+                  <p className="text-base text-gray-600 font-medium">
+                    {currentWord.phonetic}
+                  </p>
                 )}
 
-                {/* 输入框 */}
+                {/* 分隔线 */}
+                {currentWord.phonetic && (currentWord.audio_url_us || currentWord.audio_url_uk) && (
+                  <div className="w-px h-4 bg-gray-300"></div>
+                )}
+
+                {/* US/UK 发音按钮 */}
+                {currentWord.audio_url_us && (
+                  <button
+                    onClick={() => playAudio('us')}
+                    className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors text-sm font-medium"
+                    title="US pronunciation (美音)"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span>US</span>
+                  </button>
+                )}
+                {currentWord.audio_url_uk && (
+                  <button
+                    onClick={() => playAudio('uk')}
+                    className="flex items-center gap-1.5 text-purple-600 hover:text-purple-700 transition-colors text-sm font-medium"
+                    title="UK pronunciation (英音)"
+                  >
+                    <Volume2 className="w-4 h-4" />
+                    <span>UK</span>
+                  </button>
+                )}
+              </div>
+
+              {/* 输入框 */}
+              <div className="mt-auto space-y-3">
                 <input
                   ref={inputRef}
                   type="text"
@@ -270,12 +316,12 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                   onChange={handleChange}
                   onKeyDown={handleKeyDown}
                   placeholder="Type the word..."
-                  className={`w-full px-6 py-4 text-2xl text-center border-2 rounded-lg transition-colors ${
+                  className={`w-full px-6 py-4 text-xl text-center border-2 rounded-xl transition-all ${
                     isCorrect === true
-                      ? 'border-green-500 bg-green-50 text-green-900'
+                      ? 'border-green-500 bg-green-50 text-green-900 shadow-sm'
                       : isCorrect === false
                       ? 'border-red-300 bg-red-50 text-red-900'
-                      : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                      : 'border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
                   }`}
                   disabled={flipped}
                   autoComplete="off"
@@ -287,9 +333,19 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                     {isCorrect === true ? (
                       <span className="text-green-600 font-semibold">✓ Correct! Flipping...</span>
                     ) : isCorrect === false ? (
-                      <span className="text-red-600">Keep trying...</span>
+                      <span className="text-red-500">Keep trying...</span>
                     ) : null}
                   </p>
+                )}
+
+                {/* 查看答案按钮 - 只在未翻转时显示 */}
+                {!flipped && !isCorrect && (
+                  <button
+                    onClick={handleShowAnswer}
+                    className="w-full text-center text-sm text-gray-400 hover:text-gray-600 transition-colors py-2"
+                  >
+                    查看答案 (Show Answer)
+                  </button>
                 )}
               </div>
             </div>
@@ -342,13 +398,46 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 </button>
               </div>
 
-              {/* Next 按钮 */}
-              <button
-                onClick={handleNext}
-                className="w-full px-8 py-4 bg-white text-blue-600 font-bold rounded-lg hover:bg-gray-100 transition-colors text-lg"
-              >
-                {isLastCard ? 'Finish' : 'Next →'}
-              </button>
+              {/* 自评按钮 */}
+              {isCorrect || showedAnswer ? (
+                <div className="space-y-3">
+                  {/* 状态提示 */}
+                  <p className="text-center text-sm text-white/80 mb-2">
+                    {isCorrect ? 'Great job!' : 'Keep practicing!'}
+                  </p>
+
+                  {/* 两个选择按钮 */}
+                  <div className="flex gap-3">
+                    {/* 仍需学习 */}
+                    <button
+                      onClick={() => handleNext('learning')}
+                      className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+                        showedAnswer && !isCorrect
+                          ? 'bg-orange-500 text-white shadow-lg'
+                          : 'bg-white/20 text-white hover:bg-white/30'
+                      }`}
+                    >
+                      仍需学习
+                    </button>
+
+                    {/* 已掌握 */}
+                    <button
+                      onClick={() => handleNext('mastered')}
+                      className="flex-1 px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-all"
+                    >
+                      已掌握
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* 默认 Next 按钮（向后兼容） */
+                <button
+                  onClick={() => handleNext()}
+                  className="w-full px-8 py-4 bg-white text-blue-600 font-bold rounded-lg hover:bg-gray-100 transition-colors text-lg"
+                >
+                  {isLastCard ? 'Finish' : 'Next →'}
+                </button>
+              )}
             </div>
           </div>
         </div>
