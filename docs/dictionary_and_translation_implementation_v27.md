@@ -526,6 +526,61 @@ nohup python -u scripts/prepopulate_dictionary_cache.py --yes > /private/tmp/pre
 
 ---
 
+### 问题 4: UK 发音按钮无声音
+
+**症状**:
+1. 点击 Tooltip 中的 [🔊 UK] 按钮没有声音
+2. 控制台显示错误：`NotSupportedError: The element has no supported sources`
+3. US 按钮正常工作
+
+**根本原因**:
+代码使用了 **Google TTS URL** 作为兜底方案，但 Google TTS 有 **CORS 限制**，无法在浏览器中直接播放。
+
+```typescript
+// ❌ 问题代码：使用 Google TTS 兜底
+const googleTTs = (lang: string) =>
+  `https://translate.google.com/translate_tts?ie=UTF-8&q=${word}&tl=${lang}&client=tw-ob`
+
+setAudioUrls({
+  us: usAudio || googleTTs('en-us'),  // 如果 usAudio 为 null，使用 Google TTS
+  uk: ukAudio || googleTTs('en-GB')   // 如果 ukAudio 为 null，使用 Google TTS
+})
+```
+
+**CORS 错误流程**:
+1. dictionaryapi.dev 返回的音频通常只有 US 音频
+2. UK 音频为 `null`，触发 Google TTS 兜底
+3. 浏览器尝试加载 Google TTS URL
+4. **CORS 阻止**：`google.com` 不允许跨域访问音频资源
+5. 播放失败：`NotSupportedError: The element has no supported sources`
+
+**解决方案**:
+移除 Google TTS 兜底，只使用 dictionaryapi.dev 返回的有效音频：
+
+```typescript
+// ✅ 修复后的代码
+setAudioUrls({
+  us: usAudio || null,  // 找不到就设置为 null，按钮会显示为禁用状态
+  uk: ukAudio || null
+})
+```
+
+**按钮状态**:
+| 音频可用性 | US 按钮 | UK 按钮 |
+|-----------|---------|---------|
+| 两者都有 | ✅ 可点击 | ✅ 可点击 |
+| 只有 US | ✅ 可点击 | ❌ 灰色禁用 |
+| 两者都无 | ❌ 灰色禁用 | ❌ 灰色禁用 |
+
+**API 返回数据影响**:
+- 数据库中的 `audio_url_us` 和 `audio_url_uk` 字段目前**未在前端使用**
+- 原因：这些字段大多存储的是 Google TTS URL（有 CORS 限制）
+- 未来改进：可以考虑通过后端代理访问这些 URL
+
+**修复版本**: V27.0.7
+
+---
+
 ## 🚀 部署检查清单
 
 - [ ] 所有数据库迁移已执行
