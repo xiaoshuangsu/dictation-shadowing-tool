@@ -140,6 +140,9 @@ export async function POST(request: Request) {
 
     console.log('[API] Adding word:', { userId, word: normalizedWord, materialId })
 
+    // 🔴 使用函数调用获取客户端
+    const supabase = getSupabaseClient()
+
     // 检查是否已存在
     const { data: existing } = await supabase
       .from('user_words')

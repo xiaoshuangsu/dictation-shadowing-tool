@@ -6,13 +6,15 @@
  * - 显示单词释义悬浮气泡
  * - 支持智能状态感知（Dictation 模式下的隐藏单词）
  * - 复用词典缓存
+ * - 已存生词的单词显示下划线标记
  */
 
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import WordTooltip, { WordDefinition } from './WordTooltip'
 import { fetchWordDefinition } from '@/lib/utils/wordTranslation'
+import { useUserVocabulary } from '@/lib/hooks/useUserVocabulary'
 
 interface ClickableWordProps {
   word: string
@@ -35,6 +37,18 @@ export default function ClickableWord({
   className = '',
   children
 }: ClickableWordProps) {
+  const { isWordSaved } = useUserVocabulary()
+  const [isSaved, setIsSaved] = useState(false)
+
+  // 检查单词是否已保存
+  useEffect(() => {
+    const checkWord = async () => {
+      const saved = await isWordSaved(originalWord || word)
+      setIsSaved(saved)
+    }
+    checkWord()
+  }, [isWordSaved, originalWord, word])
+
   // Tooltip 状态
   const [tooltipState, setTooltipState] = useState<{
     visible: boolean
@@ -128,6 +142,10 @@ export default function ClickableWord({
           isHidden
             ? 'cursor-not-allowed opacity-60'  // 隐藏单词：不可点击样式
             : 'text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded px-0.5'  // 可见单词：可点击样式
+        } ${
+          isSaved && !isHidden
+            ? 'underline decoration-2 decoration-blue-500 decoration-offset-4'  // 已存生词：下划线标记
+            : ''
         } ${className}`}
       >
         {children || word}

@@ -2,20 +2,26 @@
  * WordTooltip - 单词释义悬浮气泡组件
  *
  * 功能：
- * - 显示单词、音标、释义
- * - 提供"学习"和"掌握"按钮
- * - 点击按钮调用 API 保存到生词本
+ * - 显示单词、音标、多语言释义
+ * - 提供"学习"按钮保存到生词本
+ * - 根据全局翻译语言设置显示对应语言
  */
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 
 export interface WordDefinition {
   word: string
   phonetic: string
-  definition: string
+  definitions: {
+    'zh-CN': string
+    'zh-Hant': string
+    'vi': string
+    'en': string
+  }
   example?: string
 }
 
@@ -28,6 +34,14 @@ interface WordTooltipProps {
   materialId?: string
   materialTitle?: string
   onClose: () => void
+}
+
+// 语言代码映射
+const LANGUAGE_MAP: Record<string, keyof WordDefinition['definitions']> = {
+  'zh': 'zh-CN',
+  'zh_hant': 'zh-Hant',
+  'vi': 'vi',
+  'hide': 'zh-CN'  // 默认简体中文
 }
 
 export default function WordTooltip({
@@ -43,9 +57,23 @@ export default function WordTooltip({
   const { user } = useAuth()
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [currentLanguage, setCurrentLanguage] = useState<keyof WordDefinition['definitions']>('zh-CN')
+
+  // 同步全局翻译语言设置
+  useEffect(() => {
+    const storedLang = getStoredLanguage()
+    const mappedLang = LANGUAGE_MAP[storedLang] || 'zh-CN'
+    setCurrentLanguage(mappedLang)
+  }, [])
+
+  // 根据当前选择的语言获取释义
+  const getCurrentDefinition = () => {
+    if (!definition) return ''
+    return definition.definitions[currentLanguage] || definition.definitions['zh-CN'] || ''
+  }
 
   // 保存生词到数据库
-  const handleSaveWord = async (masteryStatus: 'learning' | 'mastered') => {
+  const handleSaveWord = async () => {
     if (!user) {
       setMessage({ type: 'error', text: '请先登录' })
       setTimeout(() => setMessage(null), 2000)
@@ -64,12 +92,12 @@ export default function WordTooltip({
     try {
       const response = await fetch('/api/user-words', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id}` },
         body: JSON.stringify({
           userId: user.id,
           word: definition.word,
           phonetic: definition.phonetic,
-          definition: definition.definition,
+          definition: JSON.stringify(definition.definitions),  // 存储多语言 JSON
           contextSentence: sentence,
           materialId,
           materialTitle
@@ -81,7 +109,7 @@ export default function WordTooltip({
       if (data.success) {
         setMessage({
           type: 'success',
-          text: masteryStatus === 'learning' ? '已加入学习列表' : '标记为已掌握'
+          text: data.isNew ? '已加入学习列表' : '已更新为学习中'
         })
         setTimeout(() => {
           onClose()
@@ -99,10 +127,15 @@ export default function WordTooltip({
     }
   }
 
+  // 切换显示语言
+  const handleLanguageChange = (lang: keyof WordDefinition['definitions']) => {
+    setCurrentLanguage(lang)
+  }
+
   // 计算位置：确保气泡不超出屏幕边界
   const getPositionStyle = () => {
     const tooltipWidth = 320
-    const tooltipHeight = 200
+    const tooltipHeight = 280
 
     let x = position.x
     let y = position.y
@@ -119,6 +152,13 @@ export default function WordTooltip({
 
     return { left: `${x}px`, top: `${y}px` }
   }
+
+  const LANGUAGE_OPTIONS = [
+    { code: 'zh-CN', label: '简' },
+    { code: 'zh-Hant', label: '繁' },
+    { code: 'vi', label: 'VN' },
+    { code: 'en', label: 'EN' }
+  ]
 
   return (
     <div
@@ -155,9 +195,26 @@ export default function WordTooltip({
             )}
           </div>
 
+          {/* 语言切换 */}
+          <div className="flex gap-1 border-b border-gray-200 pb-2">
+            {LANGUAGE_OPTIONS.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => handleLanguageChange(lang.code as keyof WordDefinition['definitions'])}
+                className={`px-2 py-1 text-xs rounded transition-colors ${
+                  currentLanguage === lang.code
+                    ? 'bg-blue-100 text-blue-700 font-semibold'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
+
           {/* 释义 */}
           <div>
-            <p className="text-sm text-gray-700">{definition.definition}</p>
+            <p className="text-sm text-gray-700">{getCurrentDefinition()}</p>
           </div>
 
           {/* 例句（如果有） */}
@@ -168,20 +225,13 @@ export default function WordTooltip({
           )}
 
           {/* 操作按钮 */}
-          <div className="flex gap-2 pt-2">
+          <div className="pt-2">
             <button
-              onClick={() => handleSaveWord('learning')}
+              onClick={handleSaveWord}
               disabled={saving || !!message}
-              className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+              className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
             >
-              {saving ? '保存中...' : '学习'}
-            </button>
-            <button
-              onClick={() => handleSaveWord('mastered')}
-              disabled={saving || !!message}
-              className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
-            >
-              {saving ? '保存中...' : '掌握'}
+              {saving ? '保存中...' : '加入生词本'}
             </button>
           </div>
 

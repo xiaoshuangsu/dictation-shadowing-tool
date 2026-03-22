@@ -7,7 +7,12 @@
 export interface WordDefinition {
   word: string
   phonetic: string
-  definition: string
+  definitions: {
+    'zh-CN': string
+    'zh-Hant': string
+    'vi': string
+    'en': string
+  }
   example?: string
 }
 
