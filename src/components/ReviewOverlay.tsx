@@ -7,6 +7,10 @@
  * - 实时校验拼写
  * - 3D 翻转动画展示答案
  * - 支持切换到下一个单词
+ *
+ * 修复：
+ * - 修复答案泄露问题（Cloze 打码）
+ * - 在背面显示完整原句
  */
 
 'use client'
@@ -102,13 +106,27 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
     setIsCorrect(null)
   }
 
-  // 🔴 创建填空句（智能匹配，忽略大小写和标点）
+  // 🔴 创建填空句（智能 Cloze 打码，修复答案泄露）
   const createBlankSentence = (sentence: string, word: string) => {
-    // 转义特殊字符
-    const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    // 匹配单词（忽略大小写）
-    const regex = new RegExp(`\\\\b${escapedWord}\\\\b`, 'gi')
-    return sentence.replace(regex, '_____')
+    const lowerWord = word.toLowerCase().trim()
+
+    // 🔴 策略：使用更宽松的匹配规则
+    // 1. 首先尝试精确匹配（忽略大小写）
+    let processed = sentence.replace(new RegExp(`\\b${word}\\b`, 'gi'), (match) => {
+      // 🔴 深色下划线提示用户这里需要填写
+      return `<span class="font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50 px-1 rounded">${'_____'}</span>`
+    })
+
+    // 2. 如果没有替换，尝试匹配单词的任何变形（包含该单词的词）
+    if (!processed.includes('<span')) {
+      // 匹配包含该单词的任何形式（如 talked → talk，talks → talk）
+      const pattern = new RegExp(`\\b\\w*${lowerWord}\\w*\\b`, 'gi')
+      processed = sentence.replace(pattern, (match) => {
+        return `<span class="font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50 px-1 rounded">${'_____'}</span>`
+      })
+    }
+
+    return processed
   }
 
   // 🔴 播放音频
@@ -165,11 +183,14 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 </p>
               </div>
 
-              {/* 填空句 */}
+              {/* 填空句 - 🔴 修复答案泄露 */}
               <div className="bg-gray-50 rounded-lg p-6 mb-8 border-l-4 border-blue-500">
-                <p className="text-lg text-gray-700 leading-relaxed">
-                  {createBlankSentence(currentWord.context_sentence, currentWord.word)}
-                </p>
+                <p
+                  className="text-lg text-gray-700 leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: createBlankSentence(currentWord.context_sentence, currentWord.word)
+                  }}
+                />
               </div>
 
               {/* 输入框 */}
@@ -220,6 +241,15 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                   <p className="text-xl text-blue-100">{currentWord.phonetic}</p>
                 )}
               </div>
+
+              {/* 🔴 完整原句（仅在背面显示） */}
+              {currentWord.context_sentence && (
+                <div className="bg-white/10 rounded-lg p-4 mb-8 backdrop-blur-sm">
+                  <p className="text-sm text-white/90 text-center leading-relaxed">
+                    {currentWord.context_sentence}
+                  </p>
+                </div>
+              )}
 
               {/* 音频按钮 */}
               <div className="flex items-center justify-center gap-6 mb-8">
