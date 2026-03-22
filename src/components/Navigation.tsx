@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown } from "lucide-react"
+import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown, BookMarked } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
@@ -42,6 +42,7 @@ export default function Navigation() {
 
   const navItems = [
     { href: "/topics", label: "Topics", icon: BookOpen },
+    { href: "/vocabulary", label: "Vocabulary", icon: BookMarked },
   ]
 
   const isActive = (href: string) => {
