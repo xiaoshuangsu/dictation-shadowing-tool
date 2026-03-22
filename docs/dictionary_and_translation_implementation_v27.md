@@ -1,7 +1,7 @@
 # 点词翻译与生词本功能实现总结
 
 **项目**: ShadowHub - 英语听写与跟读练习平台
-**版本**: V27.0.5
+**版本**: V27.0.6
 **更新日期**: 2026-03-22
 **状态**: 生产就绪
 
@@ -392,6 +392,140 @@ python scripts/prepopulate_dictionary_cache.py --yes
 
 ---
 
+## 🔧 常见问题和故障排除
+
+### 问题 1: 点击发音按钮触发句子播放
+
+**症状**: 点击 Tooltip 中的 [🔊 US] 或 [🔊 UK] 按钮时，除了播放单词发音，还触发了当前句子的播放。
+
+**原因**: 事件冒泡 (Event Bubbling)。点击发音按钮的事件传播到了父元素，触发了句子播放。
+
+**解决方案**:
+```typescript
+// src/components/WordTooltip.tsx
+
+// 修改前
+const playAudio = (variant: 'us' | 'uk') => { ... }
+<button onClick={() => playAudio('us')}>
+
+// 修改后
+const playAudio = (variant: 'us' | 'uk', event?: React.MouseEvent) => {
+  if (event) {
+    event.stopPropagation()  // 阻止事件冒泡
+  }
+  ...
+}
+<button onClick={(e) => playAudio('us', e)}>
+```
+
+**修复版本**: V27.0.6
+
+---
+
+### 问题 2: 词典预生成脚本保存失败
+
+**症状**: 脚本运行时出现错误：
+```
+Could not find the 'definition_json' column of 'dictionary_cache' in the schema cache
+```
+
+**原因**:
+1. 数据库迁移时字段已重命名：`definition_json` → `definitions`
+2. 脚本仍在使用旧的字段名
+3. GLM API 返回的语言代码不匹配
+
+**解决方案**:
+
+**1. 修复字段名** (`scripts/prepopulate_dictionary_cache.py`):
+```python
+# 修改前
+cache_data = {
+    'word': word,
+    'definition_json': definition_json,  # ❌ 旧字段名
+}
+
+# 修改后
+cache_data = {
+    'word': word,
+    'definitions': definitions,  # ✅ 新字段名
+}
+```
+
+**2. 修复 GLM API Prompt**:
+```python
+# 修改前
+"zh": "中文释义"
+
+# 修改后
+"zh-CN": "简体中文释义",
+"zh-Hant": "繁體中文释义"
+```
+
+**3. 修复 JavaScript 语法错误**:
+```python
+# 修改前（JavaScript 语法，Python 不支持）
+phonetics = data[0]?.phonetics or []
+
+# 修改后（Python 语法）
+phonetics = data[0].get('phonetics', []) if len(data) > 0 else []
+```
+
+**4. 修复查询限制（突破 1000 条）**:
+```python
+# 修改前（只返回前 1000 条）
+cached_response = supabase.table('dictionary_cache').select('word').execute()
+cached_words = {row['word'] for row in cached_response.data}
+
+# 修改后（分批获取所有记录）
+cached_count_result = supabase.table('dictionary_cache').select('word', count='exact').execute()
+total_cached = cached_count_result.count
+
+cached_words = set()
+batch_size = 1000
+start = 0
+while start < total_cached:
+    batch = supabase.table('dictionary_cache').select('word').range(start, start + batch_size - 1).execute()
+    cached_words.update({row['word'] for row in batch.data})
+    start += batch_size
+```
+
+**5. 添加进度汇报**:
+```python
+# 每 5 分钟汇报进度
+if current_time - last_progress_time >= 300:  # 300 秒
+    progress_pct = (i / total_words) * 100
+    speed = i / (elapsed / 60)
+    remaining_min = (total_words - i) / speed
+    print(f"进度: {progress_pct:.1f}% | 速度: {speed:.1f} 词/分钟 | 剩余: {int(remaining_min)} 分钟")
+```
+
+**修复版本**: V27.0.6
+
+---
+
+### 问题 3: 多个预生成进程冲突
+
+**症状**: 发现多个 Python 进程同时运行预生成脚本，导致大量 `duplicate key` 错误。
+
+**原因**: 重复启动脚本或使用监控脚本重启了进程。
+
+**解决方案**:
+```bash
+# 停止所有重复进程
+ps aux | grep prepopulate_dictionary_cache | grep -v grep
+kill <PID>
+
+# 确认只有一个进程在运行
+ps aux | grep prepopulate_dictionary_cache | grep -v grep
+```
+
+**建议**: 使用 `nohup` 和日志文件确保只有一个实例：
+```bash
+nohup python -u scripts/prepopulate_dictionary_cache.py --yes > /private/tmp/prepopulate.log 2>&1 &
+```
+
+---
+
 ## 🚀 部署检查清单
 
 - [ ] 所有数据库迁移已执行
@@ -411,6 +545,7 @@ python scripts/prepopulate_dictionary_cache.py --yes
 | V27.0.3 | 2026-03-22 | 优雅处理：URL清理+视觉聚焦 |
 | V27.0.4 | 2026-03-22 | 导航栏 Vocabulary 入口 |
 | V27.0.5 | 2026-03-22 | 单词发音：美音/英音播放 |
+| V27.0.6 | 2026-03-22 | 修复发音按钮事件冒泡+词典预生成脚本优化 |
 
 ---
 
