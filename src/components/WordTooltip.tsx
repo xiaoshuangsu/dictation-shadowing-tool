@@ -415,7 +415,7 @@ export default function WordTooltip({
                         : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed'
                     }`}
                   >
-                    {saved ? '✓ 已添加' : saving ? '保存中...' : '加入生词本'}
+                    {saved ? '✓ Added' : saving ? 'Saving...' : 'Add to Vocabulary'}
                   </button>
                 </div>
 
