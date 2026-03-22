@@ -153,8 +153,13 @@ export default function WordTooltip({
     }
   }, [audioUrls])
 
-  // 🔴 播放音频
-  const playAudio = (variant: 'us' | 'uk') => {
+  // 🔴 播放音频（阻止事件冒泡）
+  const playAudio = (variant: 'us' | 'uk', event?: React.MouseEvent) => {
+    // 阻止事件冒泡到父元素（避免触发句子播放）
+    if (event) {
+      event.stopPropagation()
+    }
+
     const audioRef = variant === 'us' ? usAudioRef : ukAudioRef
     if (audioRef.current) {
       audioRef.current.currentTime = 0
@@ -328,7 +333,7 @@ export default function WordTooltip({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => playAudio('us')}
+                onClick={(e) => playAudio('us', e)}
                 disabled={!audioUrls.us || loadingAudio}
                 className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="美音"
@@ -337,7 +342,7 @@ export default function WordTooltip({
                 <span className="font-medium">US</span>
               </button>
               <button
-                onClick={() => playAudio('uk')}
+                onClick={(e) => playAudio('uk', e)}
                 disabled={!audioUrls.uk || loadingAudio}
                 className="flex items-center gap-1 px-2 py-1 text-xs text-purple-600 hover:bg-purple-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="英音"

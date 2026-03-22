@@ -126,7 +126,7 @@ def fetch_word_audio_urls(word: str) -> Dict[str, str]:
 
         if response.ok:
             data = response.json()
-            phonetics = data[0]?.phonetics or []
+            phonetics = data[0].get('phonetics', []) if len(data) > 0 else []
 
             # 查找美音和英音
             for phonetic in phonetics:
@@ -180,7 +180,8 @@ def fetch_word_definition_from_glm(word: str) -> Dict:
 {
   "word": "单词（小写）",
   "phonetic": "音标（如 /həˈləʊ/）",
-  "zh": "中文释义，最多3个常用释义，用分号分隔",
+  "zh-CN": "简体中文释义，最多3个常用释义，用分号分隔",
+  "zh-Hant": "繁體中文释义，最多3个常用释义，用分号分隔",
   "vi": "越南语释义，最多3个常用释义，用分号分隔",
   "en": "英文释义，最多3个常用释义，用分号分隔",
   "example": "英文例句（选填，如果该单词常用的话）"
@@ -192,7 +193,8 @@ def fetch_word_definition_from_glm(word: str) -> Dict:
 {
   "word": "hello",
   "phonetic": "/həˈləʊ/",
-  "zh": "你好；问候；喂",
+  "zh-CN": "你好；问候；喂",
+  "zh-Hant": "你好；問候；喂",
   "vi": "xin chào; chào hỏi",
   "en": "a greeting; an expression of greeting",
   "example": "Hello, how are you?"
@@ -247,8 +249,9 @@ def save_word_to_cache(word_data: Dict, audio_urls: Dict[str, str] = None) -> bo
     try:
         word = word_data.get('word', '').lower().strip()
 
-        definition_json = {
-            'zh': word_data.get('zh', ''),
+        definitions = {
+            'zh-CN': word_data.get('zh-CN', ''),
+            'zh-Hant': word_data.get('zh-Hant', ''),
             'vi': word_data.get('vi', ''),
             'en': word_data.get('en', '')
         }
@@ -257,7 +260,7 @@ def save_word_to_cache(word_data: Dict, audio_urls: Dict[str, str] = None) -> bo
         cache_data = {
             'word': word,
             'phonetic': word_data.get('phonetic', ''),
-            'definition_json': definition_json,
+            'definitions': definitions,
             'example': word_data.get('example')
         }
 
@@ -303,12 +306,22 @@ def main():
     for word, freq in sorted_words[:20]:
         print(f"  {word:20s} : {freq:3d} 次")
 
-    # 2. 检查已缓存的单词
+    # 2. 检查已缓存的单词（分批获取，突破 1000 条限制）
     print(f"\n🔍 检查已缓存的单词...")
-    cached_response = supabase.table('dictionary_cache').select('word').execute()
-    cached_words = {row['word'] for row in cached_response.data}
+    cached_count_result = supabase.table('dictionary_cache').select('word', count='exact').execute()
+    total_cached = cached_count_result.count
+    print(f"✅ 已缓存 {total_cached} 个单词")
 
-    print(f"✅ 已缓存 {len(cached_words)} 个单词")
+    # 获取所有已缓存单词的集合（分批获取）
+    cached_words = set()
+    batch_size = 1000
+    start = 0
+    while start < total_cached:
+        batch = supabase.table('dictionary_cache').select('word').range(start, start + batch_size - 1).execute()
+        cached_words.update({row['word'] for row in batch.data})
+        start += batch_size
+        if len(batch.data) < batch_size:
+            break
 
     # 3. 确定需要预生成的单词
     words_to_cache = [word for word, freq in sorted_words if word not in cached_words]
@@ -338,6 +351,8 @@ def main():
     success_count = 0
     failed_count = 0
     total_words = len(words_to_cache)
+    start_time = time.time()
+    last_progress_time = start_time
 
     for i, word in enumerate(words_to_cache, 1):
         print(f"\n[{i}/{total_words}] 处理单词: {word}", end=" ")
@@ -366,6 +381,23 @@ def main():
         if i % 5 == 0:
             print(f"\n⏸️  已处理 {i}/{total_words}，等待 2 秒...")
             time.sleep(2)
+
+        # 每 5 分钟汇报进度
+        current_time = time.time()
+        if current_time - last_progress_time >= 300:  # 300 秒 = 5 分钟
+            elapsed = current_time - start_time
+            progress_pct = (i / total_words) * 100
+            speed = i / (elapsed / 60)  # 每分钟处理数
+            remaining_min = (total_words - i) / speed if speed > 0 else 0
+
+            print(f"\n" + "=" * 70)
+            print(f"⏱️  进度报告（运行 {int(elapsed/60)} 分钟）")
+            print(f"  - 已处理: {i}/{total_words} ({progress_pct:.1f}%)")
+            print(f"  - 成功: {success_count} | 失败: {failed_count}")
+            print(f"  - 速度: {speed:.1f} 词/分钟")
+            print(f"  - 预计剩余: {int(remaining_min)} 分钟")
+            print("=" * 70)
+            last_progress_time = current_time
         else:
             time.sleep(0.5)  # 每个单词之间等待 0.5 秒
 
