@@ -313,38 +313,38 @@ export default function WordTooltip({
       {/* 内容区域 */}
       {!loading && definition && (
         <div className="space-y-4">
-          {/* 第一行：单词 + 音标 + 发音按钮 */}
+          {/* 第一行：单词 */}
           <div>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  {definition.word}
-                </h3>
-                {definition.phonetic && (
-                  <p className="text-sm text-gray-500 mt-1">{definition.phonetic}</p>
-                )}
-              </div>
-              {/* 🔴 发音按钮 */}
-              <div className="flex gap-1 ml-2">
-                <button
-                  onClick={() => playAudio('us')}
-                  disabled={!audioUrls.us || loadingAudio}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="美音"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span className="font-medium">US</span>
-                </button>
-                <button
-                  onClick={() => playAudio('uk')}
-                  disabled={!audioUrls.uk || loadingAudio}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-purple-600 hover:bg-purple-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="英音"
-                >
-                  <Volume2 className="w-3.5 h-3.5" />
-                  <span className="font-medium">UK</span>
-                </button>
-              </div>
+            <h3 className="text-2xl font-bold text-gray-900">
+              {definition.word}
+            </h3>
+          </div>
+
+          {/* 第二行：音标 + 发音按钮 */}
+          <div className="flex items-center gap-3">
+            {definition.phonetic && (
+              <p className="text-sm text-gray-500">{definition.phonetic}</p>
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => playAudio('us')}
+                disabled={!audioUrls.us || loadingAudio}
+                className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="美音"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span className="font-medium">US</span>
+              </button>
+              <button
+                onClick={() => playAudio('uk')}
+                disabled={!audioUrls.uk || loadingAudio}
+                className="flex items-center gap-1 px-2 py-1 text-xs text-purple-600 hover:bg-purple-50 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="英音"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                <span className="font-medium">UK</span>
+              </button>
             </div>
           </div>
 
