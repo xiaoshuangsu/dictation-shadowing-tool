@@ -20,11 +20,29 @@ import sys
 import json
 import time
 import re
+import logging
 from pathlib import Path
-from typing import Set, List, Dict
+from typing import Set, List, Dict, Optional
 from collections import Counter
+from datetime import datetime
 from supabase import create_client
 import requests
+
+# 配置日志
+log_dir = Path(__file__).parent.parent / 'logs'
+log_dir.mkdir(exist_ok=True)
+log_file = log_dir / f'prepopulate_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 # 加载 .env.local
 env_local_path = Path(__file__).parent.parent / '.env.local'
@@ -160,7 +178,7 @@ def fetch_word_audio_urls(word: str) -> Dict[str, str]:
 # GLM API 调用
 # ══════════════════════════════════════════════════════════════════════════════
 
-def fetch_word_definition_from_glm(word: str) -> Dict:
+def fetch_word_definition_from_glm(word: str) -> Optional[Dict]:
     """调用 GLM API 获取单词释义"""
     try:
         response = requests.post(
@@ -213,14 +231,14 @@ def fetch_word_definition_from_glm(word: str) -> Dict:
         )
 
         if response.status_code != 200:
-            print(f"  ⚠️  GLM API 错误: {response.status_code}")
+            logger.warning(f"GLM API 错误 ({response.status_code}): {word}")
             return None
 
         data = response.json()
         content = data.get('choices', [{}])[0].get('message', {}).get('content')
 
         if not content:
-            print(f"  ⚠️  GLM API 返回空内容")
+            logger.warning(f"GLM API 返回空内容: {word}")
             return None
 
         # 解析 JSON
@@ -237,15 +255,21 @@ def fetch_word_definition_from_glm(word: str) -> Dict:
                 except json.JSONDecodeError:
                     pass
 
-            print(f"  ⚠️  无法解析 GLM 响应")
+            logger.warning(f"无法解析 GLM 响应: {word}")
             return None
 
+    except requests.Timeout:
+        logger.error(f"GLM API 超时: {word}")
+        return None
+    except requests.RequestException as e:
+        logger.error(f"GLM API 请求失败: {word} - {e}")
+        return None
     except Exception as e:
-        print(f"  ⚠️  调用 GLM API 失败: {e}")
+        logger.error(f"调用 GLM API 异常: {word} - {e}")
         return None
 
 def save_word_to_cache(word_data: Dict, audio_urls: Dict[str, str] = None) -> bool:
-    """将单词释义保存到缓存表"""
+    """将单词释义保存到缓存表（每个词立即保存，防止数据丢失）"""
     try:
         word = word_data.get('word', '').lower().strip()
 
@@ -277,7 +301,7 @@ def save_word_to_cache(word_data: Dict, audio_urls: Dict[str, str] = None) -> bo
         return True
 
     except Exception as e:
-        print(f"  ⚠️  保存到缓存失败: {e}")
+        logger.error(f"保存到缓存失败: {word_data.get('word', 'unknown')} - {e}")
         return False
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -345,80 +369,109 @@ def main():
             return
 
     # 4. 批量调用 API 并缓存
-    print(f"\n🚀 开始预生成...")
-    print("=" * 70)
+    logger.info(f"🚀 开始预生成 {len(words_to_cache)} 个单词...")
+    logger.info(f"📝 日志文件: {log_file}")
+    logger.info("=" * 70)
 
     success_count = 0
     failed_count = 0
     total_words = len(words_to_cache)
     start_time = time.time()
     last_progress_time = start_time
+    failed_words = []
 
-    for i, word in enumerate(words_to_cache, 1):
-        print(f"\n[{i}/{total_words}] 处理单词: {word}", end=" ")
+    try:
+        for i, word in enumerate(words_to_cache, 1):
+            try:
+                # 调用 GLM API
+                word_data = fetch_word_definition_from_glm(word)
 
-        # 调用 GLM API
-        word_data = fetch_word_definition_from_glm(word)
+                if not word_data:
+                    logger.warning(f"[{i}/{total_words}] {word} - API 返回空")
+                    failed_count += 1
+                    failed_words.append(word)
+                    time.sleep(1)  # API 失败后等待
+                    continue
 
-        if not word_data:
-            print("❌ 失败")
-            failed_count += 1
-            time.sleep(1)  # API 失败后等待
-            continue
+                # 获取音频 URL
+                try:
+                    audio_urls = fetch_word_audio_urls(word_data['word'])
+                except Exception as e:
+                    logger.warning(f"[{i}/{total_words}] {word} - 音频获取失败: {e}")
+                    audio_urls = None
 
-        # 🔴 获取音频 URL
-        audio_urls = fetch_word_audio_urls(word_data['word'])
+                # 保存到缓存（每个词立即保存）
+                if save_word_to_cache(word_data, audio_urls):
+                    logger.info(f"[{i}/{total_words}] {word} - ✅ 成功")
+                    success_count += 1
+                else:
+                    logger.warning(f"[{i}/{total_words}] {word} - ⚠️ 保存失败")
+                    failed_count += 1
+                    failed_words.append(word)
 
-        # 保存到缓存
-        if save_word_to_cache(word_data, audio_urls):
-            print("✅ 成功")
-            success_count += 1
-        else:
-            print("⚠️  保存失败")
-            failed_count += 1
+                # API 限流：每 5 个单词后等待 2 秒
+                if i % 5 == 0:
+                    logger.info(f"⏸️  已处理 {i}/{total_words}，等待 2 秒...")
+                    time.sleep(2)
 
-        # API 限流：每 5 个单词后等待 2 秒
-        if i % 5 == 0:
-            print(f"\n⏸️  已处理 {i}/{total_words}，等待 2 秒...")
-            time.sleep(2)
+                # 每 5 分钟汇报进度
+                current_time = time.time()
+                if current_time - last_progress_time >= 300:  # 300 秒 = 5 分钟
+                    elapsed = current_time - start_time
+                    progress_pct = (i / total_words) * 100
+                    speed = i / (elapsed / 60)  # 每分钟处理数
+                    remaining_min = (total_words - i) / speed if speed > 0 else 0
 
-        # 每 5 分钟汇报进度
-        current_time = time.time()
-        if current_time - last_progress_time >= 300:  # 300 秒 = 5 分钟
-            elapsed = current_time - start_time
-            progress_pct = (i / total_words) * 100
-            speed = i / (elapsed / 60)  # 每分钟处理数
-            remaining_min = (total_words - i) / speed if speed > 0 else 0
+                    logger.info("=" * 70)
+                    logger.info(f"⏱️  进度报告（运行 {int(elapsed/60)} 分钟）")
+                    logger.info(f"  - 已处理: {i}/{total_words} ({progress_pct:.1f}%)")
+                    logger.info(f"  - 成功: {success_count} | 失败: {failed_count}")
+                    logger.info(f"  - 速度: {speed:.1f} 词/分钟")
+                    logger.info(f"  - 预计剩余: {int(remaining_min)} 分钟")
+                    logger.info("=" * 70)
+                    last_progress_time = current_time
+                else:
+                    time.sleep(0.5)  # 每个单词之间等待 0.5 秒
 
-            print(f"\n" + "=" * 70)
-            print(f"⏱️  进度报告（运行 {int(elapsed/60)} 分钟）")
-            print(f"  - 已处理: {i}/{total_words} ({progress_pct:.1f}%)")
-            print(f"  - 成功: {success_count} | 失败: {failed_count}")
-            print(f"  - 速度: {speed:.1f} 词/分钟")
-            print(f"  - 预计剩余: {int(remaining_min)} 分钟")
-            print("=" * 70)
-            last_progress_time = current_time
-        else:
-            time.sleep(0.5)  # 每个单词之间等待 0.5 秒
+            except KeyboardInterrupt:
+                logger.info("\n⚠️  用户中断，正在保存进度...")
+                break
+            except Exception as e:
+                logger.error(f"[{i}/{total_words}] {word} - 处理异常: {e}")
+                failed_count += 1
+                failed_words.append(word)
+                continue  # 继续处理下一个词，不中断整个脚本
+
+    except Exception as e:
+        logger.critical(f"脚本严重错误: {e}")
+        raise
 
     # 5. 总结
-    print("\n" + "=" * 70)
-    print("📊 预生成完成！")
-    print("=" * 70)
-    print(f"✅ 成功: {success_count} 个")
-    print(f"❌ 失败: {failed_count} 个")
-    print(f"📈 成功率: {success_count / total_words * 100:.1f}%")
-    print()
+    logger.info("=" * 70)
+    logger.info("📊 预生成完成！")
+    logger.info("=" * 70)
+    logger.info(f"✅ 成功: {success_count} 个")
+    logger.info(f"❌ 失败: {failed_count} 个")
+    logger.info(f"📈 成功率: {success_count / total_words * 100:.1f}%")
+
+    if failed_words:
+        logger.info(f"\n⚠️  失败单词列表 ({len(failed_words)} 个):")
+        logger.info(f"   {', '.join(failed_words[:20])}")
+        if len(failed_words) > 20:
+            logger.info(f"   ... 还有 {len(failed_words) - 20} 个")
+        logger.info(f"\n💾 失败单词已保存到日志: {log_file}")
 
     # 6. 查询缓存统计
     stats_response = supabase.table('dictionary_cache').select('hit_count').execute()
     total_cached = len(stats_response.data)
     total_hits = sum(row.get('hit_count', 0) for row in stats_response.data)
 
-    print(f"📚 缓存统计:")
-    print(f"  - 总单词数: {total_cached}")
-    print(f"  - 总命中次数: {total_hits}")
-    print(f"  - 平均命中: {total_hits / total_cached:.1f} 次/词" if total_cached > 0 else "")
+    logger.info(f"\n📚 缓存统计:")
+    logger.info(f"  - 总单词数: {total_cached}")
+    logger.info(f"  - 总命中次数: {total_hits}")
+    if total_cached > 0:
+        logger.info(f"  - 平均命中: {total_hits / total_cached:.1f} 次/词")
+    logger.info("=" * 70)
 
 if __name__ == '__main__':
     main()
