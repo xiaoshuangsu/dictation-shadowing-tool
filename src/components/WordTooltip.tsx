@@ -26,6 +26,10 @@ export interface WordDefinition {
     'en': string
   }
   example?: string
+  audioUrls?: {
+    us: string | null
+    uk: string | null
+  }
 }
 
 interface WordTooltipProps {
@@ -78,6 +82,17 @@ export default function WordTooltip({
     const fetchAudioUrls = async () => {
       if (!definition || loadingAudio) return
 
+      // 🔴 优先使用 API 返回的音频 URL（从数据库缓存）
+      if (definition.audioUrls) {
+        setAudioUrls({
+          us: definition.audioUrls.us,
+          uk: definition.audioUrls.uk
+        })
+        setLoadingAudio(false)
+        return
+      }
+
+      // 如果 API 没有返回音频 URL，则从 dictionaryapi.dev 获取
       setLoadingAudio(true)
       try {
         // 优先从 dictionaryapi.dev 获取

@@ -137,6 +137,11 @@ export async function POST(request: Request) {
           },
           example: cachedData.example || undefined
         },
+        // 🔴 添加音频 URL
+        audioUrls: {
+          us: cachedData.audio_url_us || null,
+          uk: cachedData.audio_url_uk || null
+        },
         fromCache: true
       })
     }

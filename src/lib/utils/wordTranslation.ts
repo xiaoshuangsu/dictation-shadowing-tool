@@ -14,6 +14,10 @@ export interface WordDefinition {
     'en': string
   }
   example?: string
+  audioUrls?: {
+    us: string | null
+    uk: string | null
+  }
 }
 
 /**
@@ -73,7 +77,11 @@ async function fetchGLMDefinition(word: string): Promise<WordDefinition | null> 
     const data = await response.json()
 
     if (data.success && data.definition) {
-      return data.definition
+      // 返回定义，包含音频 URL
+      return {
+        ...data.definition,
+        audioUrls: data.audioUrls || { us: null, uk: null }
+      }
     }
 
     return null
