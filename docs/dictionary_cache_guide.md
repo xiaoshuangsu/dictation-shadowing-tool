@@ -26,7 +26,7 @@
 |------|------|------|
 | `word` | TEXT (PK) | 单词（小写，主键） |
 | `phonetic` | TEXT | 音标（如 `/həˈləʊ/`） |
-| `definition_json` | JSONB | 多语言释义 `{"zh": "...", "vi": "...", "en": "..."}` |
+| `definitions` | JSONB | 多语言释义 `{"zh-CN": "...", "zh-Hant": "...", "vi": "...", "en": "..."}` |
 | `example` | TEXT | 英文例句 |
 | `created_at` | TIMESTAMPTZ | 创建时间 |
 | `updated_at` | TIMESTAMPTZ | 更新时间 |
@@ -146,7 +146,7 @@ total_words | hit_words | total_hits | avg_hits | last_updated
 ### 查询热门词汇：
 
 ```sql
-SELECT word, hit_count, definition_json->>'zh' as definition
+SELECT word, hit_count, definitions->>'zh-CN' as definition
 FROM dictionary_cache
 ORDER BY hit_count DESC
 LIMIT 20;

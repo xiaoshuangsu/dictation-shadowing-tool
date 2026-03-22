@@ -260,7 +260,7 @@ def save_word_to_cache(word_data: Dict, audio_urls: Dict[str, str] = None) -> bo
         cache_data = {
             'word': word,
             'phonetic': word_data.get('phonetic', ''),
-            'definitions': definitions,
+            'definitions': definitions,  # 使用实际数据库字段名
             'example': word_data.get('example')
         }
 

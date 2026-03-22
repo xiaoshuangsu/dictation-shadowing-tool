@@ -65,7 +65,7 @@
 |------|------|------|------|
 | `word` | TEXT | 单词（小写，主键） | - |
 | `phonetic` | TEXT | 音标 | - |
-| `definition_json` | JSONB | 多语言释义 | - |
+| `definitions` | JSONB | 多语言释义 | - |
 | `example` | TEXT | 英文例句 | - |
 | `audio_url_us` | TEXT | **美音音频 URL** | ✨ V27.0.5 |
 | `audio_url_uk` | TEXT | **英音音频 URL** | ✨ V27.0.5 |
@@ -73,7 +73,7 @@
 | `updated_at` | TIMESTAMPTZ | 更新时间 | - |
 | `hit_count` | INTEGER | 缓存命中次数 | - |
 
-**definition_json 字段格式**：
+**definitions 字段格式**：
 ```json
 {
   "zh-CN": "这样；如此；是的",
@@ -426,28 +426,22 @@ const playAudio = (variant: 'us' | 'uk', event?: React.MouseEvent) => {
 
 **症状**: 脚本运行时出现错误：
 ```
-Could not find the 'definition_json' column of 'dictionary_cache' in the schema cache
+Could not find the 'definitions' column of 'dictionary_cache' in the schema cache
 ```
 
 **原因**:
-1. 数据库迁移时字段已重命名：`definition_json` → `definitions`
+1. 数据库字段名是 `definitions`（通过迁移 `update_dictionary_cache_multilingual.sql` 创建）
 2. 脚本仍在使用旧的字段名
 3. GLM API 返回的语言代码不匹配
 
 **解决方案**:
 
-**1. 修复字段名** (`scripts/prepopulate_dictionary_cache.py`):
+**1. 使用正确的字段名** (`scripts/prepopulate_dictionary_cache.py`):
 ```python
-# 修改前
+# 正确写法（V27.0.7 已修复）
 cache_data = {
     'word': word,
-    'definition_json': definition_json,  # ❌ 旧字段名
-}
-
-# 修改后
-cache_data = {
-    'word': word,
-    'definitions': definitions,  # ✅ 新字段名
+    'definitions': definitions,  # ✅ 数据库字段名
 }
 ```
 
