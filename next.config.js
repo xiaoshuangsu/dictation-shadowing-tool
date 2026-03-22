@@ -1,9 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Static export for Cloudflare Pages (only in production)
-  output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
+  // 🔴 Vercel 部署：禁用静态导出，启用 API Routes 支持
+  // 注意：Vercel 原生支持 Next.js，不需要静态导出
+  // output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
 
-  // Image optimization (disabled for Cloudflare Pages compatibility)
+  // Image optimization
   images: {
     unoptimized: true,
   },
