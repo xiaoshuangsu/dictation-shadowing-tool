@@ -126,14 +126,24 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
 
   // 🔴 下一个单词
   const handleNext = (masteryStatus?: 'learning' | 'mastered') => {
-    if (isLastCard) {
-      onClose()  // 最后一个单词，关闭训练
-      return
-    }
-
     // TODO: 更新数据库掌握状态
     if (masteryStatus) {
       console.log(`更新单词 "${currentWord.word}" 掌握状态为: ${masteryStatus}`)
+    }
+
+    // 如果是"仍需学习"，翻转回正面，继续练习当前单词
+    if (masteryStatus === 'learning') {
+      setFlipped(false)
+      setUserInput('')
+      setIsCorrect(null)
+      setShowedAnswer(false)
+      return
+    }
+
+    // 如果是"已掌握"或没有选择，切换到下一个单词
+    if (isLastCard) {
+      onClose()  // 最后一个单词，关闭训练
+      return
     }
 
     setCurrentIndex(prev => prev + 1)
