@@ -21,33 +21,89 @@
 
 ---
 
-## 🏗️ 架构与账号配置
+## 🏗️ 架构与账号配置（V27.1.0 更新）
 
-### 架构流程
+### 当前架构（2026-03-22 迁移到 Vercel）
+
 ```
-用户 → media.shadowhub.app (B账号Worker)
-     → r2-proxy.suxiaoshuang2020.workers.dev (A账号Worker)
-     → R2 bucket (shadowhub)
+用户访问 shadowhub.app
+    ↓
+Vercel 托管（前端 + API Routes）
+    ↓
+┌─────────────────────────────────────┐
+│  前端页面（静态）                     │
+│  练习页面 /topics/...                │
+│  生词本 /vocabulary                  │
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│  API Routes（Vercel Serverless）     │
+│  /api/word-definition  (点词翻译)    │
+│  /api/user-words       (生词本)      │
+│  /api/user-words/check (检查生词)    │
+│  /api/update-transcript (更新字幕)   │
+└─────────────────────────────────────┘
+    ↓
+Supabase (数据库 + dictionary_cache)
+    ↓
+┌─────────────────────────────────────┐
+│  媒体文件访问                        │
+│  media.shadowhub.app (B账号Worker)  │
+│       ↓                              │
+│  R2 bucket (A账号)                   │
+└─────────────────────────────────────┘
 ```
 
-### 账号归属
+### 账号归属（跨账号架构）
 
 **B 账号（域名与前端托管账号）**
-- **托管服务**：GitHub Pages（通过 GitHub Actions 自动部署）
-- **域名**：`shadowhub.app`（通过 Cloudflare DNS）
-- **职责**：主入口，负责前端代码构建、部署与展示
-- **Worker**：`morning-sound-a67b`（媒体代理）
+- **域名**：`shadowhub.app`（Cloudflare DNS，DNS Only 模式）
+- **前端托管**：**Vercel**（2026-03-22 迁移）
+- **Vercel 项目**：`xiaoshuangsus-projects/dictation`
+- **Worker**：`media.shadowhub.app`（媒体代理，橙色云朵开启）
+- **职责**：
+  - 前端页面展示
+  - API Routes 服务
+  - 媒体文件代理（通过 Worker）
 
 **A 账号（素材存储账号）**
 - **托管服务**：Cloudflare R2
 - **Bucket 名称**：`shadowhub`
+- **Worker**：`r2-proxy.suxiaoshuang2020.workers.dev`
 - **职责**：存放音频、视频、缩略图等所有素材文件
 - **访问方式**：通过 B 账号 Worker 跨账号访问
 
 **Supabase（中枢数据库）**
 - **项目 ID**：`cuxotlijjnxbsirpdkgr`
 - **URL**：`https://cuxotlijjnxbsirpdkgr.supabase.co`
-- **职责**：存储素材元数据、练习文本及 R2 资源索引
+- **职责**：
+  - 存储素材元数据
+  - 存储练习文本
+  - R2 资源索引
+  - **dictionary_cache** 表（词典缓存）
+  - **user_words** 表（生词本）
+
+### 部署流程（Vercel）
+
+1. **代码推送**：`git push origin main`
+2. **自动触发**：GitHub → Vercel（自动部署）
+3. **域名指向**：Cloudflare DNS → Vercel
+4. **全球 CDN**：Vercel Edge Network
+
+### Vercel 环境变量
+
+```
+GLM_API_KEY=***（智谱 AI API 密钥）
+SUPABASE_SERVICE_ROLE_KEY=***（Supabase Service Key）
+NEXT_PUBLIC_SUPABASE_URL=https://cuxotlijjnxbsirpdkgr.supabase.co
+```
+
+### 架构迁移历史
+
+| 日期 | 托管平台 | API Routes | 原因 |
+|------|---------|-----------|------|
+| 2026-03-22 前 | GitHub Pages | ❌ 不支持 | 静态托管 |
+| 2026-03-22 | **Vercel** | ✅ 支持 | 需要后端 API |
 
 ### 关键凭证
 
@@ -70,7 +126,7 @@
 
 ---
 
-## 📋 Git 提交规范
+## 📋 Git 提交与部署规范
 
 ### 提交类型
 - `feat:` 新功能
@@ -89,19 +145,56 @@ git commit -m "feat: 简短描述
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 ```
 
-### 部署流程
-1. 代码自检：检查逻辑，确保无错误
-2. 本地构建：`npm run build`
-3. 提交代码：`git add . && git commit -m "..."`
-4. 推送到 GitHub：`git push origin main`
-5. GitHub Actions 自动构建并部署到 GitHub Pages
-6. Cloudflare DNS 自动指向新的 GitHub Pages
+### 部署流程（Vercel 自动部署）
+
+1. **代码自检**：检查逻辑，确保无错误
+2. **本地构建**：`npm run build`
+3. **提交代码**：`git add . && git commit -m "..."`
+4. **推送到 GitHub**：`git push origin main`
+5. **Vercel 自动部署**（约 1-2 分钟）
+6. **访问新版本**：`https://shadowhub.app`
 
 ### 推送前检查
 - [ ] 代码逻辑自检完成
 - [ ] 本地构建成功（`npm run build`）
 - [ ] 版本号已更新（如需要）
 - [ ] CHANGELOG.md 已更新（如需要）
+- [ ] API Routes 变更检查（如有）
+
+### Vercel 部署状态查看
+
+```bash
+# 查看最近的部署
+npx vercel ls
+
+# 查看实时日志
+npx vercel logs --limit 50
+
+# 查看环境变量
+npx vercel env ls
+```
+
+### 重要配置文件
+
+**Vercel 配置** (`vercel.json`)：
+```json
+{
+  "buildCommand": "npm run build",
+  "framework": "nextjs",
+  "regions": ["hkg1"],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}
+```
+
+**Next.js 配置** (`next.config.js`)：
+```javascript
+// 注意：Vercel 部署时，已禁用 output: 'export'
+// Vercel 原生支持 Next.js，不需要静态导出
 
 ---
 
@@ -227,4 +320,17 @@ cat CONTEXT_RESTORE.md
 ```
 
 ### 方式二：一句话恢复
-> "请先阅读 `claude-code-guide.md` 和 `docs/dictionary_and_translation_implementation_v27.md`，当前版本是 V27.0.5，主要实现了生词采集与复习闭环、Tooltip 优化、优雅跳转体验和单词发音功能。"
+> "请先阅读 `claude-code-guide.md` 和 `docs/dictionary_and_translation_implementation_v27.md`，当前版本是 V27.1.0（2026-03-22），主要实现了：
+> - **Vercel 部署**：从 GitHub Pages 迁移到 Vercel，启用 API Routes
+> - **点词翻译+生词本**：完整的生词采集与复习闭环
+> - **词典缓存优化**：预生成 4500+ 单词释义
+> - **Tooltip 优化**：自动语言联动、单词发音
+> - **优雅跳转体验**：从生词本跳转到练习页面并自动播放"
+
+---
+
+**版本**：V27.1.0
+**更新日期**：2026-03-22
+**架构状态**：生产就绪（Vercel 托管）
+**部署平台**：https://shadowhub.app（Vercel）
+**GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
