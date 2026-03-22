@@ -161,6 +161,24 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 - [ ] CHANGELOG.md 已更新（如需要）
 - [ ] API Routes 变更检查（如有）
 
+### ⚠️ GitHub Actions 状态说明
+
+**重要**：项目已迁移到 Vercel，不再使用 GitHub Actions 构建。
+
+| 平台 | 状态 | 说明 |
+|------|------|------|
+| **GitHub Actions** | ❌ **已禁用** | 不再用于前端构建 |
+| **Vercel** | ✅ **正常工作** | 自动从 GitHub 拉取并部署 |
+
+**为什么 GitHub 显示红色叉号？**
+- ❌ **GitHub Actions** 失败是正常的（已禁用）
+- ✅ **Vercel 部署** 才是实际的部署
+- ✅ **生产环境** 能正常访问说明部署成功
+
+**workflow 文件**：
+- `.github/workflows/nextjs.yml.disabled`（已禁用）
+- 如需恢复 GitHub Actions，改回 `.github/workflows/nextjs.yml`
+
 ### Vercel 部署状态查看
 
 ```bash
