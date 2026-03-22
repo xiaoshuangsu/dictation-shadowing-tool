@@ -217,13 +217,13 @@ export default function WordTooltip({
     }
 
     if (!user) {
-      setMessage({ type: 'error', text: '请先登录' })
+      setMessage({ type: 'error', text: 'Please login first' })
       setTimeout(() => setMessage(null), 2000)
       return
     }
 
     if (!definition) {
-      setMessage({ type: 'error', text: '单词信息加载失败' })
+      setMessage({ type: 'error', text: 'Failed to load word definition' })
       setTimeout(() => setMessage(null), 2000)
       return
     }
@@ -254,13 +254,13 @@ export default function WordTooltip({
         setSaved(true)
         setMessage({
           type: 'success',
-          text: data.isNew ? '已加入学习列表' : '已更新为学习中'
+          text: data.isNew ? 'Added to vocabulary' : 'Updated to learning'
         })
         setTimeout(() => {
           onClose()
         }, 1000)
       } else {
-        setMessage({ type: 'error', text: data.error || '保存失败' })
+        setMessage({ type: 'error', text: data.error || 'Failed to save' })
         setTimeout(() => setMessage(null), 2000)
       }
     } catch (error) {
@@ -386,7 +386,7 @@ export default function WordTooltip({
                   : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
             >
-              {saved ? '✓ 已添加' : saving ? '保存中...' : '加入生词本'}
+              {saved ? '✓ Added' : saving ? 'Saving...' : 'Add to Vocabulary'}
             </button>
           </div>
 

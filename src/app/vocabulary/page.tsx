@@ -75,7 +75,7 @@ export default function VocabularyPage() {
   const handleDeleteWord = async (wordId: string) => {
     if (!user) return
 
-    if (!confirm('确定要删除这个生词吗？')) return
+    if (!confirm('Are you sure you want to delete this word?')) return
 
     try {
       const response = await fetch('/api/user-words', {
@@ -220,14 +220,14 @@ export default function VocabularyPage() {
   // 获取当前语言的释义
   const getCurrentDefinition = (definitionStr: string): string => {
     const def = parseDefinition(definitionStr)
-    return def[currentLanguage] || def['zh-CN'] || '暂无释义'
+    return def[currentLanguage] || def['zh-CN'] || 'No definition'
   }
 
   // 掌握状态配置
   const STATUS_CONFIG = {
-    learning: { label: '学习中', color: 'bg-blue-100 text-blue-800' },
-    familiar: { label: '熟悉', color: 'bg-yellow-100 text-yellow-800' },
-    mastered: { label: '已掌握', color: 'bg-green-100 text-green-800' }
+    learning: { label: 'Learning', color: 'bg-blue-100 text-blue-800' },
+    familiar: { label: 'Familiar', color: 'bg-yellow-100 text-yellow-800' },
+    mastered: { label: 'Mastered', color: 'bg-green-100 text-green-800' }
   }
 
   return (
@@ -237,16 +237,16 @@ export default function VocabularyPage() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">生词本</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Vocabulary</h1>
               <p className="text-gray-600 mt-1">
-                共 {words.length} 个生词
+                {words.length} words total
               </p>
             </div>
             <Link
               href="/"
               className="text-blue-600 hover:text-blue-700"
             >
-              返回练习
+              Back to Practice
             </Link>
           </div>
         </div>
@@ -256,7 +256,7 @@ export default function VocabularyPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <div className="flex gap-2">
-            <span className="text-sm text-gray-700">筛选：</span>
+            <span className="text-sm text-gray-700">Filter:</span>
             <button
               onClick={() => setFilterStatus('all')}
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
@@ -265,7 +265,7 @@ export default function VocabularyPage() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              全部 ({words.length})
+              All ({words.length})
             </button>
             <button
               onClick={() => setFilterStatus('learning')}
@@ -275,7 +275,7 @@ export default function VocabularyPage() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              学习中
+              Learning
             </button>
             <button
               onClick={() => setFilterStatus('mastered')}
@@ -285,7 +285,7 @@ export default function VocabularyPage() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              已掌握
+              Mastered
             </button>
           </div>
         </div>
@@ -299,9 +299,9 @@ export default function VocabularyPage() {
           </div>
         ) : words.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <p className="text-gray-500 mb-4">还没有保存任何生词</p>
+            <p className="text-gray-500 mb-4">No words saved yet</p>
             <p className="text-sm text-gray-400">
-              在练习页面点击单词，然后点击"加入生词本"按钮即可保存
+              Click on any word in practice mode, then click "Add to Vocabulary" to save it
             </p>
           </div>
         ) : (
@@ -362,7 +362,7 @@ export default function VocabularyPage() {
                           <Link
                             href={`/topics/${materialInfoMap[userWord.material_id].category}/${materialInfoMap[userWord.material_id].slug}?t=${userWord.audio_timestamp}`}
                             className="flex-shrink-0 text-blue-600 hover:text-blue-700"
-                            title="跳转播放"
+                            title="Jump to play"
                           >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M8 5v14l11-7z"/>
@@ -376,13 +376,13 @@ export default function VocabularyPage() {
                   {/* 来源素材 */}
                   {userWord.material_title && (
                     <div className="text-xs text-gray-500">
-                      来自：{userWord.material_title}
+                      From: {userWord.material_title}
                     </div>
                   )}
 
                   {/* 时间 */}
                   <div className="text-xs text-gray-400 mt-2">
-                    {new Date(userWord.created_at).toLocaleDateString('zh-CN')}
+                    {new Date(userWord.created_at).toLocaleDateString('en-US')}
                   </div>
                 </div>
               )
