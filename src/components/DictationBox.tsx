@@ -5,6 +5,7 @@ import { Eye } from "lucide-react"
 import ConfirmModal from "./ConfirmModal"
 import { useSuccessSound } from "@/hooks/useSuccessSound"
 import { TranslationLanguageSelector, type TranslationLanguage, getStoredLanguage } from "@/components/TranslationLanguageSelector"
+import ClickableWord from "./ClickableWord"
 import type { Sentence, Translation } from "@/types"
 
 interface DictationBoxProps {
@@ -482,6 +483,7 @@ export default function DictationBox({
               let displayText: string
               let bgClass: string
               let showEyeIcon = false
+              let isWordRevealed = false  // Word is visible/revealed (can be clicked for translation)
 
               if (showAllWords || isRevealed) {
                 // Show Words clicked or revealed - reveal all original words
@@ -491,26 +493,31 @@ export default function DictationBox({
                   : status === "incorrect"
                   ? "bg-red-100 border-red-400"
                   : "bg-gray-100 border-gray-300"
+                isWordRevealed = true
               } else if (isPeeked) {
                 // Word is peeked - show original word
                 displayText = word
                 bgClass = "bg-red-50 border-red-300" // Light red background for peeked words
+                isWordRevealed = true
               } else {
                 // Default - show word-by-word status
                 if (status === "correct") {
                   // Show original word in green
                   displayText = word
                   bgClass = "bg-green-100 border-green-400"
+                  isWordRevealed = true
                 } else if (status === "incorrect") {
                   // Show user input + * in red
                   displayText = `${userWord}*`
                   bgClass = "bg-red-100 border-red-400"
                   showEyeIcon = true
+                  isWordRevealed = false
                 } else {
                   // pending/missing - show asterisks matching word length in gray
                   displayText = "*".repeat(word.split("").length)
                   bgClass = "bg-gray-100 border-gray-300"
                   showEyeIcon = true
+                  isWordRevealed = false
                 }
               }
 
@@ -531,11 +538,23 @@ export default function DictationBox({
                   )}
 
                   {/* Word Card */}
-                  <div
-                    className={`px-3 py-2 rounded-lg border-2 ${bgClass}`}
-                  >
+                  <div className={`px-3 py-2 rounded-lg border-2 ${bgClass}`}>
                     <span className="text-sm font-medium">
-                      {displayText}
+                      {isWordRevealed ? (
+                        // 🔴 使用 ClickableWord 包裹已揭示的单词
+                        <ClickableWord
+                          word={displayText}
+                          originalWord={word}
+                          contextSentence={sentence.text}
+                          isHidden={false}
+                          className="text-inherit hover:text-inherit"
+                        >
+                          {displayText}
+                        </ClickableWord>
+                      ) : (
+                        // 未揭示的单词（星号）：显示为不可点击
+                        <span className="cursor-not-allowed opacity-70">{displayText}</span>
+                      )}
                     </span>
                   </div>
                 </div>
