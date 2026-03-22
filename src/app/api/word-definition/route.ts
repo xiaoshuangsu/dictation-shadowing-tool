@@ -17,11 +17,19 @@ import { NextResponse } from 'next/server'
 const GLM_API_KEY = process.env.GLM_API_KEY
 const GLM_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4'
 
-// Supabase 客户端（使用 service role 以获得写入权限）
-const supabase = createClient(
-  'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
-)
+// 🔴 容错初始化：只在运行时创建客户端，避免构建时错误
+const getSupabaseClient = () => {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+
+  if (!serviceKey) {
+    console.warn('[API] ⚠️  SUPABASE_SERVICE_ROLE_KEY not set')
+  }
+
+  return createClient(
+    'https://cuxotlijjnxbsirpdkgr.supabase.co',
+    serviceKey || ''
+  )
+}
 
 if (!GLM_API_KEY) {
   console.warn('⚠️ GLM_API_KEY 未设置，单词翻译功能将不可用')
@@ -61,6 +69,9 @@ export async function POST(request: Request) {
     }
 
     console.log('[API] Fetching word definition:', normalizedWord)
+
+    // 🔴 使用函数调用获取客户端
+    const supabase = getSupabaseClient()
 
     // ============================================
     // 第一步：查询缓存

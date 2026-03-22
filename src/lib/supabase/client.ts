@@ -32,10 +32,25 @@ let supabaseInstance: ReturnType<typeof createClient> | null = null
  * - 多个 GoTrueClient 实例冲突
  * - 认证状态不一致
  * - 加载卡死问题
+ *
+ * 容错处理：即使凭证缺失也不会抛出错误
  */
 export const getSupabase = () => {
+  // 🔴 容错处理：检查凭证是否存在
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('[Supabase] ⚠️  Missing credentials, using hardcoded values')
+  }
+
   if (!supabaseInstance) {
-    console.log('[Supabase] Creating singleton instance')
+    // 🔴 在构建期间（SSG），创建静默版本避免错误
+    const isBuildTime = typeof window === 'undefined'
+
+    if (isBuildTime) {
+      console.log('[Supabase] Creating singleton instance (build time)')
+    } else {
+      console.log('[Supabase] Creating singleton instance (browser)')
+    }
+
     supabaseInstance = createClient(
       supabaseUrl,
       supabaseAnonKey,
@@ -49,7 +64,7 @@ export const getSupabase = () => {
       }
     )
 
-    // Debug logging
+    // Debug logging (仅在浏览器环境)
     if (typeof window !== 'undefined') {
       console.log('[Supabase] URL:', supabaseUrl.substring(0, 30) + '...')
       console.log('[Supabase] Key present:', !!supabaseAnonKey)

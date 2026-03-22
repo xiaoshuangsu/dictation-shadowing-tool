@@ -11,11 +11,19 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-// 初始化 Supabase 客户端（使用 service role 以绕过 RLS）
-const supabase = createClient(
-  'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
-)
+// 🔴 容错初始化：只在运行时创建客户端，避免构建时错误
+const getSupabaseClient = () => {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+
+  if (!serviceKey) {
+    console.warn('[API] ⚠️  SUPABASE_SERVICE_ROLE_KEY not set')
+  }
+
+  return createClient(
+    'https://cuxotlijjnxbsirpdkgr.supabase.co',
+    serviceKey || ''
+  )
+}
 
 /**
  * GET /api/user-words
@@ -46,6 +54,9 @@ export async function GET(request: Request) {
     }
 
     console.log('[API] Fetching user words:', { userId, status, limit, offset })
+
+    // 🔴 使用函数调用获取客户端
+    const supabase = getSupabaseClient()
 
     // 构建查询
     let query = supabase
