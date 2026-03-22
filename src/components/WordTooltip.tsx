@@ -114,26 +114,20 @@ export default function WordTooltip({
             }
           }
 
-          // 兜底：使用 Google TTS
-          const googleTTs = (lang: string) =>
-            `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(definition.word)}&tl=${lang}&client=tw-ob`
-
+          // 设置音频 URL（只设置找到的音频，不使用 Google TTS 兜底）
           setAudioUrls({
-            us: usAudio || googleTTs('en-us'),
-            uk: ukAudio || googleTTs('en-GB')
+            us: usAudio || null,
+            uk: ukAudio || null
           })
         } else {
           throw new Error('API request failed')
         }
       } catch (error) {
-        console.log('Dictionary API 失败，使用 Google TTS 兜底')
-        // 使用 Google TTS 作为兜底
-        const googleTTs = (lang: string) =>
-          `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(definition.word)}&tl=${lang}&client=tw-ob`
-
+        console.log('Dictionary API 失败，无法获取音频')
+        // 设置为 null，禁用音频按钮
         setAudioUrls({
-          us: googleTTs('en-us'),
-          uk: googleTTs('en-GB')
+          us: null,
+          uk: null
         })
       } finally {
         setLoadingAudio(false)
