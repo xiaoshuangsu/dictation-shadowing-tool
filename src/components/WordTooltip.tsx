@@ -210,7 +210,12 @@ export default function WordTooltip({
   }
 
   // 保存生词到数据库
-  const handleSaveWord = async () => {
+  const handleSaveWord = async (event?: React.MouseEvent) => {
+    // 阻止事件冒泡到父元素（避免触发句子播放）
+    if (event) {
+      event.stopPropagation()
+    }
+
     if (!user) {
       setMessage({ type: 'error', text: '请先登录' })
       setTimeout(() => setMessage(null), 2000)
@@ -373,7 +378,7 @@ export default function WordTooltip({
           {/* 底部：加入生词本按钮 */}
           <div className="pt-2">
             <button
-              onClick={handleSaveWord}
+              onClick={(e) => handleSaveWord(e)}
               disabled={saving || saved}
               className={`w-full px-4 py-3 rounded-lg transition-all font-medium text-base ${
                 saved
