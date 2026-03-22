@@ -270,12 +270,6 @@ export default function VocabularyPage() {
                   Start Training
                 </button>
               )}
-              <Link
-                href="/"
-                className="text-blue-600 hover:text-blue-700"
-              >
-                Back to Practice
-              </Link>
             </div>
           </div>
         </div>
