@@ -113,6 +113,20 @@ export interface Material {
   transcript?: any  // JSONB 类型，存储句子级别的转录数据
 }
 
+export interface UserWord {
+  id: string
+  user_id: string
+  word: string
+  phonetic: string | null
+  definition: string  // JSON 格式：{"zh": "你好", "vi": "xin chào"}
+  context_sentence: string | null
+  material_id: string | null
+  material_title: string | null
+  mastery_status: 'learning' | 'familiar' | 'mastered'
+  created_at: string
+  updated_at: string
+}
+
 /**
  * Helper function to save a practice record
  */

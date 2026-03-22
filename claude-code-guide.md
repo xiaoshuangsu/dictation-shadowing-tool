@@ -115,6 +115,8 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 | **技术架构** | `docs/technical_deep_dive.md` | 代码开发、Bug 修复、性能优化 |
 | **经验库** | `docs/knowledge_base.md` | 遇到 Bug 时查阅解决方案 |
 | **翻译引擎** | `.shadowhub/translation-rules.json` | 翻译任务（JSON 格式） |
+| **点词翻译与生词本** | `docs/dictionary_and_translation_implementation.md` | 点词翻译功能、生词本管理、多语言缓存 |
+| **词典缓存优化** | `docs/dictionary_cache_guide.md` | 词典缓存架构、成本优化、监控统计 |
 
 ---
 
@@ -130,6 +132,8 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 - **代码开发/Bug 修复**：`docs/technical_deep_dive.md` + `docs/knowledge_base.md`
 - **翻译任务**：`.shadowhub/translation-rules.json`
 - **翻译 UI 开发**：`docs/translation-ui-refactor.md`
+- **点词翻译与生词本**：`docs/dictionary_and_translation_implementation.md`
+- **词典缓存优化**：`docs/dictionary_cache_guide.md`
 
 ### 快速恢复命令
 ```bash
@@ -150,6 +154,12 @@ cat claude-code-guide.md scripts/translate_to_vietnamese.py
 
 # 翻译 UI 开发
 cat claude-code-guide.md docs/translation-ui-refactor.md
+
+# 点词翻译与生词本功能（完整上下文）
+cat claude-code-guide.md docs/dictionary_and_translation_implementation.md
+
+# 词典缓存优化与预生成
+cat claude-code-guide.md docs/dictionary_cache_guide.md
 ```
 
 ---

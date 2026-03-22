@@ -19,6 +19,7 @@ import WordMode from '@/components/WordMode'
 import ShadowingPanel from '@/components/ShadowingPanel'
 import { TranslationLanguageSelector, type TranslationLanguage } from '@/components/TranslationLanguageSelector'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
+import ClickableTranscript from '@/components/ClickableTranscript'
 
 type PracticeMode = 'dictation' | 'shadowing'
 type DictationMode = 'word' | 'whole'
@@ -894,74 +895,25 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
           {/* Right Column - Transcript (25%) */}
           <div className="lg:col-span-1 w-full">
-            <div className="bg-white rounded-lg shadow-sm p-4 sticky top-40">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Transcript</h3>
-                <button
-                  onClick={() => setShowTranscript(!showTranscript)}
-                  className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                >
-                  {showTranscript ? 'Hide' : 'Show'}
-                </button>
-              </div>
-
-              <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
-                {sampleSentences.map((sentence, index) => {
-                  // Convert text to asterisks when hidden
-                  const displayText = showTranscript
-                    ? sentence.text
-                    : sentence.text.split(/\s+/).map(() => '***').join(' ')
-
-                  return (
-                    <div
-                      key={sentence.id}
-                      onClick={() => {
-                        // 切换到选中的句子并触发播放
-                        // 根据当前模式更新对应的索引
-                        if (mode === 'dictation') {
-                          setDictationIndex(index)
-                        } else {
-                          setShadowingIndex(index)
-                        }
-                        setAutoPlayTrigger(prev => prev + 1)
-                      }}
-                      className={`p-3 rounded cursor-pointer transition-colors ${
-                        index === currentSentenceIndex
-                          ? 'bg-blue-100 border-2 border-blue-500'
-                          : index < currentSentenceIndex
-                          ? 'bg-green-50 border border-green-200'
-                          : 'bg-gray-50 border border-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-start gap-2">
-                        <span className={`flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded text-sm font-semibold ${
-                          index < currentSentenceIndex
-                            ? 'bg-green-500 text-white'
-                            : index === currentSentenceIndex
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-300 text-gray-600'
-                        }`}>
-                          {index + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-base text-gray-900 leading-relaxed">
-                            {displayText}
-                          </p>
-                          {showTranscript && sentence.translation && (
-                            <p className="text-sm text-gray-700 italic mt-1">
-                              {/* 支持 Translation JSONB 格式，根据语言选择显示对应翻译 */}
-                              {typeof sentence.translation === 'string'
-                                ? sentence.translation
-                                : (sentence.translation?.[translationLanguage] || '')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+            <ClickableTranscript
+              sentences={sampleSentences}
+              currentIndex={currentSentenceIndex}
+              onSelectSentence={(index) => {
+                // 切换到选中的句子并触发播放
+                // 根据当前模式更新对应的索引
+                if (mode === 'dictation') {
+                  setDictationIndex(index)
+                } else {
+                  setShadowingIndex(index)
+                }
+                setAutoPlayTrigger(prev => prev + 1)
+              }}
+              showTranscript={showTranscript}
+              onToggleTranscript={() => setShowTranscript(!showTranscript)}
+              translationLanguage={translationLanguage}
+              materialId={material.id}
+              materialTitle={material.title}
+            />
           </div>
         </div>
       </div>
