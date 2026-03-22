@@ -11,6 +11,31 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [27.1.1] - 2026-03-22
+
+### Added
+- **单词页面添加 US/UK 发音播放按钮** 🔊
+  - 音标旁边显示可点击的 US/UK 按钮（带文字标签）
+  - 蓝色按钮：美音 (US)
+  - 紫色按钮：英音 (UK)
+
+### Fixed
+- **修复单词页面音频数据缺失问题** 🔧
+  - API 改为分步查询（user_words → dictionary_cache）
+  - 添加脚本为现有单词填充音频 URL
+  - 修复 dictionary_cache 表主键使用错误（word 不是 id）
+
+### Scripts
+- **新增脚本**: `scripts/update_word_audio.py`
+  - 批量为现有单词获取 US/UK 音频 URL
+  - 支持从 dictionaryapi.dev 获取音频
+
+### Documentation
+- 更新 `docs/dictionary_and_translation_implementation_v27.md`
+  - 添加问题 7：单词页面缺失发音按钮的完整解决方案
+
+---
+
 ## [27.1.0] - 2026-03-22
 
 ### Fixed

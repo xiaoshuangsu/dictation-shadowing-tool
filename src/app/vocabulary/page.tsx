@@ -68,6 +68,10 @@ export default function VocabularyPage() {
       const data = await response.json()
 
       if (data.success) {
+        // 🔴 调试：打印第一个单词的数据
+        if (data.words && data.words.length > 0) {
+          console.log('[Frontend] First word data:', data.words[0])
+        }
         setWords(data.words || [])
       }
     } catch (error) {
@@ -363,23 +367,25 @@ export default function VocabularyPage() {
                         {userWord.dictionary_cache?.audio_url_us && (
                           <button
                             onClick={() => playAudio(userWord.dictionary_cache!.audio_url_us!)}
-                            className="text-blue-600 hover:text-blue-700 transition-colors"
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors text-xs font-medium"
                             title="US pronunciation (美音)"
                           >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                             </svg>
+                            <span>US</span>
                           </button>
                         )}
                         {userWord.dictionary_cache?.audio_url_uk && (
                           <button
                             onClick={() => playAudio(userWord.dictionary_cache!.audio_url_uk!)}
-                            className="text-purple-600 hover:text-purple-700 transition-colors"
+                            className="flex items-center gap-1 text-purple-600 hover:text-purple-700 transition-colors text-xs font-medium"
                             title="UK pronunciation (英音)"
                           >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
                             </svg>
+                            <span>UK</span>
                           </button>
                         )}
                       </div>

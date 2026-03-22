@@ -703,6 +703,178 @@ const normalizedWord = useMemo(() =>
 
 ---
 
+### 问题 7: 单词页面缺失 US/UK 发音按钮
+
+**症状**:
+1. 单词页面 (`/vocabulary`) 音标旁边没有显示 US/UK 发音按钮
+2. 练习页面的 Tooltip 中可以看到发音按钮，说明单词有音频数据
+
+**根本原因**:
+
+**原因 1**: `user_words` 和 `dictionary_cache` 两张表之间**没有外键关系**，无法使用嵌套查询
+
+**原因 2**: `dictionary_cache` 表中虽然添加了 `audio_url_us` 和 `audio_url_uk` 字段，但现有单词的这些字段都是 **null**（空值）
+
+**技术细节**:
+
+1. **API 错误日志**:
+```bash
+[API] Supabase error: {
+  code: 'PGRST200',
+  details: "Searched for a foreign key relationship between 'user_words' and 'dictionary_cache'...",
+  message: "Could not find a relationship between 'user_words' and 'dictionary_cache' in the schema cache"
+}
+```
+
+2. **表结构分析**:
+```sql
+-- user_words 表
+CREATE TABLE user_words (
+  id UUID PRIMARY KEY,
+  word TEXT NOT NULL,
+  ...
+);
+
+-- dictionary_cache 表
+CREATE TABLE dictionary_cache (
+  word TEXT PRIMARY KEY,  -- ⚠️ 主键是 word，不是 id
+  audio_url_us TEXT,
+  audio_url_uk: TEXT,
+  ...
+);
+-- ⚠️ 两张表通过 word 字段关联，但没有外键约束
+```
+
+3. **前端数据示例**:
+```javascript
+{
+  word: "valuable",
+  dictionary_cache: {
+    audio_url_us: null,  // ⚠️ 空值
+    audio_url_uk: null   // ⚠️ 空值
+  }
+}
+```
+
+**解决方案**:
+
+**步骤 1: 修复 API - 使用分步查询代替嵌套查询**
+
+`src/app/api/user-words/route.ts`:
+```typescript
+// ❌ 修改前：使用嵌套查询（需要外键关系）
+let query = supabase
+  .from('user_words')
+  .select(`
+    *,
+    dictionary_cache (
+      audio_url_us,
+      audio_url_uk
+    )
+  `)
+
+// ✅ 修改后：分步查询
+// 第一步：查询 user_words
+const { data: words } = await supabase
+  .from('user_words')
+  .select('*')
+  .eq('user_id', userId)
+
+// 第二步：批量查询 dictionary_cache
+const wordList = words.map(w => w.word)
+const { data: cacheData } = await supabase
+  .from('dictionary_cache')
+  .select('word, audio_url_us, audio_url_uk')
+  .in('word', wordList)
+
+// 第三步：合并数据
+const audioMap = {}
+cacheData.forEach(item => {
+  audioMap[item.word] = {
+    audio_url_us: item.audio_url_us,
+    audio_url_uk: item.audio_url_uk
+  }
+})
+
+const wordsWithAudio = words.map(word => ({
+  ...word,
+  dictionary_cache: audioMap[word.word] || { audio_url_us: null, audio_url_uk: null }
+}))
+```
+
+**步骤 2: 为现有单词填充音频数据**
+
+创建脚本 `scripts/update_word_audio.py`:
+```python
+def fetch_audio_urls(word: str) -> dict:
+    """从 dictionaryapi.dev 获取音频 URL"""
+    url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        phonetics = data[0].get('phonetics', [])
+
+        for phonetic in phonetics:
+            audio_url = phonetic.get('audio')
+            if audio_url:
+                if 'US' in phonetic.get('text', ''):
+                    audio_urls['us'] = audio_url
+                elif 'UK' in phonetic.get('text', ''):
+                    audio_urls['uk'] = audio_url
+
+    return audio_urls
+
+def update_dictionary_cache(word: str, audio_urls: dict) -> bool:
+    """更新 dictionary_cache 表（注意：主键是 word，不是 id）"""
+    # ✅ 使用 word 作为主键更新
+    update_response = requests.patch(
+        f"{SUPABASE_URL}/rest/v1/dictionary_cache?word=eq.{word}",
+        json={
+            'audio_url_us': audio_urls['us'],
+            'audio_url_uk': audio_urls['uk']
+        }
+    )
+    return update_response.status_code == 204
+```
+
+运行脚本：
+```bash
+python3 scripts/update_word_audio.py
+```
+
+**步骤 3: 前端显示 US/UK 按钮**
+
+`src/app/vocabulary/page.tsx`:
+```typescript
+{userWord.dictionary_cache?.audio_url_us && (
+  <button
+    onClick={() => playAudio(userWord.dictionary_cache!.audio_url_us!)}
+    className="flex items-center gap-1 text-blue-600 hover:text-blue-700 text-xs font-medium"
+  >
+    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+    </svg>
+    <span>US</span>
+  </button>
+)}
+```
+
+**关键注意事项**:
+
+1. **dictionary_cache 表的主键是 `word`，不是 `id`**
+   - 更新时使用 `?word=eq.{word}` 而不是 `?id=eq.{id}`
+
+2. **新添加的单词需要在保存时同时获取音频**
+   - 可以在 `/api/user-words` POST 接口中添加音频获取逻辑
+
+3. **预生成脚本应包含音频获取**
+   - 确保 `scripts/prepopulate_dictionary_cache.py` 调用 `fetch_word_audio_urls()`
+
+**修复版本**: V27.1.0
+
+---
+
 ## 🚀 部署检查清单
 
 - [ ] 所有数据库迁移已执行

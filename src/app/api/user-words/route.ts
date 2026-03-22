@@ -58,16 +58,10 @@ export async function GET(request: Request) {
     // 🔴 使用函数调用获取客户端
     const supabase = getSupabaseClient()
 
-    // 构建查询：关联 dictionary_cache 获取音频 URL
+    // 第一步：查询 user_words
     let query = supabase
       .from('user_words')
-      .select(`
-        *,
-        dictionary_cache (
-          audio_url_us,
-          audio_url_uk
-        )
-      `)
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
@@ -79,7 +73,7 @@ export async function GET(request: Request) {
     // 分页
     query = query.range(offset, offset + limit - 1)
 
-    const { data, error, count } = await query
+    const { data: words, error, count } = await query
 
     if (error) {
       console.error('[API] Supabase error:', error)
@@ -89,11 +83,49 @@ export async function GET(request: Request) {
       )
     }
 
-    console.log('[API] Fetched words:', { count: data?.length || 0, total: count })
+    // 第二步：批量查询 dictionary_cache 获取音频 URL
+    if (words && words.length > 0) {
+      const wordList = words.map(w => w.word)
+      const { data: cacheData } = await supabase
+        .from('dictionary_cache')
+        .select('word, audio_url_us, audio_url_uk')
+        .in('word', wordList)
+
+      // 创建音频 URL 映射
+      const audioMap: Record<string, { audio_url_us: string | null; audio_url_uk: string | null }> = {}
+      if (cacheData) {
+        cacheData.forEach(item => {
+          audioMap[item.word] = {
+            audio_url_us: item.audio_url_us,
+            audio_url_uk: item.audio_url_uk
+          }
+        })
+      }
+
+      // 合并数据
+      const wordsWithAudio = words.map(word => ({
+        ...word,
+        dictionary_cache: audioMap[word.word] || { audio_url_us: null, audio_url_uk: null }
+      }))
+
+      // 🔴 调试：打印第一个单词的数据
+      console.log('[API] First word with audio:', JSON.stringify(wordsWithAudio[0], null, 2))
+      console.log('[API] Fetched words:', { count: wordsWithAudio.length, total: count })
+
+      return NextResponse.json({
+        success: true,
+        words: wordsWithAudio,
+        total: count || 0,
+        limit,
+        offset
+      })
+    }
+
+    console.log('[API] Fetched words:', { count: 0, total: count })
 
     return NextResponse.json({
       success: true,
-      words: data || [],
+      words: [],
       total: count || 0,
       limit,
       offset
