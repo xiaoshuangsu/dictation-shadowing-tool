@@ -83,16 +83,17 @@ export default function WordTooltip({
       if (!definition || loadingAudio) return
 
       // 🔴 优先使用 API 返回的音频 URL（从数据库缓存）
-      if (definition.audioUrls) {
+      // 只有当至少有一个音频 URL 存在时才使用
+      if (definition.audioUrls && (definition.audioUrls.us || definition.audioUrls.uk)) {
         setAudioUrls({
-          us: definition.audioUrls.us,
-          uk: definition.audioUrls.uk
+          us: definition.audioUrls.us || null,
+          uk: definition.audioUrls.uk || null
         })
         setLoadingAudio(false)
         return
       }
 
-      // 如果 API 没有返回音频 URL，则从 dictionaryapi.dev 获取
+      // 如果 API 没有返回有效的音频 URL，则从 dictionaryapi.dev 获取
       setLoadingAudio(true)
       try {
         // 优先从 dictionaryapi.dev 获取
