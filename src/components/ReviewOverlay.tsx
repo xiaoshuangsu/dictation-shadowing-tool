@@ -7,7 +7,7 @@
  * - 实时校验拼写
  * - 3D 翻转动画展示答案
  * - 查看答案功能（点击或按回车）
- * - 自评功能（仍需学习/已掌握）
+ * - 自评功能（Still Learning/Mastered）
  *
  * 训练模式逻辑（挖空拼写）：
  * - 正面：隐藏单词标题，显示填空句（目标词替换为____）
@@ -15,7 +15,7 @@
  * - 正面：自动聚焦输入框，用户拼写
  * - 正面：查看答案按钮（输入框为空时按回车）
  * - 背面：显示单词标题，完整原句（高亮目标词）
- * - 背面：自评按钮（仍需学习/已掌握）
+ * - 背面：自评按钮（Still Learning/Mastered）
  *
  * 修复：
  * - 修复答案泄露问题（Cloze 打码）
@@ -137,7 +137,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
       console.log(`更新单词 "${currentWord.word}" 掌握状态为: ${masteryStatus}`)
     }
 
-    // 如果是"仍需学习"，翻转回正面，继续练习当前单词
+    // 如果是"Still Learning"，翻转回正面，继续练习当前单词
     if (masteryStatus === 'learning') {
       setFlipped(false)
       setUserInput('')
@@ -146,7 +146,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
       return
     }
 
-    // 如果是"已掌握"或没有选择，切换到下一个单词
+    // 如果是"Mastered"或没有选择，切换到下一个单词
     if (isLastCard) {
       onClose()  // 最后一个单词，关闭训练
       return
@@ -436,7 +436,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
 
                   {/* 两个选择按钮 */}
                   <div className="flex gap-3">
-                    {/* 仍需学习 */}
+                    {/* Still Learning */}
                     <button
                       onClick={() => handleNext('learning')}
                       className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
@@ -445,15 +445,15 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                           : 'bg-white/20 text-white hover:bg-white/30'
                       }`}
                     >
-                      仍需学习
+                      Still Learning
                     </button>
 
-                    {/* 已掌握 */}
+                    {/* Mastered */}
                     <button
                       onClick={() => handleNext('mastered')}
                       className="flex-1 px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-all"
                     >
-                      已掌握
+                      Mastered
                     </button>
                   </div>
                 </div>
