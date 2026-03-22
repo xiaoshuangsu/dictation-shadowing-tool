@@ -7,6 +7,7 @@
  * - 自动同步中栏全局翻译语言设置（实时联动）
  * - 精简 UI：单词音标、释义+英文对照、例句、按钮
  * - 单词发音：美音/英音播放，预加载确保秒播
+ * - 移动端适配：底部抽屉样式，点击外部关闭
  */
 
 'use client'
@@ -14,7 +15,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
-import { Volume2 } from 'lucide-react'
+import { Volume2, X } from 'lucide-react'
 
 export interface WordDefinition {
   word: string
@@ -70,12 +71,27 @@ export default function WordTooltip({
   const [saved, setSaved] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [currentLanguage, setCurrentLanguage] = useState<keyof WordDefinition['definitions']>('zh-CN')
+  const [isMobile, setIsMobile] = useState(false)
 
   // 🔴 音频相关状态
   const [audioUrls, setAudioUrls] = useState<{ us: string | null; uk: string | null }>({ us: null, uk: null })
   const [loadingAudio, setLoadingAudio] = useState(false)
   const usAudioRef = useRef<HTMLAudioElement | null>(null)
   const ukAudioRef = useRef<HTMLAudioElement | null>(null)
+
+  // 🔴 检测屏幕宽度，判断是否为移动端
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640)  // sm 断点
+    }
+
+    // 初始检测
+    checkMobile()
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // 🔴 预加载音频：当 Tooltip 弹出且单词定义加载完成时
   useEffect(() => {
@@ -272,8 +288,8 @@ export default function WordTooltip({
     }
   }
 
-  // 计算位置：确保气泡不超出屏幕边界
-  const getPositionStyle = () => {
+  // 计算桌面端位置：确保气泡不超出屏幕边界
+  const getDesktopPositionStyle = () => {
     const tooltipWidth = 320
     const tooltipHeight = 280
 
@@ -296,10 +312,141 @@ export default function WordTooltip({
   const currentDef = getCurrentDefinition()
   const englishDef = getEnglishDefinition()
 
+  // 🔴 移动端：底部抽屉样式
+  if (isMobile) {
+    return (
+      <>
+        {/* 背景遮罩（点击关闭） */}
+        <div
+          className="fixed inset-0 bg-black/50 z-40 animate-in fade-in duration-200"
+          onClick={onClose}
+        />
+
+        {/* 底部抽屉 */}
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl border-t border-gray-200 animate-in slide-in-from-bottom-5 duration-300 max-h-[80vh] overflow-y-auto">
+          {/* 拖动指示器 */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
+          </div>
+
+          {/* 关闭按钮 */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="关闭"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* 内容区域 */}
+          <div className="px-5 pb-6 pt-2">
+            {/* 加载状态 */}
+            {loading && (
+              <div className="flex items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+              </div>
+            )}
+
+            {/* 单词内容 */}
+            {!loading && definition && (
+              <div className="space-y-4">
+                {/* 第一行：单词 */}
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    {definition.word}
+                  </h3>
+                </div>
+
+                {/* 第二行：音标 + 发音按钮 */}
+                <div className="flex items-center gap-3">
+                  {definition.phonetic && (
+                    <p className="text-sm text-gray-500">{definition.phonetic}</p>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => playAudio('us', e)}
+                      disabled={!audioUrls.us || loadingAudio}
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="美音"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      <span className="font-medium">US</span>
+                    </button>
+                    <button
+                      onClick={(e) => playAudio('uk', e)}
+                      disabled={!audioUrls.uk || loadingAudio}
+                      className="flex items-center gap-1 px-3 py-1.5 text-sm text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="英音"
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      <span className="font-medium">UK</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 第三行：当前语言释义（大字）+ 英文对照 */}
+                <div className="space-y-2">
+                  <p className="text-base font-semibold text-gray-900 leading-relaxed">
+                    {currentDef}
+                  </p>
+                  {englishDef && currentLanguage !== 'en' && (
+                    <p className="text-sm text-gray-500 italic leading-relaxed">
+                      {englishDef}
+                    </p>
+                  )}
+                </div>
+
+                {/* 第四行：例句 */}
+                {definition.example && (
+                  <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500 mx-1">
+                    <p className="text-sm text-gray-700 italic leading-relaxed">{definition.example}</p>
+                  </div>
+                )}
+
+                {/* 底部：加入生词本按钮 */}
+                <div className="pt-2">
+                  <button
+                    onClick={(e) => handleSaveWord(e)}
+                    disabled={saving || saved}
+                    className={`w-full px-4 py-4 rounded-xl transition-all font-medium text-lg ${
+                      saved
+                        ? 'bg-green-600 text-white cursor-default'
+                        : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed'
+                    }`}
+                  >
+                    {saved ? '✓ 已添加' : saving ? '保存中...' : '加入生词本'}
+                  </button>
+                </div>
+
+                {/* 消息提示 */}
+                {message && (
+                  <div className={`text-sm text-center py-3 rounded-xl mx-1 ${
+                    message.type === 'success' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+                  }`}>
+                    {message.text}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 错误状态 */}
+            {!loading && !definition && (
+              <div className="text-center py-8 text-gray-500">
+                未找到该单词的释义
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    )
+  }
+
+  // 🔴 桌面端：气泡框样式（保持原有逻辑）
   return (
     <div
       className="fixed z-50 w-80 bg-white rounded-lg shadow-xl border border-gray-200 p-4 animate-in fade-in zoom-in duration-200"
-      style={getPositionStyle()}
+      style={getDesktopPositionStyle()}
     >
       {/* 关闭按钮 */}
       <button
