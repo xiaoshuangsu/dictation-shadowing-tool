@@ -7,11 +7,16 @@
  * - 支持智能状态感知（Dictation 模式下的隐藏单词）
  * - 复用词典缓存
  * - 已存生词的单词显示下划线标记
+ *
+ * 性能优化：
+ * - 使用 React.memo 避免不必要的重渲染
+ * - 移除内部 useEffect，直接从 Context 读取保存状态
  */
 
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useMemo } from 'react'
+import { memo } from 'react'
 import WordTooltip, { WordDefinition } from './WordTooltip'
 import { fetchWordDefinition } from '@/lib/utils/wordTranslation'
 import { useUserVocabulary } from '@/lib/hooks/useUserVocabulary'
@@ -29,7 +34,7 @@ interface ClickableWordProps {
   children?: React.ReactNode  // 自定义渲染内容
 }
 
-export default function ClickableWord({
+function ClickableWord({
   word,
   originalWord,
   contextSentence,
@@ -42,16 +47,11 @@ export default function ClickableWord({
   children
 }: ClickableWordProps) {
   const { isWordSaved } = useUserVocabulary()
-  const [isSaved, setIsSaved] = useState(false)
 
-  // 检查单词是否已保存
-  useEffect(() => {
-    const checkWord = async () => {
-      const saved = await isWordSaved(originalWord || word)
-      setIsSaved(saved)
-    }
-    checkWord()
-  }, [isWordSaved, originalWord, word])
+  // 🔴 性能优化：直接在渲染时检查，不使用 useEffect + useState
+  // isWordSaved 从 Context 读取，已经是同步操作
+  const normalizedWord = useMemo(() => (originalWord || word).toLowerCase().trim(), [originalWord, word])
+  const isSaved = isWordSaved(normalizedWord)
 
   // Tooltip 状态
   const [tooltipState, setTooltipState] = useState<{
@@ -181,3 +181,7 @@ export default function ClickableWord({
     </>
   )
 }
+
+// 🔴 性能优化：使用 React.memo 避免不必要的重渲染
+// 默认的浅比较就足够了，因为 props 大部分是稳定的
+export default memo(ClickableWord)

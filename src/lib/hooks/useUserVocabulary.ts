@@ -49,7 +49,7 @@ export function useUserVocabulary() {
     }
   }, [user])
 
-  // 检查单词是否已保存
+  // 检查单词是否已保存（同步函数，直接返回结果）
   const isWordSaved = useCallback((word: string) => {
     const normalizedWord = word.toLowerCase().trim()
     return !!savedWords[normalizedWord]
