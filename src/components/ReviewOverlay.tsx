@@ -460,10 +460,10 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                       onClick={() => handleNext('learning')}
                       className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-red-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-red-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
                     >
-                      <div className="flex flex-row items-center justify-center gap-1 md:gap-1">
-                        <span className="text-base md:text-lg">😵</span>
-                        <span className="hidden md:inline">Still Learning</span>
-                        <span className="inline md:hidden">still learning (1h)</span>
+                      <div className="flex flex-col items-center gap-0.5 md:gap-1">
+                        <span className="hidden md:inline text-lg">😵</span>
+                        <span className="font-semibold">Still Learning</span>
+                        <span className="text-[10px] md:text-xs font-normal opacity-80">review in 1h</span>
                         <span className="hidden md:inline text-xs font-normal opacity-80">Review in 1 hour</span>
                       </div>
                     </button>
@@ -473,10 +473,10 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                       onClick={() => handleNext('familiar')}
                       className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-yellow-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-yellow-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
                     >
-                      <div className="flex flex-row items-center justify-center gap-1 md:gap-1">
-                        <span className="text-base md:text-lg">🤔</span>
-                        <span className="hidden md:inline">Kinda Know</span>
-                        <span className="inline md:hidden">kinda know (1d)</span>
+                      <div className="flex flex-col items-center gap-0.5 md:gap-1">
+                        <span className="hidden md:inline text-lg">🤔</span>
+                        <span className="font-semibold">Kinda Know</span>
+                        <span className="text-[10px] md:text-xs font-normal opacity-80">review in 1d</span>
                         <span className="hidden md:inline text-xs font-normal opacity-80">Review in 1 day</span>
                       </div>
                     </button>
@@ -486,10 +486,10 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                       onClick={() => handleNext('mastered')}
                       className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-green-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-green-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
                     >
-                      <div className="flex flex-row items-center justify-center gap-1 md:gap-1">
-                        <span className="text-base md:text-lg">😎</span>
-                        <span className="hidden md:inline">Too Easy</span>
-                        <span className="inline md:hidden">too easy (7d)</span>
+                      <div className="flex flex-col items-center gap-0.5 md:gap-1">
+                        <span className="hidden md:inline text-lg">😎</span>
+                        <span className="font-semibold">Too Easy</span>
+                        <span className="text-[10px] md:text-xs font-normal opacity-80">review in 7d</span>
                         <span className="hidden md:inline text-xs font-normal opacity-80">Review in 7 days</span>
                       </div>
                     </button>
