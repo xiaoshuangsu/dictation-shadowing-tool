@@ -447,47 +447,50 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
 
               {/* 自评按钮 */}
               {isCorrect || showedAnswer ? (
-                <div className="space-y-4">
+                <div className="space-y-3 md:space-y-4">
                   {/* 状态提示 */}
-                  <p className="text-center text-base text-white/90 font-medium">
+                  <p className="text-center text-sm md:text-base text-white/90 font-medium">
                     {isCorrect ? 'Great job! You nailed it! 😊' : 'Keep practicing! 💪'}
                   </p>
 
-                  {/* 🔴 三个选择按钮（响应式：桌面端水平排列，移动端垂直堆叠） */}
-                  <div className="flex flex-col md:flex-row gap-3">
+                  {/* 🔴 三个选择按钮（响应式：移动端横向并排，桌面端保持横向） */}
+                  <div className="flex flex-row md:flex-row gap-1.5 md:gap-3">
                     {/* 完全不会 (Learning) - 红色系 */}
                     <button
                       onClick={() => handleNext('learning')}
-                      className="flex-1 px-5 py-4 bg-red-500 text-white rounded-xl font-bold text-base hover:bg-red-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
+                      className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-red-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-red-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
                     >
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-lg">😵</span>
-                        <span>Still Learning</span>
-                        <span className="text-xs font-normal opacity-80">Review in 1 hour</span>
+                      <div className="flex flex-row items-center justify-center gap-1 md:gap-1">
+                        <span className="text-base md:text-lg">😵</span>
+                        <span className="hidden md:inline">Still Learning</span>
+                        <span className="inline md:hidden">still learning (1h)</span>
+                        <span className="hidden md:inline text-xs font-normal opacity-80">Review in 1 hour</span>
                       </div>
                     </button>
 
                     {/* 有点模糊 (Familiar) - 黄色系 */}
                     <button
                       onClick={() => handleNext('familiar')}
-                      className="flex-1 px-5 py-4 bg-yellow-500 text-white rounded-xl font-bold text-base hover:bg-yellow-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
+                      className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-yellow-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-yellow-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
                     >
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-lg">🤔</span>
-                        <span>Kinda Know</span>
-                        <span className="text-xs font-normal opacity-80">Review in 1 day</span>
+                      <div className="flex flex-row items-center justify-center gap-1 md:gap-1">
+                        <span className="text-base md:text-lg">🤔</span>
+                        <span className="hidden md:inline">Kinda Know</span>
+                        <span className="inline md:hidden">kinda know (1d)</span>
+                        <span className="hidden md:inline text-xs font-normal opacity-80">Review in 1 day</span>
                       </div>
                     </button>
 
                     {/* 太简单了 (Mastered) - 绿色系 */}
                     <button
                       onClick={() => handleNext('mastered')}
-                      className="flex-1 px-5 py-4 bg-green-500 text-white rounded-xl font-bold text-base hover:bg-green-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
+                      className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-green-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-green-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
                     >
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-lg">😎</span>
-                        <span>Too Easy</span>
-                        <span className="text-xs font-normal opacity-80">Review in 7 days</span>
+                      <div className="flex flex-row items-center justify-center gap-1 md:gap-1">
+                        <span className="text-base md:text-lg">😎</span>
+                        <span className="hidden md:inline">Too Easy</span>
+                        <span className="inline md:hidden">too easy (7d)</span>
+                        <span className="hidden md:inline text-xs font-normal opacity-80">Review in 7 days</span>
                       </div>
                     </button>
                   </div>
