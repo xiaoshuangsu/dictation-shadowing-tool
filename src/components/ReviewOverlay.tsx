@@ -133,8 +133,8 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
     setFlipped(true)
   }
 
-  // 🔴 下一个单词
-  const handleNext = async (masteryStatus?: 'learning' | 'mastered') => {
+  // 🔴 下一个单词（支持三种状态：learning/familiar/mastered）
+  const handleNext = async (masteryStatus?: 'learning' | 'familiar' | 'mastered') => {
     // 更新数据库掌握状态
     if (masteryStatus && user?.id) {
       console.log(`[ReviewOverlay] 更新单词 "${currentWord.word}" (ID: ${currentWord.id}) 掌握状态为: ${masteryStatus}`)
@@ -149,7 +149,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
           },
           body: JSON.stringify({
             wordId: currentWord.id,
-            masteryStatus: masteryStatus === 'mastered' ? 'mastered' : 'learning'
+            masteryStatus: masteryStatus
           })
         })
 
@@ -165,16 +165,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
       }
     }
 
-    // 如果是"Still Learning"，翻转回正面，继续练习当前单词
-    if (masteryStatus === 'learning') {
-      setFlipped(false)
-      setUserInput('')
-      setIsCorrect(null)
-      setShowedAnswer(false)
-      return
-    }
-
-    // 如果是"Mastered"或没有选择，切换到下一个单词
+    // 🔴 自动切换到下一个单词（不再停留在当前卡片）
     if (isLastCard) {
       onClose()  // 最后一个单词，关闭训练
       return
@@ -456,32 +447,48 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
 
               {/* 自评按钮 */}
               {isCorrect || showedAnswer ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {/* 状态提示 */}
-                  <p className="text-center text-sm text-white/80 mb-2">
-                    {isCorrect ? 'Great job!' : 'Keep practicing!'}
+                  <p className="text-center text-base text-white/90 font-medium">
+                    {isCorrect ? '太棒了！你记得很清楚 😊' : '继续努力！多多练习 💪'}
                   </p>
 
-                  {/* 两个选择按钮 */}
-                  <div className="flex gap-3">
-                    {/* Still Learning */}
+                  {/* 🔴 三个选择按钮（响应式：桌面端水平排列，移动端垂直堆叠） */}
+                  <div className="flex flex-col md:flex-row gap-3">
+                    {/* 完全不会 (Learning) - 红色系 */}
                     <button
                       onClick={() => handleNext('learning')}
-                      className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
-                        showedAnswer && !isCorrect
-                          ? 'bg-orange-500 text-white shadow-lg'
-                          : 'bg-white/20 text-white hover:bg-white/30'
-                      }`}
+                      className="flex-1 px-5 py-4 bg-red-500 text-white rounded-xl font-bold text-base hover:bg-red-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
                     >
-                      Still Learning
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-lg">😵</span>
+                        <span>完全不会</span>
+                        <span className="text-xs font-normal opacity-80">1小时后复习</span>
+                      </div>
                     </button>
 
-                    {/* Mastered */}
+                    {/* 有点模糊 (Familiar) - 黄色系 */}
+                    <button
+                      onClick={() => handleNext('familiar')}
+                      className="flex-1 px-5 py-4 bg-yellow-500 text-white rounded-xl font-bold text-base hover:bg-yellow-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
+                    >
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-lg">🤔</span>
+                        <span>有点模糊</span>
+                        <span className="text-xs font-normal opacity-80">1天后复习</span>
+                      </div>
+                    </button>
+
+                    {/* 太简单了 (Mastered) - 绿色系 */}
                     <button
                       onClick={() => handleNext('mastered')}
-                      className="flex-1 px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-all"
+                      className="flex-1 px-5 py-4 bg-green-500 text-white rounded-xl font-bold text-base hover:bg-green-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
                     >
-                      Mastered
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-lg">😎</span>
+                        <span>太简单了</span>
+                        <span className="text-xs font-normal opacity-80">7天后复习</span>
+                      </div>
                     </button>
                   </div>
                 </div>
@@ -491,7 +498,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                   onClick={() => handleNext()}
                   className="w-full px-8 py-4 bg-white text-blue-600 font-bold rounded-lg hover:bg-gray-100 transition-colors text-lg"
                 >
-                  {isLastCard ? 'Finish' : 'Next →'}
+                  {isLastCard ? '完成' : '下一张 →'}
                 </button>
               )}
             </div>
