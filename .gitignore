@@ -102,3 +102,4 @@ cache
 .next/cache
 Trigger deployment
 logs/
+backups/
