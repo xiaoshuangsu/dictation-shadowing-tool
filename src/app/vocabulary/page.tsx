@@ -445,6 +445,7 @@ export default function VocabularyPage() {
       {trainingMode && (
         <ReviewOverlay
           words={words.map(w => ({
+            id: w.id,  // 🔴 传递 ID（用于更新状态）
             word: w.word,
             phonetic: w.phonetic || '',
             definition: w.definition,  // 传递完整的 JSON 字符串
@@ -452,7 +453,11 @@ export default function VocabularyPage() {
             audio_url_us: w.dictionary_cache?.audio_url_us || undefined,
             audio_url_uk: w.dictionary_cache?.audio_url_uk || undefined
           }))}
-          onClose={() => setTrainingMode(false)}
+          onClose={() => {
+            setTrainingMode(false)
+            // 🔴 关闭时刷新列表，同步最新状态
+            fetchWords()
+          }}
         />
       )}
     </div>

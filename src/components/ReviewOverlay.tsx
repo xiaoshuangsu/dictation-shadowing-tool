@@ -27,8 +27,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Volume2, X } from 'lucide-react'
+import { useAuth } from '@/lib/hooks/useAuth'
 
 interface ReviewWord {
+  id: string  // user_words 表的 ID（用于更新状态）
   word: string
   phonetic: string
   pos?: string  // 词性 (part of speech)
@@ -58,6 +60,7 @@ const parseDefinition = (definitionStr: string) => {
 }
 
 export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
+  const { user } = useAuth()  // 🔴 获取用户信息
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [userInput, setUserInput] = useState('')
@@ -131,10 +134,35 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
   }
 
   // 🔴 下一个单词
-  const handleNext = (masteryStatus?: 'learning' | 'mastered') => {
-    // TODO: 更新数据库掌握状态
-    if (masteryStatus) {
-      console.log(`更新单词 "${currentWord.word}" 掌握状态为: ${masteryStatus}`)
+  const handleNext = async (masteryStatus?: 'learning' | 'mastered') => {
+    // 更新数据库掌握状态
+    if (masteryStatus && user?.id) {
+      console.log(`[ReviewOverlay] 更新单词 "${currentWord.word}" (ID: ${currentWord.id}) 掌握状态为: ${masteryStatus}`)
+
+      try {
+        // 调用 API 更新掌握状态
+        const response = await fetch('/api/user-words', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.id}`  // 🔴 传递用户 ID
+          },
+          body: JSON.stringify({
+            wordId: currentWord.id,
+            masteryStatus: masteryStatus === 'mastered' ? 'mastered' : 'learning'
+          })
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          console.log(`[ReviewOverlay] ✅ 成功更新单词状态:`, result)
+        } else {
+          const errorData = await response.json()
+          console.error('[ReviewOverlay] ❌ 更新单词状态失败:', errorData)
+        }
+      } catch (error) {
+        console.error('[ReviewOverlay] 更新单词状态出错:', error)
+      }
     }
 
     // 如果是"Still Learning"，翻转回正面，继续练习当前单词

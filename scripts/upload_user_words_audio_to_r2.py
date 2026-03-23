@@ -225,37 +225,59 @@ def process_word(word: str) -> bool:
 
 def main():
     print("=" * 70)
-    print("用户生词本音频上传到 R2")
+    print("所有单词音频上传到 R2")
     print("=" * 70)
     print()
 
-    # 1. 从 user_words 表获取单词
-    print("🔍 正在获取用户生词本中的单词...")
+    # 1. 从 dictionary_cache 表获取所有单词
+    print("🔍 正在获取所有单词...")
 
-    user_words_result = supabase.table('user_words').select('word').execute()
+    total_count_result = supabase.table('dictionary_cache').select('word', count='exact').execute()
+    total_count = total_count_result.count
 
-    if not user_words_result.data:
-        print("❌ 生词本为空")
-        return
+    # 分批获取所有单词
+    words = []
+    offset = 0
+    batch_size = 1000
 
-    words = [w['word'] for w in user_words_result.data]
+    while offset < total_count:
+        batch = supabase.table('dictionary_cache').select('word').range(
+            offset, offset + batch_size - 1
+        ).execute()
+        words.extend([w['word'] for w in batch.data])
+        if len(batch.data) < batch_size:
+            break
+        offset += batch_size
+
     print(f"✅ 找到 {len(words)} 个单词")
     print()
 
-    # 2. 检查哪些单词需要处理（audio_url 为空或非 R2 链接）
+    # 2. 批量检查哪些单词需要处理（一次性获取所有 audio_url）
+    print("🔍 正在检查哪些单词需要处理...")
     words_to_process = []
+    offset = 0
+    batch_size = 1000
 
-    for word in words:
-        # 查询数据库中的音频 URL
-        cache_result = supabase.table('dictionary_cache').select('audio_url_us').eq('word', word).execute()
+    # 创建单词集合，便于快速查找
+    words_set = set(words)
 
-        if not cache_result.data:
-            words_to_process.append(word)
-        else:
-            current_url = cache_result.data[0].get('audio_url_us')
+    # 批量获取所有单词的 audio_url
+    while offset < total_count:
+        batch = supabase.table('dictionary_cache').select('word, audio_url_us').range(
+            offset, offset + batch_size - 1
+        ).execute()
+
+        for item in batch.data:
+            word = item.get('word')
+            current_url = item.get('audio_url_us')
+
             # 如果为空或不是 R2 链接，则需要处理
             if not current_url or 'media.shadowhub.app/sounds' not in current_url:
                 words_to_process.append(word)
+
+        if len(batch.data) < batch_size:
+            break
+        offset += batch_size
 
     print(f"📝 需要处理 {len(words_to_process)} 个单词")
 
@@ -307,7 +329,7 @@ def main():
 
     # 5. 验证结果
     print("\\n🔍 验证几个单词的音频 URL:")
-    test_words = words[:3] if len(words) >= 3 else words
+    test_words = ['jail', 'hello', 'world']  # 固定测试这些常用词
 
     for test_word in test_words:
         result = supabase.table('dictionary_cache').select(

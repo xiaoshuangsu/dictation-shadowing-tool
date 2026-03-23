@@ -364,19 +364,32 @@ export async function POST(request: Request) {
  * 更新生词的掌握状态
  *
  * Body:
- * - userId: 用户 ID
  * - wordId: 生词记录 ID
  * - masteryStatus: 新的掌握状态
+ *
+ * Header:
+ * - Authorization: Bearer <userId>
  */
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
-    const { userId, wordId, masteryStatus } = body
+    const { wordId, masteryStatus } = body
+
+    // 🔴 从 Authorization header 获取 userId
+    const authHeader = request.headers.get('authorization')
+    const userId = authHeader?.replace('Bearer ', '')
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Missing user ID' },
+        { status: 401 }
+      )
+    }
 
     // 验证必填字段
-    if (!userId || !wordId || !masteryStatus) {
+    if (!wordId || !masteryStatus) {
       return NextResponse.json(
-        { error: 'Missing required fields: userId, wordId, masteryStatus' },
+        { error: 'Missing required fields: wordId, masteryStatus' },
         { status: 400 }
       )
     }
@@ -391,10 +404,33 @@ export async function PATCH(request: Request) {
 
     console.log('[API] Updating word mastery:', { userId, wordId, masteryStatus })
 
+    // 🔴 使用函数调用获取客户端
+    const supabase = getSupabaseClient()
+
+    // 🔴 根据掌握状态设置复习级别和下次复习时间
+    let nextReviewAt = new Date()
+    let reviewLevel = 0
+
+    if (masteryStatus === 'mastered') {
+      // 已掌握：设置较高的复习级别，下次复习时间设为 7 天后
+      reviewLevel = 5
+      nextReviewAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 天后
+    } else if (masteryStatus === 'learning') {
+      // 学习中：重置复习级别，下次复习时间设为 1 小时后
+      reviewLevel = 0
+      nextReviewAt = new Date(Date.now() + 1 * 60 * 60 * 1000) // 1 小时后
+    } else if (masteryStatus === 'familiar') {
+      // 熟悉：设置中等复习级别，下次复习时间设为 1 天后
+      reviewLevel = 3
+      nextReviewAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) // 1 天后
+    }
+
     const { data, error } = await supabase
       .from('user_words')
       .update({
         mastery_status: masteryStatus,
+        review_level: reviewLevel,
+        next_review_at: nextReviewAt.toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('id', wordId)
@@ -417,7 +453,13 @@ export async function PATCH(request: Request) {
       )
     }
 
-    console.log('[API] Updated word mastery:', { id: wordId, status: masteryStatus })
+    console.log('[API] ✅ Updated word mastery:', {
+      id: wordId,
+      status: masteryStatus,
+      reviewLevel,
+      nextReviewAt
+    })
+
     return NextResponse.json({
       success: true,
       message: 'Word updated successfully',
