@@ -5,9 +5,6 @@ import Navigation from "@/components/Navigation"
 export const metadata: Metadata = {
   title: "ShadowHub - English Dictation & Shadowing Practice",
   description: "Practice English listening and speaking with dictation and shadowing exercises. Get AI feedback and graded content for all levels.",
-  verification: {
-    google: "VrEmJjE2SvqC95_t1odOd950ekUAMIibuyqZ5AiSNH8",
-  },
   icons: {
     icon: [
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
