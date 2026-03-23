@@ -33,6 +33,8 @@ interface UserWord {
   audio_url: string | null
   mastery_status: 'learning' | 'familiar' | 'mastered'
   created_at: string
+  next_review_at?: string | null  // 🔴 新增：下次复习时间
+  review_level?: number  // 🔴 新增：复习级别 (0-5)
   dictionary_cache?: {
     audio_url_us: string | null
     audio_url_uk: string | null
@@ -54,7 +56,8 @@ export default function VocabularyPage() {
   const [currentLanguage, setCurrentLanguage] = useState<keyof Definition>('zh-CN')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [materialInfoMap, setMaterialInfoMap] = useState<Record<string, { category: string; slug: string }>>({})
-  const [trainingMode, setTrainingMode] = useState(false)  // 🔴 新增：训练模式状态
+  const [trainingMode, setTrainingMode] = useState(false)
+  const [dueCount, setDueCount] = useState(0)  // 🔴 新增：今日待复习数量
 
   // 获取生词列表
   const fetchWords = async () => {
@@ -68,11 +71,38 @@ export default function VocabularyPage() {
       const data = await response.json()
 
       if (data.success) {
-        // 🔴 调试：打印第一个单词的数据
-        if (data.words && data.words.length > 0) {
-          console.log('[Frontend] First word data:', data.words[0])
-        }
-        setWords(data.words || [])
+        const fetchedWords = data.words || []
+
+        // 🔴 计算今日待复习数量（learning 状态且 next_review_at <= 当前时间）
+        const now = new Date()
+        const due = fetchedWords.filter((word: UserWord) => {
+          if (word.mastery_status !== 'learning') return false
+          if (!word.next_review_at) return true  // 如果没有复习时间，默认需要复习
+          return new Date(word.next_review_at) <= now
+        })
+        setDueCount(due.length)
+
+        // 🔴 排序：已过期的单词排在前面
+        const sortedWords = [...fetchedWords].sort((a: UserWord, b: UserWord) => {
+          const now = new Date()
+
+          // 检查 a 是否过期
+          const aIsDue = a.mastery_status === 'learning' &&
+            (!a.next_review_at || new Date(a.next_review_at) <= now)
+
+          // 检查 b 是否过期
+          const bIsDue = b.mastery_status === 'learning' &&
+            (!b.next_review_at || new Date(b.next_review_at) <= now)
+
+          // 如果 a 过期但 b 不过期，a 排在前面
+          if (aIsDue && !bIsDue) return -1
+          // 如果 b 过期但 a 不过期，b 排在前面
+          if (!aIsDue && bIsDue) return 1
+          // 其他情况按创建时间排序
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
+
+        setWords(sortedWords)
       }
     } catch (error) {
       console.error('获取生词失败:', error)
@@ -299,6 +329,14 @@ export default function VocabularyPage() {
               }`}
             >
               Learning
+              {dueCount > 0 && (
+                <span className="ml-1.5 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                  {dueCount}
+                </span>
+              )}
+              {dueCount === 0 && (
+                <span className="ml-1.5 text-xs text-gray-400">(0)</span>
+              )}
             </button>
             <button
               onClick={() => setFilterStatus('mastered')}
@@ -333,10 +371,18 @@ export default function VocabularyPage() {
               const definition = parseDefinition(userWord.definition)
               const statusConfig = STATUS_CONFIG[userWord.mastery_status] || STATUS_CONFIG.learning
 
+              // 🔴 判断是否在冷却中（未到复习时间）
+              const now = new Date()
+              const isCoolingDown = userWord.mastery_status === 'learning' &&
+                userWord.next_review_at &&
+                new Date(userWord.next_review_at) > now
+
               return (
                 <div
                   key={userWord.id}
-                  className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow"
+                  className={`bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow ${
+                    isCoolingDown ? 'opacity-50' : ''
+                  }`}
                 >
                   {/* 单词和音标 */}
                   <div className="mb-3">
