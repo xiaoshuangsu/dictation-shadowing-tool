@@ -77,6 +77,42 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 # 分词和单词提取
 # ══════════════════════════════════════════════════════════════════════════════
 
+def is_valid_word(word: str) -> bool:
+    """验证单词是否有效（过滤异常单词）"""
+
+    # 1. 过滤超长单词（超过 20 个字符，可能是多个单词连在一起）
+    if len(word) > 20:
+        return False
+
+    # 2. 过滤过短单词（少于 2 个字符）
+    if len(word) < 2:
+        return False
+
+    # 3. 过滤纯专有名词和异常单词（地点、人名、拼写错误等）
+    proper_nouns = {
+        'taipei', 'taiwanese', 'taiwan',  # 地名
+        'halleluia',  # 宗教词汇
+        'fablecottage', 'singsing', 'ratchesons', 'bussell',  # 网站名/人名
+        'booly', 'groud',  # 素材拼写错误
+        'system',  # 系统词汇
+    }
+    if word in proper_nouns:
+        return False
+
+    # 4. 检查是否包含至少一个元音字母（英语单词的基本特征）
+    if not any(c in 'aeiouy' for c in word):
+        return False
+
+    # 5. 过滤连续重复字符超过 3 次的单词（如 'aaaa'）
+    if re.search(r'(.)\1{3,}', word):
+        return False
+
+    # 6. 过滤包含数字的单词
+    if any(c.isdigit() for c in word):
+        return False
+
+    return True
+
 def extract_words_from_text(text: str) -> Set[str]:
     """从文本中提取有效的英语单词"""
     # 使用正则表达式提取单词
@@ -94,10 +130,8 @@ def extract_words_from_text(text: str) -> Set[str]:
 
     valid_words = set()
     for word in words:
-        if word not in stop_words and len(word) >= 2:
-            # 检查是否包含至少一个元音字母（英语单词的基本特征）
-            if any(c in 'aeiouy' for c in word):
-                valid_words.add(word)
+        if word not in stop_words and is_valid_word(word):
+            valid_words.add(word)
 
     return valid_words
 
