@@ -189,49 +189,59 @@ export default function PracticePage({ category, slug }: { category: string; slu
   useEffect(() => {
     async function findMaterial() {
       try {
-        const { data: allMaterials } = await supabase
+        // 🔴 关键修复：直接通过 slug 查询，避免获取所有素材
+        const { data: found, error } = await supabase
           .from('materials')
           .select('*')
+          .eq('slug', slug)
+          .single()
 
-        // Find material by slug - 优先使用数据库中的 slug 字段
-        // 如果没有 slug 字段，则从 title 生成
-        const found = allMaterials?.find((m: any) => {
-          const materialSlug = m.slug || titleToSlug(m.title)
-          return materialSlug === slug
-        }) as Material | undefined
+        if (error) {
+          console.error('❌ Database query error:', error)
+          setError('Failed to load material')
+          return
+        }
 
-        if (found) {
-          setMaterial(found)
-          console.log('📦 Material found:', found.title)
-          console.log('📦 source_type:', found.source_type || 'r2')
-          console.log('📦 youtube_id:', found.youtube_id)
-          console.log('📦 audio_path:', found.audio_path)
-          console.log('📦 video_path:', found.video_path)
-
-          // Set transcript
-          if (found.transcript && Array.isArray(found.transcript) && found.transcript.length > 0) {
-            const transcript = found.transcript.map((s: any, index: number) => ({
-              ...s,
-              id: s.id ?? index,
-              // 🔴 关键修复：直接使用原始值，保留精度
-              // 如果 startTime 是字符串 "9.10"，不转换以避免精度丢失
-              // 浏览器会自动将字符串转换为数字，并保留 "9.10" 的精度
-              startTime: s.startTime,
-              endTime: s.endTime,
-              // 🔴 关键修复：处理 translation 对象结构
-              // 如果 translation 是对象，使用 translation.zh 作为翻译
-              // 否则直接使用 translation 字段
-              translation: typeof s.translation === 'object' && s.translation !== null
-                ? (s.translation.zh || s.translation['zh-CN'] || JSON.stringify(s.translation))
-                : s.translation
-            }))
-            setSampleSentences(transcript)
-          }
-        } else {
+        if (!found) {
+          console.log('❌ Material not found with slug:', slug)
           setError('Material not found')
+          return
+        }
+
+        setMaterial(found)
+        console.log('📦 Material found:', found.title)
+        console.log('📦 ID:', found.id)
+        console.log('📦 source_type:', found.source_type || 'r2')
+        console.log('📦 youtube_id:', found.youtube_id)
+        console.log('📦 audio_path:', found.audio_path)
+        console.log('📦 video_path:', found.video_path)
+
+        // Set transcript
+        if (found.transcript && Array.isArray(found.transcript) && found.transcript.length > 0) {
+          const transcript = found.transcript.map((s: any, index: number) => ({
+            ...s,
+            id: s.id ?? index,
+            // 🔴 关键修复：直接使用原始值，保留精度
+            // 如果 startTime 是字符串 "9.10"，不转换以避免精度丢失
+            // 浏览器会自动将字符串转换为数字，并保留 "9.10" 的精度
+            startTime: s.startTime,
+            endTime: s.endTime,
+            // 🔴 关键修复：处理 translation 对象结构
+            // 如果 translation 是对象，使用 translation.zh 作为翻译
+            // 否则直接使用 translation 字段
+            translation: typeof s.translation === 'object' && s.translation !== null
+              ? (s.translation.zh || s.translation['zh-CN'] || JSON.stringify(s.translation))
+              : s.translation
+          }))
+          setSampleSentences(transcript)
+
+          console.log('✅ Loaded transcript:', transcript.length, 'sentences')
+          console.log('📝 First sentence:', transcript[0].text)
+        } else {
+          console.log('⚠️  No transcript found')
         }
       } catch (err) {
-        console.error('Error loading material:', err)
+        console.error('❌ Error loading material:', err)
         setError('Failed to load material')
       } finally {
         setLoading(false)
