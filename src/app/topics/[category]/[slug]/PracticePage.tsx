@@ -218,6 +218,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
               // 浏览器会自动将字符串转换为数字，并保留 "9.10" 的精度
               startTime: s.startTime,
               endTime: s.endTime,
+              // 🔴 关键修复：处理 translation 对象结构
+              // 如果 translation 是对象，使用 translation.zh 作为翻译
+              // 否则直接使用 translation 字段
+              translation: typeof s.translation === 'object' && s.translation !== null
+                ? (s.translation.zh || s.translation['zh-CN'] || JSON.stringify(s.translation))
+                : s.translation
             }))
             setSampleSentences(transcript)
           }
