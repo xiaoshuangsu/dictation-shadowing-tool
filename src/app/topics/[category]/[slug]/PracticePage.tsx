@@ -647,9 +647,13 @@ export default function PracticePage({ category, slug }: { category: string; slu
             </Link>
           </div>
 
-          {/* Level 2: Material Title - 🔴 移动端播放后隐藏，桌面端始终显示 */}
-          <div className={`${hasStarted ? 'max-lg:hidden' : ''} text-center transition-all duration-300 overflow-hidden`}>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{material.title}</h1>
+          {/* Level 2: Material Title - H1 for SEO */}
+          {/* 🔴 SEO 优化：H1 标签始终存在于 DOM 中，确保搜索引擎能抓取 */}
+          {/* 视觉上在移动端播放后可以缩小，但语义结构保持完整 */}
+          <div className={`${hasStarted ? 'max-lg:py-2' : ''} text-center transition-all duration-300`}>
+            <h1 className={`${hasStarted ? 'max-lg:text-lg max-lg:font-semibold' : 'text-2xl md:text-3xl'} font-bold text-gray-900`}>
+              {material.title}
+            </h1>
           </div>
 
           {/* Level 3: Mode Toggle Tabs (Centered) */}

@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { Suspense } from 'react'
 import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
+import type { Metadata } from 'next'
 
 // 🔴 关键修复：从共享配置导入凭证，避免重复定义
 // TODO: 考虑将这些凭证移到 .env.local 或独立的配置文件
@@ -36,6 +37,64 @@ export async function generateStaticParams() {
   } catch (error) {
     console.error('Error in generateStaticParams:', error)
     return [{ category: 'daily-life', slug: 'placeholder' }]
+  }
+}
+
+// 🔴 SEO 优化：动态生成元数据
+export async function generateMetadata(
+  { params }: { params: { category: string; slug: string } }
+): Promise<Metadata> {
+  try {
+    const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key)
+
+    // 通过 slug 查询素材
+    const { data: material, error } = await supabase
+      .from('materials')
+      .select('title, slug, category')
+      .eq('slug', params.slug)
+      .single()
+
+    if (error || !material) {
+      // 如果查询失败，返回默认元数据
+      return {
+        title: 'English Practice Material - ShadowHub',
+        description: 'Practice English with interactive dictation and shadowing materials on ShadowHub.',
+      }
+    }
+
+    // 构建基础 URL（不带参数）
+    const baseUrl = 'https://shadowhub.app'
+    const canonicalUrl = `${baseUrl}/topics/${params.category}/${params.slug}`
+
+    // 动态生成 Title 和 Description
+    const title = `${material.title} - ShadowHub Dictation & Shadowing Material`
+    const description = `Practice English with "${material.title}". Improve your pronunciation and speaking skills with our interactive dictation and shadowing materials.`
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: canonicalUrl,
+      },
+      openGraph: {
+        title,
+        description,
+        url: canonicalUrl,
+        siteName: 'ShadowHub',
+        type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+      },
+    }
+  } catch (error) {
+    console.error('Error generating metadata:', error)
+    return {
+      title: 'English Practice Material - ShadowHub',
+      description: 'Practice English with interactive dictation and shadowing materials on ShadowHub.',
+    }
   }
 }
 

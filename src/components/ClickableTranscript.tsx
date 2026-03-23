@@ -54,12 +54,7 @@ export default function ClickableTranscript({
 
       <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
         {sentences.map((sentence, index) => {
-          // Convert text to asterisks when hidden
-          const displayText = showTranscript
-            ? sentence.text
-            : sentence.text.split(/\s+/).map(() => '***').join(' ')
-
-          // 🔴 判断是否为高亮句子（跳转播放时的视觉聚焦）
+          // 🔴 判断是否为高亮句子（跳转播放时的视觉焦点）
           const isHighlighted = highlightIndex === index
 
           return (
@@ -89,20 +84,17 @@ export default function ClickableTranscript({
                   {index + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  {/* 🔴 可点击单词的句子渲染 - 使用 ClickableWord 组件 */}
-                  {showTranscript ? (
+                  {/* 🔴 SEO 优化：始终渲染真实内容，使用 CSS 控制可见性 */}
+                  {/* 这样搜索引擎可以抓取到完整的 Transcript 内容 */}
+                  <div className={!showTranscript ? 'blur-sm select-none' : ''}>
                     <ClickableSentence
-                      text={displayText}
+                      text={sentence.text}
                       sentence={sentence}
                       materialId={materialId}
                       materialTitle={materialTitle}
                       audioSrc={audioSrc}
                     />
-                  ) : (
-                    <p className="text-base text-gray-900 leading-relaxed">
-                      {displayText}
-                    </p>
-                  )}
+                  </div>
 
                   {/* 翻译 */}
                   {showTranscript && sentence.translation && (
