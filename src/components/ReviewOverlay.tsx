@@ -450,7 +450,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                 <div className="space-y-4">
                   {/* 状态提示 */}
                   <p className="text-center text-base text-white/90 font-medium">
-                    {isCorrect ? '太棒了！你记得很清楚 😊' : '继续努力！多多练习 💪'}
+                    {isCorrect ? 'Great job! You nailed it! 😊' : 'Keep practicing! 💪'}
                   </p>
 
                   {/* 🔴 三个选择按钮（响应式：桌面端水平排列，移动端垂直堆叠） */}
@@ -462,8 +462,8 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                     >
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-lg">😵</span>
-                        <span>完全不会</span>
-                        <span className="text-xs font-normal opacity-80">1小时后复习</span>
+                        <span>Still Learning</span>
+                        <span className="text-xs font-normal opacity-80">Review in 1 hour</span>
                       </div>
                     </button>
 
@@ -474,8 +474,8 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                     >
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-lg">🤔</span>
-                        <span>有点模糊</span>
-                        <span className="text-xs font-normal opacity-80">1天后复习</span>
+                        <span>Kinda Know</span>
+                        <span className="text-xs font-normal opacity-80">Review in 1 day</span>
                       </div>
                     </button>
 
@@ -486,8 +486,8 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                     >
                       <div className="flex flex-col items-center gap-1">
                         <span className="text-lg">😎</span>
-                        <span>太简单了</span>
-                        <span className="text-xs font-normal opacity-80">7天后复习</span>
+                        <span>Too Easy</span>
+                        <span className="text-xs font-normal opacity-80">Review in 7 days</span>
                       </div>
                     </button>
                   </div>
@@ -498,7 +498,7 @@ export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
                   onClick={() => handleNext()}
                   className="w-full px-8 py-4 bg-white text-blue-600 font-bold rounded-lg hover:bg-gray-100 transition-colors text-lg"
                 >
-                  {isLastCard ? '完成' : '下一张 →'}
+                  {isLastCard ? 'Finish' : 'Next →'}
                 </button>
               )}
             </div>
