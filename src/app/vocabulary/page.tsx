@@ -309,7 +309,6 @@ export default function VocabularyPage() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <div className="flex gap-2">
-            <span className="text-sm text-gray-700">Filter:</span>
             <button
               onClick={() => setFilterStatus('all')}
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
