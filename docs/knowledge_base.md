@@ -311,5 +311,114 @@ words = re.findall(r"[a-zA-Z0-9-']+", sentence_text)
 
 ---
 
-**版本**：V24.0
-**更新日期**：2026-03-21
+## 7. Transcript 数据格式解析问题
+
+### 症状
+- 素材页面只显示默认的 2 句话（First snowfall. / Today is November 26th.）
+- 数据库中 transcript 字段有数据，但前端未加载
+- 影响单个素材，其他素材正常
+
+### 根本原因
+- 数据库中 `transcript` 字段是 **JSON 字符串** 格式（如 `'[{"id":1,"text":"..."}]'`）
+- 前端代码检查 `Array.isArray(found.transcript)` 返回 `false`
+- 导致 transcript 未被解析，`sampleSentences` 保持默认值
+
+### 解决方案
+
+**在 PracticePage.tsx 中添加 JSON 解析逻辑**：
+
+```typescript
+// 🔴 关键修复：transcript 可能是 JSON 字符串或数组
+let transcriptData = found.transcript
+if (typeof transcriptData === 'string') {
+  try {
+    transcriptData = JSON.parse(transcriptData)
+    console.log('📦 Parsed transcript from JSON string')
+  } catch (e) {
+    console.error('❌ Failed to parse transcript JSON:', e)
+    transcriptData = null
+  }
+}
+
+// Set transcript
+if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+  const transcript = transcriptData.map((s: any, index: number) => ({
+    ...s,
+    id: s.id ?? index,
+    startTime: s.startTime,
+    endTime: s.endTime,
+    translation: s.translation  // 保留完整对象
+  }))
+  setSampleSentences(transcript)
+}
+```
+
+**要点**：
+- 先检查 `typeof transcriptData === 'string'`
+- 使用 `JSON.parse()` 转换为数组
+- 用 `try-catch` 捕获解析错误
+- 兼容字符串和数组两种格式
+
+### 相关文件
+- `src/app/topics/[category]/[slug]/PracticePage.tsx`
+
+---
+
+## 8. 多语言翻译显示问题
+
+### 症状
+- 选择"繁体中文"或"越南语"时，仍显示简体中文翻译
+- 语言切换无效果
+- 只有简体中文翻译正常显示
+
+### 根本原因
+- 前端代码将 `translation` 对象转换为字符串，只保留 `zh` 或 `zh-CN`
+- 代码逻辑：`translation: s.translation.zh || s.translation['zh-CN']`
+- 导致其他语言（zh-TW、vi）的数据丢失
+
+### 解决方案
+
+**保留完整的 translation 对象**：
+
+```typescript
+// ❌ 错误做法：只保留简体中文
+translation: typeof s.translation === 'object' && s.translation !== null
+  ? (s.translation.zh || s.translation['zh-CN'] || JSON.stringify(s.translation))
+  : s.translation
+
+// ✅ 正确做法：保留完整对象，支持多语言切换
+translation: typeof s.translation === 'object' && s.translation !== null
+  ? s.translation  // 保留完整对象
+  : s.translation
+```
+
+**各组件根据用户选择动态获取对应语言**：
+
+```typescript
+// DictationBox.tsx / WordMode.tsx / ShadowingPanel.tsx
+const getCurrentTranslation = () => {
+  // 兼容旧格式：translation 是字符串
+  if (typeof sentence.translation === 'string') {
+    return sentence.translation
+  }
+
+  // 新格式：translation 是对象，根据语言选择
+  return sentence.translation[translationLanguage] || ''
+}
+```
+
+### 支持的语言
+- `zh` / `zh-CN`：简体中文
+- `zh-TW`：繁体中文
+- `vi`：越南语
+
+### 相关文件
+- `src/app/topics/[category]/[slug]/PracticePage.tsx`
+- `src/components/DictationBox.tsx`
+- `src/components/WordMode.tsx`
+- `src/components/ShadowingPanel.tsx`
+
+---
+
+**版本**：V27.1.1
+**更新日期**：2026-03-22
