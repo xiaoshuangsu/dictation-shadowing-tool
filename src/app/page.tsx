@@ -1,107 +1,33 @@
-"use client"
+import { Suspense } from 'react'
+import type { Metadata } from 'next'
+import HomeContent from './HomeContent'
 
+// 🔴 SEO 优化：首页元数据
+export const metadata: Metadata = {
+  title: 'ShadowHub - Master English Speaking via Dictation & Shadowing',
+  description: 'Improve your English pronunciation and listening skills with our interactive tools and real-world materials.',
+  alternates: {
+    canonical: 'https://shadowhub.app',
+  },
+  openGraph: {
+    title: 'ShadowHub - Master English Speaking via Dictation & Shadowing',
+    description: 'Improve your English pronunciation and listening skills with our interactive tools and real-world materials.',
+    url: 'https://shadowhub.app',
+    siteName: 'ShadowHub',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ShadowHub - Master English Speaking via Dictation & Shadowing',
+    description: 'Improve your English pronunciation and listening skills with our interactive tools and real-world materials.',
+  },
+}
 
-import Hero from "@/components/landing/Hero"
-import HowItWorks from "@/components/landing/HowItWorks"
-import FeaturesTitle from "@/components/landing/FeaturesTitle"
-import FeatureDictation from "@/components/landing/FeatureDictation"
-import FeatureShadowing from "@/components/landing/FeatureShadowing"
-import FeatureAI from "@/components/landing/FeatureAI"
-import FeatureGrowth from "@/components/landing/FeatureGrowth"
-import FAQ from "@/components/landing/FAQ"
-import CTA from "@/components/landing/CTA"
-import AuthModal from "@/components/landing/AuthModal"
-import { useAuth } from "@/lib/hooks/useAuth"
-import { useEffect, useState } from "react"
-import Link from "next/link"
-
+// 🔴 服务端组件（默认导出）
 export default function Home() {
-  const { user, isAuthenticated } = useAuth()
-  const [showAuthModal, setShowAuthModal] = useState(false)
-
-  useEffect(() => {
-    // Only show modal for non-logged-in users on first visit
-    if (!isAuthenticated) {
-      const hasVisited = localStorage.getItem('hasVisitedBefore')
-      if (!hasVisited) {
-        // Show modal after a short delay for better UX
-        const timer = setTimeout(() => {
-          setShowAuthModal(true)
-        }, 2000)
-        return () => clearTimeout(timer)
-      }
-    }
-  }, [isAuthenticated])
-
-  const handleModalClose = () => {
-    setShowAuthModal(false)
-    // Mark that user has visited
-    localStorage.setItem('hasVisitedBefore', 'true')
-  }
   return (
-    <main>
-      {/* Auth Modal for first-time visitors */}
-      <AuthModal isOpen={showAuthModal} onClose={handleModalClose} />
-
-      {/* Hero Section */}
-      <Hero />
-
-      {/* How It Works */}
-      <HowItWorks />
-
-      {/* Features Section Title */}
-      <FeaturesTitle />
-
-      {/* Feature: Dictation */}
-      <FeatureDictation />
-
-      {/* Feature: Shadowing */}
-      <FeatureShadowing />
-
-      {/* Feature: AI */}
-      <FeatureAI />
-
-      {/* Feature: Growth */}
-      <FeatureGrowth />
-
-      {/* FAQ */}
-      <FAQ />
-
-      {/* CTA */}
-      <CTA />
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-12 px-4">
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <h3 className="text-white font-semibold mb-4">{"About"}</h3>
-              <p className="text-sm leading-relaxed">
-                {"A professional English dictation and shadowing practice tool to help you efficiently improve your listening and speaking skills."}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-white font-semibold mb-4">{"Features"}</h3>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/practice" className="hover:text-white transition-colors">{"Dictation Practice"}</Link></li>
-                <li><Link href="/practice" className="hover:text-white transition-colors">{"Shadowing Practice"}</Link></li>
-                <li><Link href="/topics" className="hover:text-white transition-colors">{"Materials"}</Link></li>
-                <li><Link href="/profile" className="hover:text-white transition-colors">{"Profile"}</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-white font-semibold mb-4">{"Resources"}</h3>
-              <ul className="space-y-2 text-sm">
-                <li><a href="https://github.com/xiaoshuangsu/dictation-shadowing-tool" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{"GitHub"}</a></li>
-                <li><a href="mailto:support@example.com" className="hover:text-white transition-colors">{"Contact Us"}</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; {new Date().getFullYear()} ShadowHub. {"All rights reserved."}</p>
-          </div>
-        </div>
-      </footer>
-    </main>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>}>
+      <HomeContent />
+    </Suspense>
   )
 }
