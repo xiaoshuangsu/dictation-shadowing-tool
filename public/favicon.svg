@@ -10,34 +10,16 @@
   <!-- 背景圆角矩形 -->
   <rect width="512" height="512" rx="96" fill="url(#grad)"/>
 
-  <!-- 白色书本图标 -->
-  <g transform="translate(128, 110)">
-    <!-- 书本底部 -->
-    <rect x="20" y="180" width="216" height="20" rx="4" fill="white" opacity="0.3"/>
-
-    <!-- 书本主体 -->
-    <rect x="20" y="40" width="216" height="140" rx="8" fill="white"/>
-
-    <!-- 书脊阴影 -->
-    <rect x="126" y="40" width="4" height="140" fill="#f0f0f0"/>
-
-    <!-- 左页文字线 -->
-    <rect x="45" y="65" width="70" height="8" rx="4" fill="url(#grad)"/>
-    <rect x="45" y="85" width="60" height="6" rx="3" fill="#e0e0e0"/>
-    <rect x="45" y="100" width="65" height="6" rx="3" fill="#e0e0e0"/>
-    <rect x="45" y="115" width="50" height="6" rx="3" fill="#e0e0e0"/>
-
-    <!-- 右页文字线 -->
-    <rect x="141" y="65" width="70" height="8" rx="4" fill="url(#grad)"/>
-    <rect x="141" y="85" width="60" height="6" rx="3" fill="#e0e0e0"/>
-    <rect x="141" y="100" width="65" height="6" rx="3" fill="#e0e0e0"/>
-    <rect x="141" y="115" width="50" height="6" rx="3" fill="#e0e0e0"/>
-
-    <!-- 铅笔图标 -->
-    <g transform="translate(180, 130) rotate(45)">
-      <rect x="0" y="0" width="12" height="40" rx="1" fill="#fbbf24"/>
-      <polygon points="0,40 12,40 6,52" fill="#f59e0b"/>
-      <rect x="0" y="0" width="12" height="4" fill="#fcd34d"/>
-    </g>
+  <!-- 白色书本图标 (Lucide BookOpen 风格) -->
+  <g transform="translate(128, 128)">
+    <!-- 左页 -->
+    <path d="M 20 40 L 116 40 L 116 220 L 20 200 Z" fill="white"/>
+    <!-- 右页 -->
+    <path d="M 140 40 L 236 40 L 236 200 L 140 220 Z" fill="white"/>
+    <!-- 书脊 -->
+    <rect x="116" y="40" width="12" height="180" fill="#e0e7ff"/>
+    <!-- 书本底部的书页效果 -->
+    <path d="M 20 200 L 116 220 L 116 225 L 20 205 Z" fill="#e0e7ff"/>
+    <path d="M 140 220 L 236 200 L 236 205 L 140 225 Z" fill="#e0e7ff"/>
   </g>
 </svg>
