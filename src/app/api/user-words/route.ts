@@ -11,6 +11,96 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
+/**
+ * 从 dictionaryapi.dev 获取音频 URL
+ * @param word - 单词
+ * @returns 音频 URL 对象 {us: string | null, uk: string | null}
+ */
+async function fetchAudioUrlsFromDictAPI(word: string): Promise<{us: string | null, uk: string | null}> {
+  try {
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`, {
+      signal: AbortSignal.timeout(10000) // 10 秒超时
+    })
+
+    if (!response.ok) {
+      return { us: null, uk: null }
+    }
+
+    const data = await response.json()
+
+    if (!data || data.length === 0) {
+      return { us: null, uk: null }
+    }
+
+    const phonetics = data[0]?.phonetics || []
+    const audioUrls = { us: null as string | null, uk: null as string | null }
+
+    for (const phonetic of phonetics) {
+      const audioUrl = phonetic.audio
+      if (!audioUrl || !audioUrl.endsWith('.mp3')) continue
+
+      if (audioUrl.includes('-us') && !audioUrls.us) {
+        audioUrls.us = audioUrl
+      } else if (audioUrl.includes('-uk') && !audioUrls.uk) {
+        audioUrls.uk = audioUrl
+      } else if (!audioUrls.us) {
+        audioUrls.us = audioUrl
+      }
+    }
+
+    return audioUrls
+  } catch (error) {
+    console.warn('[API] Failed to fetch audio URLs:', { word, error: (error as Error).message })
+    return { us: null, uk: null }
+  }
+}
+
+/**
+ * 在后台异步获取音频 URL 并更新到 dictionary_cache
+ * @param word - 单词
+ * @param supabase - Supabase 客户端
+ */
+async function fetchAudioUrlsInBackground(word: string, supabase: any): Promise<void> {
+  try {
+    // 检查是否已有音频 URL
+    const { data: existing } = await supabase
+      .from('dictionary_cache')
+      .select('audio_url_us, audio_url_uk')
+      .eq('word', word)
+      .single()
+
+    // 如果已有音频，跳过
+    if ((existing?.audio_url_us && existing.audio_url_us.includes('dictionaryapi.dev')) ||
+        (existing?.audio_url_uk && existing.audio_url_uk.includes('dictionaryapi.dev'))) {
+      console.log('[API] Audio URLs already exist for word:', word)
+      return
+    }
+
+    // 获取音频 URL
+    const audioUrls = await fetchAudioUrlsFromDictAPI(word)
+
+    // 更新 dictionary_cache
+    if (audioUrls.us || audioUrls.uk) {
+      const updateData: any = {}
+      if (audioUrls.us) updateData.audio_url_us = audioUrls.us
+      if (audioUrls.uk) updateData.audio_url_uk = audioUrls.uk
+
+      await supabase
+        .from('dictionary_cache')
+        .update(updateData)
+        .eq('word', word)
+
+      console.log('[API] ✅ Updated audio URLs for word:', word, {
+        us: audioUrls.us ? 'found' : 'not found',
+        uk: audioUrls.uk ? 'found' : 'not found'
+      })
+    }
+  } catch (error) {
+    // 静默失败，不影响主流程
+    console.warn('[API] Background audio fetch failed:', { word, error: (error as Error).message })
+  }
+}
+
 // 🔴 容错初始化：只在运行时创建客户端，避免构建时错误
 const getSupabaseClient = () => {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
@@ -249,6 +339,11 @@ export async function POST(request: Request) {
     }
 
     console.log('[API] Added new word:', { id: data.id })
+
+    // 🔴 新增：异步获取音频 URL（按需更新）
+    // 不阻塞响应，在后台静默获取音频
+    fetchAudioUrlsInBackground(normalizedWord, supabase)
+
     return NextResponse.json({
       success: true,
       message: 'Word added successfully',
