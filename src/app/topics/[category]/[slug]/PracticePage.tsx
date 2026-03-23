@@ -216,9 +216,21 @@ export default function PracticePage({ category, slug }: { category: string; slu
         console.log('📦 audio_path:', found.audio_path)
         console.log('📦 video_path:', found.video_path)
 
+        // 🔴 关键修复：transcript 可能是 JSON 字符串或数组
+        let transcriptData = found.transcript
+        if (typeof transcriptData === 'string') {
+          try {
+            transcriptData = JSON.parse(transcriptData)
+            console.log('📦 Parsed transcript from JSON string')
+          } catch (e) {
+            console.error('❌ Failed to parse transcript JSON:', e)
+            transcriptData = null
+          }
+        }
+
         // Set transcript
-        if (found.transcript && Array.isArray(found.transcript) && found.transcript.length > 0) {
-          const transcript = found.transcript.map((s: any, index: number) => ({
+        if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+          const transcript = transcriptData.map((s: any, index: number) => ({
             ...s,
             id: s.id ?? index,
             // 🔴 关键修复：直接使用原始值，保留精度
