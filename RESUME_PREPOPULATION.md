@@ -1,7 +1,7 @@
 # 词典预生成脚本恢复口令
 
-**版本**: V27.1.0  
-**更新日期**: 2026-03-22  
+**版本**: V27.1.1
+**更新日期**: 2026-03-22
 **用途**: 确保词典预生成脚本正确启动，避免字段名错误和重复进程
 
 ---
@@ -12,24 +12,100 @@
 
 ---
 
-## 📊 当前状态（2026-03-22 07:57）
+## 📊 当前状态（2026-03-22 17:29）✅ 已完成
 
 ### 数据库状态
 - **数据库表**: `dictionary_cache`
 - **字段名**: `definitions` ✅（不是 `definition_json`）
-- **当前缓存数**: 5027 个
-- **本次已完成**: 597 个 / 2709 个 (22.0%)
-- **剩余**: 2112 个
+- **当前缓存数**: 7131 个
+- **总单词数**: 7129 个（过滤后）
+- **完成度**: 100% ✅
+- **剩余**: 0 个
 
 ### 脚本状态
 - **脚本位置**: `scripts/prepopulate_dictionary_cache.py`
-- **版本**: V27.1.0（已优化）
-- **特性**: 
+- **版本**: V27.1.1（已优化）
+- **特性**:
   - ✅ 完整日志系统
   - ✅ 逐词立即保存
   - ✅ 错误自动跳过
   - ✅ 5分钟进度汇报
   - ✅ 使用正确的字段名 `definitions`
+  - ✅ **异常单词过滤**（新增）
+
+### 🎉 完成历史
+
+| 日期 | 事件 | 缓存数 | 进度 |
+|------|------|--------|------|
+| 2026-03-22 07:57 | 初始运行 | 5027 | 70.5% |
+| 2026-03-22 17:21 | 发现隐藏进度 | 7131 | 99.9% |
+| 2026-03-22 17:29 | 清理异常单词 + 优化过滤 | 7131/7129 | **100%** ✅ |
+
+---
+
+## 🛡️ 异常单词过滤规则（V27.1.1 新增）
+
+### 过滤逻辑
+
+脚本现在会自动过滤以下类型的异常单词：
+
+1. **超长单词**（> 20 字符）
+   - 例如：`greedinessgetsusnothing`, `moralbewareofflattersTheyoftenwantsomethingfromyou`
+   - 原因：多个单词连在一起（素材数据质量问题）
+
+2. **专有名词**（地名、人名、网站名）
+   - 例如：`taipei`, `taiwanese`, `taiwan`, `fablecottage`
+   - 原因：非通用英语词汇
+
+3. **拼写错误**（素材质量问题）
+   - 例如：`booly`, `groud`, `bussell`, `ratchesons`
+   - 原因：素材 transcript 错误
+
+4. **连续重复字符**
+   - 例如：`aaaa`, `zzzzz`
+   - 原因：非正常单词
+
+5. **包含数字**
+   - 例如：`abc123`, `test4`
+   - 原因：非纯字母单词
+
+6. **过短单词**（< 2 字符）
+   - 原因：通常为无意义片段
+
+### 已清理的异常单词（10 个）
+
+| 单词 | 类型 | 来源素材 |
+|------|------|---------|
+| `greedinessgetsusnothing` | 超长 | The Goose That Laid Golden Eggs |
+| `moralbewareofflatterstheyoftenwantsomethingfromyou` | 超长 | The Fox and the Crow |
+| `fablecottage` | 网站名 | TheFableCottage.com 素材 |
+| `booly` | 拼写错误 | What time is it? |
+| `groud` | 拼写错误 | Little Red Riding Hood |
+| `singsing` | 人名 | 未知素材 |
+| `ratchesons` | 人名 | 未知素材 |
+| `bussell` | 人名 | 未知素材 |
+| `halleluia` | 宗教词汇 | 未知素材 |
+| `system` | 系统词汇 | 技术类素材 |
+
+### 修改过滤规则
+
+如需调整过滤规则，编辑 `scripts/prepopulate_dictionary_cache.py` 中的 `is_valid_word()` 函数：
+
+```python
+def is_valid_word(word: str) -> bool:
+    # 1. 调整长度限制
+    if len(word) > 20:  # 可修改阈值
+        return False
+
+    # 2. 添加黑名单
+    proper_nouns = {
+        'your_word_here',  # 添加要过滤的单词
+    }
+    if word in proper_nouns:
+        return False
+
+    # ... 其他规则
+```
 
 ---
 
@@ -246,9 +322,11 @@ check-progress
 2. ✅ **使用 nohup 后台运行**
 3. ✅ **确认字段名是 `definitions`**
 4. ✅ **检查日志确保正常工作**
+5. ✅ **异常单词会被自动过滤**（V27.1.1）
 
 ---
 
-**创建日期**: 2026-03-22  
-**适用版本**: V27.1.0  
+**创建日期**: 2026-03-22
+**适用版本**: V27.1.1
 **脚本文件**: `scripts/prepopulate_dictionary_cache.py`
+**状态**: ✅ **预生成已完成（100%）**
