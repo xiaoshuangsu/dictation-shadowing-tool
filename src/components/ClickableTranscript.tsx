@@ -43,6 +43,8 @@ export default function ClickableTranscript({
 }: ClickableTranscriptProps) {
   // 🔴 自动滚动：存储每个句子元素的引用
   const sentenceRefs = useRef<(HTMLDivElement | null)[]>([])
+  // 🔴 Transcript 容器引用：用于精准的容器内滚动
+  const containerRef = useRef<HTMLDivElement>(null)
   // 🔴 禁用初始化自动滚动：跟踪组件是否已经挂载
   const isMountedRef = useRef(false)
 
@@ -55,8 +57,7 @@ export default function ClickableTranscript({
     }
   }, [])
 
-  // 🔴 自动滚动：当 currentIndex 变化时，平滑滚动到当前句子
-  // 🔴 关键修复：只在组件挂载后才触发自动滚动，防止初始化时页面跳动
+  // 🔴 精准的容器内滚动逻辑（防止全局滚动冒泡）
   useEffect(() => {
     // 🔴 禁止初始化自动滚动
     if (!isMountedRef.current) {
@@ -66,14 +67,19 @@ export default function ClickableTranscript({
 
     if (currentIndex >= 0 && currentIndex < sentenceRefs.current.length) {
       const targetElement = sentenceRefs.current[currentIndex]
-      if (targetElement) {
-        console.log('🔄 [ClickableTranscript] 自动滚动到句子', currentIndex)
-        // 优化滚动逻辑：使用 block: 'center' 确保句子居中显示
-        // 配合 scroll-mt-5（scroll-margin-top: 20px）提供顶部呼吸空间
-        targetElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',  // 改为居中对齐，防止背景框顶部被截断
-          inline: 'nearest'
+      const container = containerRef.current
+
+      if (targetElement && container) {
+        console.log('🔄 [ClickableTranscript] 容器内滚动到句子', currentIndex)
+
+        // 🔴 精准计算：只在容器内滚动，不影响全局 Window
+        // offsetTop 是元素相对于其 offsetParent（容器）的距离
+        // 减去 24px 提供顶部呼吸间距
+        const targetScrollTop = targetElement.offsetTop - 24
+
+        container.scrollTo({
+          top: targetScrollTop,
+          behavior: 'smooth'
         })
       }
     }
@@ -91,7 +97,10 @@ export default function ClickableTranscript({
         </button>
       </div>
 
-      <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto transcript-scroll-container">
+      <div
+        ref={containerRef}
+        className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto transcript-scroll-container"
+      >
         {sentences.map((sentence, index) => {
           // 🔴 判断是否为高亮句子（跳转播放时的视觉焦点）
           const isHighlighted = highlightIndex === index
@@ -105,7 +114,7 @@ export default function ClickableTranscript({
               onClick={() => {
                 onSelectSentence(index)
               }}
-              className={`p-3 rounded cursor-pointer transition-all scroll-mt-5 ${
+              className={`p-3 rounded cursor-pointer transition-all ${
                 isHighlighted
                   ? 'bg-yellow-100 border-2 border-yellow-400 animate-pulse shadow-lg scale-105'  // 🔴 高亮闪烁效果
                   : index === currentIndex
