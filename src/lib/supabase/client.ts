@@ -121,6 +121,7 @@ export interface Material {
   play_count: number
   created_at: string
   updated_at: string
+  is_premium: boolean  // 是否为付费素材
   // 新增字段：支持 YouTube 和 R2 视频
   source_type: 'r2' | 'youtube'
   youtube_id?: string | null

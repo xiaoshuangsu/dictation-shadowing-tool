@@ -211,6 +211,15 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
           </div>
         </div>
 
+        {/* 🔴 Pro 徽章（仅付费素材显示） */}
+        {material.is_premium && (
+          <div className="absolute top-3 left-3">
+            <span className="px-3 py-1 rounded-md text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
+              Pro
+            </span>
+          </div>
+        )}
+
         {/* 难度标签 */}
         <div className="absolute top-3 right-3">
           <span className={`px-2 py-1 rounded-md text-xs font-semibold border ${DIFFICULTY_COLORS[material.difficulty]}`}>
