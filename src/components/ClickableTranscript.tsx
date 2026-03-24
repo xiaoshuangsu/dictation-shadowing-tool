@@ -6,10 +6,12 @@
  * - 每个单词可点击（使用通用的 ClickableWord 组件）
  * - 点击后显示单词释义悬浮气泡
  * - 支持将单词加入生词本
+ * - 自动滚动到当前句子（防止移动端 Layout Shift）
  */
 
 'use client'
 
+import { useRef, useEffect } from 'react'
 import ClickableWord from './ClickableWord'
 import { tokenizeSentence } from '@/lib/utils/wordTranslation'
 import type { Sentence } from '@/types'
@@ -39,6 +41,25 @@ export default function ClickableTranscript({
   materialTitle,
   audioSrc
 }: ClickableTranscriptProps) {
+  // 🔴 自动滚动：存储每个句子元素的引用
+  const sentenceRefs = useRef<(HTMLDivElement | null)[]>([])
+
+  // 🔴 自动滚动：当 currentIndex 变化时，平滑滚动到当前句子
+  useEffect(() => {
+    if (currentIndex >= 0 && currentIndex < sentenceRefs.current.length) {
+      const targetElement = sentenceRefs.current[currentIndex]
+      if (targetElement) {
+        // 使用 scrollIntoView 平滑滚动到当前句子
+        // block: 'start' 确保句子滚动到容器顶部
+        // behavior: 'smooth' 实现平滑滚动效果
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        })
+      }
+    }
+  }, [currentIndex])
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 sticky top-40">
@@ -52,7 +73,7 @@ export default function ClickableTranscript({
         </button>
       </div>
 
-      <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto">
+      <div className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto transcript-scroll-container">
         {sentences.map((sentence, index) => {
           // 🔴 判断是否为高亮句子（跳转播放时的视觉焦点）
           const isHighlighted = highlightIndex === index
@@ -60,6 +81,9 @@ export default function ClickableTranscript({
           return (
             <div
               key={sentence.id}
+              ref={(el) => {
+                sentenceRefs.current[index] = el
+              }}
               onClick={() => {
                 onSelectSentence(index)
               }}
