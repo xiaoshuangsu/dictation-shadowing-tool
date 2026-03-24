@@ -178,11 +178,21 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
   // 🔴 桌面端优化：页面加载时确保滚动到顶部，避免面包屑和标题被隐藏
   // 🔴 页面加载时滚动到顶部，确保所有内容可见
+  // 🔴 强制复位：作为兜底方案，确保刷新后页面强制回到最顶部
   useEffect(() => {
     // 所有设备都滚动到顶部，确保面包屑、标题和导航栏完全可见
     window.scrollTo({ top: 0, behavior: 'auto' })
     console.log('🔧 页面加载：滚动到顶部，确保所有内容可见')
   }, []) // 只在组件挂载时执行一次
+
+  // 🔴 强制复位兜底方案：在数据加载完成后再次确保页面在顶部
+  useEffect(() => {
+    if (!loading && material && sampleSentences.length > 0) {
+      // 数据加载完成后，强制滚动到顶部
+      window.scrollTo({ top: 0, behavior: 'auto' })
+      console.log('🔧 数据加载完成：强制滚动到顶部，防止自动滚动偏移')
+    }
+  }, [loading, material, sampleSentences.length])
 
   // Fetch material data
   useEffect(() => {

@@ -43,12 +43,31 @@ export default function ClickableTranscript({
 }: ClickableTranscriptProps) {
   // 🔴 自动滚动：存储每个句子元素的引用
   const sentenceRefs = useRef<(HTMLDivElement | null)[]>([])
+  // 🔴 禁用初始化自动滚动：跟踪组件是否已经挂载
+  const isMountedRef = useRef(false)
+
+  // 🔴 标记组件已挂载
+  useEffect(() => {
+    isMountedRef.current = true
+    console.log('🔧 [ClickableTranscript] 组件已挂载，启用自动滚动')
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
 
   // 🔴 自动滚动：当 currentIndex 变化时，平滑滚动到当前句子
+  // 🔴 关键修复：只在组件挂载后才触发自动滚动，防止初始化时页面跳动
   useEffect(() => {
+    // 🔴 禁止初始化自动滚动
+    if (!isMountedRef.current) {
+      console.log('🚫 [ClickableTranscript] 组件未挂载，跳过自动滚动')
+      return
+    }
+
     if (currentIndex >= 0 && currentIndex < sentenceRefs.current.length) {
       const targetElement = sentenceRefs.current[currentIndex]
       if (targetElement) {
+        console.log('🔄 [ClickableTranscript] 自动滚动到句子', currentIndex)
         // 使用 scrollIntoView 平滑滚动到当前句子
         // block: 'start' 确保句子滚动到容器顶部
         // behavior: 'smooth' 实现平滑滚动效果
