@@ -485,3 +485,79 @@ if (mode === 'dictation') {
 
 **版本**：V27.8.0
 **更新日期**：2026-03-23
+
+## 10. Pro 标签不显示问题
+
+### 症状
+- 数据库查询返回 `is_premium: true`
+- 素材卡片封面图右上角只有难度标签（B2）
+- 没有显示紫色渐变的 Pro 标签
+
+### 根本原因
+
+**组件定义冲突**：
+- 修改了 `src/components/topics/MaterialCard.tsx`（未被使用）
+- `src/components/topics/CategoryPage.tsx` 定义了自己的 Material 类型
+- CategoryPage 在文件中内联渲染卡片，没有使用 MaterialCard 组件
+- CategoryPage 的 Material 类型缺少 `is_premium` 字段定义
+
+### 解决方案
+
+**1. 更新 CategoryPage 的 Material 类型**：
+```typescript
+// src/components/topics/CategoryPage.tsx
+type Material = {
+  id: string
+  title: string
+  category: string
+  difficulty: 'A1' | 'A2' | 'B1' | 'B2'
+  audio_path: string
+  thumbnail_path: string | null
+  audio_size: number
+  duration: number | null
+  play_count: number
+  is_premium: boolean  // 🔴 添加付费标识
+  slug?: string
+}
+```
+
+**2. 在 CategoryPage 卡片渲染中添加 Pro 标签**：
+```typescript
+{/* 🔴 Pro 徽章（仅付费素材显示） */}
+{material.is_premium && (
+  <div className="absolute top-3 left-3">
+    <span className="px-3 py-1 rounded-md text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
+      Pro
+    </span>
+  </div>
+)}
+
+{/* Difficulty Badge */}
+<div className="absolute top-3 right-3">
+  <span className={`px-2 py-1 rounded-md text-xs font-semibold border ${DIFFICULTY_COLORS[material.difficulty]}`}>
+    {material.difficulty}
+  </span>
+</div>
+```
+
+### 核心要点
+- 修改组件前，先确认该组件是否被实际使用
+- 内联渲染的卡片不会使用独立的组件
+- 需要同时更新类型定义和渲染逻辑
+
+### 相关文件
+- `src/components/topics/CategoryPage.tsx`（分类页面，内联渲染）
+- `src/components/topics/MaterialCard.tsx`（素材卡片组件，Profile 页面使用）
+- `src/lib/supabase/client.ts`（Material 类型定义）
+
+### 快速排查
+遇到 Pro 标签不显示时：
+1. 检查数据库字段是否正确（`SELECT is_premium FROM materials WHERE ...`）
+2. 检查页面实际使用的组件（搜索内联渲染或组件导入）
+3. 检查 TypeScript 类型定义是否包含新字段
+4. 添加 console.log 调试日志确认数据获取
+
+---
+
+**版本**：V29.3.0
+**更新日期**：2026-03-24

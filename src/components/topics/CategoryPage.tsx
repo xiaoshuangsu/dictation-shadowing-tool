@@ -18,6 +18,7 @@ type Material = {
   audio_size: number
   duration: number | null
   play_count: number
+  is_premium: boolean  // 🔴 添加付费标识
   slug?: string
 }
 
@@ -347,6 +348,15 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                           <svg className="w-16 h-16 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                           </svg>
+                        </div>
+                      )}
+
+                      {/* 🔴 Pro 徽章（仅付费素材显示） */}
+                      {material.is_premium && (
+                        <div className="absolute top-3 left-3">
+                          <span className="px-3 py-1 rounded-md text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg">
+                            Pro
+                          </span>
                         </div>
                       )}
 
