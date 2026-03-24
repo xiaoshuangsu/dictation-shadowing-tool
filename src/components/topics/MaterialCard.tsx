@@ -26,6 +26,15 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
+  // 🔴 调试：检查 is_premium 字段
+  useEffect(() => {
+    console.log('🔍 [MaterialCard] 素材信息:', {
+      title: material.title,
+      is_premium: material.is_premium,
+      is_premium_type: typeof material.is_premium
+    })
+  }, [material.is_premium, material.title])
+
   // 🔴 标识第一张图片（用于调试）
   useEffect(() => {
     if (imageCounter === 0) {

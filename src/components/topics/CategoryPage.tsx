@@ -58,11 +58,21 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
 
         const { data, error } = await supabase
           .from('materials')
-          .select('*')
+          .select('id, title, category, difficulty, audio_path, thumbnail_path, audio_size, duration, play_count, created_at, updated_at, is_premium, source_type, youtube_id, video_path')
           .eq('category', categoryName)
           .order('title')
 
         if (error) throw error
+
+        // 🔴 调试：检查 is_premium 字段
+        console.log('🔍 [CategoryPage] 获取到的素材数据:', {
+          count: data?.length,
+          sample: data?.slice(0, 3).map(m => ({
+            title: m.title,
+            is_premium: m.is_premium,
+            is_premium_type: typeof m.is_premium
+          }))
+        })
 
         // 对 Daily Life 分类的素材进行特殊排序：有自定义封面的在前
         let sortedData = data || []
