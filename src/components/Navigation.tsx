@@ -113,14 +113,14 @@ export default function Navigation() {
                 {/* More Dropdown Content */}
                 {isMoreMenuOpen && (
                   <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                    <a
-                      href="#pricing"
+                    <Link
+                      href="/pricing"
                       onClick={() => setIsMoreMenuOpen(false)}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                     >
                       <DollarSign className="w-4 h-4" />
                       <span>Pricing</span>
-                    </a>
+                    </Link>
                     <a
                       href="mailto:support@shadowhub.app"
                       onClick={() => setIsMoreMenuOpen(false)}
@@ -239,14 +239,14 @@ export default function Navigation() {
               {/* Mobile More Section */}
               <div className="border-t border-gray-200 mt-2 pt-2">
                 <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">More</div>
-                <a
-                  href="#pricing"
+                <Link
+                  href="/pricing"
                   onClick={() => setIsMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
                 >
                   <DollarSign className="w-5 h-5" />
                   <span>Pricing</span>
-                </a>
+                </Link>
                 <a
                   href="mailto:support@shadowhub.app"
                   onClick={() => setIsMenuOpen(false)}
