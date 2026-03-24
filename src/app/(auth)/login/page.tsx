@@ -54,13 +54,8 @@ export default function LoginPage() {
         <div className="bg-white rounded-lg shadow-md p-8">
           <LoginForm
             onSuccess={() => {
-              // Redirect to home and reload to establish session
-              // Check if in development or production
-              const isDev = process.env.NODE_ENV === 'development'
-              const baseUrl = isDev
-                ? window.location.origin + '/'
-                : window.location.origin + '/dictation-shadowing-tool/'
-              window.location.href = baseUrl
+              // 🔴 修复：登录成功后统一跳转到首页
+              window.location.href = '/'
             }}
           />
 

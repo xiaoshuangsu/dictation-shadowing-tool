@@ -57,12 +57,8 @@ export default function RegisterPage() {
         <div className="bg-white rounded-lg shadow-md p-8">
           <RegisterForm
             onSuccess={() => {
-              // Redirect to home
-              const isDev = process.env.NODE_ENV === 'development'
-              const baseUrl = isDev
-                ? window.location.origin + '/'
-                : window.location.origin + '/dictation-shadowing-tool/'
-              window.location.href = baseUrl
+              // 🔴 修复：注册成功后统一跳转到首页
+              window.location.href = '/'
             }}
           />
 
