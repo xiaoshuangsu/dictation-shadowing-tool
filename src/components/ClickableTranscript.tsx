@@ -68,12 +68,11 @@ export default function ClickableTranscript({
       const targetElement = sentenceRefs.current[currentIndex]
       if (targetElement) {
         console.log('🔄 [ClickableTranscript] 自动滚动到句子', currentIndex)
-        // 使用 scrollIntoView 平滑滚动到当前句子
-        // block: 'start' 确保句子滚动到容器顶部
-        // behavior: 'smooth' 实现平滑滚动效果
+        // 优化滚动逻辑：使用 block: 'center' 确保句子居中显示
+        // 配合 scroll-mt-5（scroll-margin-top: 20px）提供顶部呼吸空间
         targetElement.scrollIntoView({
           behavior: 'smooth',
-          block: 'start',
+          block: 'center',  // 改为居中对齐，防止背景框顶部被截断
           inline: 'nearest'
         })
       }
@@ -106,7 +105,7 @@ export default function ClickableTranscript({
               onClick={() => {
                 onSelectSentence(index)
               }}
-              className={`p-3 rounded cursor-pointer transition-all ${
+              className={`p-3 rounded cursor-pointer transition-all scroll-mt-5 ${
                 isHighlighted
                   ? 'bg-yellow-100 border-2 border-yellow-400 animate-pulse shadow-lg scale-105'  // 🔴 高亮闪烁效果
                   : index === currentIndex
