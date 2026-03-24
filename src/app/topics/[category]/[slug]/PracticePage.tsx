@@ -177,13 +177,11 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const practiceAreaRef = useRef<HTMLDivElement>(null)
 
   // 🔴 桌面端优化：页面加载时确保滚动到顶部，避免面包屑和标题被隐藏
+  // 🔴 移动端优化：保持滚动到顶部的行为，确保用户体验一致
   useEffect(() => {
-    // 检测是否为桌面端
-    const isDesktop = window.innerWidth >= 1024
-    if (isDesktop) {
-      // 桌面端：滚动到顶部，确保面包屑和标题完全可见
-      window.scrollTo({ top: 0, behavior: 'auto' })
-    }
+    // 所有设备都滚动到顶部，确保面包屑、标题和导航栏完全可见
+    window.scrollTo({ top: 0, behavior: 'auto' })
+    console.log('🔧 页面加载：滚动到顶部，确保所有内容可见')
   }, []) // 只在组件挂载时执行一次
 
   // Fetch material data
