@@ -83,10 +83,9 @@ export default function HomeContent() {
             <div>
               <h3 className="text-white font-semibold mb-4">{"Features"}</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/practice" className="hover:text-white transition-colors">{"Dictation Practice"}</Link></li>
-                <li><Link href="/practice" className="hover:text-white transition-colors">{"Shadowing Practice"}</Link></li>
-                <li><Link href="/topics" className="hover:text-white transition-colors">{"Materials"}</Link></li>
-                <li><Link href="/profile" className="hover:text-white transition-colors">{"Profile"}</Link></li>
+                <li><Link href="/topics" className="hover:text-white transition-colors">{"Explore Materials"}</Link></li>
+                <li><Link href="/vocabulary" className="hover:text-white transition-colors">{"Vocabulary Review"}</Link></li>
+                <li><Link href="/profile" className="hover:text-white transition-colors">{"Learning Dashboard"}</Link></li>
               </ul>
             </div>
             <div>
