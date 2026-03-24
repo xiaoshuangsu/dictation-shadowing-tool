@@ -38,7 +38,7 @@ export default function CTA() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg md:text-xl text-blue-100 mb-12 max-w-3xl mx-auto"
           >
-            Join thousands of learners improving their English with our proven dictation and shadowing method
+            Join thousands of learners improving your English with our proven dictation and shadowing method
           </motion.p>
 
           <motion.div
