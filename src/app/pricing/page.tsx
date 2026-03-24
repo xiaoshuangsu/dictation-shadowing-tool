@@ -209,15 +209,6 @@ export default function PricingPage() {
 
             <details className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <summary className="font-semibold text-gray-900 cursor-pointer">
-                Is there a free trial?
-              </summary>
-              <p className="mt-3 text-gray-600">
-                Yes! We offer a 7-day free trial for both Monthly and Yearly Pro plans. You can explore all premium features before committing. No credit card required to start.
-              </p>
-            </details>
-
-            <details className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <summary className="font-semibold text-gray-900 cursor-pointer">
                 What's included in the Lifetime Pro plan?
               </summary>
               <p className="mt-3 text-gray-600">
