@@ -79,13 +79,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       } else {
         console.log('Registration successful, redirecting to home...')
         setLoading(false)
-        // Redirect to home page with full URL
-        // Note: This code shouldn't execute if onSuccess callback is provided
-        const isDev = process.env.NODE_ENV === 'development'
-        const baseUrl = isDev
-          ? window.location.origin + '/'
-          : window.location.origin + '/dictation-shadowing-tool/'
-        window.location.href = baseUrl
+        // 🔴 修复：调用 onSuccess 回调，由父组件处理重定向
+        onSuccess?.()
       }
     } catch (err: any) {
       console.error('Register exception:', err)
