@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown, BookMarked, MoreHorizontal, DollarSign, Mail } from "lucide-react"
+import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown, BookMarked, DollarSign, Mail } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
@@ -106,14 +106,13 @@ export default function Navigation() {
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                   }`}
                 >
-                  <MoreHorizontal className="w-4 h-4" />
                   <span>More</span>
                   <ChevronDown className={`w-4 h-4 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* More Dropdown Content */}
                 {isMoreMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                     <a
                       href="#pricing"
                       onClick={() => setIsMoreMenuOpen(false)}
