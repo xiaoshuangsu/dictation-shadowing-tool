@@ -72,13 +72,14 @@ export default function ClickableTranscript({
       if (targetElement && container) {
         console.log('🔄 [ClickableTranscript] 容器内滚动到句子', currentIndex)
 
-        // 🔴 精准计算：只在容器内滚动，不影响全局 Window
-        // offsetTop 是元素相对于其 offsetParent（容器）的距离
-        // 减去 24px 提供顶部呼吸间距
-        const targetScrollTop = targetElement.offsetTop - 24
+        // 🔴 核心修复：使用偏移量确保句子完整显示
+        // 不要直接用 offsetTop，而是减去一个偏移量
+        // 这样句子会显示在容器稍微靠下的位置，上方留有呼吸感
+        const offset = 40  // 偏移量（px），越大越靠下
+        const targetScrollTop = targetElement.offsetTop - offset
 
         container.scrollTo({
-          top: targetScrollTop,
+          top: Math.max(0, targetScrollTop),  // 确保不会滚成负数
           behavior: 'smooth'
         })
       }
@@ -99,7 +100,7 @@ export default function ClickableTranscript({
 
       <div
         ref={containerRef}
-        className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto transcript-scroll-container"
+        className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto pt-4 transcript-scroll-container"
       >
         {sentences.map((sentence, index) => {
           // 🔴 判断是否为高亮句子（跳转播放时的视觉焦点）
@@ -123,6 +124,7 @@ export default function ClickableTranscript({
                   ? 'bg-green-50 border border-green-200'
                   : 'bg-gray-50 border border-gray-200'
               }`}
+              style={{ scrollMarginTop: '40px' }}  // 🔴 强制执行 CSS 边距
             >
               <div className="flex items-start gap-2">
                 <span className={`flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded text-sm font-semibold ${
