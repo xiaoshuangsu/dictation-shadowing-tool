@@ -31,8 +31,8 @@ export function ProfilePageContent() {
   const [statsLoading, setStatsLoading] = useState(true)
   const [selectedStatsTab, setSelectedStatsTab] = useState<'dictation' | 'shadowing'>('dictation')
 
-  // 🔴 数据缓存时间戳（60秒）
-  const CACHE_DURATION = 60000  // 60秒
+  // 🔴 数据缓存时间戳（5分钟）
+  const CACHE_DURATION = 300000  // 5分钟
   const lastFetchTimeRef = useRef<number>(0)
   const cacheDataRef = useRef<any>(null)
 
@@ -58,32 +58,51 @@ export function ProfilePageContent() {
   const [materialProgress, setMaterialProgress] = useState<MaterialProgress[]>([])
   const [progressLoading, setProgressLoading] = useState(true)
 
-  // 🔴 检查缓存是否有效
-  const isCacheValid = () => {
+  // 🔴 分离的素材进度缓存时间戳（5分钟）
+  const PROGRESS_CACHE_DURATION = 300000  // 5分钟
+  const lastProgressFetchTimeRef = useRef<number>(0)
+  const progressCacheDataRef = useRef<{ [key: string]: MaterialProgress[], timestamp: number } | null>(null)
+
+  // 🔴 检查统计数据缓存是否有效
+  const isStatsCacheValid = () => {
     const now = Date.now()
     const timeSinceLastFetch = now - lastFetchTimeRef.current
     return timeSinceLastFetch < CACHE_DURATION
   }
 
+  // 🔴 检查素材进度缓存是否有效
+  const isProgressCacheValid = (mode: 'dictation' | 'shadowing') => {
+    const cache = progressCacheDataRef.current
+    if (!cache || !cache[mode]) return false
+
+    const now = Date.now()
+    const timeSinceLastFetch = now - cache.timestamp
+    return timeSinceLastFetch < PROGRESS_CACHE_DURATION
+  }
+
   // 当切换练习模式Tab时，重新加载素材进度
   useEffect(() => {
-    // 🔴 优化：只在缓存失效时才重新获取
-    const isCacheValid = progressLoading === false && materialProgress.length > 0 && selectedStatsTab !== 'dictation'
+    // 🔴 禁用窗口聚焦自动加载：只在缓存失效时才重新获取
+    const cacheValid = isProgressCacheValid(selectedStatsTab)
+    const hasCachedData = materialProgress.length > 0
 
-    if (isAuthenticated && user && !isCacheValid) {
+    if (isAuthenticated && user && !cacheValid) {
+      console.log(`🔧 [Profile] 素材进度缓存失效，重新获取 (${selectedStatsTab})`)
       fetchMaterialProgress(selectedStatsTab)
-    } else if (isCacheValid) {
-      // 🔴 静默更新：使用缓存数据
-      console.log('🔄 [Profile] 使用缓存素材进度数据，静默更新')
+    } else if (cacheValid && hasCachedData) {
+      // 🔴 静默刷新：使用缓存数据，后台更新
+      console.log(`🔄 [Profile] 使用素材进度缓存（${selectedStatsTab}），静默更新中...`)
       fetchMaterialProgress(selectedStatsTab)
     }
-  }, [selectedStatsTab, user, isAuthenticated])
+    // 🔴 关键：移除 user 依赖，防止用户对象引用变化导致重新获取
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStatsTab, isAuthenticated])
 
   // Fetch user statistics
   useEffect(() => {
     // 🔴 优化：检查缓存，避免频繁重新获取
     if (isAuthenticated && user) {
-      if (isCacheValid() && cacheDataRef.current) {
+      if (isStatsCacheValid() && cacheDataRef.current) {
         // 🔴 静默更新：使用缓存数据
         console.log('🔄 [Profile] 使用缓存统计数据，静默更新中...')
         fetchUserData()  // 后台更新数据
@@ -95,9 +114,16 @@ export function ProfilePageContent() {
     } else if (!loading && !isAuthenticated) {
       setStatsLoading(false)
     }
-    // 🔴 关键：移除 isAuthenticated 和 user 依赖，防止切换标签页时重新获取
+    // 🔴 关键：移除 user 依赖，防止用户对象引用变化导致重新获取
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, loading])
+
+  // 🔴 页面初始化位置：确保滚动到最顶部
+  useEffect(() => {
+    // 禁止任何自动滚动
+    window.scrollTo({ top: 0, behavior: 'auto' })
+    console.log('🔧 [Profile] 页面初始化：强制滚动到顶部')
+  }, []) // 只在组件挂载时执行一次
 
   const fetchUserData = async () => {
     if (!user) return
@@ -175,11 +201,29 @@ export function ProfilePageContent() {
   const fetchMaterialProgress = async (mode: 'dictation' | 'shadowing') => {
     if (!user) return
 
-    // 🔴 静默更新：不显示 loading，后台获取
-    setProgressLoading(true)
+    // 🔴 静默刷新：检查是否有缓存数据
+    const hasCachedData = progressCacheDataRef.current !== null &&
+                         progressCacheDataRef.current[mode] !== undefined
+    const cacheKey = mode
+
+    if (hasCachedData) {
+      console.log(`🔄 [Profile] 静默更新素材进度 (${mode})，保持当前显示`)
+      // 不设置 loading，保持当前显示
+    } else {
+      console.log(`🔧 [Profile] 首次加载素材进度 (${mode})，显示 loading`)
+      setProgressLoading(true)
+    }
+
     try {
       const progress = await getMaterialProgressFallback(user.id, mode)
       setMaterialProgress(progress)
+
+      // 🔴 更新缓存
+      progressCacheDataRef.current = {
+        ...(progressCacheDataRef.current || {}),
+        [mode]: progress,
+        timestamp: Date.now()
+      }
     } catch (error) {
       console.error('Failed to fetch material progress:', error)
       setMaterialProgress([])
