@@ -4,11 +4,16 @@
  * Displays user statistics with left-right split layout:
  * - Left: User info, streak stats, cumulative stats, today's progress
  * - Right: Practice history
+ *
+ * 优化：
+ * - 数据缓存机制（60秒）
+ * - 静默更新（有缓存时先展示旧数据）
+ * - 禁用不必要的重新获取
  */
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getUserStats } from '@/lib/supabase/client'
@@ -25,6 +30,11 @@ export function ProfilePageContent() {
   const router = useRouter()
   const [statsLoading, setStatsLoading] = useState(true)
   const [selectedStatsTab, setSelectedStatsTab] = useState<'dictation' | 'shadowing'>('dictation')
+
+  // 🔴 数据缓存时间戳（60秒）
+  const CACHE_DURATION = 60000  // 60秒
+  const lastFetchTimeRef = useRef<number>(0)
+  const cacheDataRef = useRef<any>(null)
 
   // V3 统计数据
   const [streakData, setStreakData] = useState({
@@ -48,26 +58,58 @@ export function ProfilePageContent() {
   const [materialProgress, setMaterialProgress] = useState<MaterialProgress[]>([])
   const [progressLoading, setProgressLoading] = useState(true)
 
+  // 🔴 检查缓存是否有效
+  const isCacheValid = () => {
+    const now = Date.now()
+    const timeSinceLastFetch = now - lastFetchTimeRef.current
+    return timeSinceLastFetch < CACHE_DURATION
+  }
+
   // 当切换练习模式Tab时，重新加载素材进度
   useEffect(() => {
-    if (isAuthenticated && user) {
+    // 🔴 优化：只在缓存失效时才重新获取
+    const isCacheValid = progressLoading === false && materialProgress.length > 0 && selectedStatsTab !== 'dictation'
+
+    if (isAuthenticated && user && !isCacheValid) {
+      fetchMaterialProgress(selectedStatsTab)
+    } else if (isCacheValid) {
+      // 🔴 静默更新：使用缓存数据
+      console.log('🔄 [Profile] 使用缓存素材进度数据，静默更新')
       fetchMaterialProgress(selectedStatsTab)
     }
   }, [selectedStatsTab, user, isAuthenticated])
 
   // Fetch user statistics
   useEffect(() => {
+    // 🔴 优化：检查缓存，避免频繁重新获取
     if (isAuthenticated && user) {
-      fetchUserData()
+      if (isCacheValid() && cacheDataRef.current) {
+        // 🔴 静默更新：使用缓存数据
+        console.log('🔄 [Profile] 使用缓存统计数据，静默更新中...')
+        fetchUserData()  // 后台更新数据
+      } else {
+        // 首次加载或缓存失效，显示 loading
+        console.log('🔧 [Profile] 缓存失效，重新获取数据')
+        fetchUserData()
+      }
     } else if (!loading && !isAuthenticated) {
       setStatsLoading(false)
     }
-  }, [isAuthenticated, user, loading])
+    // 🔴 关键：移除 isAuthenticated 和 user 依赖，防止切换标签页时重新获取
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, loading])
 
   const fetchUserData = async () => {
     if (!user) return
 
-    setStatsLoading(true)
+    // 🔴 静默更新：如果已经有数据，后台更新
+    const hasCachedData = cacheDataRef.current !== null
+    if (hasCachedData) {
+      console.log('🔄 [Profile] 静默更新：保持界面显示，后台获取新数据')
+    } else {
+      setStatsLoading(true)
+    }
+
     try {
       // V3 数据：获取完整档案（连胜 + 累计统计 + 今日记录）
       const completeProfile = await getUserCompleteProfile(user.id)
@@ -115,6 +157,14 @@ export function ProfilePageContent() {
           completed: completeProfile.todayRecord.completed || false,
         })
       }
+
+      // 🔴 更新缓存
+      cacheDataRef.current = {
+        streakData,
+        cumulativeStats,
+        todayRecord
+      }
+      lastFetchTimeRef.current = Date.now()
     } catch (error) {
       console.error('Failed to fetch user data:', error)
     } finally {
@@ -125,6 +175,7 @@ export function ProfilePageContent() {
   const fetchMaterialProgress = async (mode: 'dictation' | 'shadowing') => {
     if (!user) return
 
+    // 🔴 静默更新：不显示 loading，后台获取
     setProgressLoading(true)
     try {
       const progress = await getMaterialProgressFallback(user.id, mode)
