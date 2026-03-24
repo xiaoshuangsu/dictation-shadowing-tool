@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown, BookMarked } from "lucide-react"
+import { BookOpen, LogIn, UserPlus, User, LogOut, ChevronDown, BookMarked, MoreHorizontal, DollarSign, Mail } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/lib/hooks/useAuth"
 
@@ -11,9 +11,11 @@ export default function Navigation() {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const { user, logout } = useAuth()
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,6 +30,9 @@ export default function Navigation() {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false)
+      }
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false)
       }
     }
     document.addEventListener("mousedown", handleClickOutside)
@@ -90,6 +95,44 @@ export default function Navigation() {
                   </Link>
                 )
               })}
+
+              {/* More Dropdown Menu */}
+              <div className="relative" ref={moreMenuRef}>
+                <button
+                  onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    isMoreMenuOpen
+                      ? "text-gray-900 bg-gray-100"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  }`}
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                  <span>More</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${isMoreMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* More Dropdown Content */}
+                {isMoreMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <a
+                      href="#pricing"
+                      onClick={() => setIsMoreMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <DollarSign className="w-4 h-4" />
+                      <span>Pricing</span>
+                    </a>
+                    <a
+                      href="mailto:support@shadowhub.app"
+                      onClick={() => setIsMoreMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      <Mail className="w-4 h-4" />
+                      <span>Contact Us</span>
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -193,6 +236,27 @@ export default function Navigation() {
                   </Link>
                 )
               })}
+
+              {/* Mobile More Section */}
+              <div className="border-t border-gray-200 mt-2 pt-2">
+                <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">More</div>
+                <a
+                  href="#pricing"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
+                >
+                  <DollarSign className="w-5 h-5" />
+                  <span>Pricing</span>
+                </a>
+                <a
+                  href="mailto:support@shadowhub.app"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all"
+                >
+                  <Mail className="w-5 h-5" />
+                  <span>Contact Us</span>
+                </a>
+              </div>
 
               {/* Mobile Auth Section */}
               <div className="border-t border-gray-200 mt-2 pt-2">
