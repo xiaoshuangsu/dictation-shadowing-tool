@@ -92,7 +92,7 @@ export default function HomeContent() {
               <h3 className="text-white font-semibold mb-4">{"Resources"}</h3>
               <ul className="space-y-2 text-sm">
                 <li><a href="https://github.com/xiaoshuangsu/dictation-shadowing-tool" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{"GitHub"}</a></li>
-                <li><a href="mailto:support@example.com" className="hover:text-white transition-colors">{"Contact Us"}</a></li>
+                <li><a href="mailto:support@shadowhub.app" className="hover:text-white transition-colors">{"Contact Us"}</a></li>
               </ul>
             </div>
           </div>
