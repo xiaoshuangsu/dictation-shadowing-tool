@@ -21,6 +21,7 @@ import ShadowingPanel from '@/components/ShadowingPanel'
 import { TranslationLanguageSelector, type TranslationLanguage } from '@/components/TranslationLanguageSelector'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 import ClickableTranscript from '@/components/ClickableTranscript'
+import PremiumBlocker from '@/components/PremiumBlocker'
 
 type PracticeMode = 'dictation' | 'shadowing'
 type DictationMode = 'word' | 'whole'
@@ -38,11 +39,13 @@ interface Material {
   // 新增字段：支持 YouTube 和 R2 视频
   source_type?: 'r2' | 'youtube'
   youtube_id?: string | null
+  // 付费素材标识
+  is_premium?: boolean
 }
 
 const defaultSentences: Sentence[] = [
-  { id: 1, text: "First snowfall.", startTime: 0.0, endTime: 1.6, translation: "第一场雪。" },
-  { id: 2, text: "Today is November 26th.", startTime: 3.6, endTime: 5.6, translation: "今天是11月26日。" },
+  { id: 1, text: "First snowfall.", startTime: 0.0, endTime: 1.6, translation: { zh: "第一场雪。" } },
+  { id: 2, text: "Today is November 26th.", startTime: 3.6, endTime: 5.6, translation: { zh: "今天是11月26日。" } },
 ]
 
 export default function PracticePage({ category, slug }: { category: string; slug: string }) {
@@ -172,6 +175,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
   // Audio playback tracking
   const audioPlaybackSecondsRef = useRef(0)
+
+  // 🔴 Premium 拦截逻辑
+  // TODO: 未来需要从用户 profile 中读取 isPro 状态
+  // 目前默认所有用户都是非 Pro 用户
+  const isPro = false
+  const isBlocked = material?.is_premium && !isPro
 
   // 🔴 移动端优化：练习区域 ref，用于切换句子时确保可见
   const practiceAreaRef = useRef<HTMLDivElement>(null)
@@ -878,153 +887,170 @@ export default function PracticePage({ category, slug }: { category: string; slu
               )
             })()}
 
-            {/* Progress Indicator - 🔴 移至中栏，确保移动端视频隐藏后仍可见 */}
-            <div className="text-center mb-3">
-              <div className="text-xs text-gray-900">
-                {currentSentenceIndex + 1} <span className="text-gray-400">/</span> {sampleSentences.length}
-              </div>
-            </div>
-
-            {/* Playback Controls */}
-            <div className="bg-gray-100 rounded-lg p-3 mb-4">
-              <div className="flex justify-between items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handlePrevious}
-                    disabled={isFirstSentence}
-                    className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAutoPlayTrigger(prev => prev + 1)
-                      setHasPlayedCurrent(true)
-                    }}
-                    className="p-2 rounded-lg hover:bg-gray-200"
-                    title="重播"
-                  >
-                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 4v6h6M23 20v-6h-6" />
-                      <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log('🔴🔴🔴 播放按钮被点击了！🔴🔴🔴')
-                      handlePlayOrNext()
-                    }}
-                    className="p-2 rounded-lg hover:bg-gray-200"
-                    title={hasPlayedCurrent ? "下一句" : "播放"}
-                  >
-                    <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    disabled={isLastSentence}
-                    className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+            {/* 🔴 拦截状态下的统一内容渲染 */}
+            {isBlocked ? (
+              // 🔴 付费素材拦截状态：拦截面板占据整个中栏（包括播放控制和进度）
+              <PremiumBlocker materialTitle={material.title} />
+            ) : (
+              // 🔴 免费素材或 Pro 用户：显示完整的播放控制和练习组件
+              <>
+                {/* Progress Indicator */}
+                <div className="text-center mb-3">
+                  <div className="text-xs text-gray-900">
+                    {currentSentenceIndex + 1} <span className="text-gray-400">/</span> {sampleSentences.length}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <select
-                    value={playbackRate}
-                    onChange={(e) => setPlaybackRate(Number(e.target.value))}
-                    className="border rounded-lg px-2 py-1 text-sm bg-white"
-                  >
-                    <option value="0.25">0.25x</option>
-                    <option value="0.5">0.5x</option>
-                    <option value="0.75">0.75x</option>
-                    <option value="1">1x</option>
-                    <option value="1.25">1.25x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="2">2x</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Practice Area */}
-            <div className="min-h-[400px]">
-              {mode === 'dictation' ? (
-                dictationMode === 'word' ? (
-                  <WordMode
-                    sentence={currentSentence}
-                    currentIndex={currentSentenceIndex}
-                    totalSentences={sampleSentences.length}
-                    isLastSentence={isLastSentence}
-                    onNext={handleNext}
-                    onComplete={handleWordModeComplete}
-                    dictationMode={dictationMode}
-                    onDictationModeChange={setDictationMode}
-                    translationLanguage={translationLanguage}
-                    showTranslation={showTranslation}
-                    onTranslationLanguageChange={(lang, show) => {
-                      setTranslationLanguage(lang)
-                      setShowTranslation(show)
-                    }}
-                  />
-                ) : (
-                  <DictationBox
-                    sentence={currentSentence}
-                    onNext={handleNext}
-                    onComplete={handleDictationComplete}
-                    dictationMode={dictationMode}
-                    onDictationModeChange={setDictationMode}
-                    translationLanguage={translationLanguage}
-                    showTranslation={showTranslation}
-                    onTranslationLanguageChange={(lang, show) => {
-                      setTranslationLanguage(lang)
-                      setShowTranslation(show)
-                    }}
-                  />
-                )
-              ) : (() => {
-                // Shadowing 模式：支持 R2 和 YouTube 素材
-                const playerInfo = getPlayerInfo(material)
-                const isR2Material = playerInfo.type === 'r2'
-
-                // R2 素材需要 audioSrc
-                if (isR2Material && !playerInfo.audioSrc) {
-                  return (
-                    <div className="flex items-center justify-center h-64 text-gray-500">
-                      No audio available
+                {/* Playback Controls */}
+                <div className="bg-gray-100 rounded-lg p-3 mb-4">
+                  <div className="flex justify-between items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handlePrevious}
+                        disabled={isFirstSentence}
+                        className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setAutoPlayTrigger(prev => prev + 1)
+                          setHasPlayedCurrent(true)
+                        }}
+                        className="p-2 rounded-lg hover:bg-gray-200"
+                        title="重播"
+                      >
+                        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 4v6h6M23 20v-6h-6" />
+                          <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          console.log('🔴🔴🔴 播放按钮被点击了！🔴🔴🔴')
+                          handlePlayOrNext()
+                        }}
+                        className="p-2 rounded-lg hover:bg-gray-200"
+                        title={hasPlayedCurrent ? "下一句" : "播放"}
+                      >
+                        <svg className="w-5 h-5 text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={handleNext}
+                        disabled={isLastSentence}
+                        className="p-2 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
                     </div>
+
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={playbackRate}
+                        onChange={(e) => setPlaybackRate(Number(e.target.value))}
+                        className="border rounded-lg px-2 py-1 text-sm bg-white"
+                      >
+                        <option value="0.25">0.25x</option>
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1">1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2x</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Practice Area */}
+                <div className="min-h-[400px]">
+              {isBlocked ? (
+                // 🔴 付费素材拦截状态：显示拦截面板
+                <PremiumBlocker materialTitle={material.title} />
+              ) : (
+                // 🔴 免费素材或 Pro 用户：显示正常练习组件
+                mode === 'dictation' ? (
+                  dictationMode === 'word' ? (
+                    <WordMode
+                      sentence={currentSentence}
+                      currentIndex={currentSentenceIndex}
+                      totalSentences={sampleSentences.length}
+                      isLastSentence={isLastSentence}
+                      onNext={handleNext}
+                      onComplete={handleWordModeComplete}
+                      dictationMode={dictationMode}
+                      onDictationModeChange={setDictationMode}
+                      translationLanguage={translationLanguage}
+                      showTranslation={showTranslation}
+                      onTranslationLanguageChange={(lang, show) => {
+                        setTranslationLanguage(lang)
+                        setShowTranslation(show)
+                      }}
+                    />
+                  ) : (
+                    <DictationBox
+                      sentence={currentSentence}
+                      onNext={handleNext}
+                      onComplete={handleDictationComplete}
+                      dictationMode={dictationMode}
+                      onDictationModeChange={setDictationMode}
+                      translationLanguage={translationLanguage}
+                      showTranslation={showTranslation}
+                      onTranslationLanguageChange={(lang, show) => {
+                        setTranslationLanguage(lang)
+                        setShowTranslation(show)
+                      }}
+                    />
                   )
-                }
+                ) : (() => {
+                  // Shadowing 模式：支持 R2 和 YouTube 素材
+                  const playerInfo = getPlayerInfo(material)
+                  const isR2Material = playerInfo.type === 'r2'
 
-                // YouTube 素材不需要 audioSrc，直接显示 ShadowingPanel
-                return (
-                  <ShadowingPanel
-                    sentence={currentSentence}
-                    audioSrc={isR2Material ? playerInfo.audioSrc : undefined}
-                    onNext={handleNext}
-                    onComplete={handleShadowingComplete}
-                    isLastSentence={isLastSentence}
-                    translationLanguage={translationLanguage}
-                    showTranslation={showTranslation}
-                    onTranslationLanguageChange={(lang, show) => {
-                      setTranslationLanguage(lang)
-                      setShowTranslation(show)
-                    }}
-                  />
-                )
-              })()}
-            </div>
+                  // R2 素材需要 audioSrc
+                  if (isR2Material && !playerInfo.audioSrc) {
+                    return (
+                      <div className="flex items-center justify-center h-64 text-gray-500">
+                        No audio available
+                      </div>
+                    )
+                  }
 
-            {/* Stats */}
-            <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-              <div>Completed: {totalPractices}/{sampleSentences.length}</div>
-              <div>Accuracy: {accuracy}%</div>
-            </div>
+                  // YouTube 素材不需要 audioSrc，直接显示 ShadowingPanel
+                  return (
+                    <ShadowingPanel
+                      sentence={currentSentence}
+                      audioSrc={isR2Material ? playerInfo.audioSrc : undefined}
+                      onNext={handleNext}
+                      onComplete={handleShadowingComplete}
+                      isLastSentence={isLastSentence}
+                      translationLanguage={translationLanguage}
+                      showTranslation={showTranslation}
+                      onTranslationLanguageChange={(lang, show) => {
+                        setTranslationLanguage(lang)
+                        setShowTranslation(show)
+                      }}
+                    />
+                  )
+                })()
+                )}
+              </div>
+            </>
+            )}
+
+            {/* Stats - 只在非拦截状态显示 */}
+            {!isBlocked && (
+              <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+                <div>Completed: {totalPractices}/{sampleSentences.length}</div>
+                <div>Accuracy: {accuracy}%</div>
+              </div>
+            )}
           </div>
 
           {/* Right Column - Transcript (25%) */}
@@ -1034,7 +1060,18 @@ export default function PracticePage({ category, slug }: { category: string; slu
               currentIndex={currentSentenceIndex}
               highlightIndex={highlightSentenceIndex}
               onSelectSentence={(index) => {
-                // 切换到选中的句子并触发播放
+                // 🔴 拦截逻辑：付费素材在拦截状态下，点击句子提示升级
+                if (isBlocked) {
+                  showToast('🔒 Premium Feature: Unlock PRO to practice with transcripts')
+                  // 视觉焦点引导至中栏拦截按钮
+                  const modeToggleTabs = document.getElementById('mode-toggle-tabs')
+                  if (modeToggleTabs) {
+                    modeToggleTabs.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }
+                  return
+                }
+
+                // 正常逻辑：切换到选中的句子并触发播放
                 // 根据当前模式更新对应的索引
                 if (mode === 'dictation') {
                   setDictationIndex(index)
@@ -1050,6 +1087,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
               materialTitle={material.title}
               audioSrc={getPlayerInfo(material).audioSrc}
               hasStarted={hasStarted}  // 🔴 传递播放状态，控制自动滚动
+              isBlocked={isBlocked}  // 🔴 传递拦截状态
             />
           </div>
         </div>

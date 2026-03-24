@@ -28,6 +28,7 @@ interface ClickableTranscriptProps {
   materialTitle?: string
   audioSrc?: string
   hasStarted?: boolean  // 🔴 新增：是否已经开始播放
+  isBlocked?: boolean  // 🔴 新增：是否处于拦截状态
 }
 
 export default function ClickableTranscript({
@@ -41,7 +42,8 @@ export default function ClickableTranscript({
   materialId,
   materialTitle,
   audioSrc,
-  hasStarted = false  // 🔴 默认 false，未开始播放
+  hasStarted = false,  // 🔴 默认 false，未开始播放
+  isBlocked = false  // 🔴 默认 false，未拦截
 }: ClickableTranscriptProps) {
   // 🔴 自动滚动：存储每个句子元素的引用
   const sentenceRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -128,7 +130,7 @@ export default function ClickableTranscript({
               onClick={() => {
                 onSelectSentence(index)
               }}
-              className={`p-3 rounded cursor-pointer transition-all ${
+              className={`p-3 rounded cursor-pointer transition-all relative ${
                 isHighlighted
                   ? 'bg-yellow-100 border-2 border-yellow-400 animate-pulse shadow-lg scale-105'  // 🔴 高亮闪烁效果
                   : index === currentIndex
@@ -136,10 +138,19 @@ export default function ClickableTranscript({
                   : index < currentIndex
                   ? 'bg-green-50 border border-green-200'
                   : 'bg-gray-50 border border-gray-200'
-              }`}
+              } ${isBlocked ? 'cursor-not-allowed opacity-75' : ''}`}
               style={{ scrollMarginTop: '40px' }}  // 🔴 强制执行 CSS 边距
             >
-              <div className="flex items-start gap-2">
+              {/* 🔴 拦截状态下的锁图标覆盖层 */}
+              {isBlocked && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded hover:bg-black/10 transition-colors">
+                  <svg className="w-5 h-5 text-purple-600 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+              )}
+
+              <div className={`flex items-start gap-2 ${isBlocked ? 'opacity-50' : ''}`}>
                 <span className={`flex-shrink-0 inline-flex items-center justify-center w-6 h-6 rounded text-sm font-semibold ${
                   index < currentIndex
                     ? 'bg-green-500 text-white'

@@ -11,6 +11,35 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.4.0] - 2026-03-24
+
+### Added
+- **付费素材分级拦截功能** 🔒
+  - 实现素材详情页的「分级拦截」功能，引导用户升级到 PRO 账户
+  - 创建 `PremiumBlocker` 组件：紫色渐变背景 + 锁头图标 + Unlock PRO 按钮
+  - 拦截逻辑：`is_premium === true && !isPro` 时启用拦截
+  - 左栏（视频区）：保持正常，允许预览
+  - 中栏（练习区）：完全隐藏播放控制和练习组件，替换为拦截面板
+  - 右侧（Transcript）：保持显示但半透明，点击时提示升级
+
+### Changed
+- **PracticePage.tsx**
+  - 添加 `is_premium` 字段到 Material 接口
+  - 添加拦截状态判定：`isPro = false`（默认所有用户非 Pro），`isBlocked = material?.is_premium && !isPro`
+  - 中栏条件渲染：拦截状态显示 PremiumBlocker，否则显示完整练习组件
+  - 右侧 Transcript 点击拦截：Toast 提示 + 视觉引导至拦截按钮
+
+- **ClickableTranscript.tsx**
+  - 添加 `isBlocked` prop 支持拦截状态
+  - 拦截状态样式：锁图标覆盖层 + 半透明效果 + cursor-not-allowed
+
+### Technical Details
+- 素材分类：前 200 个免费，第 201 个起为付费素材（is_premium = true）
+- 当前付费素材：1 个
+- 测试 URL：http://localhost:3000/topics/Science and Facts/what-if-the-earth-stopped-orbiting-the-sun
+
+---
+
 ## [27.8.0] - 2026-03-23
 
 ### Fixed
