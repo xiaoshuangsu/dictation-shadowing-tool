@@ -177,7 +177,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const practiceAreaRef = useRef<HTMLDivElement>(null)
 
   // 🔴 桌面端优化：页面加载时确保滚动到顶部，避免面包屑和标题被隐藏
-  // 🔴 移动端优化：保持滚动到顶部的行为，确保用户体验一致
+  // 🔴 页面加载时滚动到顶部，确保所有内容可见
   useEffect(() => {
     // 所有设备都滚动到顶部，确保面包屑、标题和导航栏完全可见
     window.scrollTo({ top: 0, behavior: 'auto' })
@@ -444,11 +444,14 @@ export default function PracticePage({ category, slug }: { category: string; slu
     if (!hasStarted) {
       console.log("场景 A: 第一次点击，播放当前句 (index 0)")
 
-      // 🔴 移动端优化：只在移动端滚动到顶部隐藏标题
-      // 桌面端不执行滚动操作，保持三栏格局
+      // 🔴 设备区分逻辑：移动端 vs 桌面端
       const isMobile = window.innerWidth < 1024
       if (isMobile) {
+        // 移动端：向上隐藏标题，确保练习区域处于视觉中心
         window.scrollTo({ top: 0, behavior: 'smooth' })
+      } else {
+        // 桌面端：禁止任何向上偏移操作，保持 Header 和标题始终可见
+        console.log('🖥️ 桌面端：不执行滚动操作，保持所有内容可见')
       }
 
       flushSync(() => {
@@ -497,15 +500,19 @@ export default function PracticePage({ category, slug }: { category: string; slu
     // Don't reset hasPlayedCurrent here - it's controlled by user clicks
   }, [currentSentenceIndex])
 
-  // 🔴 移动端优化：切换句子后确保练习区域可见
+  // 🔴 设备区分逻辑：切换句子后的滚动行为
   useLayoutEffect(() => {
     if (!hasStarted) return // 只在播放后才执行
 
-    // 检测是否为移动端
+    // 检测是否为移动端（< 1024px）
     const isMobile = window.innerWidth < 1024
-    if (!isMobile) return // 桌面端不执行，保持三栏格局
+    if (!isMobile) {
+      // 桌面端：禁止任何滚动操作，保持所有内容可见
+      console.log('🖥️ 桌面端：句子切换时不执行滚动')
+      return
+    }
 
-    // 确保练习区域可见
+    // 移动端：确保练习区域可见
     // 使用 setTimeout 确保在 DOM 更新后执行
     const timer = setTimeout(() => {
       if (practiceAreaRef.current) {
