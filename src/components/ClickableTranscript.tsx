@@ -27,6 +27,7 @@ interface ClickableTranscriptProps {
   materialId?: string
   materialTitle?: string
   audioSrc?: string
+  hasStarted?: boolean  // 🔴 新增：是否已经开始播放
 }
 
 export default function ClickableTranscript({
@@ -39,7 +40,8 @@ export default function ClickableTranscript({
   translationLanguage,
   materialId,
   materialTitle,
-  audioSrc
+  audioSrc,
+  hasStarted = false  // 🔴 默认 false，未开始播放
 }: ClickableTranscriptProps) {
   // 🔴 自动滚动：存储每个句子元素的引用
   const sentenceRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -48,10 +50,17 @@ export default function ClickableTranscript({
   // 🔴 禁用初始化自动滚动：跟踪组件是否已经挂载
   const isMountedRef = useRef(false)
 
-  // 🔴 标记组件已挂载
+  // 🔴 标记组件已挂载 + 强制初始复位
   useEffect(() => {
     isMountedRef.current = true
-    console.log('🔧 [ClickableTranscript] 组件已挂载，启用自动滚动')
+    console.log('🔧 [ClickableTranscript] 组件已挂载')
+
+    // 🔴 强制初始复位：确保容器 scrollTop 为 0
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0
+      console.log('🔧 [ClickableTranscript] 初始化：强制 scrollTop = 0')
+    }
+
     return () => {
       isMountedRef.current = false
     }
@@ -59,9 +68,15 @@ export default function ClickableTranscript({
 
   // 🔴 精准的容器内滚动逻辑（防止全局滚动冒泡）
   useEffect(() => {
-    // 🔴 禁止初始化自动滚动
+    // 🔴 禁止初始化自动滚动：组件未挂载 或 未开始播放
     if (!isMountedRef.current) {
       console.log('🚫 [ClickableTranscript] 组件未挂载，跳过自动滚动')
+      return
+    }
+
+    // 🔴 关键修复：只有在开始播放后才允许滚动
+    if (!hasStarted) {
+      console.log('🚫 [ClickableTranscript] 未开始播放，跳过自动滚动')
       return
     }
 
@@ -72,11 +87,9 @@ export default function ClickableTranscript({
       if (targetElement && container) {
         console.log('🔄 [ClickableTranscript] 容器内滚动到句子', currentIndex)
 
-        // 🔴 核心修复：使用偏移量确保句子完整显示
-        // 不要直接用 offsetTop，而是减去一个偏移量
-        // 这样句子会显示在容器稍微靠下的位置，上方留有呼吸感
-        const offset = 40  // 偏移量（px），越大越靠下
-        const targetScrollTop = targetElement.offsetTop - offset
+        // 🔴 修复滚动偏移计算：减去容器自身的 offsetTop
+        // 这样可以正确计算元素在容器内的相对位置
+        const targetScrollTop = targetElement.offsetTop - container.offsetTop - 24
 
         container.scrollTo({
           top: Math.max(0, targetScrollTop),  // 确保不会滚成负数
@@ -84,7 +97,7 @@ export default function ClickableTranscript({
         })
       }
     }
-  }, [currentIndex])
+  }, [currentIndex, hasStarted])
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 sticky top-40">

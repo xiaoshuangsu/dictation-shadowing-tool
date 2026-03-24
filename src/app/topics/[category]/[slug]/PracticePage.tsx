@@ -1049,6 +1049,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
               materialId={material.id}
               materialTitle={material.title}
               audioSrc={getPlayerInfo(material).audioSrc}
+              hasStarted={hasStarted}  // 🔴 传递播放状态，控制自动滚动
             />
           </div>
         </div>
