@@ -11,6 +11,23 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [27.8.0] - 2026-03-23
+
+### Fixed
+- **修复练习记录保存问题** 🎯
+  - 新练习页面缺少连胜统计更新函数调用
+  - 添加 `onDictationComplete` 和 `onShadowingComplete` 导入
+  - 练习完成后正确更新 `practice_stats` 表的连胜数据
+
+### 问题原因
+- 新页面 `PracticePage.tsx` 已调用 `savePracticeRecord` 保存练习记录
+- 但缺少连胜统计更新逻辑，导致 Profile 页面看不到更新
+- 旧页面 `/practice` 有完整逻辑，但新页面迁移时遗漏
+
+### 核心解决
+- 导入 streak 函数：`import { onDictationComplete, onShadowingComplete } from '@/lib/supabase/streak'`
+- 在 `handleDictationComplete` 中添加连胜更新调用
+
 ## [27.5.0] - 2026-03-22
 
 ### Changed

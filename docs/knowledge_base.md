@@ -420,5 +420,68 @@ const getCurrentTranslation = () => {
 
 ---
 
-**版本**：V27.7.0
-**更新日期**：2026-03-22
+## 9. 练习记录保存与连胜统计不同步
+
+### 症状
+- 用户完成听写/跟读练习后
+- `practice_records` 表有记录
+- 但 `practice_stats` 表连胜数据没有更新
+- Profile 页面看不到最新练习记录
+
+### 根本原因
+- 新练习页面 `/topics/[category]/[slug]/PracticePage.tsx` 调用了 `savePracticeRecord` 保存练习记录
+- 但**缺少连胜统计更新函数**的调用
+- 旧页面 `/practice/page.tsx` 有完整逻辑，新页面迁移时遗漏
+
+### 解决方案
+
+**添加连胜统计函数导入**：
+```typescript
+// src/app/topics/[category]/[slug]/PracticePage.tsx
+import { onDictationComplete, onShadowingComplete } from '@/lib/supabase/streak'
+```
+
+**在保存练习记录后调用连胜更新**：
+```typescript
+// handleDictationComplete 函数中
+await savePracticeRecord({
+  userId: user.id,
+  sentenceId: currentSentence.id,
+  sentenceText: currentSentence.text,
+  practiceMode: mode,
+  dictationMode: mode === 'dictation' ? dictationMode : undefined,
+  isCorrect,
+  usedShowWords,
+  audioTitle: material.title,
+  materialId: material.id,
+  durationSeconds: duration
+})
+
+// 更新连胜和统计数据
+if (mode === 'dictation') {
+  const seconds = duration || 0
+  const minutes = seconds / 60
+  await onDictationComplete(user.id, minutes)
+} else if (mode === 'shadowing') {
+  const seconds = duration || 0
+  const minutes = seconds / 60
+  await onShadowingComplete(user.id, minutes)
+}
+```
+
+### 相关文件
+- `src/app/topics/[category]/[slug]/PracticePage.tsx`（新练习页面）
+- `src/app/practice/page.tsx`（旧练习页面，参考实现）
+- `src/lib/supabase/streak.ts`（连胜统计函数）
+
+### 快速排查
+遇到练习记录不同步时：
+1. 检查是否调用了 `savePracticeRecord`
+2. 检查是否调用了 `onDictationComplete` 或 `onShadowingComplete`
+3. 检查 `practice_records` 表是否有新记录
+4. 检查 `practice_stats` 表是否有更新
+
+---
+
+**版本**：V27.8.0
+**更新日期**：2026-03-23

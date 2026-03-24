@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { flushSync } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase/client'
+import { supabase, savePracticeRecord } from '@/lib/supabase/client'
+import { onDictationComplete, onShadowingComplete } from '@/lib/supabase/streak'
 import { titleToSlug } from '@/lib/utils/slug'
 import { slugToCategory, getCategoryMetadataBySlug } from '@/lib/utils/category'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -527,7 +528,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
   }, [currentSentenceIndex, hasStarted])
 
   // Dictation completion handlers
-  const handleDictationComplete = (isCorrect: boolean, usedShowWords?: boolean, duration?: number) => {
+  const handleDictationComplete = async (isCorrect: boolean, usedShowWords?: boolean, duration?: number) => {
     const newCompleted = new Set(completedSentences)
     newCompleted.add(currentSentenceIndex)
     setCompletedSentences(newCompleted)
@@ -541,6 +542,48 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
     setIsRevealed(false)
     // Don't auto-advance - let user click Next button
+
+    // 🔴 保存练习记录到数据库
+    if (user && material && currentSentence) {
+      try {
+        console.log('💾 [PracticePage] 保存练习记录:', {
+          userId: user.id,
+          sentenceId: currentSentence.id,
+          sentenceText: currentSentence.text?.substring(0, 50),
+          practiceMode: mode,
+          isCorrect,
+          audioTitle: material.title
+        })
+
+        await savePracticeRecord({
+          userId: user.id,
+          sentenceId: currentSentence.id,
+          sentenceText: currentSentence.text,
+          practiceMode: mode,
+          dictationMode: mode === 'dictation' ? dictationMode : undefined,
+          isCorrect,
+          usedShowWords,
+          audioTitle: material.title,
+          materialId: material.id,
+          durationSeconds: duration
+        })
+
+        console.log('✅ [PracticePage] 练习记录保存成功')
+
+        // 更新连胜和统计数据
+        if (mode === 'dictation') {
+          const seconds = duration || 0
+          const minutes = seconds / 60
+          await onDictationComplete(user.id, minutes)
+        } else if (mode === 'shadowing') {
+          const seconds = duration || 0
+          const minutes = seconds / 60
+          await onShadowingComplete(user.id, minutes)
+        }
+      } catch (error) {
+        console.error('❌ [PracticePage] 保存练习记录失败:', error)
+      }
+    }
   }
 
   const handleWordModeComplete = (isCorrect: boolean, usedShowWords?: boolean, durationSeconds?: number) => {
