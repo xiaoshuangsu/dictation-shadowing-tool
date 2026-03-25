@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { getCategoryMetadataBySlug, categoryToSlug, slugToCategory } from '@/lib/utils/category'
 import { getSupabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
@@ -37,15 +38,82 @@ interface CategoryPageProps {
 }
 
 export default function CategoryPage({ categorySlug }: CategoryPageProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
+
+  // 🔴 从 URL 参数读取页码，默认为 1
+  const currentPage = Number(searchParams.get('page')) || 1
+
+  // 🔴 从 sessionStorage 读取筛选器状态
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   const categoryMetadata = getCategoryMetadataBySlug(categorySlug)
+
+  // 🔴 恢复筛选器状态
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const storageKey = `category_${categorySlug}_filters`
+    try {
+      const saved = sessionStorage.getItem(storageKey)
+      if (saved) {
+        const filters = JSON.parse(saved)
+        setSelectedDifficulty(filters.difficulty || null)
+        setSelectedDuration(filters.duration || null)
+        setSearchQuery(filters.search || '')
+      }
+    } catch (e) {
+      console.error('Failed to restore filters:', e)
+    }
+  }, [categorySlug])
+
+  // 🔴 保存筛选器状态到 sessionStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const storageKey = `category_${categorySlug}_filters`
+    try {
+      const filters = {
+        difficulty: selectedDifficulty,
+        duration: selectedDuration,
+        search: searchQuery
+      }
+      sessionStorage.setItem(storageKey, JSON.stringify(filters))
+    } catch (e) {
+      console.error('Failed to save filters:', e)
+    }
+  }, [selectedDifficulty, selectedDuration, searchQuery, categorySlug])
+
+  // 🔴 恢复滚动位置
+  useEffect(() => {
+    if (typeof window === 'undefined' || loading) return
+
+    // 等待 DOM 更新后恢复滚动位置
+    const timeoutId = setTimeout(() => {
+      const storageKey = `category_${categorySlug}_scroll`
+      try {
+        const savedScroll = sessionStorage.getItem(storageKey)
+        if (savedScroll) {
+          window.scrollTo({
+            top: Number(savedScroll),
+            behavior: 'instant' // 使用 instant 避免动画
+          })
+          // 清除已使用的滚动位置
+          sessionStorage.removeItem(storageKey)
+        }
+      } catch (e) {
+        console.error('Failed to restore scroll position:', e)
+      }
+    }, 100)
+
+    return () => clearTimeout(timeoutId)
+  }, [currentPage, loading, categorySlug])
 
   // Fetch materials for this category
   useEffect(() => {
@@ -144,9 +212,19 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
   const endIndex = startIndex + ITEMS_PER_PAGE
   const currentMaterials = filteredMaterials.slice(startIndex, endIndex)
 
-  // Reset to page 1 when filter changes
+  // 🔴 更新 URL 参数的函数
+  const updatePage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('page', page.toString())
+    router.push(`?${params.toString()}`, { scroll: false })
+  }
+
+  // 🔴 重置到第 1 页时也更新 URL
   useEffect(() => {
-    setCurrentPage(1)
+    if (currentPage !== 1) {
+      updatePage(1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedDifficulty, selectedDuration])
 
   // Format helpers
@@ -385,12 +463,34 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                       <div className="flex gap-2">
                         <Link
                           href={`/topics/${categorySlug}/${material.slug || titleToSlug(material.title)}?mode=dictation`}
+                          onClick={() => {
+                            // 🔴 保存滚动位置
+                            if (typeof window !== 'undefined') {
+                              const storageKey = `category_${categorySlug}_scroll`
+                              try {
+                                sessionStorage.setItem(storageKey, window.scrollY.toString())
+                              } catch (e) {
+                                console.error('Failed to save scroll position:', e)
+                              }
+                            }
+                          }}
                           className="flex-1 text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           Dictation
                         </Link>
                         <Link
                           href={`/topics/${categorySlug}/${material.slug || titleToSlug(material.title)}?mode=shadowing`}
+                          onClick={() => {
+                            // 🔴 保存滚动位置
+                            if (typeof window !== 'undefined') {
+                              const storageKey = `category_${categorySlug}_scroll`
+                              try {
+                                sessionStorage.setItem(storageKey, window.scrollY.toString())
+                              } catch (e) {
+                                console.error('Failed to save scroll position:', e)
+                              }
+                            }
+                          }}
                           className="flex-1 text-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                         >
                           Shadowing
@@ -406,7 +506,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2">
                 <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => updatePage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
                   className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -417,7 +517,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}
-                      onClick={() => setCurrentPage(page)}
+                      onClick={() => updatePage(page)}
                       className={`min-w-[40px] px-3 py-2 rounded-lg font-medium transition-colors ${
                         currentPage === page
                           ? 'bg-blue-600 text-white'
@@ -430,7 +530,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                 </div>
 
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => updatePage(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
