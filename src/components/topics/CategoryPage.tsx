@@ -225,7 +225,15 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
   }
 
   // 🔴 用户主动改变筛选条件时重置到第1页（不包括从 sessionStorage 恢复的情况）
+  const isFirstLoad = useRef(true)
+
   useEffect(() => {
+    // 首次加载不重置页码（保留 URL 中的页码）
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false
+      return
+    }
+
     // 只在筛选器已恢复后才响应筛选条件变化
     if (!hasRestoredFilters.current) return
 
