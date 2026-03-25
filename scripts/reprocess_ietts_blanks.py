@@ -504,7 +504,7 @@ def process_material(slug: str) -> bool:
 
 def main():
     # 读取素材列表
-    cam_file = Path('/tmp/cam_materials_reprocess.txt')
+    cam_file = Path('/tmp/cam_first_5.txt')  # 🔧 测试模式：只处理前5个素材
 
     if not cam_file.exists():
         log(f"错误: 素材列表不存在: {cam_file}")
