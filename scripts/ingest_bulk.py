@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-批量素材导入脚本 v2.2
+批量素材导入脚本 v2.3
 从 Engnovate 抓取多个 Dictation/Shadowing 练习
 
 特点：
 1. 解析页面的原生时间戳数据（data-start, data-duration）
 2. 下载音频并上传到 R2
 3. 使用 GLM API 进行翻译（三语：zh, zh_hant, vi）
-4. 使用 GLM-4 进行智能挖空词识别（带黑名单过滤）
+4. 使用 GLM-4 进行智能挖空词识别（多候选词自动选择）
 5. 存入 Supabase
 6. 跳过重复（根据 source_url）
 7. 容错运行（单个失败不影响整体）
@@ -18,11 +18,13 @@
 - 前端组件：必须添加 crossOrigin="anonymous" 属性
 - Worker 响应：必须返回 Access-Control-Allow-Origin: *
 
-🎯 v2.2 新增功能：
+🎯 v2.3 新增功能（方案3）：
+- GLM-4 返回多个候选词（2-3个），自动选择第一个非黑名单词
+- 提高挖空成功率，解决很多句子没有挖空的问题
 - 雅思专家级挖空协议（30/50/20 黄金比例策略）
 - 核心黑名单过滤（严禁挖空代词/介词/系动词等虚词）
 - 三语翻译支持（中文简体、中文繁体、越南语）
-- 自动 Pro 标记（句子数 > 201）
+- 自动 Pro 标记（前200个素材免费，之后付费）
 
 参考：
 - src/components/VideoPlayer.tsx (line 467, 502)
@@ -30,6 +32,7 @@
 - src/components/topics/MaterialCard.tsx (line 170)
 
 版本历史：
+- v2.3 (2026-03-25): 方案3 - GLM-4 多候选词自动选择，提高挖空成功率；修正 Premium 逻辑（前200免费，之后付费）
 - v2.2 (2026-03-25): 雅思专家级挖空协议 + 核心黑名单过滤 + 三语翻译
 - v2.1 (2026-03-24): 雅思素材完整支持 + GLM-4 挖空词识别
 """
@@ -391,7 +394,7 @@ def detect_category(url: str, html: str = None) -> str:
 BLANKS_PROMPTS = {
     'IELTS Listening': """你是一位雅思考试教研专家。你的任务是识别听力文本中最具"考点价值"的单词，用于听写练习。
 
-任务：将目标单词包裹在 [[ ]] 中。每句话建议设置 1-2 个空格。
+任务：提供2-3个候选挖空词（按优先级排序），系统会自动选择第一个非黑名单词。
 
 黄金比例策略 (优先级梯度)：
 1. 高价值事实词 (30%)：数字、日期、价格、地址、专有名词（人名、地名、机构名）。
@@ -408,23 +411,24 @@ BLANKS_PROMPTS = {
 - 基础系动词：is, am, are, was, were, be, been, do, does, did, have, has, had
 
 逻辑约束：
-- 意义大于频率：不要因为某个词在句子里就随机挖空。如果一句话里没有"高价值"词汇，允许不挖空（保持原样）。
-- 信息权重：挖掉该句中承载"信息量"最大的单词。
-- 密度控制：在短句中严禁挖空超过 2 个单词。
+- 意义大于频率：提供多个候选词，按优先级排序。如果第一选择在黑名单中，系统会自动选择第二个。
+- 信息权重：优先选择该句中承载"信息量"最大的单词。
+- 候选数量：必须提供 2-3 个候选词，确保至少有一个不在黑名单中。
 
 输出格式（必须是有效的 JSON，不要有任何其他文字）：
 {
-  "word": "被挖空的词",
-  "index": 词在句子中的位置（从0开始），
-  "reason": "挖空理由（简短）"
+  "candidates": [
+    {"word": "第一候选词", "index": 位置, "reason": "挖空理由"},
+    {"word": "第二候选词", "index": 位置, "reason": "备用理由"}
+  ]
 }
 
 示例：
 输入: The lecture will be held on March 15th in room 305.
-输出: {"word": "lecture", "index": 4, "reason": "核心考点-学术名词"}
+输出: {"candidates": [{"word": "lecture", "index": 4, "reason": "核心考点-学术名词"}, {"word": "March", "index": 7, "reason": "高价值事实词-日期"}]}
 
 输入: The bridge collapsed due to structural problems.
-输出: {"word": "collapsed", "index": 2, "reason": "功能性动词"}
+输出: {"candidates": [{"word": "collapsed", "index": 2, "reason": "功能性动词"}, {"word": "structural", "index": 5, "reason": "描述性形容词"}]}
 
 输入: {sentence}
 输出:""",
@@ -541,7 +545,7 @@ def is_blacklisted(word: str) -> bool:
     return word.lower().strip('.,!?;:"\'') in STRICT_BLACKLIST
 
 def generate_blanks_with_glm(sentence_text: str, category: str) -> Optional[Dict]:
-    """使用 GLM-4 识别挖空词
+    """使用 GLM-4 识别挖空词（方案3：多候选词自动选择）
 
     Args:
         sentence_text: 句子文本
@@ -574,7 +578,7 @@ def generate_blanks_with_glm(sentence_text: str, category: str) -> Optional[Dict
                     {"role": "user", "content": sentence_text}
                 ],
                 "temperature": 0.3,
-                "max_tokens": 200
+                "max_tokens": 300
             },
             timeout=30
         )
@@ -586,48 +590,61 @@ def generate_blanks_with_glm(sentence_text: str, category: str) -> Optional[Dict
             # 解析 JSON
             blank_data = json.loads(content)
 
-            # 验证数据
-            if 'word' not in blank_data or 'index' not in blank_data:
-                return None
+            # 🔥 方案3：处理多个候选词
+            candidates = blank_data.get('candidates', [])
 
-            # 分词验证 index
+            # 如果没有 candidates 字段，尝试兼容旧格式（单个 word）
+            if not candidates and 'word' in blank_data:
+                candidates = [blank_data]
+
+            # 分词验证
             words = sentence_text.split()
-            index = blank_data['index']
 
-            if index < 0 or index >= len(words):
-                return None
+            # 🔥 遍历候选词，选择第一个非黑名单词
+            for candidate in candidates:
+                if 'word' not in candidate or 'index' not in candidate:
+                    continue
 
-            word = blank_data['word']
+                index = candidate['index']
+                word = candidate['word']
 
-            # 🔴 关键修复：检查黑名单
-            if is_blacklisted(word):
-                return None  # 在黑名单中，不挖空
+                # 验证 index 范围
+                if index < 0 or index >= len(words):
+                    continue
 
-            # 推断词性（简单判断）
-            pos = blank_data.get('pos', 'NN')
-            if 'pos' not in blank_data:
-                if word.endswith('ing'):
-                    pos = "VBG"
-                elif word.endswith('ed'):
-                    pos = "VBD"
-                elif word.endswith('ly'):
-                    pos = "RB"
-                elif word[0].isupper() and index > 0:
-                    pos = "NNP"
-                elif category in ['IELTS Listening']:
-                    pos = "NN"  # 雅思倾向于名词
-                else:
-                    pos = "NN"
+                # 🔴 关键修复：检查黑名单，跳过黑名单词
+                if is_blacklisted(word):
+                    continue  # 在黑名单中，尝试下一个候选词
 
-            # 判断是否为核心词汇
-            is_core = blank_data.get('reason', '') != '' or category in ['IELTS Listening', 'TED Talks', 'Science and Facts']
+                # 找到第一个非黑名单词，准备返回
+                # 推断词性（简单判断）
+                pos = candidate.get('pos', 'NN')
+                if 'pos' not in candidate:
+                    if word.endswith('ing'):
+                        pos = "VBG"
+                    elif word.endswith('ed'):
+                        pos = "VBD"
+                    elif word.endswith('ly'):
+                        pos = "RB"
+                    elif word[0].isupper() and index > 0:
+                        pos = "NNP"
+                    elif category in ['IELTS Listening']:
+                        pos = "NN"  # 雅思倾向于名词
+                    else:
+                        pos = "NN"
 
-            return {
-                "word": word,
-                "index": index,
-                "pos": pos,
-                "is_core": is_core
-            }
+                # 判断是否为核心词汇
+                is_core = candidate.get('reason', '') != '' or category in ['IELTS Listening', 'TED Talks', 'Science and Facts']
+
+                return {
+                    "word": word,
+                    "index": index,
+                    "pos": pos,
+                    "is_core": is_core
+                }
+
+            # 所有候选词都在黑名单中，返回 None
+            return None
 
     except json.JSONDecodeError as e:
         print(f"  ⚠ GLM JSON 解析失败: {e}")
@@ -947,10 +964,20 @@ def save_to_supabase(title: str, slug: str, audio_path: str, transcript: List[Di
                 difficulty = get_ielts_difficulty(part_num)
                 log(f"  📊 雅思难度: Part {part_num} → {difficulty}")
 
-        # 🔥 自动 Pro 标记：句子数 > 201 时设为付费素材
-        is_premium = len(transcript) > 201
-        if is_premium:
-            log(f"  🔒 Premium 素材: {len(transcript)} 句 > 201，自动标记为付费内容")
+        # 🔥 自动 Pro 标记：前200个素材免费，之后付费
+        # 查询当前素材总数
+        try:
+            count_result = client.table('materials').select('id', count='exact').execute()
+            total_count = count_result.count if hasattr(count_result, 'count') else len(count_result.data)
+            is_premium = total_count >= 200
+            if is_premium:
+                log(f"  🔒 Premium 素材: 当前已有 {total_count} 个素材，新素材标记为付费")
+            else:
+                log(f"  🆓 免费素材: 当前已有 {total_count}/200 个素材")
+        except Exception as e:
+            # 查询失败时默认免费
+            log(f"  ⚠ 无法查询素材总数，默认免费: {e}")
+            is_premium = False
 
         material_data = {
             'title': title,
