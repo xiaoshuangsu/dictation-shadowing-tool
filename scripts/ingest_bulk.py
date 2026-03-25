@@ -539,8 +539,8 @@ STRICT_BLACKLIST = [
     'a', 'an', 'the', 'and', 'or', 'but', 'so', 'because', 'if',
     # 简单介词
     'in', 'on', 'at', 'to', 'of', 'for', 'with', 'by', 'from', 'about',
-    # 基础系动词/助动词
-    'is', 'am', 'are', 'was', 'were', 'be', 'been', 'do', 'does', 'did', 'have', 'has', 'had',
+    # 基础系动词/助动词（包括分词形式）
+    'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being', 'do', 'does', 'did', 'have', 'has', 'had', 'having',
     # 其他常见虚词
     'there', 'here'
 ]
