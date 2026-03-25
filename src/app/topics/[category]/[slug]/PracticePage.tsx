@@ -61,11 +61,15 @@ export default function PracticePage({ category, slug }: { category: string; slu
     try {
       const storageKey = `category_${category}_page`
       const savedPage = sessionStorage.getItem(storageKey)
-      console.log('🔍 [PracticePage] 读取返回页码:', {
+
+      // 🔴 更明显的调试日志
+      console.log('%c[PracticePage] 返回页码读取', 'background: #ff9800; color: white; font-size: 14px; padding: 4px;', {
         storageKey,
         savedPage,
-        returnPageParam: `?page=${savedPage}`
+        category,
+        finalURL: `/topics/${category}${savedPage && Number(savedPage) > 1 ? `?page=${savedPage}` : ''}`
       })
+
       if (savedPage && Number(savedPage) > 1) {
         setReturnPageParam(`?page=${savedPage}`)
       }
@@ -751,8 +755,14 @@ export default function PracticePage({ category, slug }: { category: string; slu
             <Link
               href={`/topics/${category}${returnPageParam}`}
               className="text-blue-600 hover:text-blue-700"
+              onClick={(e) => {
+                // 🔴 临时调试：显示实际 href
+                console.log('%c[面包屑] 点击的链接:', 'background: #4CAF50; color: white; font-size: 14px; padding: 4px;', e.currentTarget.href)
+              }}
             >
               {getCategoryMetadataBySlug(category)?.name || slugToCategory(category)}
+              {/* 🔴 临时调试：显示页码 */}
+              {returnPageParam && <span className="ml-1 text-xs text-gray-400">({returnPageParam})</span>}
             </Link>
           </div>
 
