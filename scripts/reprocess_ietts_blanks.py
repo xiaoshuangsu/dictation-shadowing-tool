@@ -97,8 +97,16 @@ BLANKS_PROMPT = """你是一位雅思考试教研专家。你的任务是识别�
 4. 如果没有合适的词，返回空的 candidates 数组
 """
 
-def generate_blank_for_sentence(sentence_text: str) -> dict:
-    """为单个句子生成挖空（使用多候选词方案）"""
+def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None) -> dict:
+    """为单个句子生成挖空（使用多候选词方案 + 全局去重）
+
+    Args:
+        sentence_text: 句子文本
+        blanked_words: 已挖空单词的计数器 {word: count}
+    """
+    if blanked_words is None:
+        blanked_words = {}
+
     try:
         response = requests.post(
             "https://open.bigmodel.cn/api/paas/v4/chat/completions",
@@ -137,7 +145,7 @@ def generate_blank_for_sentence(sentence_text: str) -> dict:
             if not candidates or len(candidates) == 0:
                 return None
 
-            # 遍历候选词，选择第一个不在黑名单的词
+            # 🔥 遍历候选词，选择第一个符合条件的词
             for candidate in candidates:
                 word = candidate.get('word', '')
                 index = candidate.get('index', -1)
@@ -148,16 +156,23 @@ def generate_blank_for_sentence(sentence_text: str) -> dict:
                     continue
 
                 # 检查黑名单
-                if not is_blacklisted(word):
-                    # 找到了有效的候选词
-                    return {
-                        "word": word,
-                        "index": index,
-                        "pos": candidate.get('reason', '')[:30],
-                        "is_core": True
-                    }
+                if is_blacklisted(word):
+                    continue
 
-            # 所有候选词都在黑名单中
+                # 🔥 全局去重：同一单词最多挖空2次
+                word_lower = word.lower()
+                if blanked_words.get(word_lower, 0) >= 2:
+                    continue
+
+                # 找到了有效的候选词
+                return {
+                    "word": word,
+                    "index": index,
+                    "pos": candidate.get('reason', '')[:30],
+                    "is_core": True
+                }
+
+            # 所有候选词都不符合条件（黑名单或已挖2次）
             return None
 
     except Exception as e:
@@ -185,6 +200,7 @@ def process_material(slug: str) -> bool:
         # 统计
         success_count = 0
         skip_count = 0
+        blanked_words = {}  # 🔥 全局去重：记录已挖空的单词及其次数
 
         # 为每个句子生成挖空
         for i, sentence in enumerate(transcript):
@@ -192,10 +208,13 @@ def process_material(slug: str) -> bool:
 
             # 移除测试限制，处理所有句子
 
-            blank_data = generate_blank_for_sentence(sentence_text)
+            blank_data = generate_blank_for_sentence(sentence_text, blanked_words)
 
             if blank_data:
                 sentence['blanks'] = [blank_data]
+                # 🔥 更新全局计数
+                word_lower = blank_data['word'].lower()
+                blanked_words[word_lower] = blanked_words.get(word_lower, 0) + 1
                 success_count += 1
             else:
                 sentence['blanks'] = []

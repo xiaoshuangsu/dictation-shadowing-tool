@@ -544,12 +544,13 @@ def is_blacklisted(word: str) -> bool:
     """检查单词是否在黑名单中"""
     return word.lower().strip('.,!?;:"\'') in STRICT_BLACKLIST
 
-def generate_blanks_with_glm(sentence_text: str, category: str) -> Optional[Dict]:
-    """使用 GLM-4 识别挖空词（方案3：多候选词自动选择）
+def generate_blanks_with_glm(sentence_text: str, category: str, blanked_words: dict = None) -> Optional[Dict]:
+    """使用 GLM-4 识别挖空词（方案3：多候选词自动选择 + 全局去重）
 
     Args:
         sentence_text: 句子文本
         category: 素材分类
+        blanked_words: 已挖空单词的计数器 {word: count}
 
     Returns:
         blanks 对象或 None
@@ -560,6 +561,9 @@ def generate_blanks_with_glm(sentence_text: str, category: str) -> Optional[Dict
             "is_core": true
         }
     """
+    if blanked_words is None:
+        blanked_words = {}
+
     # 根据分类选择 Prompt
     prompt = BLANKS_PROMPTS.get(category, BLANKS_PROMPTS['default'])
     full_prompt = prompt.replace('{sentence}', sentence_text)
@@ -600,7 +604,7 @@ def generate_blanks_with_glm(sentence_text: str, category: str) -> Optional[Dict
             # 分词验证
             words = sentence_text.split()
 
-            # 🔥 遍历候选词，选择第一个非黑名单词
+            # 🔥 遍历候选词，选择第一个符合条件的词
             for candidate in candidates:
                 if 'word' not in candidate or 'index' not in candidate:
                     continue
@@ -612,11 +616,16 @@ def generate_blanks_with_glm(sentence_text: str, category: str) -> Optional[Dict
                 if index < 0 or index >= len(words):
                     continue
 
-                # 🔴 关键修复：检查黑名单，跳过黑名单词
+                # 🔴 关键修复1：检查黑名单，跳过黑名单词
                 if is_blacklisted(word):
                     continue  # 在黑名单中，尝试下一个候选词
 
-                # 找到第一个非黑名单词，准备返回
+                # 🔴 关键修复2：全局去重，同一单词最多挖空2次
+                word_lower = word.lower()
+                if blanked_words.get(word_lower, 0) >= 2:
+                    continue  # 已挖空2次，尝试下一个候选词
+
+                # 找到符合条件的词，准备返回
                 # 推断词性（简单判断）
                 pos = candidate.get('pos', 'NN')
                 if 'pos' not in candidate:
@@ -643,7 +652,7 @@ def generate_blanks_with_glm(sentence_text: str, category: str) -> Optional[Dict
                     "is_core": is_core
                 }
 
-            # 所有候选词都在黑名单中，返回 None
+            # 所有候选词都不符合条件（黑名单或已挖2次），返回 None
             return None
 
     except json.JSONDecodeError as e:
@@ -753,6 +762,7 @@ def parse_transcript(html: str, category: str = 'Daily Life') -> Optional[List[D
 
     sentences = []
     blank_count = 0  # 统计成功生成挖空的句子数
+    blanked_words = {}  # 🔥 全局去重：记录已挖空的单词及其次数
 
     for line in transcript_lines:
         start = float(line.get('data-start', 0))
@@ -782,11 +792,14 @@ def parse_transcript(html: str, category: str = 'Daily Life') -> Optional[List[D
         text = ' '.join(text_parts).strip()
 
         if text:
-            # 🔥 新增：使用 GLM-4 识别挖空词
+            # 🔥 使用 GLM-4 识别挖空词（传入已挖空单词计数器）
             blanks = []
-            blank_info = generate_blanks_with_glm(text, category)
+            blank_info = generate_blanks_with_glm(text, category, blanked_words)
             if blank_info:
                 blanks.append(blank_info)
+                # 更新全局计数
+                word_lower = blank_info['word'].lower()
+                blanked_words[word_lower] = blanked_words.get(word_lower, 0) + 1
                 blank_count += 1
 
             sentences.append({
@@ -1110,7 +1123,7 @@ def process_url(url: str, index: int, total: int) -> bool:
 
 def main():
     # 读取 URL 列表
-    urls_file = Path(__file__).parent.parent / 'urls.txt'
+    urls_file = Path('/tmp/cam14_remaining.txt')  # 临时使用 Cam 14 剩余素材
 
     if not urls_file.exists():
         log(f"错误: URLs 文件不存在: {urls_file}")
