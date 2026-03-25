@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
 import { flushSync } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -176,10 +176,28 @@ export default function PracticePage({ category, slug }: { category: string; slu
   // Audio playback tracking
   const audioPlaybackSecondsRef = useRef(0)
 
-  // 🔴 Premium 拦截逻辑
+  // 🔴 Premium 拦截逻辑：开发者白名单
   // TODO: 未来需要从用户 profile 中读取 isPro 状态
-  // 目前默认所有用户都是非 Pro 用户
-  const isPro = false
+  // 开发者白名单：这些邮箱无视 is_premium 状态，可以访问所有练习功能
+  const DEVELOPER_WHITELIST = [
+    'suxiaoshuang@3dpea.com',
+    // 可以添加更多开发者邮箱
+  ]
+
+  // 判断用户是否为 Pro（白名单或付费用户）
+  const isPro = useMemo(() => {
+    if (!user) return false
+
+    // 检查是否在开发者白名单中
+    if (user.email && DEVELOPER_WHITELIST.includes(user.email)) {
+      console.log('👨‍💻 开发者白名单用户，跳过拦截')
+      return true
+    }
+
+    // TODO: 未来添加 user.is_pro 或 user.subscription 检查
+    return false
+  }, [user])
+
   const isBlocked = material?.is_premium && !isPro
 
   // 🔴 移动端优化：练习区域 ref，用于切换句子时确保可见

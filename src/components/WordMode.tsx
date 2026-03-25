@@ -113,15 +113,14 @@ export default function WordMode({
       }
     }
 
-    // 如果没有有效的 blanks 字段，使用原来的随机算法
-    const seed = sentence.id || 1
-    const randomIndex = seed % sentenceWords.length
-
+    // 🔴 修复：如果没有有效的 blanks 字段，不挖空（而不是使用随机算法）
+    // 随机算法会导致挖空黑名单词（如 my, that, is 等）
+    console.log('⚠️  没有 blanks 字段，跳过挖空')
     return {
-      hiddenWordIndex: randomIndex,
-      hiddenWord: sentenceWords[randomIndex],
-      visibleWordsBefore: sentenceWords.slice(0, randomIndex),
-      visibleWordsAfter: sentenceWords.slice(randomIndex + 1)
+      hiddenWordIndex: -1,  // -1 表示不挖空
+      hiddenWord: "",
+      visibleWordsBefore: sentenceWords,  // 显示所有单词
+      visibleWordsAfter: []
     }
   }, [sentence.id, sentenceWords, sentence.blanks])
 
