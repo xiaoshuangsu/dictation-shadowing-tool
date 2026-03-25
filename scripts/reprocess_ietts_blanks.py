@@ -63,25 +63,34 @@ def log(msg: str):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}")
 
 # ==================== GLM-4 挖空词识别 ====================
-BLANKS_PROMPT = """你是一位雅思考试教研专家。你的任务是识别听力文本中最具"考点价值"的单词，用于听写练习。
+BLANKS_PROMPT = """你是一位英语教学专家，专注于设计高质量的词汇训练内容。
 
-黄金比例策略 (优先级梯度)：
-1. 高价值事实词 (30%)：数字、日期、价格、地址、专有名词（人名、地名、机构名）。
-2. 核心考点实词 (50%)：学术名词、功能性动词、描述性形容词（这些通常是雅思填空题的答案词）。
-3. 逻辑连接词 (20%)：信号词、转折词或强调词。
+**核心目标**：选择最能体现英语语感、词汇量和表达能力的单词进行挖空，而不仅仅是"答案词"。
 
-核心黑名单 (严禁挖空)：
-- 代词/引导词：he, she, it, they, we, you, I, me, him, her, us, them, that, which, who, this, these, those, my, your, his, her, its, our, their, hers, ours, theirs, whom, whose
+**优先级策略**（按重要性排序）：
+1. **体现语感的词汇** (40%)：如 cultivated, rarely, instead, significant, merely, particularly 等能展示语言精度的词
+2. **核心词汇多样性** (30%)：功能性动词、描述性形容词、副词（如 maintain, consume, essential, primarily）
+3. **学术名词** (20%)：专业术语、概念词（如 photosynthesis, economy, cultivation）
+4. **逻辑信号词** (10%)：转折、强调、递进词（如 however, moreover, consequently）
+
+**数字挖空限制**：
+- 数字、日期、价格等事实词优先级**最低**
+- 只有在句子中没有其他合适词汇时才挖数字
+- 建议避免挖空数字，除非它们是核心概念
+
+**保底机制**：
+- **每一句必须至少有一个候选词**
+- 如果句子中只有简单词，选择最核心的动词、名词或副词
+- 避免返回空的 candidates 数组
+
+**核心黑名单** (严禁挖空)：
+- 代词：he, she, it, they, we, you, I, me, him, her, us, them, that, which, who, this, these, those, my, your, his, hers, its, our, their
 - 虚词/连词：a, an, the, and, or, but, so, because, if
 - 简单介词：in, on, at, to, of, for, with, by, from, about
-- 基础系动词：is, am, are, was, were, be, been, do, does, did, have, has, had
+- 基础动词：is, am, are, was, were, be, been, do, does, did, have, has, had
+- 其他：there, here
 
-逻辑约束：
-- 意义大于频率：不要因为某个词在句子里就随机挖空。如果一句话里没有"高价值"词汇，允许不挖空（保持原样）。
-- 信息权重：挖掉该句中承载"信息量"最大的单词。
-- 密度控制：在短句中严禁挖空超过 2 个单词。
-
-输出格式（必须是有效的 JSON，不要有任何其他文字）：
+**输出格式**（JSON，不要有任何其他文字）：
 {
   "candidates": [
     {"word": "第一候选词", "index": 位置1, "reason": "理由"},
@@ -90,19 +99,42 @@ BLANKS_PROMPT = """你是一位雅思考试教研专家。你的任务是识别�
   ]
 }
 
-要求：
-1. 提供 2-3 个候选词
-2. 按优先级排序（最重要的词放在前面）
-3. 所有候选词都必须在黑名单之外
-4. 如果没有合适的词，返回空的 candidates 数组
-"""
+**示例**：
+输入: Coffee bushes are cultivated in shaded areas.
+输出: {"candidates": [{"word": "cultivated", "index": 3, "reason": "体现语感的动词"}, {"word": "shaded", "index": 6, "reason": "描述性形容词"}, {"word": "areas", "index": 7, "reason": "名词"}]}
 
-def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None) -> dict:
-    """为单个句子生成挖空（使用多候选词方案 + 全局去重）
+输入: The product was launched in 1995.
+输出: {"candidates": [{"word": "launched", "index": 4, "reason": "功能性动词"}, {"word": "product", "index": 2, "reason": "名词"}, {"word": "1995", "index": 6, "reason": "数字（最后选择）"}]}
+
+输入: {sentence}
+输出:"""
+
+def is_digit_word(word: str) -> bool:
+    """检查是否为数字或日期词汇"""
+    word_clean = word.lower().strip('.,!?;:"\'')
+    # 纯数字
+    if word_clean.isdigit():
+        return True
+    # 包含数字的词（如 1990s, 15th）
+    if any(c.isdigit() for c in word_clean):
+        return True
+    # 常见日期词汇
+    date_words = ['january', 'february', 'march', 'april', 'may', 'june',
+                  'july', 'august', 'september', 'october', 'november', 'december',
+                  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+                  'year', 'month', 'week', 'day']
+    if word_clean in date_words:
+        return True
+    return False
+
+def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None, digit_count: int = 0, digit_limit: int = 2) -> dict:
+    """为单个句子生成挖空（带保底机制和数字限制）
 
     Args:
         sentence_text: 句子文本
         blanked_words: 已挖空单词的计数器 {word: count}
+        digit_count: 当前已挖空的数字数量
+        digit_limit: 数字挖空限制（默认2个）
     """
     if blanked_words is None:
         blanked_words = {}
@@ -134,18 +166,21 @@ def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None) 
             try:
                 data = json.loads(content)
             except:
-                return None
+                # 🔥 保底机制：如果 GLM 返回失败，使用本地算法
+                return fallback_blank_selection(sentence_text, blanked_words)
 
             # 检查是否有 candidates 字段
             if 'candidates' not in data:
-                return None
+                # 🔥 保底机制：使用本地算法
+                return fallback_blank_selection(sentence_text, blanked_words)
 
             candidates = data['candidates']
 
             if not candidates or len(candidates) == 0:
-                return None
+                # 🔥 保底机制：使用本地算法
+                return fallback_blank_selection(sentence_text, blanked_words)
 
-            # 🔥 遍历候选词，选择第一个符合条件的词
+            # 🔥 遍历候选词，应用所有过滤规则
             for candidate in candidates:
                 word = candidate.get('word', '')
                 index = candidate.get('index', -1)
@@ -158,6 +193,11 @@ def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None) 
                 # 检查黑名单
                 if is_blacklisted(word):
                     continue
+
+                # 🔥 数字限制：检查是否为数字词
+                if is_digit_word(word):
+                    if digit_count >= digit_limit:
+                        continue  # 数字已达到上限，跳过
 
                 # 🔥 全局去重：同一单词最多挖空2次
                 word_lower = word.lower()
@@ -172,11 +212,83 @@ def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None) 
                     "is_core": True
                 }
 
-            # 所有候选词都不符合条件（黑名单或已挖2次）
-            return None
+            # 🔥 保底机制：所有候选词都不符合条件，使用本地算法
+            return fallback_blank_selection(sentence_text, blanked_words, digit_count, digit_limit)
 
     except Exception as e:
-        return None
+        # 🔥 保底机制：发生错误，使用本地算法
+        return fallback_blank_selection(sentence_text, blanked_words, digit_count, digit_limit)
+
+def fallback_blank_selection(sentence_text: str, blanked_words: dict, digit_count: int = 0, digit_limit: int = 2) -> dict:
+    """保底机制：使用本地算法选择挖空词
+
+    优先级：
+    1. 非黑名单的动词、形容词、副词
+    2. 避免重复词（已挖2次的词）
+    3. 避免数字（如果已达上限）
+    """
+    words = sentence_text.split()
+
+    # 词性标识（简单判断）
+    def get_word_type(word):
+        word_clean = word.lower().strip('.,!?;:"\'')
+        if word_clean.endswith('ing'):
+            return 'VBG'
+        elif word_clean.endswith('ed'):
+            return 'VBD'
+        elif word_clean.endswith('ly'):
+            return 'RB'
+        elif word_clean.endswith('ment') or word_clean.endswith('tion') or word_clean.endswith('ness'):
+            return 'NN'
+        elif word_clean.endswith('ive') or word_clean.endswith('ous') or word_clean.endswith('ent'):
+            return 'JJ'
+        else:
+            return 'UNK'
+
+    # 优先选择动词、形容词、副词
+    preferred_words = []
+    for i, word in enumerate(words):
+        word_clean = word.lower().strip('.,!?;:"\'')
+
+        # 跳过黑名单
+        if is_blacklisted(word):
+            continue
+
+        # 跳过已挖2次的词
+        if blanked_words.get(word_clean, 0) >= 2:
+            continue
+
+        # 跳过数字（如果已达上限）
+        if is_digit_word(word) and digit_count >= digit_limit:
+            continue
+
+        # 分析词性
+        word_type = get_word_type(word)
+
+        # 优先级：VBG/VBD（动词）> RB（副词）> JJ（形容词）> NN（名词）
+        if word_type in ['VBG', 'VBD']:
+            preferred_words.insert(0, (i, word, word_type))
+        elif word_type == 'RB':
+            preferred_words.append((i, word, word_type))
+        elif word_type == 'JJ':
+            preferred_words.append((i, word, word_type))
+        elif word_type == 'NN':
+            preferred_words.append((i, word, word_type))
+        else:
+            preferred_words.append((i, word, word_type))
+
+    # 返回第一个优先词
+    if preferred_words:
+        index, word, word_type = preferred_words[0]
+        return {
+            "word": word.strip('.,!?;:"\''),
+            "index": index,
+            "pos": word_type,
+            "is_core": False
+        }
+
+    # 如果没有合适的词，返回 None（允许不挖空）
+    return None
 
 def process_material(slug: str) -> bool:
     """处理单个素材的挖空"""
@@ -201,20 +313,24 @@ def process_material(slug: str) -> bool:
         success_count = 0
         skip_count = 0
         blanked_words = {}  # 🔥 全局去重：记录已挖空的单词及其次数
+        digit_count = 0     # 🔥 数字计数器：限制数字挖空不超过2个
 
         # 为每个句子生成挖空
         for i, sentence in enumerate(transcript):
             sentence_text = sentence.get('text', '')
 
-            # 移除测试限制，处理所有句子
-
-            blank_data = generate_blank_for_sentence(sentence_text, blanked_words)
+            blank_data = generate_blank_for_sentence(sentence_text, blanked_words, digit_count, digit_limit=2)
 
             if blank_data:
                 sentence['blanks'] = [blank_data]
                 # 🔥 更新全局计数
                 word_lower = blank_data['word'].lower()
                 blanked_words[word_lower] = blanked_words.get(word_lower, 0) + 1
+
+                # 🔥 更新数字计数
+                if is_digit_word(blank_data['word']):
+                    digit_count += 1
+
                 success_count += 1
             else:
                 sentence['blanks'] = []
