@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getCategoryMetadataBySlug, categoryToSlug, slugToCategory } from '@/lib/utils/category'
@@ -55,9 +55,11 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
 
   const categoryMetadata = getCategoryMetadataBySlug(categorySlug)
 
-  // 🔴 恢复筛选器状态
+  // 🔴 恢复筛选器状态（只在组件首次加载时执行）
+  const hasRestoredFilters = useRef(false)
+
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || hasRestoredFilters.current) return
 
     const storageKey = `category_${categorySlug}_filters`
     try {
@@ -71,11 +73,14 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
     } catch (e) {
       console.error('Failed to restore filters:', e)
     }
-  }, [categorySlug])
+
+    hasRestoredFilters.current = true
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categorySlug]) // 只在 categorySlug 变化时执行
 
   // 🔴 保存筛选器状态到 sessionStorage
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || !hasRestoredFilters.current) return
 
     const storageKey = `category_${categorySlug}_filters`
     try {
@@ -219,8 +224,12 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
     router.push(`?${params.toString()}`, { scroll: false })
   }
 
-  // 🔴 重置到第 1 页时也更新 URL
+  // 🔴 用户主动改变筛选条件时重置到第1页（不包括从 sessionStorage 恢复的情况）
   useEffect(() => {
+    // 只在筛选器已恢复后才响应筛选条件变化
+    if (!hasRestoredFilters.current) return
+
+    // 如果当前不是第1页，则重置到第1页
     if (currentPage !== 1) {
       updatePage(1)
     }
