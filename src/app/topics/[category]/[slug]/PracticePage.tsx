@@ -61,6 +61,11 @@ export default function PracticePage({ category, slug }: { category: string; slu
     try {
       const storageKey = `category_${category}_page`
       const savedPage = sessionStorage.getItem(storageKey)
+      console.log('🔍 [PracticePage] 读取返回页码:', {
+        storageKey,
+        savedPage,
+        returnPageParam: `?page=${savedPage}`
+      })
       if (savedPage && Number(savedPage) > 1) {
         setReturnPageParam(`?page=${savedPage}`)
       }

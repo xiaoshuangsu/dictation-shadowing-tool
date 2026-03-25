@@ -480,6 +480,11 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                               try {
                                 sessionStorage.setItem(scrollKey, window.scrollY.toString())
                                 sessionStorage.setItem(pageKey, currentPage.toString())
+                                console.log('💾 [CategoryPage] 保存状态:', {
+                                  pageKey,
+                                  currentPage,
+                                  scrollY: window.scrollY
+                                })
                               } catch (e) {
                                 console.error('Failed to save state:', e)
                               }
@@ -499,6 +504,11 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                               try {
                                 sessionStorage.setItem(scrollKey, window.scrollY.toString())
                                 sessionStorage.setItem(pageKey, currentPage.toString())
+                                console.log('💾 [CategoryPage] 保存状态:', {
+                                  pageKey,
+                                  currentPage,
+                                  scrollY: window.scrollY
+                                })
                               } catch (e) {
                                 console.error('Failed to save state:', e)
                               }
