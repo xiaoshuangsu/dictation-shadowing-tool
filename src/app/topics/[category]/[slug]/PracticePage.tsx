@@ -53,6 +53,22 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
 
+  // 🔴 获取返回页码（从 sessionStorage）
+  const [returnPageParam, setReturnPageParam] = useState('')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const storageKey = `category_${category}_page`
+      const savedPage = sessionStorage.getItem(storageKey)
+      if (savedPage && Number(savedPage) > 1) {
+        setReturnPageParam(`?page=${savedPage}`)
+      }
+    } catch (e) {
+      console.error('Failed to get return page:', e)
+    }
+  }, [category])
+
   // Get mode from URL params, default to 'dictation'
   const modeParam = searchParams.get('mode') as PracticeMode | null
   const [mode, setMode] = useState<PracticeMode>(modeParam || 'dictation')
@@ -727,12 +743,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <button
-              onClick={() => router.back()}
+            <Link
+              href={`/topics/${category}${returnPageParam}`}
               className="text-blue-600 hover:text-blue-700"
             >
               {getCategoryMetadataBySlug(category)?.name || slugToCategory(category)}
-            </button>
+            </Link>
           </div>
 
           {/* Level 2: Material Title - H1 for SEO */}

@@ -473,13 +473,15 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                         <Link
                           href={`/topics/${categorySlug}/${material.slug || titleToSlug(material.title)}?mode=dictation`}
                           onClick={() => {
-                            // 🔴 保存滚动位置
+                            // 🔴 保存滚动位置和页码
                             if (typeof window !== 'undefined') {
-                              const storageKey = `category_${categorySlug}_scroll`
+                              const scrollKey = `category_${categorySlug}_scroll`
+                              const pageKey = `category_${categorySlug}_page`
                               try {
-                                sessionStorage.setItem(storageKey, window.scrollY.toString())
+                                sessionStorage.setItem(scrollKey, window.scrollY.toString())
+                                sessionStorage.setItem(pageKey, currentPage.toString())
                               } catch (e) {
-                                console.error('Failed to save scroll position:', e)
+                                console.error('Failed to save state:', e)
                               }
                             }
                           }}
@@ -490,13 +492,15 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                         <Link
                           href={`/topics/${categorySlug}/${material.slug || titleToSlug(material.title)}?mode=shadowing`}
                           onClick={() => {
-                            // 🔴 保存滚动位置
+                            // 🔴 保存滚动位置和页码
                             if (typeof window !== 'undefined') {
-                              const storageKey = `category_${categorySlug}_scroll`
+                              const scrollKey = `category_${categorySlug}_scroll`
+                              const pageKey = `category_${categorySlug}_page`
                               try {
-                                sessionStorage.setItem(storageKey, window.scrollY.toString())
+                                sessionStorage.setItem(scrollKey, window.scrollY.toString())
+                                sessionStorage.setItem(pageKey, currentPage.toString())
                               } catch (e) {
-                                console.error('Failed to save scroll position:', e)
+                                console.error('Failed to save state:', e)
                               }
                             }
                           }}
