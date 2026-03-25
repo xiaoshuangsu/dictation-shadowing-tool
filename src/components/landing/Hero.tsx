@@ -9,11 +9,11 @@ export default function Hero() {
       <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         <div className="text-center">
           {/* Main Heading */}
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight mb-8 text-gray-900">
-            Stop Studying English.
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-8 text-gray-900">
+            Master English via AI-Powered
             <br />
             <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              Start Feeling It.
+              Dictation & Shadowing
             </span>
           </h1>
 

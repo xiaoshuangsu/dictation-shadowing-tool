@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量素材导入脚本 v2.3
+批量素材导入脚本 v4.0
 从 Engnovate 抓取多个 Dictation/Shadowing 练习
 
 特点：
@@ -18,13 +18,12 @@
 - 前端组件：必须添加 crossOrigin="anonymous" 属性
 - Worker 响应：必须返回 Access-Control-Allow-Origin: *
 
-🎯 v2.3 新增功能（方案3）：
-- GLM-4 返回多个候选词（2-3个），自动选择第一个非黑名单词
-- 提高挖空成功率，解决很多句子没有挖空的问题
-- 雅思专家级挖空协议（30/50/20 黄金比例策略）
-- 核心黑名单过滤（严禁挖空代词/介词/系动词等虚词）
-- 三语翻译支持（中文简体、中文繁体、越南语）
-- 自动 Pro 标记（前200个素材免费，之后付费）
+🎯 v4.0 新增功能（雅思挖空优化）：
+- 剔除高价值事实词（数字、日期、价格、地址）
+- 剔除专有名词（人名、地名、机构名、品牌名）
+- 剔除纯逻辑连接词（although, however, moreover, therefore 等）
+- 使用 should_skip_word() 综合判断函数
+- GLM Prompt 明确禁止挖空这些词类
 
 参考：
 - src/components/VideoPlayer.tsx (line 467, 502)
@@ -32,6 +31,7 @@
 - src/components/topics/MaterialCard.tsx (line 170)
 
 版本历史：
+- v4.0 (2026-03-25): 剔除事实词、专有名词、逻辑连接词
 - v2.3 (2026-03-25): 方案3 - GLM-4 多候选词自动选择，提高挖空成功率；修正 Premium 逻辑（前200免费，之后付费）
 - v2.2 (2026-03-25): 雅思专家级挖空协议 + 核心黑名单过滤 + 三语翻译
 - v2.1 (2026-03-24): 雅思素材完整支持 + GLM-4 挖空词识别
@@ -394,18 +394,31 @@ def detect_category(url: str, html: str = None) -> str:
 BLANKS_PROMPTS = {
     'IELTS Listening': """你是一位英语教学专家，专注于设计高质量的词汇训练内容。
 
-**核心目标**：选择最能体现英语语感、词汇量和表达能力的单词进行挖空，而不仅仅是"答案词"。
+**核心目标**：选择最能体现英语语感、词汇量和表达能力的单词进行挖空。
 
 **优先级策略**（按重要性排序）：
-1. **体现语感的词汇** (40%)：如 cultivated, rarely, instead, significant, merely, particularly 等能展示语言精度的词
-2. **核心词汇多样性** (30%)：功能性动词、描述性形容词、副词（如 maintain, consume, essential, primarily）
-3. **学术名词** (20%)：专业术语、概念词（如 photosynthesis, economy, cultivation）
-4. **逻辑信号词** (10%)：转折、强调、递进词（如 however, moreover, consequently）
+1. **体现语感的词汇** (50%)：如 cultivated, rarely, instead, significant, merely, particularly, essentially, primarily 等能展示语言精度的词
+2. **核心词汇多样性** (30%)：功能性动词、描述性形容词、副词（如 maintain, consume, essential, effective）
+3. **学术名词** (20%)：专业术语、概念词（如 photosynthesis, economy, cultivation, mechanism）
 
-**数字挖空限制**：
-- 数字、日期、价格等事实词优先级**最低**
-- 只有在句子中没有其他合适词汇时才挖数字
-- 建议避免挖空数字，除非它们是核心概念
+**全局去重规则**：
+- **同一单词在整个素材中最多挖空1次**
+- 只有当句子中没有其他可挖的词时，才考虑重复挖空（保底机制）
+- 确保词汇多样性最大化
+
+**严禁挖空的词类**：
+1. **事实词**（数字、日期、价格、地址）：
+   - 纯数字：1995, 20, 100, 3.5 等
+   - 日期：January, Monday, 1990s, 15th 等
+   - 价格：$15, 20 pounds 等
+   - 地址：Street, Road, Avenue, Building, Room 等
+2. **专有名词**：
+   - 人名：John, Sarah, Dr. Smith, Professor Brown 等
+   - 地名：London, Australia, Pacific, Amazon 等
+   - 机构名：Cambridge, BBC, UNESCO 等
+   - 品牌名：Nike, Google, Toyota 等
+3. **纯逻辑连接词**：
+   - although, however, moreover, therefore, consequently, nevertheless, nonetheless, thus, hence, meanwhile, furthermore, in addition, on the other hand
 
 **保底机制**：
 - **每一句必须至少有一个候选词**
@@ -428,12 +441,23 @@ BLANKS_PROMPTS = {
   ]
 }
 
+**重要限制**：
+- **每个候选词必须是单个词**，不能是短语（如 "set up" 是短语，不能使用）
+- 短语动词（如 set up, look for）请选择其中的核心词（如 set, look）
+
 **示例**：
 输入: Coffee bushes are cultivated in shaded areas.
 输出: {"candidates": [{"word": "cultivated", "index": 3, "reason": "体现语感的动词"}, {"word": "shaded", "index": 6, "reason": "描述性形容词"}, {"word": "areas", "index": 7, "reason": "名词"}]}
 
-输入: The product was launched in 1995.
-输出: {"candidates": [{"word": "launched", "index": 4, "reason": "功能性动词"}, {"word": "product", "index": 2, "reason": "名词"}, {"word": "1995", "index": 6, "reason": "数字（最后选择）"}]}
+输入: The conference was held in London in 1995.
+输出: {"candidates": [{"word": "conference", "index": 2, "reason": "名词"}, {"word": "held", "index": 4, "reason": "动词"}]}
+
+输入: However, the results showed significant improvement.
+输出: {"candidates": [{"word": "results", "index": 3, "reason": "名词"}, {"word": "significant", "index": 5, "reason": "形容词"}, {"word": "improvement", "index": 6, "reason": "名词"}]}
+
+输入: Europeans set up coffee plantations.
+输出: {"candidates": [{"word": "plantations", "index": 4, "reason": "名词"}, {"word": "Europeans", "index": 0, "reason": "名词"}, {"word": "coffee", "index": 3, "reason": "名词"}]}
+注意："set up" 是短语，不能选择，应该选择其他单个词
 
 输入: {sentence}
 输出:""",
@@ -537,6 +561,10 @@ STRICT_BLACKLIST = [
     'whom', 'whose',
     # 虚词/连词
     'a', 'an', 'the', 'and', 'or', 'but', 'so', 'because', 'if',
+    # 纯逻辑连接词（v4 新增）
+    'although', 'however', 'moreover', 'therefore', 'consequently',
+    'nevertheless', 'nonetheless', 'thus', 'hence', 'meanwhile',
+    'furthermore', 'otherwise', 'accordingly', 'besides',
     # 简单介词
     'in', 'on', 'at', 'to', 'of', 'for', 'with', 'by', 'from', 'about',
     # 基础系动词/助动词（包括分词形式）
@@ -548,6 +576,142 @@ STRICT_BLACKLIST = [
 def is_blacklisted(word: str) -> bool:
     """检查单词是否在黑名单中"""
     return word.lower().strip('.,!?;:"\'') in STRICT_BLACKLIST
+
+# ==================== v4 新增：事实词与专有名词检测 ====================
+
+def is_fact_word(word: str) -> bool:
+    """检查是否为事实词（数字、日期、价格、地址相关）
+
+    Args:
+        word: 待检查的单词
+
+    Returns:
+        是否为事实词
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+
+    # 1. 纯数字
+    if word_clean.replace('.', '').replace(',', '').isdigit():
+        return True
+
+    # 2. 包含数字的词（如 1990s, 15th, 3.5, 20%）
+    if any(c.isdigit() for c in word_clean):
+        return True
+
+    # 3. 日期词汇
+    date_words = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december',
+        'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+        'year', 'month', 'week', 'day', 'date', 'time'
+    ]
+    if word_clean in date_words:
+        return True
+
+    # 4. 价格相关
+    price_indicators = ['$', '£', '€', 'yen', 'yuan', 'dollar', 'pound', 'cent', 'euro']
+    if any(indicator in word_clean for indicator in price_indicators):
+        return True
+
+    # 5. 地址相关（街道、建筑等）
+    address_words = [
+        'street', 'road', 'avenue', 'boulevard', 'lane', 'drive', 'way',
+        'building', 'room', 'floor', 'suite', 'apartment', 'flat',
+        'north', 'south', 'east', 'west', 'central', 'city', 'town'
+    ]
+    if word_clean in address_words:
+        return True
+
+    return False
+
+def is_proper_noun(word: str, sentence_text: str = '', index: int = -1) -> bool:
+    """检查是否为专有名词（人名、地名、机构名、品牌名）
+
+    Args:
+        word: 待检查的单词
+        sentence_text: 完整句子（可选，用于上下文判断）
+        index: 单词在句子中的位置（可选）
+
+    Returns:
+        是否为专有名词
+    """
+    word_clean = word.strip('.,!?;:"\'')
+
+    # 1. 大写字母开头（非句首）通常是专有名词
+    if word_clean and word_clean[0].isupper() and index > 0:
+        return True
+
+    # 2. 常见地名
+    place_names = [
+        'london', 'paris', 'tokyo', 'new york', 'sydney', 'moscow', 'beijing', 'shanghai',
+        'america', 'american', 'britain', 'british', 'england', 'english', 'scotland', 'irish',
+        'europe', 'european', 'asia', 'asian', 'africa', 'pacific', 'atlantic',
+        'australia', 'australian', 'canada', 'canadian', 'india', 'indian',
+        'cambridge', 'oxford', 'yale', 'harvard', 'stanford'
+    ]
+    if word_clean.lower() in place_names:
+        return True
+
+    # 3. 机构名
+    institutions = [
+        'cambridge', 'oxford', 'bbc', 'unesco', 'nasa', 'nato',
+        'university', 'college', 'institute', 'association', 'organization'
+    ]
+    if word_clean.lower() in institutions:
+        return True
+
+    # 4. 品牌名
+    brands = [
+        'google', 'apple', 'microsoft', 'amazon', 'facebook', 'twitter',
+        ' nike', 'toyota', 'honda', 'bmw', 'mercedes', 'sony', 'samsung'
+    ]
+    if word_clean.lower() in brands:
+        return True
+
+    return False
+
+def should_skip_word(word: str, sentence_text: str = '', index: int = -1) -> bool:
+    """综合判断是否应该跳过该词（不挖空）
+
+    Args:
+        word: 待检查的单词
+        sentence_text: 完整句子（可选）
+        index: 单词在句子中的位置（可选）
+
+    Returns:
+        是否应该跳过
+    """
+    # 1. 黑名单词
+    if is_blacklisted(word):
+        return True
+
+    # 2. 事实词
+    if is_fact_word(word):
+        return True
+
+    # 3. 专有名词
+    if is_proper_noun(word, sentence_text, index):
+        return True
+
+    return False
+
+def is_valid_single_word(word: str) -> bool:
+    """检查是否为有效的单个词（不是短语）
+
+    Args:
+        word: 待检查的词
+
+    Returns:
+        是否为有效的单个词
+    """
+    # 移除标点符号
+    word_clean = word.strip('.,!?;:"\'')
+
+    # 检查是否包含空格（短语）
+    if ' ' in word_clean:
+        return False
+
+    return True
 
 def is_digit_word(word: str) -> bool:
     """检查是否为数字或日期词汇"""
@@ -572,14 +736,14 @@ def fallback_blank_selection(sentence_text: str, blanked_words: dict = None, dig
 
     优先级：
     1. 非黑名单的动词、形容词、副词
-    2. 避免重复词（已挖2次的词）
-    3. 避免数字（如果已达上限）
+    2. 避免重复词（已挖1次的词）
+    3. 避免事实词、专有名词
 
     Args:
         sentence_text: 句子文本
         blanked_words: 已挖空单词的计数器
-        digit_count: 当前数字挖空数量
-        digit_limit: 数字挖空限制（默认2个）
+        digit_count: 当前数字挖空数量（已弃用，保留兼容性）
+        digit_limit: 数字挖空限制（已弃用，保留兼容性）
 
     Returns:
         blanks 对象或 None
@@ -610,16 +774,12 @@ def fallback_blank_selection(sentence_text: str, blanked_words: dict = None, dig
     for i, word in enumerate(words):
         word_clean = word.lower().strip('.,!?;:"\'')
 
-        # 跳过黑名单
-        if is_blacklisted(word):
+        # 🔴 v4: 使用 should_skip_word 综合判断
+        if should_skip_word(word, sentence_text, i):
             continue
 
-        # 跳过已挖2次的词
-        if blanked_words.get(word_clean, 0) >= 2:
-            continue
-
-        # 跳过数字（如果已达上限）
-        if is_digit_word(word) and digit_count >= digit_limit:
+        # 🔴 v4.1: 跳过已挖1次的词（绝不重复）
+        if blanked_words.get(word_clean, 0) >= 1:
             continue
 
         # 分析词性
@@ -651,14 +811,14 @@ def fallback_blank_selection(sentence_text: str, blanked_words: dict = None, dig
     return None
 
 def generate_blanks_with_glm(sentence_text: str, category: str, blanked_words: dict = None, digit_count: int = 0, digit_limit: int = 2) -> Optional[Dict]:
-    """使用 GLM-4 识别挖空词（v3.0：多候选词 + 全局去重 + 数字限制 + 保底机制）
+    """使用 GLM-4 识别挖空词（v4.0：剔除事实词、专有名词、逻辑连接词）
 
     Args:
         sentence_text: 句子文本
         category: 素材分类
         blanked_words: 已挖空单词的计数器 {word: count}
-        digit_count: 当前数字挖空数量
-        digit_limit: 数字挖空限制（默认2个）
+        digit_count: 当前数字挖空数量（已弃用，保留兼容性）
+        digit_limit: 数字挖空限制（已弃用，保留兼容性）
 
     Returns:
         blanks 对象或 None
@@ -720,7 +880,7 @@ def generate_blanks_with_glm(sentence_text: str, category: str, blanked_words: d
             # 分词验证
             words = sentence_text.split()
 
-            # 🔥 遍历候选词，应用所有过滤规则
+            # 🔥 v4: 遍历候选词，应用所有过滤规则（包括事实词和专有名词）
             for candidate in candidates:
                 if 'word' not in candidate or 'index' not in candidate:
                     continue
@@ -728,23 +888,22 @@ def generate_blanks_with_glm(sentence_text: str, category: str, blanked_words: d
                 index = candidate['index']
                 word = candidate['word']
 
+                # 🔴 v4.1: 验证是否为单个词（不能是短语）
+                if not is_valid_single_word(word):
+                    continue
+
                 # 验证 index 范围
                 if index < 0 or index >= len(words):
                     continue
 
-                # 🔴 检查黑名单
-                if is_blacklisted(word):
+                # 🔴 v4: 使用 should_skip_word 综合判断
+                if should_skip_word(word, sentence_text, index):
                     continue
 
-                # 🔴 全局去重：同一单词最多挖空2次
+                # 🔴 全局去重：同一单词最多挖空1次（绝不重复）
                 word_lower = word.lower()
-                if blanked_words.get(word_lower, 0) >= 2:
+                if blanked_words.get(word_lower, 0) >= 1:
                     continue
-
-                # 🔴 数字限制：检查是否为数字词
-                if is_digit_word(word):
-                    if digit_count >= digit_limit:
-                        continue  # 数字已达到上限，跳过
 
                 # 找到符合条件的词，准备返回
                 # 推断词性（简单判断）
@@ -925,8 +1084,8 @@ def parse_transcript(html: str, category: str = 'Daily Life') -> Optional[List[D
                 word_lower = blank_info['word'].lower()
                 blanked_words[word_lower] = blanked_words.get(word_lower, 0) + 1
 
-                # 🔥 更新数字计数
-                if is_digit_word(blank_info['word']):
+                # 🔥 更新事实词计数（用于统计）
+                if is_fact_word(blank_info['word']):
                     digit_count += 1
 
                 blank_count += 1
