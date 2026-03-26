@@ -1,0 +1,17 @@
+# ShadowHub robots.txt
+# Allow all crawlers
+
+User-agent: *
+Allow: /
+
+# Disallow admin and private areas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /profile/
+Disallow: /login/
+Disallow: /register/
+Disallow: /debug-*
+Disallow: /test-*
+
+# Sitemap location
+Sitemap: https://shadowhub.app/sitemap.xml

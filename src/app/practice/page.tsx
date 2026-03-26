@@ -35,45 +35,31 @@ const R2_WORKER_URL = 'https://media.shadowhub.app'
 const isDevelopment = process.env.NODE_ENV === 'development'
 
 // 根据设备类型选择合适的 CDN URL（使用 R2 Worker 代理）
-const getCdnUrl = (url: string | null) => {
-  if (!url) return null
-  if (typeof window === 'undefined') return url
+// 使用 useMemo 缓存结果，避免每次渲染重复计算
+const useCdnUrl = (url: string | null) => {
+  return useMemo(() => {
+    if (!url) return null
+    if (typeof window === 'undefined') return url
 
-  // 完整 URL：检查是否需要添加 .mp4 后缀
-  if (url.startsWith('http')) {
-    // 🔴 关键修复：检查完整 URL 是否缺少 .mp4 后缀
-    if (url.includes('/videos/') && !url.endsWith('.mp4')) {
-      return `${url}.mp4`
+    // 完整 URL：检查是否需要添加 .mp4 后缀
+    if (url.startsWith('http')) {
+      if (url.includes('/videos/') && !url.endsWith('.mp4')) {
+        return `${url}.mp4`
+      }
+      return url
     }
-    return url
-  }
 
-  // ✅ 统一使用 Worker 代理（开发环境和生产环境）
-  // 静态导出模式下本地代理不生效，直接使用线上 Worker
-  const workerUrl = R2_WORKER_URL
-  let finalUrl = `${workerUrl}/${url}`
+    // 使用 Worker 代理
+    const workerUrl = R2_WORKER_URL
+    let finalUrl = `${workerUrl}/${url}`
 
-  // 🔴 关键修复：强制补全 .mp4 后缀
-  // 如果是视频路径但没有 .mp4 后缀，自动添加
-  if (url.includes('video') && !url.endsWith('.mp4')) {
-    finalUrl = `${finalUrl}.mp4`
-    console.log('🔧 Auto-added .mp4 extension:', {
-      original: url,
-      fixed: finalUrl.replace(workerUrl, '')
-    })
-  }
+    // 补全 .mp4 后缀
+    if (url.includes('video') && !url.endsWith('.mp4')) {
+      finalUrl = `${finalUrl}.mp4`
+    }
 
-  // 验证并记录视频路径
-  if (url.includes('.mp4') || url.includes('videos/')) {
-    console.log('🎬 Video URL constructed:', {
-      original: url,
-      final: finalUrl,
-      hasMp4Extension: finalUrl.endsWith('.mp4'),
-      isDevelopment
-    })
-  }
-
-  return finalUrl
+    return finalUrl
+  }, [url])
 }
 
 // 默认音频标题（First Snowfall）
@@ -231,39 +217,16 @@ function HomeContent() {
         const audioUrl = getCdnUrl(typedMaterial.audio_path)
         // 🔴 关键修复：日志中只显示前 60 个字符，但实际使用的是完整 URL
         console.log('Audio URL:', audioUrl?.substring(0, 60) + ((audioUrl && audioUrl.length > 60) ? '...' : ''))
-        console.log('Full audio URL for verification:', audioUrl) // 记录完整 URL
-        setAudioSrc(audioUrl) // 使用完整的 URL
+        setAudioSrc(audioUrl)
 
         // 构建视频 URL（如果有）
         if (typedMaterial.video_path) {
-          // 🔴 路径预洗：在进入组件前完成 .mp4 补全
-          let videoUrl = getCdnUrl(typedMaterial.video_path)
-
-          // 🔴 空值检查：getCdnUrl 可能返回 null
-          if (!videoUrl) {
-            console.error('❌ videoUrl is null after getCdnUrl:', typedMaterial.video_path)
+          const videoUrl = getCdnUrl(typedMaterial.video_path)
+          if (!videoUrl || !videoUrl.endsWith('.mp4')) {
             setVideoSrc(null)
             return
           }
-
-          // 二次验证：确保以 .mp4 结尾
-          if (!videoUrl.endsWith('.mp4')) {
-            console.warn('⚠️ Video URL missing .mp4, auto-fixing:', {
-              original: typedMaterial.video_path,
-              before: videoUrl
-            })
-            videoUrl = `${videoUrl}.mp4`
-          }
-
-          // 最终验证
-          if (!videoUrl.endsWith('.mp4')) {
-            console.error('❌ CRITICAL: Video URL still missing .mp4:', videoUrl)
-          }
-
-          // 🔴 关键修复：日志中只显示前 80 个字符，但实际使用的是完整 URL
-          console.log('✅ Final Video URL (pre-washed):', videoUrl.substring(0, 80) + (videoUrl.length > 80 ? '...' : ''))
-          console.log('Full video URL for verification:', videoUrl) // 记录完整 URL
-          setVideoSrc(videoUrl) // 使用完整的 URL
+          setVideoSrc(videoUrl)
         } else {
           setVideoSrc(null)
         }
@@ -272,18 +235,13 @@ function HomeContent() {
         if (typedMaterial.thumbnail_path) {
           const thumbnailUrl = getCdnUrl(typedMaterial.thumbnail_path)
           setThumbnailPath(thumbnailUrl)
-          // 🔴 关键修复：日志中只显示前 60 个字符，但实际使用的是完整 URL
-          console.log('Thumbnail URL:', thumbnailUrl?.substring(0, 60) + ((thumbnailUrl && thumbnailUrl.length > 60) ? '...' : ''))
-          console.log('Full thumbnail URL for verification:', thumbnailUrl) // 记录完整 URL
         }
 
         // 优先使用数据库中的 transcript 数据
         if (typedMaterial.transcript && Array.isArray(typedMaterial.transcript) && typedMaterial.transcript.length > 0) {
-          console.log('Using transcript from database:', typedMaterial.transcript.length, 'sentences')
           setSampleSentences(typedMaterial.transcript)
         } else {
           // 如果没有 transcript 数据，根据音频时长自动分割成固定长度的句子（每句约 10-15 秒）
-          console.log('No transcript data, using auto-segmentation')
           const duration = typedMaterial.duration || 60
           const sentenceDuration = 12 // 每句约 12 秒
           const sentences = []
