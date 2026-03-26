@@ -454,29 +454,27 @@ def reprocess_material(slug: str) -> bool:
         return False
 
 def main():
-    # 样板间验收：挑选代表性句子
-    # 格式：(slug, 句子索引, 场景描述)
-    test_samples = [
-        ('cam-14-academic-listening-test-3-part-1', 5, '生活服务-会议预订'),  # facilities/booked
-        ('cam-14-academic-listening-test-4-part-1', 5, '生活服务-餐饮桌餐'),    # sit-down meal/buffet
-        ('cam-13-academic-listening-test-1-part-1', 15, '生活服务-代词指代'),   # that/it 指代
-        ('cam-13-academic-listening-test-3-part-1', 10, '学术讨论-资料素材'),   # information/material
-        ('cam-13-academic-listening-test-4-part-1', 20, '讲座科普-观测天象'),   # observe the skies
-    ]
+    # 处理所有 Cam 13/14 素材
+    from supabase import create_client
+    client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    # 需要完整处理的素材列表
-    test_slugs = [s[0] for s in test_samples]
+    result = client.table('materials').select('slug', 'title').filter('slug', 'like', 'cam-%').execute()
+    all_cam = sorted([m for m in result.data if '-13-' in m['slug'] or '-14-' in m['slug']], key=lambda x: x['slug'])
+
+    test_slugs = [m['slug'] for m in all_cam]
 
     print("="*80)
-    print("  雅思听力翻译引擎 v2.0 - 样板间验收测试")
+    print("  雅思听力翻译引擎 v2.0 - 全量处理")
     print("="*80)
     print(f"时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"测试素材: {len(test_slugs)} 个")
+    print(f"总素材: {len(test_slugs)} 个")
     print("="*80)
 
     # 统计
     success_count = 0
     fail_count = 0
+    failed_slugs = []
+    cam_complete = 0  # Cam 资料包完成计数
 
     # 处理每个素材
     for i, slug in enumerate(test_slugs, 1):
@@ -486,44 +484,34 @@ def main():
             success_count += 1
         else:
             fail_count += 1
+            failed_slugs.append(slug)
+
+        # 检查是否完成一个 Cam 资料包
+        current_cam = slug.split('-')[1]  # cam-13 或 cam-14
+        next_slug = test_slugs[i] if i < len(test_slugs) else None
+        next_cam = next_slug.split('-')[1] if next_slug else None
+
+        if current_cam != next_cam:
+            cam_complete += 1
+            print(f"\n{'='*80}")
+            print(f"  📦 {current_cam.upper()} 资料包处理完成！")
+            print(f"{'='*80}")
 
     # 最终统计
     print("\n" + "="*80)
-    print("  样板间验收测试完成")
+    print("  翻译任务完成")
     print("="*80)
     print(f"成功: {success_count}")
     print(f"失败: {fail_count}")
     print(f"总计: {len(test_slugs)}")
+    print(f"更新句子总数: ~{success_count * 50} (估算)")
     print("="*80)
 
-    # 生成样板间验收表格
-    print("\n" + "="*100)
-    print("  样板间验收表格 - 5 个跨场景代表性句子")
-    print("="*100)
-
-    from supabase import create_client
-    client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-
-    print(f"\n{'场景':<20} | {'英文原文':<40} | {'简体中文':<25} | {'繁体中文':<25} | {'越南语':<25}")
-    print("-"*100)
-
-    for slug, sentence_idx, scene_desc in test_samples:
-        result = client.table('materials').select('transcript').eq('slug', slug).execute()
-        if result.data:
-            transcript = result.data[0]['transcript']
-            # 获取指定索引的句子（确保不越界）
-            idx = min(sentence_idx, len(transcript) - 1)
-            sentence = transcript[idx]
-
-            text = sentence.get('text', '')[:37] + '...' if len(sentence.get('text', '')) > 37 else sentence.get('text', '')
-            trans = sentence.get('translation', {})
-            zh = trans.get('zh', '')[:22] + '...' if len(trans.get('zh', '')) > 22 else trans.get('zh', '')
-            zh_hant = trans.get('zh_hant', '')[:22] + '...' if len(trans.get('zh_hant', '')) > 22 else trans.get('zh_hant', '')
-            vi = trans.get('vi', '')[:22] + '...' if len(trans.get('vi', '')) > 22 else trans.get('vi', '')
-
-            print(f"{scene_desc:<20} | {text:<40} | {zh:<25} | {zh_hant:<25} | {vi:<25}")
-
-    print("="*100)
+    if failed_slugs:
+        print("\n⚠️ 失败的素材:")
+        for slug in failed_slugs:
+            print(f"  - {slug}")
+        print("="*80)
 
 if __name__ == '__main__':
     main()
