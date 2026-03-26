@@ -20,6 +20,7 @@
 
 🎯 v6.0 挖空逻辑：
 - 在 v5.2 基础上新增情态助动词、疑问代词、低级认知词
+- 🔥 修复：解决 v4.0 事实词过滤与 v5.2 提权规则的冲突
 - 🔥 新增：语言习得导向本地评分算法（长单词提权、音节复杂度加成）
 
 语言习得导向评分算法（v6.0）：
@@ -35,7 +36,7 @@
 - src/components/topics/MaterialCard.tsx (line 170)
 
 版本历史：
-- v6.0 (2026-03-26): 新增情态助动词、疑问代词、低级认知词 + 语言习得导向评分算法
+- v6.0 (2026-03-26): 新增黑名单 + 修复逻辑冲突（月份/时间词汇提权生效）
 - v5.2 (2026-03-25): 新增填充语/虚词（then, too, either, though, anyway, actually）
 - v5.1 (2026-03-25): 新增问候语、常见形容词、常见动词
 - v5.0 (2026-03-25): 新增纯语气词/感叹词、低级/模糊词汇
@@ -620,7 +621,12 @@ def is_blacklisted(word: str) -> bool:
 # ==================== v4 新增：事实词与专有名词检测 ====================
 
 def is_fact_word(word: str) -> bool:
-    """检查是否为事实词（数字、日期、价格、地址相关）
+    """检查是否为事实词（纯数字、带数字的词、价格、地址相关）
+
+    ⚠️ 重要变更（v6.0）：
+    - 移除了月份、星期、基础时间词汇（date, time）的过滤
+    - 这些词现在由 v5.2 的"月份提权"和"名词保底原则"处理
+    - 保留纯数字、价格、地址等真正的事实词过滤
 
     Args:
         word: 待检查的单词
@@ -635,25 +641,16 @@ def is_fact_word(word: str) -> bool:
         return True
 
     # 2. 包含数字的词（如 1990s, 15th, 3.5, 20%）
+    # 注意：不含纯字母的月份/星期（如 February, Wednesday）
     if any(c.isdigit() for c in word_clean):
         return True
 
-    # 3. 日期词汇
-    date_words = [
-        'january', 'february', 'march', 'april', 'may', 'june',
-        'july', 'august', 'september', 'october', 'november', 'december',
-        'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-        'year', 'month', 'week', 'day', 'date', 'time'
-    ]
-    if word_clean in date_words:
-        return True
-
-    # 4. 价格相关
+    # 3. 价格相关
     price_indicators = ['$', '£', '€', 'yen', 'yuan', 'dollar', 'pound', 'cent', 'euro']
     if any(indicator in word_clean for indicator in price_indicators):
         return True
 
-    # 5. 地址相关（街道、建筑等）
+    # 4. 地址相关（街道、建筑等）
     address_words = [
         'street', 'road', 'avenue', 'boulevard', 'lane', 'drive', 'way',
         'building', 'room', 'floor', 'suite', 'apartment', 'flat',
