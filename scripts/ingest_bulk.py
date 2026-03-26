@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量素材导入脚本 v5.3
+批量素材导入脚本 v6.0
 从 Engnovate 抓取多个 Dictation/Shadowing 练习
 
 特点：
@@ -18,11 +18,11 @@
 - 前端组件：必须添加 crossOrigin="anonymous" 属性
 - Worker 响应：必须返回 Access-Control-Allow-Origin: *
 
-🎯 v5.3 挖空逻辑：
+🎯 v6.0 挖空逻辑：
 - 在 v5.2 基础上新增情态助动词、疑问代词、低级认知词
 - 🔥 新增：语言习得导向本地评分算法（长单词提权、音节复杂度加成）
 
-语言习得导向评分算法（v5.3）：
+语言习得导向评分算法（v6.0）：
 - 词长权重（0-30分）：10+字母30分，8-9字母25分，6-7字母15分
 - 音节复杂度（0-30分）：4+音节30分，3音节20分，2音节10分
 - 词性权重（0-20分）：形容词/副词20分，动词15分，名词10分
@@ -35,7 +35,7 @@
 - src/components/topics/MaterialCard.tsx (line 170)
 
 版本历史：
-- v5.3 (2026-03-26): 新增情态助动词、疑问代词、低级认知词 + 语言习得导向评分算法
+- v6.0 (2026-03-26): 新增情态助动词、疑问代词、低级认知词 + 语言习得导向评分算法
 - v5.2 (2026-03-25): 新增填充语/虚词（then, too, either, though, anyway, actually）
 - v5.1 (2026-03-25): 新增问候语、常见形容词、常见动词
 - v5.0 (2026-03-25): 新增纯语气词/感叹词、低级/模糊词汇
@@ -600,13 +600,13 @@ STRICT_BLACKLIST = [
     # ===== 🔥 v5.2 新增：填充语/虚词（句末或句中）=====
     'then', 'too', 'either', 'though', 'anyway', 'actually',
 
-    # ===== 🔥 v5.3 新增：情态助动词 =====
+    # ===== 🔥 v6.0 新增：情态助动词 =====
     'can', 'could', 'would', 'should', 'may', 'might', 'must', 'shall',
 
-    # ===== 🔥 v5.3 新增：疑问代词 =====
+    # ===== 🔥 v6.0 新增：疑问代词 =====
     'what',
 
-    # ===== 🔥 v5.3 新增：低级认知词/填充词 =====
+    # ===== 🔥 v6.0 新增：低级认知词/填充词 =====
     'think', 'uh', 'hmm', 'um',
 
     # ===== 其他 =====
@@ -1025,7 +1025,7 @@ def calculate_word_score(word: str, index: int = 0, sentence_text: str = "") -> 
     return score
 
 def fallback_blank_selection(sentence_text: str, blanked_words: dict = None, digit_count: int = 0, digit_limit: int = 2) -> Optional[Dict]:
-    """保底机制：使用语言习得导向算法选择挖空词（v5.3）
+    """保底机制：使用语言习得导向算法选择挖空词（v6.0）
 
     评分策略：
     1. 计算每个词的学习价值分数（词长、音节、词性、稀有度）

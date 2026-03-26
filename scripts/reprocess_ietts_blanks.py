@@ -1,31 +1,29 @@
 #!/usr/bin/env python3
 """
-重新处理雅思素材挖空逻辑 v5.3
-剔除高价值事实词、专有名词、纯逻辑连接词
-新增情态助动词、疑问代词、低级认知词黑名单
-实现语言习得导向的本地评分算法
+重新处理雅思素材挖空逻辑 v6.0
+语言习得导向（Language Acquisition）的智能挖空
 
 特点：
-1. 剔除高价值事实词（数字、日期、价格、地址）
-2. 剔除专有名词（人名、地名、机构名、品牌名）
-3. 剔除纯逻辑连接词（although, however, moreover, therefore 等）
-4. 使用 should_skip_word() 综合判断函数
-5. GLM Prompt 明确禁止挖空这些词类
-6. v5.0-v5.3 新增：纯语气词、问候语、常见形容词/动词、填充语、情态助动词等
-7. 🔥 v5.3 新增：语言习得导向评分算法（长单词提权、音节复杂度加成）
-
-语言习得导向评分算法（v5.3）：
-- 词长权重（0-30分）：10+字母30分，8-9字母25分，6-7字母15分
-- 音节复杂度（0-30分）：4+音节30分，3音节20分，2音节10分
-- 词性权重（0-20分）：形容词/副词20分，动词15分，名词10分
-- 稀有度加成（0-10分）：长单词且非常用词加分
-- 特殊词汇（0-10分）：月份、星期、学科术语加分
+1. ✅ v4.0 优点：剔除事实词、专有名词、纯逻辑连接词
+2. ✅ v5.0 新增：语言习得导向的权重系统
+3. ✅ v5.0 新增黑名单：语气词、缩写代词、低级模糊词
+4. ✅ v5.1 修复：扩展黑名单（问候语、常见形容词、常见动词）
+5. ✅ v5.1 修复：扩展权重规则（更多动词、形容词模式）
+6. ✅ v5.2 修复：禁止挖掘填充语（then, too, either, though, anyway, actually）
+7. ✅ v5.2 新增：长单词提权协议（>7个字母的实义词优先）
+8. ✅ v5.2 新增：音节复杂度加成（多音节、拼写复杂词汇最高权重）
+9. ✅ v5.2 新增：月份提权（February, Wednesday 等拼写挑战词优先）
+10. ✅ v5.2 新增：名词保底原则（优先选择核心名词如 date, room, time）
+11. 🆕 v6.0 新增：情态助动词黑名单（can, could, would, should, may, might, must, shall）
+12. 🆕 v6.0 新增：疑问代词黑名单（what）
+13. 🆕 v6.0 新增：低级认知词/填充词黑名单（think, uh, hmm, um）
 
 版本历史：
-- v5.3 (2026-03-26): 新增情态助动词、疑问代词、低级认知词/填充词 + 语言习得导向评分算法
-- v5.2 (2026-03-25): 新增填充语/虚词（then, too, either, though, anyway, actually）
-- v5.1 (2026-03-25): 新增问候语、常见形容词、常见动词
-- v5.0 (2026-03-25): 新增纯语气词/感叹词、低级/模糊词汇
+- v6.0 (2026-03-26): 新增情态助动词、疑问代词、低级认知词/填充词黑名单
+- v5.2 (2026-03-26): 长单词提权、音节复杂度加成、月份提权、禁止填充语
+- v5.1 (2026-03-26): 修复 W6 占比过高问题，扩展黑名单和权重规则
+- v5.0 (2026-03-26): 语言习得导向重构，权重系统，固定搭配识别
+- v4.1 (2026-03-25): 验证单个词，防止短语挖空
 - v4.0 (2026-03-25): 剔除事实词、专有名词、逻辑连接词
 - v2.3 (2026-03-25): 多候选词方案，提高挖空成功率
 """
@@ -33,8 +31,10 @@ import os
 import json
 import requests
 import time
+import re
 from pathlib import Path
 from supabase import create_client
+from typing import Optional, List, Dict, Tuple
 
 # ==================== 加载环境变量 ====================
 def load_env():
@@ -57,11 +57,11 @@ SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
 SUPABASE_SERVICE_ROLE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 GLM_API_KEY = os.environ.get('GLM_API_KEY')
 
-# ==================== 核心黑名单 ====================
+# ==================== 核心黑名单（v5.0 扩展） ====================
 STRICT_BLACKLIST = [
     # ===== 代词/引导词 =====
     'he', 'she', 'it', 'they', 'we', 'you', 'i', 'me', 'him', 'her', 'us', 'them',
-    'that', 'which', 'who', 'this', 'these', 'those', 'what',
+    'that', 'which', 'who', 'this', 'these', 'those',
     'my', 'your', 'his', 'hers', 'its', 'our', 'their', 'ours', 'theirs',
     'whom', 'whose',
 
@@ -97,13 +97,13 @@ STRICT_BLACKLIST = [
     # ===== 🔥 v5.2 新增：填充语/虚词（句末或句中）=====
     'then', 'too', 'either', 'though', 'anyway', 'actually',
 
-    # ===== 🔥 v5.3 新增：情态助动词 =====
+    # ===== 🔥 v6.0 新增：情态助动词 =====
     'can', 'could', 'would', 'should', 'may', 'might', 'must', 'shall',
 
-    # ===== 🔥 v5.3 新增：疑问代词 =====
+    # ===== 🔥 v6.0 新增：疑问代词 =====
     'what',
 
-    # ===== 🔥 v5.3 新增：低级认知词/填充词 =====
+    # ===== 🔥 v6.0 新增：低级认知词/填充词 =====
     'think', 'uh', 'hmm', 'um',
 
     # ===== 其他 =====
@@ -112,9 +112,42 @@ STRICT_BLACKLIST = [
 
 def is_blacklisted(word: str) -> bool:
     """检查单词是否在黑名单中"""
-    return word.lower().strip('.,!?;:"\'') in STRICT_BLACKLIST
+    word_clean = word.lower().strip('.,!?;:"\'')
+    return word_clean in STRICT_BLACKLIST
 
-# ==================== v4 新增：事实词与专有名词检测 ====================
+# ==================== 🔥 v5.0 新增：缩写代词检测 ====================
+
+def is_contraction(word: str) -> bool:
+    """检查是否为缩写代词（如 You're, It's, That's）
+
+    Args:
+        word: 待检查的词
+
+    Returns:
+        是否为缩写代词
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+
+    # 常见缩写代词模式
+    contraction_patterns = [
+        r"^(you|it|that|what|who|there|here|i|we|they)['']re$",
+        r"^(he|she|it|that|what|there|here)['']s$",
+        r"^(i|you|we|they|he|she|it)['']ve$",
+        r"^(i|you|we|they|he|she|it|would|could|should)['']d$",
+        r"^(i|you|we|they|he|she|it)['']ll$",
+        r"^let['']s$",
+        r"^can['']t$",
+        r"^won['']t$",
+        r"^don['']t$"
+    ]
+
+    for pattern in contraction_patterns:
+        if re.match(pattern, word_clean):
+            return True
+
+    return False
+
+# ==================== v4.0 保留：事实词与专有名词检测 ====================
 
 def is_fact_word(word: str) -> bool:
     """检查是否为事实词（数字、日期、价格、地址相关）
@@ -222,15 +255,263 @@ def should_skip_word(word: str, sentence_text: str = '', index: int = -1) -> boo
     if is_blacklisted(word):
         return True
 
-    # 2. 事实词
+    # 2. 🔥 v5.0 新增：缩写代词
+    if is_contraction(word):
+        return True
+
+    # 3. 事实词
     if is_fact_word(word):
         return True
 
-    # 3. 专有名词
+    # 4. 专有名词
     if is_proper_noun(word, sentence_text, index):
         return True
 
     return False
+
+# ==================== 🔥 v5.0 新增：权重系统 ====================
+
+def calculate_word_weight(word: str, sentence_text: str = '', index: int = -1) -> int:
+    """计算单词的权重（0-10）
+
+    权重说明：
+    - 权重 10+：音节复杂度极高的词汇（available, refurbishment, September）
+    - 权重 10：程度、逻辑与频率副词 + 长单词提权（>7个字母）
+    - 权重 9：高级/具象动词
+    - 权重 8：比较级/最高级与描述性形容词
+    - 权重 7：固定搭配中的语义重心
+    - 权重 6：月份提权（February, Wednesday 等拼写挑战词）
+    - 权重 5：普通名词
+    - 权重 0：应该跳过的词
+
+    Args:
+        word: 待评估的单词
+        sentence_text: 完整句子（可选，用于固定搭配检测）
+        index: 单词在句子中的位置（可选）
+
+    Returns:
+        权重值（0-12）
+    """
+    # 先检查是否应该跳过
+    if should_skip_word(word, sentence_text, index):
+        return 0
+
+    word_clean = word.lower().strip('.,!?;:"\'')
+    word_length = len(word_clean)
+
+    # ===== 🔥 v5.2 新增：音节复杂度加成（最高优先级）=====
+    # 拼写复杂、多音节词汇，直接赋予最高权重
+    complex_words = [
+        'available', 'throughout', 'refurbishment', 'significantly',
+        'particularly', 'especially', 'approximately', 'specifically',
+        'automatically', 'immediately', 'successfully', 'additionally',
+        'fundamental', 'intelligent', 'excellent', 'difference',
+        'experience', 'important', 'environment', 'government',
+        'necessary', 'unnecessary', 'essentially', 'initially',
+        'eventually', 'actually', 'naturally', 'originally',
+        'September', 'February', 'Wednesday', 'Saturday',
+        'dictionary', 'university', 'opportunity', 'responsibility'
+    ]
+    if word_clean in complex_words:
+        return 12  # 🔥 最高权重：音节复杂度极高
+
+    # ===== 🔥 v5.2 新增：长单词提权协议 =====
+    # 长度超过 7 个字母的实义词，优先级大幅提升
+    if word_length >= 8 and word_length <= 10:
+        # 检查是否为实义词（不是纯功能词）
+        if (not word_clean.endswith('ly') and  # 副词单独处理
+            word_clean not in ['something', 'anything', 'nothing', 'someone']):
+            return 10  # 长单词提权
+    elif word_length >= 11:
+        return 11  # 超长单词，最高权重
+
+    # ===== 🔥 v5.2 新增：月份提权 =====
+    # 月份、星期等拼写挑战词，优先级提升
+    month_days = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december',
+        'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+    ]
+    if word_clean in month_days:
+        return 9  # 月份/星期提权
+
+    # ===== 权重 10：程度、逻辑与频率副词 =====
+    adverbs_weight_10 = [
+        'massively', 'throughout', 'normally', 'extremely',
+        'particularly', 'especially', 'significantly', 'considerably',
+        'absolutely', 'completely', 'entirely', 'totally',
+        'frequently', 'regularly', 'constantly', 'continuously',
+        'relatively', 'comparatively', 'approximately',
+        'ultimately', 'eventually', 'initially', 'originally',
+        'effectively', 'efficiently', 'successfully'
+    ]
+    if word_clean.endswith('ly') or word_clean in adverbs_weight_10:
+        # 进一步检查是否为高质量副词
+        high_quality_adverbs = [
+            'rarely', 'merely', 'barely', 'hardly', 'scarcely',
+            'recently', 'currently', 'previously', 'formerly',
+            'primarily', 'mainly', 'chiefly', 'largely'
+        ]
+        if word_clean in high_quality_adverbs:
+            return 10
+        # 其他 -ly 副词也给较高权重
+        if word_clean.endswith('ly'):
+            return 9
+
+    # ===== 权重 9：高级/具象动词 =====
+    # 检查动词形态
+    if (word_clean.endswith('ing') or
+        word_clean.endswith('ed') and not word_clean.endswith('ted') and not word_clean.endswith('ded')):
+        # 排除基础动词
+        basic_verbs = ['going', 'doing', 'getting', 'using', 'making', 'taking', 'seeing']
+        if word_clean not in basic_verbs:
+            return 9
+
+    # 高级动词词根
+    advanced_verbs = [
+        'refurbishment', 'thriving', 'indicates', 'stolen', 'support',
+        'offer', 'maintain', 'consume', 'cultivate', 'harvest',
+        'demonstrate', 'illustrate', 'establish', 'implement',
+        'organise', 'organise', 'organising', 'organised', 'organise',
+        'expect', 'expecting', 'expected', 'call', 'calling', 'called'
+    ]
+    if any(root in word_clean for root in advanced_verbs):
+        return 9
+
+    # 🔥 v5.1 新增：更多动词模式
+    # 常见职业动词（非基础动词）
+    professional_verbs = [
+        'help', 'pay', 'join', 'choose', 'chose', 'choose', 'decide', 'decided',
+        'manage', 'managed', 'control', 'controlled', 'check', 'checked',
+        'book', 'booked', 'order', 'ordered', 'reserve', 'reserved'
+    ]
+    if word_clean in professional_verbs:
+        return 9
+
+    # ===== 权重 8：比较级/最高级与描述性形容词 =====
+    # 比较级/最高级
+    if (word_clean.endswith('er') or word_clean.endswith('est') or
+        word_clean.endswith('ier') or word_clean.endswith('iest')):
+        comparative_superlatives = [
+            'younger', 'older', 'better', 'worse', 'more', 'less',
+            'bigger', 'smaller', 'faster', 'slower',
+            'useful', 'useless', 'helpful', 'harmful'
+        ]
+        if word_clean in comparative_superlatives:
+            return 8
+
+    # 描述性形容词词尾
+    if (word_clean.endswith('ive') or word_clean.endswith('ous') or
+          word_clean.endswith('ent') or word_clean.endswith('ant')):
+        descriptive_adjs = [
+            'significant', 'beneficial', 'essential', 'effective',
+            'important', 'relevant', 'different', 'various'
+        ]
+        if word_clean in descriptive_adjs:
+            return 8
+
+    # 🔥 v5.1 新增：更多描述性形容词
+    descriptive_adjs_v51 = [
+        'serious', 'popular', 'possible', 'available', 'responsible',
+        'necessary', 'expensive', 'cheap', 'free', 'full', 'empty',
+        'short', 'long', 'high', 'low', 'hard', 'soft', 'heavy', 'light',
+        'dark', 'bright', 'cold', 'warm', 'hot', 'cool', 'dry', 'wet'
+    ]
+    if word_clean in descriptive_adjs_v51:
+        return 8
+
+    # ===== 权重 7：固定搭配中的语义重心 =====
+    if sentence_text and index >= 0:
+        collocation_weight = check_collocation_weight(word_clean, sentence_text, index)
+        if collocation_weight > 0:
+            return collocation_weight
+
+    # ===== 权重 5：普通名词 =====
+    # 名词词尾（包括复数形式）
+    if (word_clean.endswith('ment') or word_clean.endswith('ments') or
+          word_clean.endswith('tion') or word_clean.endswith('tions') or
+          word_clean.endswith('ness') or word_clean.endswith('nesses') or
+          word_clean.endswith('ity') or word_clean.endswith('ities') or
+          word_clean.endswith('ence') or word_clean.endswith('ences') or
+          word_clean.endswith('ance') or word_clean.endswith('ances') or
+          word_clean.endswith('dom') or word_clean.endswith('ship') or
+          word_clean.endswith('ships') or word_clean.endswith('ism') or
+          word_clean.endswith('ist') or word_clean.endswith('ists')):
+        return 5
+
+    # 🔥 v5.1 新增：更多常见名词模式
+    common_nouns = [
+        'room', 'rooms', 'hall', 'halls', 'hotel', 'hotels', 'club', 'clubs',
+        'company', 'companies', 'conference', 'conferences',
+        'manager', 'managers', 'secretary', 'secretaries', 'member', 'members',
+        'audience', 'customer', 'customers', 'service', 'services',
+        'product', 'products', 'facility', 'facilities', 'space', 'spaces',
+        'place', 'places', 'area', 'areas', 'person', 'people'
+    ]
+    if word_clean in common_nouns:
+        return 5
+
+    # 普通动词、形容词、名词默认权重
+    return 6
+
+# ==================== 🔥 v5.0 新增：固定搭配检测 ====================
+
+COLLOCATIONS = [
+    # 动词 + 形容词/副词/名词
+    (r'\bgo\s+(wrong|bad|crazy|well|ahead|back|down|up|on|off)', 1),
+    (r'\bfeel\s+(relaxed|happy|sad|angry|good|bad|better|worse)', 1),
+    (r'\bdeal\s+with', 1),  # with 是语义重心
+    (r'\bget\s+(ready|done|started|finished|lost|stolen|caught)', 1),
+    (r'\bmake\s+(sure|clear|sense|progress|money|friends)', 1),
+    (r'\btake\s+(place|part|care|time|advantage|action)', 1),
+    (r'\bcome\s+(up|back|down|out|in|over|across)', 1),
+
+    # 形容词 + 名词
+    (r'\bmost\s+\w+\s+part', 1),  # part 是语义重心
+    (r'\buseful\s+part', 1),
+
+    # 副词 + 动词
+    (r'\bjust\s+\w+\s+(said|told|asked|called)', 1),
+]
+
+def check_collocation_weight(word: str, sentence: str, index: int) -> int:
+    """检查单词是否为固定搭配的语义重心
+
+    Args:
+        word: 待检查的单词
+        sentence: 完整句子
+        index: 单词在句子中的位置
+
+    Returns:
+        权重值（0 表示不是固定搭配重心）
+    """
+    words = sentence.split()
+
+    # 检查是否在固定搭配中
+    for pattern, weight_offset in COLLOCATIONS:
+        matches = re.finditer(pattern, sentence.lower())
+        for match in matches:
+            # 找到匹配的词在句子中的位置
+            match_text = match.group()
+            match_words = match_text.split()
+
+            # 检查当前词是否在匹配范围内
+            for i, match_word in enumerate(match_words):
+                # 找到当前词在原句中的实际位置
+                actual_index = sentence.lower().find(match_word)
+                if actual_index == -1:
+                    continue
+
+                # 计算这个词在原句中的词索引
+                words_before = sentence[:actual_index].split()
+                word_index = len(words_before)
+
+                if word_index == index:
+                    return 7  # 固定搭配的语义重心
+
+    return 0
+
+# ==================== 工具函数 ====================
 
 def is_valid_single_word(word: str) -> bool:
     """检查是否为有效的单个词（不是短语）
@@ -241,66 +522,58 @@ def is_valid_single_word(word: str) -> bool:
     Returns:
         是否为有效的单个词
     """
-    # 移除标点符号
     word_clean = word.strip('.,!?;:"\'')
-
-    # 检查是否包含空格（短语）
-    if ' ' in word_clean:
-        return False
-
-    return True
+    return ' ' not in word_clean
 
 def log(msg: str):
     """简化日志输出"""
     print(f"[{time.strftime('%H:%M:%S')}] {msg}")
 
-# ==================== GLM-4 挖空词识别 ====================
-BLANKS_PROMPT = """你是一位英语教学专家，专注于设计高质量的词汇训练内容。
+# ==================== GLM-4 挖空词识别（v5.0 更新） ====================
+BLANKS_PROMPT = """你是一位英语教学专家，专注于设计**语言习得导向**的高质量词汇训练内容。
 
-**核心目标**：选择最能体现英语语感、词汇量和表达能力的单词进行挖空。
+**核心目标**：通过挖空训练，帮助学习者内化【高价值表达】、【逻辑连接】和【具象动作】，而非拼写无意义的虚词。
 
-**优先级策略**（按重要性排序）：
-1. **体现语感的词汇** (50%)：如 cultivated, rarely, instead, significant, merely, particularly, essentially, primarily 等能展示语言精度的词
-2. **核心词汇多样性** (30%)：功能性动词、描述性形容词、副词（如 maintain, consume, essential, effective）
-3. **学术名词** (20%)：专业术语、概念词（如 photosynthesis, economy, cultivation, mechanism）
+**权重系统**（按优先级排序）：
+1. **【权重 10】程度、逻辑与频率副词** (40%)：
+   - 示例：massively, throughout, normally, extremely, particularly, rarely, merely
+   - 理由：体现语言精度和语感
+
+2. **【权重 9】高级/具象动词** (30%)：
+   - 示例：refurbishment, thriving, indicates, stolen, support, maintain, cultivate
+   - 理由：具象动作和职业词汇，具有拼写价值
+
+3. **【权重 8】比较级/最高级与描述性形容词** (20%)：
+   - 示例：younger, useful, significant, beneficial, essential, effective
+   - 理由：强化比较级表达和属性描述的语感
+
+4. **【权重 7】固定搭配中的语义重心** (10%)：
+   - 示例：go [wrong], deal [with], feel [relax], most [useful] [part]
+   - 理由：固定搭配的语义重心，避开系动词和介词
+
+**严禁挖空的词类**（v5.0 扩展）：
+1. **纯语气词/感叹词**：Yes, No, Okay, Well, So, Very, Quite
+2. **功能性缩写/代词**：You're, It's, That's, I'm, They've, Don't, Won't
+3. **低级/模糊词汇**：things, stuff, get, use, know
+4. **事实词**：数字、日期、价格、地址（1998, January, $15, Street）
+5. **专有名词**：人名（Louise Taylor）、地名（Atlit-Yam）、机构名
+6. **基础黑名单**：代词、虚词、介词、系动词、逻辑连接词
 
 **全局去重规则**：
 - **同一单词在整个素材中最多挖空1次**
-- 只有当句子中没有其他可挖的词时，才考虑重复挖空（保底机制）
 - 确保词汇多样性最大化
-
-**严禁挖空的词类**：
-1. **事实词**（数字、日期、价格、地址）：
-   - 纯数字：1995, 20, 100, 3.5 等
-   - 日期：January, Monday, 1990s, 15th 等
-   - 价格：$15, 20 pounds 等
-   - 地址：Street, Road, Avenue, Building, Room 等
-2. **专有名词**：
-   - 人名：John, Sarah, Dr. Smith, Professor Brown 等
-   - 地名：London, Australia, Pacific, Amazon 等
-   - 机构名：Cambridge, BBC, UNESCO 等
-   - 品牌名：Nike, Google, Toyota 等
-3. **纯逻辑连接词**：
-   - although, however, moreover, therefore, consequently, nevertheless, nonetheless, thus, hence, meanwhile, furthermore, in addition, on the other hand
 
 **保底机制**：
 - **每一句必须至少有一个候选词**
-- 如果句子中只有简单词，选择最核心的动词、名词或副词
+- 如果句子中只有简单词，选择最核心的动词、形容词或副词
 - 避免返回空的 candidates 数组
-
-**核心黑名单** (严禁挖空)：
-- 代词：he, she, it, they, we, you, I, me, him, her, us, them, that, which, who, this, these, those, my, your, his, hers, its, our, their
-- 虚词/连词：a, an, the, and, or, but, so, because, if
-- 简单介词：in, on, at, to, of, for, with, by, from, about
-- 基础动词：is, am, are, was, were, be, been, do, does, did, have, has, had
-- 其他：there, here
 
 **输出格式**（JSON，不要有任何其他文字）：
 {
   "candidates": [
-    {"word": "第一候选词", "index": 位置1, "reason": "理由"},
-    {"word": "第二候选词", "index": 位置2, "reason": "理由"},
-    {"word": "第三候选词", "index": 位置3, "reason": "理由"}
+    {"word": "第一候选词", "index": 位置1, "reason": "权重X:理由"},
+    {"word": "第二候选词", "index": 位置2, "reason": "权重X:理由"},
+    {"word": "第三候选词", "index": 位置3, "reason": "权重X:理由"}
   ]
 }
 
@@ -308,32 +581,41 @@ BLANKS_PROMPT = """你是一位英语教学专家，专注于设计高质量的�
 - **每个候选词必须是单个词**，不能是短语（如 "set up" 是短语，不能使用）
 - 短语动词（如 set up, look for）请选择其中的核心词（如 set, look）
 
-**示例**：
-输入: Coffee bushes are cultivated in shaded areas.
-输出: {"candidates": [{"word": "cultivated", "index": 3, "reason": "体现语感的动词"}, {"word": "shaded", "index": 6, "reason": "描述性形容词"}, {"word": "areas", "index": 7, "reason": "名词"}]}
+**案例示范**（Few-shot Samples）：
+输入: If anything goes wrong...
+输出: {"candidates": [{"word": "wrong", "index": 3, "reason": "权重7:固定搭配go wrong的语义重心"}]}
 
-输入: The conference was held in London in 1995.
-输出: {"candidates": [{"word": "conference", "index": 2, "reason": "名词"}, {"word": "held", "index": 4, "reason": "动词"}]}
+输入: ...closed for refurbishment.
+输出: {"candidates": [{"word": "refurbishment", "index": 3, "reason": "权重9:高级职业名词，具象动作"}]}
 
-输入: However, the results showed significant improvement.
-输出: {"candidates": [{"word": "results", "index": 3, "reason": "名词"}, {"word": "significant", "index": 5, "reason": "形容词"}, {"word": "improvement", "index": 6, "reason": "名词"}]}
+输入: ...one person younger than me.
+输出: {"candidates": [{"word": "younger", "index": 2, "reason": "权重8:比较级，强化语感"}]}
 
-输入: Europeans set up coffee plantations.
-输出: {"candidates": [{"word": "plantations", "index": 4, "reason": "名词"}, {"word": "Europeans", "index": 0, "reason": "名词"}, {"word": "coffee", "index": 3, "reason": "名词"}]}
-注意："set up" 是短语，不能选择，应该选择其他单个词
+输入: ...had some things stolen...
+输出: {"candidates": [{"word": "stolen", "index": 4, "reason": "权重9:核心事件动作，具象动词"}]}
+
+输入: That's the most useful part.
+输出: {"candidates": [{"word": "useful", "index": 3, "reason": "权重8:属性形容词，避开缩写代词"}]}
+
+输入: Very nice.
+输出: {"candidates": [{"word": "nice", "index": 1, "reason": "权重8:实义形容词，避开语气词"}]}
+
+输入: Louise Taylor.
+输出: {"candidates": [{"word": "part", "index": 0, "reason": "权重5:保底机制，纯人名句"}]}
 
 输入: {sentence}
 输出:"""
 
 
-def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None, digit_count: int = 0, digit_limit: int = 2) -> dict:
-    """为单个句子生成挖空（v4.0：剔除事实词、专有名词、逻辑连接词）
+def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None) -> Optional[Dict]:
+    """为单个句子生成挖空（v5.0：语言习得导向）
 
     Args:
         sentence_text: 句子文本
         blanked_words: 已挖空单词的计数器 {word: count}
-        digit_count: 当前已挖空的数字数量（已弃用，保留兼容性）
-        digit_limit: 数字挖空限制（已弃用，保留兼容性）
+
+    Returns:
+        挖空数据字典或 None
     """
     if blanked_words is None:
         blanked_words = {}
@@ -366,34 +648,35 @@ def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None, 
                 data = json.loads(content)
             except:
                 # 🔥 保底机制：如果 GLM 返回失败，使用本地算法
-                return fallback_blank_selection(sentence_text, blanked_words)
+                return fallback_blank_selection_v5(sentence_text, blanked_words)
 
             # 检查是否有 candidates 字段
             if 'candidates' not in data:
-                # 🔥 保底机制：使用本地算法
-                return fallback_blank_selection(sentence_text, blanked_words)
+                return fallback_blank_selection_v5(sentence_text, blanked_words)
 
             candidates = data['candidates']
 
             if not candidates or len(candidates) == 0:
-                # 🔥 保底机制：使用本地算法
-                return fallback_blank_selection(sentence_text, blanked_words)
+                return fallback_blank_selection_v5(sentence_text, blanked_words)
 
-            # 🔥 v4: 遍历候选词，应用所有过滤规则（包括事实词和专有名词）
+            # 🔥 v5.0: 使用权重系统过滤候选词
+            best_candidate = None
+            best_weight = -1
+
             for candidate in candidates:
                 word = candidate.get('word', '')
                 index = candidate.get('index', -1)
 
-                # 🔴 v4.1: 验证是否为单个词（不能是短语）
+                # 验证是否为单个词
                 if not is_valid_single_word(word):
                     continue
 
-                # 验证
+                # 验证 index 范围
                 words = sentence_text.split()
                 if index < 0 or index >= len(words):
                     continue
 
-                # 🔴 v4: 使用 should_skip_word 综合判断
+                # 使用 should_skip_word 综合判断
                 if should_skip_word(word, sentence_text, index):
                     continue
 
@@ -402,349 +685,83 @@ def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None, 
                 if blanked_words.get(word_lower, 0) >= 1:
                     continue
 
-                # 找到了有效的候选词
-                return {
-                    "word": word,
-                    "index": index,
-                    "pos": candidate.get('reason', '')[:30],
-                    "is_core": True
-                }
+                # 🔥 v5.0: 计算权重，选择权重最高的候选词
+                weight = calculate_word_weight(word, sentence_text, index)
+                if weight > best_weight:
+                    best_weight = weight
+                    best_candidate = {
+                        "word": word,
+                        "index": index,
+                        "pos": candidate.get('reason', '')[:30],
+                        "is_core": True,
+                        "weight": weight  # 🔥 v5.0 新增：记录权重
+                    }
 
-            # 🔥 保底机制：所有候选词都不符合条件，使用本地算法
-            return fallback_blank_selection(sentence_text, blanked_words, digit_count, digit_limit)
+            if best_candidate:
+                return best_candidate
+
+            # 保底机制：所有候选词都不符合条件
+            return fallback_blank_selection_v5(sentence_text, blanked_words)
 
     except Exception as e:
-        # 🔥 保底机制：发生错误，使用本地算法
-        return fallback_blank_selection(sentence_text, blanked_words, digit_count, digit_limit)
+        # 保底机制：发生错误，使用本地算法
+        return fallback_blank_selection_v5(sentence_text, blanked_words)
 
-def count_syllables(word: str) -> int:
-    """估算单词的音节数量
 
-    Args:
-        word: 单词
+def fallback_blank_selection_v5(sentence_text: str, blanked_words: dict) -> Optional[Dict]:
+    """保底机制：使用权重系统选择挖空词（v5.0）
 
-    Returns:
-        音节数量
-    """
-    word_clean = word.lower().strip('.,!?;:"\'')
-
-    # 特殊规则
-    if word_clean.endswith('e'):
-        word_clean = word_clean[:-1]  # 词尾 e 不发音
-
-    # 计算元音数量
-    vowels = 'aeiouy'
-    syllable_count = 0
-    prev_was_vowel = False
-
-    for char in word_clean:
-        is_vowel = char in vowels
-        if is_vowel and not prev_was_vowel:
-            syllable_count += 1
-        prev_was_vowel = is_vowel
-
-    # 至少1个音节
-    return max(1, syllable_count)
-
-def is_comparative_superlative(word: str) -> bool:
-    """检测是否为比较级或最高级形容词
-
-    Args:
-        word: 单词
-
-    Returns:
-        是否为比较级/最高级
-    """
-    word_clean = word.lower().strip('.,!?;:"\'')
-
-    # 比较级后缀
-    comparative_suffixes = ['er', 'ier', 'more', 'less']
-    # 最高级后缀
-    superlative_suffixes = ['est', 'iest', 'most', 'least']
-
-    for suffix in comparative_suffixes:
-        if word_clean.endswith(suffix):
-            return True
-
-    for suffix in superlative_suffixes:
-        if word_clean.endswith(suffix):
-            return True
-
-    return False
-
-def is_degree_adverb(word: str) -> bool:
-    """检测是否为程度/逻辑副词（权重10的词汇）
-
-    Args:
-        word: 单词
-
-    Returns:
-        是否为程度副词
-    """
-    word_clean = word.lower().strip('.,!?;:"\'')
-
-    # 常见程度副词（高价值）
-    degree_adverbs = {
-        'massively', 'extremely', 'incredibly', 'absolutely', 'completely',
-        'totally', 'utterly', 'quite', 'rather', 'somewhat', 'fairly',
-        'throughout', 'normally', 'typically', 'generally', 'usually',
-        'frequently', 'occasionally', 'rarely', 'scarcely', 'barely',
-        'hardly', 'merely', 'simply', 'purely', 'clearly', 'obviously',
-        'certainly', 'definitely', 'probably', 'possibly', 'hopefully',
-        'fortunately', 'unfortunately', 'surprisingly', 'amazingly'
-    }
-
-    return word_clean in degree_adverbs
-
-def is_collocation_core(word: str, index: int, words: list) -> bool:
-    """检测是否为固定搭配的语义核心词（权重7）
-
-    Args:
-        word: 单词
-        index: 单词在句子中的位置
-        words: 句子所有单词列表
-
-    Returns:
-        是否为固定搭配核心词
-    """
-    word_clean = word.lower().strip('.,!?;:"\'')
-
-    # 常见固定搭配词库（动词+名词/形容词）
-    collocations = {
-        # 动词 + 名词/形容词
-        'go': ['wrong', 'ahead', 'on', 'back', 'through', 'down', 'up'],
-        'get': ['ready', 'lost', 'better', 'worse', 'started', 'married', 'familiar'],
-        'make': ['sure', 'clear', 'sense', 'progress', 'mistake', 'decision', 'difference'],
-        'take': ['place', 'care', 'part', 'action', 'advantage', 'responsibility'],
-        'give': ['up', 'in', 'way', 'birth', 'advice', 'example', 'chance'],
-        'have': ['fun', 'trouble', 'doubt', 'chance', 'opportunity', 'effect', 'impact'],
-        'do': ['business', 'homework', 'exercise', 'damage', 'harm', 'good', 'best'],
-        'keep': ['silent', 'calm', 'safe', 'warm', 'cool', 'clean', 'touch'],
-        'feel': ['free', 'better', 'worse', 'comfortable', 'relaxed', 'happy', 'sad'],
-        'deal': ['with', 'in', 'on', 'off'],
-        'look': ['forward', 'back', 'after', 'for', 'at', 'into', 'upon'],
-        'put': ['on', 'off', 'away', 'aside', 'together', 'forward', 'back'],
-        'set': ['up', 'down', 'off', 'out', 'aside', 'apart', 'forth'],
-        'break': ['down', 'up', 'out', 'off', 'through', 'into'],
-        'bring': ['up', 'down', 'out', 'forward', 'back', 'about'],
-        'come': ['up', 'down', 'out', 'in', 'back', 'across', 'along', 'through'],
-        'hold': ['on', 'up', 'back', 'down', 'off', 'out'],
-        'turn': ['on', 'off', 'up', 'down', 'out', 'over', 'around', 'into'],
-        'run': ['out', 'away', 'into', 'through', 'over', 'across'],
-        'fall': ['down', 'off', 'out', 'back', 'apart', 'into', 'through'],
-        'carry': ['on', 'out', 'away', 'back', 'forward', 'through'],
-        'call': ['off', 'on', 'up', 'down', 'out', 'back'],
-        'catch': ['up', 'on', 'out', 'fire'],
-        'pay': ['attention', 'respect', 'tribute', 'visit', 'homage'],
-        'take': ['place', 'part', 'care', 'note', 'action', 'measure', 'step'],
-        'make': ['progress', 'sense', 'difference', 'decision', 'choice', 'mistake', 'effort', 'attempt'],
-        'keep': ['touch', 'contact', 'silence', 'quiet', 'calm', 'control'],
-        'lose': ['control', 'touch', 'interest', 'faith', 'hope', 'patience', 'sight'],
-        'gain': ['access', 'experience', 'knowledge', 'insight', 'understanding', 'momentum'],
-        'draw': ['attention', 'conclusion', 'inference', 'distinction'],
-        'pay': ['attention'],
-    }
-
-    # 检查当前词是否在某个搭配中
-    if word_clean in collocations:
-        # 检查前后词是否能形成搭配
-        partners = collocations[word_clean]
-
-        # 检查前一个词
-        if index > 0:
-            prev_word = words[index - 1].lower().strip('.,!?;:"\''')
-            if prev_word in partners:
-                return True  # 找到搭配，当前词是核心词
-
-        # 检查后一个词
-        if index < len(words) - 1:
-            next_word = words[index + 1].lower().strip('.,!?;:"\'')
-
-            if next_word in partners:
-                return True  # 找到搭配，当前词是核心词
-
-    return False
-
-def calculate_word_score(word: str, index: int = 0, sentence_text: str = "") -> float:
-    """计算单词的学习价值分数（语言习得导向）
-
-    评分维度（总分 120）：
-    1. 词长权重（0-30分）：长单词提权
-    2. 音节复杂度（0-30分）：音节越多分数越高
-    3. 词性权重（0-20分）：形容词/副词 > 动词 > 名词
-    4. 稀有度加成（0-10分）：非常用词额外加分
-    5. 特殊词汇（0-10分）：月份、星期、学科术语
-    6. 比较级/最高级加成（0-10分）：-er, -est 等后缀
-    7. 程度副词加成（0-10分）：extremely, massively 等
-    8. 固定搭配核心词（0-10分）：go wrong, deal with 等
-
-    Args:
-        word: 待评分的单词
-        index: 单词在句子中的位置
-        sentence_text: 完整句子
-
-    Returns:
-        学习价值分数 (0-120)
-    """
-    word_clean = word.lower().strip('.,!?;:"\'')
-    score = 0.0
-    words = sentence_text.split()
-
-    # ===== 维度1：词长权重（0-30分）=====
-    word_length = len(word_clean)
-    if word_length >= 10:
-        score += 30
-    elif word_length >= 8:
-        score += 25
-    elif word_length >= 6:
-        score += 15
-    elif word_length >= 4:
-        score += 5
-    # 1-3字母：0分
-
-    # ===== 维度2：音节复杂度（0-30分）=====
-    syllables = count_syllables(word_clean)
-    if syllables >= 4:
-        score += 30
-    elif syllables == 3:
-        score += 20
-    elif syllables == 2:
-        score += 10
-    # 1音节：0分
-
-    # ===== 维度3：词性权重（0-20分）=====
-    # 通过后缀判断词性
-    if word_clean.endswith('ly'):
-        # 副词
-        score += 20
-    elif word_clean.endswith('ive') or word_clean.endswith('ous') or word_clean.endswith('ent') or \
-         word_clean.endswith('able') or word_clean.endswith('ible') or word_clean.endswith('ful'):
-        # 形容词
-        score += 20
-    elif word_clean.endswith('ing') or word_clean.endswith('ed'):
-        # 动词分词
-        score += 15
-    elif word_clean.endswith('ment') or word_clean.endswith('tion') or word_clean.endswith('ness') or \
-         word_clean.endswith('ity') or word_clean.endswith('ance') or word_clean.endswith('ence'):
-        # 名词后缀
-        score += 10
-    else:
-        # 默认基础分
-        score += 5
-
-    # ===== 维度4：稀有度加成（0-10分）=====
-    # 长单词且不在常见词列表中
-    common_words = {'get', 'make', 'go', 'come', 'take', 'see', 'know', 'think', 'look', 'want',
-                    'give', 'find', 'tell', 'ask', 'work', 'seem', 'feel', 'try', 'leave', 'call'}
-    if word_length >= 7 and word_clean not in common_words:
-        score += 10
-    elif word_length >= 5 and word_clean not in common_words:
-        score += 5
-
-    # ===== 维度5：特殊词汇（0-10分）=====
-    # 月份、星期
-    months = {'january', 'february', 'march', 'april', 'may', 'june',
-              'july', 'august', 'september', 'october', 'november', 'december'}
-    weekdays = {'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'}
-
-    if word_clean in months or word_clean in weekdays:
-        score += 10
-
-    # 学科术语（示例列表）
-    academic_terms = {'economy', 'biology', 'chemistry', 'physics', 'history', 'geography',
-                      'mathematics', 'science', 'technology', 'engineering', 'literature'}
-    if word_clean in academic_terms:
-        score += 10
-
-    # ===== 维度6：比较级/最高级加成（0-10分）=====
-    if is_comparative_superlative(word):
-        score += 10
-
-    # ===== 维度7：程度副词加成（0-10分）=====
-    if is_degree_adverb(word):
-        score += 10
-
-    # ===== 维度8：固定搭配核心词（0-10分）=====
-    if is_collocation_core(word, index, words):
-        score += 10
-
-    return score
-
-def fallback_blank_selection(sentence_text: str, blanked_words: dict, digit_count: int = 0, digit_limit: int = 2) -> dict:
-    """保底机制：使用语言习得导向算法选择挖空词（v5.3）
-
-    评分策略：
-    1. 计算每个词的学习价值分数（词长、音节、词性、稀有度）
-    2. 过滤黑名单词、重复词、事实词、专有名词
-    3. 选择分数最高的词
+    优先级：
+    1. 权重 10：程度、逻辑与频率副词
+    2. 权重 9：高级/具象动词
+    3. 权重 8：比较级/最高级与描述性形容词
+    4. 权重 7：固定搭配中的语义重心
+    5. 权重 5：普通名词
+    6. 权重 6：其他实词
 
     Args:
         sentence_text: 句子文本
         blanked_words: 已挖空单词的计数器
-        digit_count: 当前已挖空的数字数量（已弃用，保留兼容性）
-        digit_limit: 数字挖空限制（已弃用，保留兼容性）
 
     Returns:
-        挖空数据或None
+        挖空数据字典或 None
     """
     words = sentence_text.split()
-    scored_words = []
+
+    # 计算所有词的权重
+    candidates_with_weights = []
 
     for i, word in enumerate(words):
-        word_clean = word.lower().strip('.,!?;:"\'')
-
-        # 跳过空字符串
-        if not word_clean:
-            continue
-
-        # 🔴 使用 should_skip_word 综合判断（黑名单、事实词、专有名词等）
-        if should_skip_word(word, sentence_text, i):
-            continue
-
         # 跳过已挖1次的词（绝不重复）
+        word_clean = word.lower().strip('.,!?;:"\'')
         if blanked_words.get(word_clean, 0) >= 1:
             continue
 
-        # 计算学习价值分数
-        score = calculate_word_score(word, i, sentence_text)
+        # 使用 should_skip_word 判断
+        if should_skip_word(word, sentence_text, i):
+            continue
 
-        scored_words.append({
-            'index': i,
-            'word': word.strip('.,!?;:"\''),
-            'score': score
-        })
+        # 计算权重
+        weight = calculate_word_weight(word, sentence_text, i)
+        if weight > 0:
+            candidates_with_weights.append((weight, i, word))
 
-    # 按分数降序排序
-    scored_words.sort(key=lambda x: x['score'], reverse=True)
-
-    # 返回分数最高的词
-    if scored_words:
-        best = scored_words[0]
-        # 推断词性（用于显示）
-        word_clean = best['word'].lower()
-        if word_clean.endswith('ing'):
-            pos = 'VBG'
-        elif word_clean.endswith('ed'):
-            pos = 'VBD'
-        elif word_clean.endswith('ly'):
-            pos = 'RB'
-        elif word_clean.endswith('ment') or word_clean.endswith('tion'):
-            pos = 'NN'
-        elif word_clean.endswith('ive') or word_clean.endswith('ous'):
-            pos = 'JJ'
-        else:
-            pos = 'NN'
+    # 按权重排序，选择权重最高的词
+    if candidates_with_weights:
+        candidates_with_weights.sort(key=lambda x: x[0], reverse=True)
+        weight, index, word = candidates_with_weights[0]
 
         return {
-            "word": best['word'],
-            "index": best['index'],
-            "pos": pos,
+            "word": word.strip('.,!?;:"\''),
+            "index": index,
+            "pos": f"权重{weight}",
             "is_core": False,
-            "score": best['score']  # 调试用
+            "weight": weight
         }
 
     # 如果没有合适的词，返回 None（允许不挖空）
     return None
+
 
 def process_material(slug: str) -> bool:
     """处理单个素材的挖空"""
@@ -768,24 +785,26 @@ def process_material(slug: str) -> bool:
         # 统计
         success_count = 0
         skip_count = 0
+        weight_stats = {10: 0, 9: 0, 8: 0, 7: 0, 6: 0, 5: 0}  # 🔥 v5.0 新增：权重统计
         blanked_words = {}  # 🔥 全局去重：记录已挖空的单词（绝不重复）
-        digit_count = 0     # 🔥 事实词计数器：仅用于统计
 
         # 为每个句子生成挖空
         for i, sentence in enumerate(transcript):
             sentence_text = sentence.get('text', '')
 
-            blank_data = generate_blank_for_sentence(sentence_text, blanked_words, digit_count, digit_limit=2)
+            blank_data = generate_blank_for_sentence(sentence_text, blanked_words)
 
             if blank_data:
                 sentence['blanks'] = [blank_data]
+
                 # 🔥 更新全局计数
                 word_lower = blank_data['word'].lower()
                 blanked_words[word_lower] = blanked_words.get(word_lower, 0) + 1
 
-                # 🔥 更新事实词计数（用于统计）
-                if is_fact_word(blank_data['word']):
-                    digit_count += 1
+                # 🔥 v5.0: 统计权重分布
+                weight = blank_data.get('weight', 0)
+                if weight in weight_stats:
+                    weight_stats[weight] += 1
 
                 success_count += 1
             else:
@@ -798,6 +817,8 @@ def process_material(slug: str) -> bool:
             time.sleep(0.5)
 
         log(f"  ✓ 完成: 成功 {success_count}, 跳过 {skip_count}")
+        # 🔥 v5.0 新增：输出权重分布
+        log(f"  权重分布: W10={weight_stats[10]}, W9={weight_stats[9]}, W8={weight_stats[8]}, W7={weight_stats[7]}, W6={weight_stats[6]}, W5={weight_stats[5]}")
 
         # 保存到数据库
         client.table('materials').update({
@@ -809,15 +830,18 @@ def process_material(slug: str) -> bool:
 
     except Exception as e:
         log(f"  ❌ 失败: {e}")
+        import traceback
+        traceback.print_exc()
         return False
+
 
 def main():
     # 读取素材列表
-    cam_file = Path('/tmp/cam13_14_all.txt')  # Cam 13/14 所有素材
+    cam_file = Path('/tmp/test_single_v51.txt')  # 🔥 v5.1: 测试单个素材
 
     if not cam_file.exists():
         log(f"错误: 素材列表不存在: {cam_file}")
-        log("请先运行查询脚本生成素材列表")
+        log("请先创建素材列表文件")
         return
 
     with open(cam_file) as f:
@@ -828,7 +852,7 @@ def main():
         return
 
     print("="*70)
-    print("  批量重新挖空 - Cam 13/14 素材")
+    print("  批量重新挖空 - Cam 13/14 素材（v5.0 语言习得导向）")
     print("="*70)
     print(f"时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"总数: {len(slugs)} 个素材")
@@ -855,6 +879,7 @@ def main():
     print(f"失败: {fail_count}")
     print(f"总计: {len(slugs)}")
     print("="*70)
+
 
 if __name__ == '__main__':
     main()
