@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量素材导入脚本 v4.0
+批量素材导入脚本 v5.3
 从 Engnovate 抓取多个 Dictation/Shadowing 练习
 
 特点：
@@ -18,12 +18,16 @@
 - 前端组件：必须添加 crossOrigin="anonymous" 属性
 - Worker 响应：必须返回 Access-Control-Allow-Origin: *
 
-🎯 v4.0 新增功能（雅思挖空优化）：
-- 剔除高价值事实词（数字、日期、价格、地址）
-- 剔除专有名词（人名、地名、机构名、品牌名）
-- 剔除纯逻辑连接词（although, however, moreover, therefore 等）
-- 使用 should_skip_word() 综合判断函数
-- GLM Prompt 明确禁止挖空这些词类
+🎯 v5.3 挖空逻辑：
+- 在 v5.2 基础上新增情态助动词、疑问代词、低级认知词
+- 🔥 新增：语言习得导向本地评分算法（长单词提权、音节复杂度加成）
+
+语言习得导向评分算法（v5.3）：
+- 词长权重（0-30分）：10+字母30分，8-9字母25分，6-7字母15分
+- 音节复杂度（0-30分）：4+音节30分，3音节20分，2音节10分
+- 词性权重（0-20分）：形容词/副词20分，动词15分，名词10分
+- 稀有度加成（0-10分）：长单词且非常用词加分
+- 特殊词汇（0-10分）：月份、星期、学科术语加分
 
 参考：
 - src/components/VideoPlayer.tsx (line 467, 502)
@@ -31,8 +35,12 @@
 - src/components/topics/MaterialCard.tsx (line 170)
 
 版本历史：
+- v5.3 (2026-03-26): 新增情态助动词、疑问代词、低级认知词 + 语言习得导向评分算法
+- v5.2 (2026-03-25): 新增填充语/虚词（then, too, either, though, anyway, actually）
+- v5.1 (2026-03-25): 新增问候语、常见形容词、常见动词
+- v5.0 (2026-03-25): 新增纯语气词/感叹词、低级/模糊词汇
 - v4.0 (2026-03-25): 剔除事实词、专有名词、逻辑连接词
-- v2.3 (2026-03-25): 方案3 - GLM-4 多候选词自动选择，提高挖空成功率；修正 Premium 逻辑（前200免费，之后付费）
+- v2.3 (2026-03-25): 方案3 - GLM-4 多候选词自动选择，提高挖空成功率
 - v2.2 (2026-03-25): 雅思专家级挖空协议 + 核心黑名单过滤 + 三语翻译
 - v2.1 (2026-03-24): 雅思素材完整支持 + GLM-4 挖空词识别
 """
@@ -554,23 +562,55 @@ BLANKS_PROMPTS = {
 
 # 核心黑名单（严禁挖空的词）
 STRICT_BLACKLIST = [
-    # 代词/引导词
+    # ===== 代词/引导词 =====
     'he', 'she', 'it', 'they', 'we', 'you', 'i', 'me', 'him', 'her', 'us', 'them',
     'that', 'which', 'who', 'this', 'these', 'those',
     'my', 'your', 'his', 'hers', 'its', 'our', 'their', 'ours', 'theirs',
     'whom', 'whose',
-    # 虚词/连词
+
+    # ===== 虚词/连词 =====
     'a', 'an', 'the', 'and', 'or', 'but', 'so', 'because', 'if',
-    # 纯逻辑连接词（v4 新增）
-    'although', 'however', 'moreover', 'therefore', 'consequently',
-    'nevertheless', 'nonetheless', 'thus', 'hence', 'meanwhile',
-    'furthermore', 'otherwise', 'accordingly', 'besides',
-    # 简单介词
+    'when', 'where', 'while', 'since', 'until', 'unless', 'although',
+
+    # ===== 简单介词 =====
     'in', 'on', 'at', 'to', 'of', 'for', 'with', 'by', 'from', 'about',
-    # 基础系动词/助动词（包括分词形式）
-    'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being', 'do', 'does', 'did', 'have', 'has', 'had', 'having',
-    # 其他常见虚词
-    'there', 'here'
+    'into', 'onto', 'upon', 'within', 'without', 'during', 'before', 'after',
+
+    # ===== 基础系动词/助动词 =====
+    'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being',
+    'do', 'does', 'did', 'have', 'has', 'had', 'having',
+
+    # ===== 🔥 v5.0 新增：纯语气词/感叹词 =====
+    'yes', 'no', 'okay', 'well', 'quite',
+
+    # ===== 🔥 v5.0 新增：低级/模糊词汇 =====
+    'things', 'stuff', 'know',
+
+    # ===== 🔥 v5.1 新增：问候语 =====
+    'hello', 'hi', 'hey', 'goodbye', 'bye', 'thanks', 'please',
+
+    # ===== 🔥 v5.1 新增：常见形容词（低价值）=====
+    'good', 'bad', 'big', 'small', 'right', 'wrong', 'sure', 'clear',
+    'nice', 'fine', 'okay', 'alright', 'great', 'little',
+
+    # ===== 🔥 v5.1 新增：常见动词（低价值）=====
+    'say', 'says', 'said', 'tell', 'told', 'ask', 'get', 'make', 'go', 'come', 'take',
+    'let', 'put', 'call', 'keep', 'give', 'find', 'show', 'hold',
+
+    # ===== 🔥 v5.2 新增：填充语/虚词（句末或句中）=====
+    'then', 'too', 'either', 'though', 'anyway', 'actually',
+
+    # ===== 🔥 v5.3 新增：情态助动词 =====
+    'can', 'could', 'would', 'should', 'may', 'might', 'must', 'shall',
+
+    # ===== 🔥 v5.3 新增：疑问代词 =====
+    'what',
+
+    # ===== 🔥 v5.3 新增：低级认知词/填充词 =====
+    'think', 'uh', 'hmm', 'um',
+
+    # ===== 其他 =====
+    'there', 'here', 'just', 'really', 'very'
 ]
 
 def is_blacklisted(word: str) -> bool:
@@ -731,13 +771,266 @@ def is_digit_word(word: str) -> bool:
         return True
     return False
 
-def fallback_blank_selection(sentence_text: str, blanked_words: dict = None, digit_count: int = 0, digit_limit: int = 2) -> Optional[Dict]:
-    """保底机制：使用本地算法选择挖空词
+def count_syllables(word: str) -> int:
+    """估算单词的音节数量
 
-    优先级：
-    1. 非黑名单的动词、形容词、副词
-    2. 避免重复词（已挖1次的词）
-    3. 避免事实词、专有名词
+    Args:
+        word: 单词
+
+    Returns:
+        音节数量
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+
+    # 特殊规则
+    if word_clean.endswith('e'):
+        word_clean = word_clean[:-1]  # 词尾 e 不发音
+
+    # 计算元音数量
+    vowels = 'aeiouy'
+    syllable_count = 0
+    prev_was_vowel = False
+
+    for char in word_clean:
+        is_vowel = char in vowels
+        if is_vowel and not prev_was_vowel:
+            syllable_count += 1
+        prev_was_vowel = is_vowel
+
+    # 至少1个音节
+    return max(1, syllable_count)
+
+def is_comparative_superlative(word: str) -> bool:
+    """检测是否为比较级或最高级形容词
+
+    Args:
+        word: 单词
+
+    Returns:
+        是否为比较级/最高级
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+
+    # 比较级后缀
+    comparative_suffixes = ['er', 'ier', 'more', 'less']
+    # 最高级后缀
+    superlative_suffixes = ['est', 'iest', 'most', 'least']
+
+    for suffix in comparative_suffixes:
+        if word_clean.endswith(suffix):
+            return True
+
+    for suffix in superlative_suffixes:
+        if word_clean.endswith(suffix):
+            return True
+
+    return False
+
+def is_degree_adverb(word: str) -> bool:
+    """检测是否为程度/逻辑副词（权重10的词汇）
+
+    Args:
+        word: 单词
+
+    Returns:
+        是否为程度副词
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+
+    # 常见程度副词（高价值）
+    degree_adverbs = {
+        'massively', 'extremely', 'incredibly', 'absolutely', 'completely',
+        'totally', 'utterly', 'quite', 'rather', 'somewhat', 'fairly',
+        'throughout', 'normally', 'typically', 'generally', 'usually',
+        'frequently', 'occasionally', 'rarely', 'scarcely', 'barely',
+        'hardly', 'merely', 'simply', 'purely', 'clearly', 'obviously',
+        'certainly', 'definitely', 'probably', 'possibly', 'hopefully',
+        'fortunately', 'unfortunately', 'surprisingly', 'amazingly'
+    }
+
+    return word_clean in degree_adverbs
+
+def is_collocation_core(word: str, index: int, words: list) -> bool:
+    """检测是否为固定搭配的语义核心词（权重7）
+
+    Args:
+        word: 单词
+        index: 单词在句子中的位置
+        words: 句子所有单词列表
+
+    Returns:
+        是否为固定搭配核心词
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+
+    # 常见固定搭配词库（动词+名词/形容词）
+    collocations = {
+        # 动词 + 名词/形容词
+        'go': ['wrong', 'ahead', 'on', 'back', 'through', 'down', 'up'],
+        'get': ['ready', 'lost', 'better', 'worse', 'started', 'married', 'familiar'],
+        'make': ['sure', 'clear', 'sense', 'progress', 'mistake', 'decision', 'difference'],
+        'take': ['place', 'care', 'part', 'action', 'advantage', 'responsibility'],
+        'give': ['up', 'in', 'way', 'birth', 'advice', 'example', 'chance'],
+        'have': ['fun', 'trouble', 'doubt', 'chance', 'opportunity', 'effect', 'impact'],
+        'do': ['business', 'homework', 'exercise', 'damage', 'harm', 'good', 'best'],
+        'keep': ['silent', 'calm', 'safe', 'warm', 'cool', 'clean', 'touch'],
+        'feel': ['free', 'better', 'worse', 'comfortable', 'relaxed', 'happy', 'sad'],
+        'deal': ['with', 'in', 'on', 'off'],
+        'look': ['forward', 'back', 'after', 'for', 'at', 'into', 'upon'],
+        'put': ['on', 'off', 'away', 'aside', 'together', 'forward', 'back'],
+        'set': ['up', 'down', 'off', 'out', 'aside', 'apart', 'forth'],
+        'break': ['down', 'up', 'out', 'off', 'through', 'into'],
+        'bring': ['up', 'down', 'out', 'forward', 'back', 'about'],
+        'come': ['up', 'down', 'out', 'in', 'back', 'across', 'along', 'through'],
+        'hold': ['on', 'up', 'back', 'down', 'off', 'out'],
+        'turn': ['on', 'off', 'up', 'down', 'out', 'over', 'around', 'into'],
+        'run': ['out', 'away', 'into', 'through', 'over', 'across'],
+        'fall': ['down', 'off', 'out', 'back', 'apart', 'into', 'through'],
+        'carry': ['on', 'out', 'away', 'back', 'forward', 'through'],
+        'call': ['off', 'on', 'up', 'down', 'out', 'back'],
+        'catch': ['up', 'on', 'out', 'fire'],
+        'pay': ['attention', 'respect', 'tribute', 'visit', 'homage'],
+        'take': ['place', 'part', 'care', 'note', 'action', 'measure', 'step'],
+        'make': ['progress', 'sense', 'difference', 'decision', 'choice', 'mistake', 'effort', 'attempt'],
+        'keep': ['touch', 'contact', 'silence', 'quiet', 'calm', 'control'],
+        'lose': ['control', 'touch', 'interest', 'faith', 'hope', 'patience', 'sight'],
+        'gain': ['access', 'experience', 'knowledge', 'insight', 'understanding', 'momentum'],
+        'draw': ['attention', 'conclusion', 'inference', 'distinction'],
+        'pay': ['attention'],
+    }
+
+    # 检查当前词是否在某个搭配中
+    if word_clean in collocations:
+        # 检查前后词是否能形成搭配
+        partners = collocations[word_clean]
+
+        # 检查前一个词
+        if index > 0:
+            prev_word = words[index - 1].lower().strip('.,!?;:"\'')
+
+            if prev_word in partners:
+                return True  # 找到搭配，当前词是核心词
+
+        # 检查后一个词
+        if index < len(words) - 1:
+            next_word = words[index + 1].lower().strip('.,!?;:"\'')
+            if next_word in partners:
+                return True  # 找到搭配，当前词是核心词
+
+    return False
+
+def calculate_word_score(word: str, index: int = 0, sentence_text: str = "") -> float:
+    """计算单词的学习价值分数（语言习得导向）
+
+    评分维度（总分 120）：
+    1. 词长权重（0-30分）：长单词提权
+    2. 音节复杂度（0-30分）：音节越多分数越高
+    3. 词性权重（0-20分）：形容词/副词 > 动词 > 名词
+    4. 稀有度加成（0-10分）：非常用词额外加分
+    5. 特殊词汇（0-10分）：月份、星期、学科术语
+    6. 比较级/最高级加成（0-10分）：-er, -est 等后缀
+    7. 程度副词加成（0-10分）：extremely, massively 等
+    8. 固定搭配核心词（0-10分）：go wrong, deal with 等
+
+    Args:
+        word: 待评分的单词
+        index: 单词在句子中的位置
+        sentence_text: 完整句子
+
+    Returns:
+        学习价值分数 (0-120)
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+    score = 0.0
+    words = sentence_text.split()
+
+    # ===== 维度1：词长权重（0-30分）=====
+    word_length = len(word_clean)
+    if word_length >= 10:
+        score += 30
+    elif word_length >= 8:
+        score += 25
+    elif word_length >= 6:
+        score += 15
+    elif word_length >= 4:
+        score += 5
+    # 1-3字母：0分
+
+    # ===== 维度2：音节复杂度（0-30分）=====
+    syllables = count_syllables(word_clean)
+    if syllables >= 4:
+        score += 30
+    elif syllables == 3:
+        score += 20
+    elif syllables == 2:
+        score += 10
+    # 1音节：0分
+
+    # ===== 维度3：词性权重（0-20分）=====
+    # 通过后缀判断词性
+    if word_clean.endswith('ly'):
+        # 副词
+        score += 20
+    elif word_clean.endswith('ive') or word_clean.endswith('ous') or word_clean.endswith('ent') or \
+         word_clean.endswith('able') or word_clean.endswith('ible') or word_clean.endswith('ful'):
+        # 形容词
+        score += 20
+    elif word_clean.endswith('ing') or word_clean.endswith('ed'):
+        # 动词分词
+        score += 15
+    elif word_clean.endswith('ment') or word_clean.endswith('tion') or word_clean.endswith('ness') or \
+         word_clean.endswith('ity') or word_clean.endswith('ance') or word_clean.endswith('ence'):
+        # 名词后缀
+        score += 10
+    else:
+        # 默认基础分
+        score += 5
+
+    # ===== 维度4：稀有度加成（0-10分）=====
+    # 长单词且不在常见词列表中
+    common_words = {'get', 'make', 'go', 'come', 'take', 'see', 'know', 'think', 'look', 'want',
+                    'give', 'find', 'tell', 'ask', 'work', 'seem', 'feel', 'try', 'leave', 'call'}
+    if word_length >= 7 and word_clean not in common_words:
+        score += 10
+    elif word_length >= 5 and word_clean not in common_words:
+        score += 5
+
+    # ===== 维度5：特殊词汇（0-10分）=====
+    # 月份、星期
+    months = {'january', 'february', 'march', 'april', 'may', 'june',
+              'july', 'august', 'september', 'october', 'november', 'december'}
+    weekdays = {'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'}
+
+    if word_clean in months or word_clean in weekdays:
+        score += 10
+
+    # 学科术语（示例列表）
+    academic_terms = {'economy', 'biology', 'chemistry', 'physics', 'history', 'geography',
+                      'mathematics', 'science', 'technology', 'engineering', 'literature'}
+    if word_clean in academic_terms:
+        score += 10
+
+    # ===== 维度6：比较级/最高级加成（0-10分）=====
+    if is_comparative_superlative(word):
+        score += 10
+
+    # ===== 维度7：程度副词加成（0-10分）=====
+    if is_degree_adverb(word):
+        score += 10
+
+    # ===== 维度8：固定搭配核心词（0-10分）=====
+    if is_collocation_core(word, index, words):
+        score += 10
+
+    return score
+
+def fallback_blank_selection(sentence_text: str, blanked_words: dict = None, digit_count: int = 0, digit_limit: int = 2) -> Optional[Dict]:
+    """保底机制：使用语言习得导向算法选择挖空词（v5.3）
+
+    评分策略：
+    1. 计算每个词的学习价值分数（词长、音节、词性、稀有度）
+    2. 过滤黑名单词、重复词、事实词、专有名词
+    3. 选择分数最高的词
 
     Args:
         sentence_text: 句子文本
@@ -752,59 +1045,59 @@ def fallback_blank_selection(sentence_text: str, blanked_words: dict = None, dig
         blanked_words = {}
 
     words = sentence_text.split()
+    scored_words = []
 
-    # 词性标识（简单判断）
-    def get_word_type(word):
-        word_clean = word.lower().strip('.,!?;:"\'')
-        if word_clean.endswith('ing'):
-            return 'VBG'
-        elif word_clean.endswith('ed'):
-            return 'VBD'
-        elif word_clean.endswith('ly'):
-            return 'RB'
-        elif word_clean.endswith('ment') or word_clean.endswith('tion') or word_clean.endswith('ness'):
-            return 'NN'
-        elif word_clean.endswith('ive') or word_clean.endswith('ous') or word_clean.endswith('ent'):
-            return 'JJ'
-        else:
-            return 'UNK'
-
-    # 优先选择动词、形容词、副词
-    preferred_words = []
     for i, word in enumerate(words):
         word_clean = word.lower().strip('.,!?;:"\'')
 
-        # 🔴 v4: 使用 should_skip_word 综合判断
+        # 跳过空字符串
+        if not word_clean:
+            continue
+
+        # 🔴 使用 should_skip_word 综合判断（黑名单、事实词、专有名词等）
         if should_skip_word(word, sentence_text, i):
             continue
 
-        # 🔴 v4.1: 跳过已挖1次的词（绝不重复）
+        # 跳过已挖1次的词（绝不重复）
         if blanked_words.get(word_clean, 0) >= 1:
             continue
 
-        # 分析词性
-        word_type = get_word_type(word)
+        # 计算学习价值分数
+        score = calculate_word_score(word, i, sentence_text)
 
-        # 优先级：VBG/VBD（动词）> RB（副词）> JJ（形容词）> NN（名词）
-        if word_type in ['VBG', 'VBD']:
-            preferred_words.insert(0, (i, word, word_type))
-        elif word_type == 'RB':
-            preferred_words.append((i, word, word_type))
-        elif word_type == 'JJ':
-            preferred_words.append((i, word, word_type))
-        elif word_type == 'NN':
-            preferred_words.append((i, word, word_type))
+        scored_words.append({
+            'index': i,
+            'word': word.strip('.,!?;:"\''),
+            'score': score
+        })
+
+    # 按分数降序排序
+    scored_words.sort(key=lambda x: x['score'], reverse=True)
+
+    # 返回分数最高的词
+    if scored_words:
+        best = scored_words[0]
+        # 推断词性（用于显示）
+        word_clean = best['word'].lower()
+        if word_clean.endswith('ing'):
+            pos = 'VBG'
+        elif word_clean.endswith('ed'):
+            pos = 'VBD'
+        elif word_clean.endswith('ly'):
+            pos = 'RB'
+        elif word_clean.endswith('ment') or word_clean.endswith('tion'):
+            pos = 'NN'
+        elif word_clean.endswith('ive') or word_clean.endswith('ous'):
+            pos = 'JJ'
         else:
-            preferred_words.append((i, word, word_type))
+            pos = 'NN'
 
-    # 返回第一个优先词
-    if preferred_words:
-        index, word, word_type = preferred_words[0]
         return {
-            "word": word.strip('.,!?;:"\''),
-            "index": index,
-            "pos": word_type,
-            "is_core": False
+            "word": best['word'],
+            "index": best['index'],
+            "pos": pos,
+            "is_core": False,
+            "score": best['score']  # 调试用
         }
 
     # 如果没有合适的词，返回 None（允许不挖空）
