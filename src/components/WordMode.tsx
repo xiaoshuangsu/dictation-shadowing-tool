@@ -335,18 +335,20 @@ export default function WordMode({
         <p className="text-lg leading-relaxed">
           {sentence.text ? (
             <>
-              {visibleWordsBefore.length > 0 && visibleWordsBefore.map((word, index) => (
-                <span key={index} className="text-gray-800">{word} </span>
-              ))}
-              <span className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[     ]</span>
-              {visibleWordsAfter.length > 0 && visibleWordsAfter.map((word, index) => (
-                <span key={index} className="text-gray-800"> {word}</span>
-              ))}
-              {/* 调试：如果没有单词，显示提示 */}
-              {visibleWordsBefore.length === 0 && visibleWordsAfter.length === 0 && (
-                <span className="text-red-500 text-xs ml-2">
-                  (Words: {sentenceWords.length})
-                </span>
+              {/* 🔥 修复：如果有挖空词，显示挖空 UI；否则显示原始文本 */}
+              {hiddenWordIndex >= 0 ? (
+                <>
+                  {visibleWordsBefore.length > 0 && visibleWordsBefore.map((word, index) => (
+                    <span key={index} className="text-gray-800">{word} </span>
+                  ))}
+                  <span className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[     ]</span>
+                  {visibleWordsAfter.length > 0 && visibleWordsAfter.map((word, index) => (
+                    <span key={index} className="text-gray-800"> {word}</span>
+                  ))}
+                </>
+              ) : (
+                /* 没有挖空词时，直接显示原始文本，不显示下划线 */
+                <span className="text-gray-800">{sentence.text}</span>
               )}
             </>
           ) : (
