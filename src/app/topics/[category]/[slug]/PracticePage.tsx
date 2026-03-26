@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react'
-import { flushSync } from 'react-dom'
+import { useState, useEffect, useRef, useLayoutEffect, useMemo, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, savePracticeRecord } from '@/lib/supabase/client'
@@ -99,47 +98,42 @@ export default function PracticePage({ category, slug }: { category: string; slu
   // 🔴 开发环境检测
   const isDevelopment = process.env.NODE_ENV === 'development'
 
-  // CDN URL helper - 仅用于 R2 存储的素材
-  const getCdnUrl = (url: string | null): string | undefined => {
+  // 🔴 CDN URL helper - 提升到组件外部，避免重渲染时重复调用
+  // 仅用于 R2 存储的素材
+  const getCdnUrl = useCallback((url: string | null): string | undefined => {
     if (!url) return undefined
-
-    console.log('🔧 getCdnUrl input:', url)
 
     // 如果是完整 URL，直接使用
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      // 🔴 关键修复：检查完整 URL 是否缺少 .mp4 后缀
+      // 检查完整 URL 是否缺少 .mp4 后缀
       if (url.includes('/videos/') && !url.endsWith('.mp4')) {
-        const result = `${url}.mp4`
-        console.log('🔧 getCdnUrl: Added .mp4 to full URL:', result)
-        return result
+        return `${url}.mp4`
       }
-      console.log('🔧 getCdnUrl: Using full URL as-is:', url)
       return url
     }
 
-    // 🔴 关键修复：直接使用生产环境 URL，避免代理重写问题
-    // 开发环境和生产环境都使用同一个 URL
+    // 直接使用生产环境 URL，避免代理重写问题
     const workerUrl = 'https://media.shadowhub.app'
     let finalUrl = `${workerUrl}/${url}`
 
-    // 🔴 关键修复：确保视频 URL 有 .mp4 后缀
+    // 确保视频 URL 有 .mp4 后缀
     if (url.includes('video') && !url.endsWith('.mp4')) {
       finalUrl = `${finalUrl}.mp4`
-      console.log('🔧 getCdnUrl: Added .mp4 to relative path:', finalUrl)
     }
 
-    // 🔴 关键修复：确保音频 URL 有 .mp3 后缀
+    // 确保音频 URL 有 .mp3 后缀
     if (url.includes('audio') && !url.endsWith('.mp3') && !url.endsWith('.m4a')) {
       finalUrl = `${finalUrl}.mp3`
-      console.log('🔧 getCdnUrl: Added .mp3 to relative path:', finalUrl)
     }
 
-    console.log('🔧 getCdnUrl output:', finalUrl)
     return finalUrl
-  }
+  }, [])
 
   // 🔴 辅助函数：判断素材类型并获取相应的播放器信息
-  const getPlayerInfo = (material: Material) => {
+  // 使用 useMemo 缓存结果，避免每次渲染都重新计算
+  const playerInfo = useMemo(() => {
+    if (!material) return null
+
     const sourceType = material.source_type || 'r2'  // 默认为 R2
 
     if (sourceType === 'youtube' && material.youtube_id) {
@@ -159,7 +153,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
         thumbnailPath: getCdnUrl(material.thumbnail_path)
       }
     }
-  }
+  }, [material, getCdnUrl])
 
   // 🔴 Audio ref - 用于在用户点击时直接激活音频播放权限
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -462,31 +456,29 @@ export default function PracticePage({ category, slug }: { category: string; slu
     console.log("hasStarted:", hasStarted)
     console.log("sampleSentences.length:", sampleSentences.length)
     console.log("🎵 audioRef.current:", audioRef.current)
-    const playerInfo = material ? getPlayerInfo(material) : null
+    console.log("🎵 audioRef readyState:", audioRef.current?.readyState)
     console.log("🎵 playerInfo:", playerInfo ? { type: playerInfo.type, hasAudio: !!playerInfo.audioSrc } : null)
 
-    // 🔴 关键修复：在用户点击事件的同步调用栈中直接激活音频播放权限
-    // 通过调用 AudioPlayer 的 audio 元素的 play() 方法，告诉 Safari 这是用户授权的播放
-    if (audioRef.current) {
+    // 🔴 优化：只在必要时激活 Safari 权限
+    // 如果音频已经有 src 且 readyState > 0，直接跳过激活，避免延迟
+    if (audioRef.current && audioRef.current.readyState > 0) {
+      console.log("🎵 Audio already ready (readyState:", audioRef.current.readyState, "), skipping activation")
+    } else if (audioRef.current) {
       const audio = audioRef.current
-      console.log("🎵 audioRef.current exists, readyState:", audio.readyState)
       console.log("🎵 Activating Safari play permission...")
 
       const originalTime = audio.currentTime
       const originalVolume = audio.volume
 
-      // 🔴 不管 readyState 是多少，都尝试调用 play() 激活权限
-      // 即使失败也没关系，关键是告诉 Safari 这是用户授权的播放
+      // 激活权限：静音播放，立即暂停
       audio.volume = 0
       audio.play().then(() => {
-        // 立即暂停并恢复状态
         audio.pause()
         audio.currentTime = originalTime
         audio.volume = originalVolume
         console.log('🔓 Safari 音频播放权限已激活')
       }).catch(err => {
         console.log('⚠️ 激活音频权限时出错（可忽略）:', err.message)
-        // 恢复状态（即使播放失败）
         audio.currentTime = originalTime
         audio.volume = originalVolume
       })
@@ -508,7 +500,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
         console.log('🖥️ 桌面端：不执行滚动操作，保持所有内容可见')
       }
 
-      flushSync(() => {
+      // 🔴 关键优化：异步更新状态，避免阻塞音频启动
+      // 使用 requestAnimationFrame 确保 play() 在下一个事件循环执行
+      requestAnimationFrame(() => {
         setHasStarted(true)
         setAutoPlayTrigger(prev => prev + 1)
       })
@@ -522,8 +516,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
       console.log("场景 B: 切换到下一句")
       console.log("当前索引:", currentIndex, "< 总数:", sampleSentences.length - 1)
 
-      // 使用 flushSync 强制同步更新，确保索引先更新，再触发播放
-      flushSync(() => {
+      // 🔴 关键优化：异步更新状态，避免阻塞音频启动
+      requestAnimationFrame(() => {
         const newIndex = currentIndex + 1
         if (mode === 'dictation') {
           setDictationIndex(newIndex)
@@ -531,12 +525,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
           setShadowingIndex(newIndex)
         }
         console.log("更新索引:", currentIndex, "->", newIndex)
+        // 索引更新后，触发播放
+        setAutoPlayTrigger(prev => prev + 1)
+        console.log("触发播放新索引")
       })
-
-      // 索引更新后，再触发播放
-      console.log("索引已更新，现在触发播放")
-      setAutoPlayTrigger(prev => prev + 1)
-      console.log("触发播放新索引")
     } else {
       console.log("场景 C: 已是最后一句，重播")
       // 已是最后一句，重播
@@ -796,8 +788,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
           <div className={`${hasStarted ? 'max-lg:hidden' : ''} lg:col-span-1 w-full transition-all duration-300`}>
             <div className="bg-white rounded-lg shadow-sm p-4 sticky top-40">
               {/* 🔴 左栏标题：参考 Transcript 样式 */}
-              {(() => {
-                const playerInfo = getPlayerInfo(material)
+              {playerInfo && (() => {
                 const isVideoMaterial = playerInfo.type === 'youtube' || playerInfo.videoUrl
                 return (
                   <div className="mb-4">
@@ -809,9 +800,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
               })()}
 
               {/* 🔴 根据素材类型渲染播放器 */}
-              {(() => {
-                const playerInfo = getPlayerInfo(material)
-
+              {playerInfo && (() => {
                 // YouTube 视频
                 if (playerInfo.type === 'youtube' && material.youtube_id && !videoDegraded) {
                   return (
@@ -878,24 +867,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
             ref={practiceAreaRef}
             className={`lg:col-span-[2] w-full bg-white rounded-lg shadow-sm p-6 transition-all duration-300`}
           >
-            {/* Debug: AudioPlayer render conditions */}
-            {(() => {
-              const playerInfo = material ? getPlayerInfo(material) : null
-              console.log('🔍 AudioPlayer render check:', {
-                materialType: playerInfo?.type,
-                audioSrc: playerInfo?.audioSrc ? playerInfo.audioSrc.substring(0, 50) + '...' : 'undefined',
-                hasCurrentSentence: !!currentSentence,
-                currentSentenceText: currentSentence?.text?.substring(0, 30),
-                mode,
-                autoPlayTrigger,
-                shouldRender: !!(playerInfo?.type === 'r2' && playerInfo.audioSrc && currentSentence && (mode === 'dictation' || mode === 'shadowing'))
-              })
-              return null
-            })()}
-
             {/* Hidden Audio Player - Only for R2 materials */}
-            {(() => {
-              const playerInfo = getPlayerInfo(material)
+            {playerInfo && (() => {
               const isR2Material = playerInfo.type === 'r2'
 
               // 只有 R2 素材才使用 AudioPlayer
@@ -1046,9 +1019,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
                       }}
                     />
                   )
-                ) : (() => {
+                ) : (playerInfo && (() => {
                   // Shadowing 模式：支持 R2 和 YouTube 素材
-                  const playerInfo = getPlayerInfo(material)
                   const isR2Material = playerInfo.type === 'r2'
 
                   // R2 素材需要 audioSrc
@@ -1076,7 +1048,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                       }}
                     />
                   )
-                })()
+                })())
                 )}
               </div>
             </>
@@ -1123,7 +1095,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
               translationLanguage={translationLanguage}
               materialId={material.id}
               materialTitle={material.title}
-              audioSrc={getPlayerInfo(material).audioSrc}
+              audioSrc={playerInfo?.audioSrc}
               hasStarted={hasStarted}  // 🔴 传递播放状态，控制自动滚动
               isBlocked={isBlocked}  // 🔴 传递拦截状态
             />

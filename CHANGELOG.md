@@ -11,6 +11,47 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.5.2] - 2026-03-26
+
+### Performance
+- **修复播放按钮性能瓶颈** ⚡
+  - 使用 `useCallback` 缓存 `getCdnUrl` 函数，防止每帧渲染重复调用
+  - 使用 `useMemo` 缓存 `playerInfo` 对象，避免重复计算 CDN URL
+  - 删除 `getCdnUrl` 内部的高频 `console.log`，减少主线程阻塞
+  - 解决点击播放按钮时控制台日志爆炸问题
+
+- **优化音频播放延迟** 🎵
+  - 修复音频加载策略：从组件挂载时预加载改为用户点击时触发
+  - 移动浏览器兼容性优化：避免浏览器阻止预加载导致的 readyState 停留在 0
+  - 使用 `requestAnimationFrame` 异步更新状态，避免 React 渲染阻塞音频启动
+  - 优化 Safari 权限激活逻辑：只在 `readyState === 0` 时才激活权限
+  - 移除 `flushSync` 强制同步更新，改用自然的事件循环处理状态
+
+### Changed
+- **AudioPlayer 组件**
+  - 移除组件挂载时的 `audio.load()` 调用
+  - 在 `playSentence` 函数中添加 `audio.load()` 触发加载
+  - 等待 `canplay` 事件触发后再执行 seek 和 play 操作
+  - 临时移除 `crossorigin="anonymous"` 以测试 CORS 影响
+
+- **PracticePage 组件**
+  - 优化 `handlePlayOrNext` 函数，优先播放后更新状态
+  - 改进 Safari 权限激活逻辑，避免不必要的 play() 调用
+  - 统一使用缓存的 `playerInfo` 替代所有 `getPlayerInfo(material)` 调用
+
+### Technical Details
+- **修复前问题**：
+  - 点击播放按钮时，`getCdnUrl` 函数每秒被调用 4-10 次（timeupdate 事件触发）
+  - 每次调用打印 6 条日志，导致控制台爆炸和主线程阻塞
+  - 音频 readyState 停留在 0，导致播放延迟数秒
+
+- **修复后效果**：
+  - 控制台清静，无高频日志输出
+  - 音频 readyState 正常提升到 4（HAVE_ENOUGH_DATA）
+  - 播放响应速度显著提升
+
+---
+
 ## [29.5.1] - 2026-03-26
 
 ### Fixed

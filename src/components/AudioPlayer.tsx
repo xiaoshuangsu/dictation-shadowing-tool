@@ -43,7 +43,58 @@ export default function AudioPlayer({
   useEffect(() => {
     if (audioRefInternal.current && onReady && !hasCalledReadyRef.current) {
       hasCalledReadyRef.current = true
-      onReady(audioRefInternal.current)
+
+      const audio = audioRefInternal.current
+      console.log('🎵 [AudioPlayer] Audio element created, readyState:', audio.readyState)
+      console.log('🎵 [AudioPlayer] Audio src:', audio.src)
+
+      // 监听加载进度（只在用户触发加载后才会触发）
+      const handleLoadStart = () => {
+        console.log('🎵 [AudioPlayer] Load started')
+      }
+
+      const handleLoadedMetadata = () => {
+        console.log('🎵 [AudioPlayer] Metadata loaded, readyState:', audio.readyState)
+        console.log('🎵 [AudioPlayer] Duration:', audio.duration)
+      }
+
+      const handleCanPlay = () => {
+        console.log('🎵 [AudioPlayer] Audio can play, readyState:', audio.readyState)
+      }
+
+      const handleCanPlayThrough = () => {
+        console.log('🎵 [AudioPlayer] Audio fully loaded, readyState:', audio.readyState)
+      }
+
+      const handleError = (e: Event) => {
+        console.error('🎵 [AudioPlayer] Error loading audio:', e)
+        const error = (e.target as HTMLAudioElement).error
+        if (error) {
+          console.error('🎵 [AudioPlayer] Error code:', error.code)
+          console.error('🎵 [AudioPlayer] Error message:', error.message)
+        }
+      }
+
+      audio.addEventListener('loadstart', handleLoadStart)
+      audio.addEventListener('loadedmetadata', handleLoadedMetadata)
+      audio.addEventListener('canplay', handleCanPlay)
+      audio.addEventListener('canplaythrough', handleCanPlayThrough)
+      audio.addEventListener('error', handleError)
+
+      // 🔴 不再在组件挂载时调用 audio.load()
+      // 移动浏览器会阻止预加载，等待用户交互后再加载
+      console.log('🎵 [AudioPlayer] Waiting for user interaction to load audio')
+
+      onReady(audio)
+
+      // 清理函数
+      return () => {
+        audio.removeEventListener('loadstart', handleLoadStart)
+        audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        audio.removeEventListener('canplay', handleCanPlay)
+        audio.removeEventListener('canplaythrough', handleCanPlayThrough)
+        audio.removeEventListener('error', handleError)
+      }
     }
   }, [audioSrc, onReady])
 
@@ -215,8 +266,17 @@ export default function AudioPlayer({
     }
 
     const trySeekAndPlay = () => {
+      // 🔴 关键修复：在用户交互时调用 load()，触发浏览器加载音频
+      console.log('🎵 [AudioPlayer] User clicked, calling audio.load()...')
+      console.log('🎵 [AudioPlayer] readyState before load:', audio.readyState)
+
+      audio.load()
+
+      // 等待音频加载到可以播放的状态
       if (audio.readyState < 2) {
+        console.log('🎵 [AudioPlayer] Waiting for audio to load...')
         audio.addEventListener('canplay', () => {
+          console.log('🎵 [AudioPlayer] Audio loaded, readyState:', audio.readyState)
           performSeek()
         }, { once: true })
         return
@@ -257,5 +317,7 @@ export default function AudioPlayer({
     }
   }, [])
 
-  return <audio ref={audioRefInternal} src={audioSrc} preload="auto" crossOrigin="anonymous" />
+  // 🔴 临时移除 crossorigin，测试是否是 CORS 导致的加载问题
+  // 如果能正常加载，说明是 Worker 的 CORS 配置有问题
+  return <audio ref={audioRefInternal} src={audioSrc} preload="auto" />
 }
