@@ -21,7 +21,7 @@
 
 ---
 
-## 🏗️ 架构与账号配置（V27.1.0 更新）
+## 🏗️ 架构与账号配置（V29.6.1 更新）
 
 ### 当前架构（2026-03-22 迁移到 Vercel）
 
@@ -339,12 +339,6 @@ cat RESUME_PREPOPULATION.md
 
 ---
 
-**版本**：V27.0.5
-**更新日期**：2026-03-22
-**状态**：生产就绪
-
----
-
 ## 🔄 快速恢复上下文
 
 如果对话终止，快速恢复上下文的方法：
@@ -354,20 +348,20 @@ cat RESUME_PREPOPULATION.md
 # 项目指南
 cat claude-code-guide.md
 
-# V27 最新功能（点词翻译+生词本）
-cat docs/dictionary_and_translation_implementation_v27.md
+# 挖空逻辑规范（V29.6.1 最新修复）
+cat claude-code-guide.md docs/knowledge_base.md
 
 # 完整上下文恢复
 cat CONTEXT_RESTORE.md
 ```
 
 ### 方式二：一句话恢复
-> "请先阅读 `claude-code-guide.md` 和 `docs/dictionary_and_translation_implementation_v27.md`，当前版本是 V27.1.0（2026-03-22），主要实现了：
+> "请先阅读 `claude-code-guide.md`，当前版本是 V29.6.1（2026-03-27），主要实现了：
+> - **挖空逻辑修复**：修复分词索引不一致和撇号丢失问题（v6.1 修复引入的 bug）
+> - **双重分词机制**：空格分词匹配 blanks.index，正则分词渲染原文（保留标点）
+> - **字符编码支持**：正则表达式同时支持 ASCII 撇号（U+0027）和弯撇号（U+2019）
 > - **Vercel 部署**：从 GitHub Pages 迁移到 Vercel，启用 API Routes
-> - **点词翻译+生词本**：完整的生词采集与复习闭环
-> - **词典缓存优化**：预生成 4500+ 单词释义
-> - **Tooltip 优化**：自动语言联动、单词发音
-> - **优雅跳转体验**：从生词本跳转到练习页面并自动播放"
+> - **训练模式选择弹窗**：Dictation 和 Shadowing 两种模式选择"
 
 ---
 
