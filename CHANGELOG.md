@@ -62,6 +62,20 @@
   - 用户点击弹窗按钮时，无论预加载成功或失败都能正常跳转
   - 添加详细的调试日志，方便排查问题
 
+### Fixed
+- **API 路由 Dynamic Server Usage 构建错误** 🔧
+  - **问题**：Next.js 构建时报错 `Dynamic server usage: Route /api/user-words/check/ couldn't be rendered statically because it used request.url`
+  - **原因**：API 路由使用 `request.url` 获取查询参数，无法在构建时静态化
+  - **修复**：在相关 API 路由文件顶部添加 `export const dynamic = 'force-dynamic'`，强制声明为动态路由
+  - **影响文件**：
+    - `src/app/api/user-words/check/route.ts` - 检查单词是否在生词本
+    - `src/app/api/user-words/route.ts` - 生词本增删改查接口
+  - **验证**：本地 `npm run build` 构建成功，无 Dynamic Server Usage 错误
+  - **技术说明**：
+    - Next.js 14 默认尝试静态化所有路由
+    - 使用运行时请求参数（`request.url`、`request.headers`）的 API 必须显式声明为动态
+    - `export const dynamic = 'force-dynamic'` 告诉 Next.js 跳过静态化，始终在运行时渲染
+
 ### Technical Details
 - **新增文件**：
   - `src/components/topics/TrainingModeModal.tsx` - 弹窗组件
