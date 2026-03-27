@@ -11,6 +11,10 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
+// 🔴 防御性修复：强制声明动态渲染，避免 Next.js 构建错误
+// 此接口使用了 request.url 获取查询参数，必须在运行时处理
+export const dynamic = 'force-dynamic'
+
 /**
  * 从 dictionaryapi.dev 获取音频 URL
  * @param word - 单词
