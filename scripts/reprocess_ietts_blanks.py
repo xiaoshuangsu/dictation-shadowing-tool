@@ -834,7 +834,7 @@ def process_material(slug: str) -> bool:
 
 def main():
     # 读取素材列表
-    cam_file = Path('/tmp/test_single_v60.txt')  # 🔥 v6.0: 测试单个素材
+    cam_file = Path('/tmp/cam10_11_12_all.txt')  # 🔥 v6.0: Cam 10/11/12 全量刷新（48个素材）
 
     if not cam_file.exists():
         log(f"错误: 素材列表不存在: {cam_file}")
@@ -849,7 +849,7 @@ def main():
         return
 
     print("="*70)
-    print("  批量重新挖空 - Cam 13/14 素材（v5.0 语言习得导向）")
+    print("  批量重新挖空 - Cam 10/11/12 素材（v6.0 语言习得导向）")
     print("="*70)
     print(f"时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"总数: {len(slugs)} 个素材")

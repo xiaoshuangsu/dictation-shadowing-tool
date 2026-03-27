@@ -1701,7 +1701,7 @@ def process_url(url: str, index: int, total: int) -> bool:
 
 def main():
     # 读取 URL 列表
-    urls_file = Path('/tmp/cam14_remaining.txt')  # 临时使用 Cam 14 剩余素材
+    urls_file = Path('/tmp/cam14_test4_missing.txt')  # 🔥 v6.0: 导入 Cam 14 Test 4 缺失素材
 
     if not urls_file.exists():
         log(f"错误: URLs 文件不存在: {urls_file}")

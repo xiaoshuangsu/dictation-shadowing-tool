@@ -454,17 +454,17 @@ def reprocess_material(slug: str) -> bool:
         return False
 
 def main():
-    # 处理所有 Cam 13/14 素材
+    # 处理所有 Cam 10/11/12 素材
     from supabase import create_client
     client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
     result = client.table('materials').select('slug', 'title').filter('slug', 'like', 'cam-%').execute()
-    all_cam = sorted([m for m in result.data if '-13-' in m['slug'] or '-14-' in m['slug']], key=lambda x: x['slug'])
+    all_cam = sorted([m for m in result.data if '-10-' in m['slug'] or '-11-' in m['slug'] or '-12-' in m['slug']], key=lambda x: x['slug'])
 
     test_slugs = [m['slug'] for m in all_cam]
 
     print("="*80)
-    print("  雅思听力翻译引擎 v2.0 - 全量处理")
+    print("  雅思听力翻译引擎 v2.0 - Cam 10/11/12 全量刷新")
     print("="*80)
     print(f"时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"总素材: {len(test_slugs)} 个")
