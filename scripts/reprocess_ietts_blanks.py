@@ -673,6 +673,25 @@ def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None) 
                 if index < 0 or index >= len(words):
                     continue
 
+                # 🔥 v6.1 新增：验证 word 是否与 index 位置的词匹配
+                word_at_index = words[index].strip('.,!?;:"\'').lower()
+                if word_at_index != word.lower():
+                    # 尝试在句子中查找 word 的实际位置
+                    actual_index = -1
+                    for i, w in enumerate(words):
+                        if w.strip('.,!?;:"\'').lower() == word.lower():
+                            actual_index = i
+                            break
+
+                    if actual_index >= 0:
+                        # 使用实际找到的 index
+                        index = actual_index
+                        print(f"    ⚠️  修正 index: {candidate.get('index')} -> {actual_index} (word='{word}')")
+                    else:
+                        # word 不在句子中，跳过这个候选词
+                        print(f"    ⚠️  跳过无效候选词: word='{word}' 不在句子中")
+                        continue
+
                 # 使用 should_skip_word 综合判断
                 if should_skip_word(word, sentence_text, index):
                     continue

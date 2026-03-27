@@ -53,13 +53,18 @@ export default function WordMode({
   const lastActivityRef = useRef<number>(Date.now())
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 🔥 v6.1 修复：改进分词逻辑，保留标点符号
+  // 🔥 v6.1 修复：改用空格分词，与挖空脚本保持一致
+  // 挖空脚本使用 sentence.text.split(' ') 分词，index 基于空格分割
+  const spaceTokens = sentence.text.split(' ')
+
+  // 🔥 v6.1 修复：改进分词逻辑，保留标点符号（用于渲染）
   // 同时保留单词、标点符号和空格，确保渲染时完整显示原文
-  const tokens = sentence.text.match(/([a-zA-Z0-9'-]+|[.,!?;:]+|\s+)/g) || []
+  // 🔥 v6.1.1 修复：支持弯撇号 U+2019（智能引号），解决 "It's" 被拆分的问题
+  const renderTokens = sentence.text.match(/([a-zA-Z0-9'\u2019-]+|[.,!?;:]+|\s+)/g) || []
 
   // Select word to hide:优先使用 sentence.blanks，否则使用随机算法
   const { targetTokenIndex, hiddenWord } = useMemo(() => {
-    if (tokens.length === 0) {
+    if (spaceTokens.length === 0) {
       return {
         targetTokenIndex: -1,
         hiddenWord: ""
@@ -70,49 +75,64 @@ export default function WordMode({
     if (sentence.blanks && sentence.blanks.length > 0 && sentence.blanks[0]) {
       const blank = sentence.blanks[0]
       const blankWord = blank.word
+      const blankIndex = blank.index
 
-      // 在 tokens 中找到匹配的词（带标点）
-      // 需要处理大小写和标点符号的差异
-      let foundIndex = -1
+      // 验证 blankIndex 是否在有效范围内
+      if (blankIndex >= 0 && blankIndex < spaceTokens.length) {
+        const wordAtIndex = spaceTokens[blankIndex]
 
-      // 辅助函数：去除标点符号
-      const removePunctuation = (word: string) => word.replace(/[.,!?;:'""]/g, '')
+        // 验证 word 是否匹配（忽略标点和大小写）
+        const cleanBlankWord = blankWord.toLowerCase().replace(/[.,!?;:'""]/g, '')
+        const cleanWordAtIndex = wordAtIndex.toLowerCase().replace(/[.,!?;:'""]/g, '')
 
-      // 首先尝试精确匹配
-      foundIndex = tokens.findIndex(t => t === blankWord)
+        if (cleanBlankWord === cleanWordAtIndex || cleanWordAtIndex.includes(cleanBlankWord)) {
+          // 在 renderTokens 中找到对应的 token（用于渲染）
+          // 需要从 spaceTokens 转换到 renderTokens 的索引
+          let renderIndex = -1
+          let spaceTokenCount = 0
 
-      // 如果没有找到，尝试忽略大小写匹配
-      if (foundIndex === -1) {
-        foundIndex = tokens.findIndex(t =>
-          t.toLowerCase() === blankWord.toLowerCase()
-        )
-      }
-
-      // 如果还没有找到，尝试去除标点符号后匹配（处理 "bad." vs "bad" 的情况）
-      if (foundIndex === -1) {
-        const cleanBlankWord = removePunctuation(blankWord).toLowerCase()
-        foundIndex = tokens.findIndex((t, index) => {
-          // 跳过纯空格和纯标点的 token
-          if (/^\s+$/.test(t) || /^[.,!?;:]+$/.test(t)) {
-            return false
+          for (let i = 0; i < renderTokens.length; i++) {
+            const token = renderTokens[i]
+            // 跳过纯标点和纯空格的 token
+            if (/^\s+$/.test(token) || /^[.,!?;:]+$/.test(token)) {
+              continue
+            }
+            // 找到第 blankIndex 个非标点/空格的 token
+            if (spaceTokenCount === blankIndex) {
+              renderIndex = i
+              break
+            }
+            spaceTokenCount++
           }
-          const cleanToken = removePunctuation(t).toLowerCase()
-          return cleanToken === cleanBlankWord
-        })
-      }
 
-      // 如果找到了，使用该索引
-      if (foundIndex >= 0) {
-        console.log('🎯 使用 blanks 字段挖空:', {
-          word: blankWord,
-          index: foundIndex,
-          token: tokens[foundIndex],
-          isCore: blank.is_core
-        })
-        return {
-          targetTokenIndex: foundIndex,
-          hiddenWord: tokens[foundIndex]
+          if (renderIndex >= 0) {
+            console.log('🎯 使用 blanks 字段挖空:', {
+              word: blankWord,
+              blankIndex,
+              spaceToken: spaceTokens[blankIndex],
+              renderIndex,
+              renderToken: renderTokens[renderIndex],
+              isCore: blank.is_core
+            })
+            return {
+              targetTokenIndex: renderIndex,
+              hiddenWord: blankWord  // 使用 blanks 中的原始 word（不含标点）
+            }
+          }
+        } else {
+          console.warn('⚠️ blanks 字段不匹配:', {
+            blankWord,
+            blankIndex,
+            wordAtIndex,
+            cleanBlankWord,
+            cleanWordAtIndex
+          })
         }
+      } else {
+        console.warn('⚠️ blanks index 超出范围:', {
+          blankIndex,
+          spaceTokensLength: spaceTokens.length
+        })
       }
     }
 
@@ -123,7 +143,7 @@ export default function WordMode({
       targetTokenIndex: -1,  // -1 表示不挖空
       hiddenWord: ""
     }
-  }, [sentence.id, tokens, sentence.blanks])
+  }, [sentence.id, spaceTokens, renderTokens, sentence.blanks])
 
   // V3.1: 启动计时
   const startTiming = () => {
@@ -336,10 +356,10 @@ export default function WordMode({
         <p className="text-lg leading-relaxed">
           {sentence.text ? (
             <>
-              {/* 🔥 v6.1 修复：基于 tokens 渲染，保留所有标点符号 */}
+              {/* 🔥 v6.1 修复：基于 renderTokens 渲染，保留所有标点符号 */}
               {targetTokenIndex >= 0 ? (
                 <>
-                  {tokens.map((token, index) => {
+                  {renderTokens.map((token, index) => {
                     // 如果是挖空位置，渲染输入框
                     if (index === targetTokenIndex) {
                       return (
