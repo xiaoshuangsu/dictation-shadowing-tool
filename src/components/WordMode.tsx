@@ -53,18 +53,16 @@ export default function WordMode({
   const lastActivityRef = useRef<number>(Date.now())
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 使用正则匹配，支持连字符单词（如 self-esteem）和缩写词（如 what's）
-  const words = sentence.text.match(/[a-zA-Z0-9-']+/g)
-  const sentenceWords = words || []
+  // 🔥 v6.1 修复：改进分词逻辑，保留标点符号
+  // 同时保留单词、标点符号和空格，确保渲染时完整显示原文
+  const tokens = sentence.text.match(/([a-zA-Z0-9'-]+|[.,!?;:]+|\s+)/g) || []
 
   // Select word to hide:优先使用 sentence.blanks，否则使用随机算法
-  const { hiddenWordIndex, hiddenWord, visibleWordsBefore, visibleWordsAfter } = useMemo(() => {
-    if (sentenceWords.length === 0) {
+  const { targetTokenIndex, hiddenWord } = useMemo(() => {
+    if (tokens.length === 0) {
       return {
-        hiddenWordIndex: 0,
-        hiddenWord: "",
-        visibleWordsBefore: [],
-        visibleWordsAfter: []
+        targetTokenIndex: -1,
+        hiddenWord: ""
       }
     }
 
@@ -73,7 +71,7 @@ export default function WordMode({
       const blank = sentence.blanks[0]
       const blankWord = blank.word
 
-      // 在 sentenceWords 中找到匹配的词
+      // 在 tokens 中找到匹配的词（带标点）
       // 需要处理大小写和标点符号的差异
       let foundIndex = -1
 
@@ -81,20 +79,26 @@ export default function WordMode({
       const removePunctuation = (word: string) => word.replace(/[.,!?;:'""]/g, '')
 
       // 首先尝试精确匹配
-      foundIndex = sentenceWords.findIndex(w => w === blankWord)
+      foundIndex = tokens.findIndex(t => t === blankWord)
 
       // 如果没有找到，尝试忽略大小写匹配
       if (foundIndex === -1) {
-        foundIndex = sentenceWords.findIndex(w =>
-          w.toLowerCase() === blankWord.toLowerCase()
+        foundIndex = tokens.findIndex(t =>
+          t.toLowerCase() === blankWord.toLowerCase()
         )
       }
 
       // 如果还没有找到，尝试去除标点符号后匹配（处理 "bad." vs "bad" 的情况）
       if (foundIndex === -1) {
-        foundIndex = sentenceWords.findIndex(w =>
-          removePunctuation(w).toLowerCase() === removePunctuation(blankWord).toLowerCase()
-        )
+        const cleanBlankWord = removePunctuation(blankWord).toLowerCase()
+        foundIndex = tokens.findIndex((t, index) => {
+          // 跳过纯空格和纯标点的 token
+          if (/^\s+$/.test(t) || /^[.,!?;:]+$/.test(t)) {
+            return false
+          }
+          const cleanToken = removePunctuation(t).toLowerCase()
+          return cleanToken === cleanBlankWord
+        })
       }
 
       // 如果找到了，使用该索引
@@ -102,13 +106,12 @@ export default function WordMode({
         console.log('🎯 使用 blanks 字段挖空:', {
           word: blankWord,
           index: foundIndex,
+          token: tokens[foundIndex],
           isCore: blank.is_core
         })
         return {
-          hiddenWordIndex: foundIndex,
-          hiddenWord: sentenceWords[foundIndex],
-          visibleWordsBefore: sentenceWords.slice(0, foundIndex),
-          visibleWordsAfter: sentenceWords.slice(foundIndex + 1)
+          targetTokenIndex: foundIndex,
+          hiddenWord: tokens[foundIndex]
         }
       }
     }
@@ -117,12 +120,10 @@ export default function WordMode({
     // 随机算法会导致挖空黑名单词（如 my, that, is 等）
     console.log('⚠️  没有 blanks 字段，跳过挖空')
     return {
-      hiddenWordIndex: -1,  // -1 表示不挖空
-      hiddenWord: "",
-      visibleWordsBefore: sentenceWords,  // 显示所有单词
-      visibleWordsAfter: []
+      targetTokenIndex: -1,  // -1 表示不挖空
+      hiddenWord: ""
     }
-  }, [sentence.id, sentenceWords, sentence.blanks])
+  }, [sentence.id, tokens, sentence.blanks])
 
   // V3.1: 启动计时
   const startTiming = () => {
@@ -335,16 +336,21 @@ export default function WordMode({
         <p className="text-lg leading-relaxed">
           {sentence.text ? (
             <>
-              {/* 🔥 修复：如果有挖空词，显示挖空 UI；否则显示原始文本 */}
-              {hiddenWordIndex >= 0 ? (
+              {/* 🔥 v6.1 修复：基于 tokens 渲染，保留所有标点符号 */}
+              {targetTokenIndex >= 0 ? (
                 <>
-                  {visibleWordsBefore.length > 0 && visibleWordsBefore.map((word, index) => (
-                    <span key={index} className="text-gray-800">{word} </span>
-                  ))}
-                  <span className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">[     ]</span>
-                  {visibleWordsAfter.length > 0 && visibleWordsAfter.map((word, index) => (
-                    <span key={index} className="text-gray-800"> {word}</span>
-                  ))}
+                  {tokens.map((token, index) => {
+                    // 如果是挖空位置，渲染输入框
+                    if (index === targetTokenIndex) {
+                      return (
+                        <span key={index} className="inline-block border-b-2 border-blue-500 px-4 min-w-[100px] text-center text-blue-600 font-medium">
+                          [     ]
+                        </span>
+                      )
+                    }
+                    // 其他位置，直接渲染原 token（包含标点和空格）
+                    return <span key={index}>{token}</span>
+                  })}
                 </>
               ) : (
                 /* 没有挖空词时，直接显示原始文本，不显示下划线 */
