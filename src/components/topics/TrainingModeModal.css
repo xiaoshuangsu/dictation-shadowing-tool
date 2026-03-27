@@ -1,0 +1,282 @@
+/* ========================================
+   学习模式选择弹窗 - ShadowHub 品牌规范
+   ======================================== */
+
+.training-mode-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms ease-out, visibility 300ms;
+}
+
+.training-mode-modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 弹窗容器 - Scale-in 动画 (0.95 -> 1.0, 300ms) */
+.modal-container {
+  position: relative;
+  width: 90%;
+  max-width: 500px;
+  background: #FFFFFF;
+  border-radius: 24px;
+  padding: 48px 40px 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  transform: scale(0.95);
+  opacity: 0;
+  transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.training-mode-modal.active .modal-container {
+  transform: scale(1);
+  opacity: 1;
+  transition-delay: 50ms;
+}
+
+/* 关闭按钮 */
+.close-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #666666;
+  transition: all 200ms ease;
+}
+
+.close-button:hover {
+  background: #F5F5F7;
+  color: #2D2D2D;
+}
+
+.close-button:active {
+  transform: scale(0.95);
+}
+
+/* 标题区域 */
+.modal-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.modal-title {
+  font-size: 26px;
+  font-weight: 600;
+  color: #2D2D2D;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* 双选项布局 */
+.mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* 模式卡片 */
+.mode-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 32px 20px;
+  background: #FFFFFF;
+  border: 2px solid #F5F5F7;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-card:hover:not(:disabled) {
+  background: #FFFFFF;
+  border-color: #9333EA;
+  transform: translateY(-2px);
+}
+
+.mode-card:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.mode-card:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   图标容器 - 默认浅灰色背景
+   ======================================== */
+
+.mode-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: #F5F5F7;
+  border-radius: 16px;
+  transition: all 250ms ease;
+}
+
+.mode-card:hover .mode-icon {
+  background: #FFFFFF;
+}
+
+/* ========================================
+   Dictation 图标 - 纸张 + 笔
+   ======================================== */
+
+.paper-svg {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  z-index: 1;
+}
+
+.pen-svg {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  z-index: 2;
+  transform-origin: 16px 48px;
+  transition: transform 2s ease-in-out;
+}
+
+/* Dictation Hover: 笔在纸上书写动作 */
+.mode-card-dictation:hover .pen-svg {
+  animation: writingMotion 2s ease-in-out infinite;
+}
+
+@keyframes writingMotion {
+  0%, 100% {
+    transform: translate(0, 0) rotate(-15deg);
+  }
+  20% {
+    transform: translate(-4px, -6px) rotate(-25deg);
+  }
+  40% {
+    transform: translate(8px, -2px) rotate(-5deg);
+  }
+  60% {
+    transform: translate(-2px, 2px) rotate(-20deg);
+  }
+  80% {
+    transform: translate(6px, -8px) rotate(-10deg);
+  }
+}
+
+/* ========================================
+   Shadowing 图标 - 耳机
+   ======================================== */
+
+.headphones-svg {
+  width: 56px;
+  height: 56px;
+}
+
+/* Shadowing Hover: 耳机呼吸发光 */
+.mode-card-shadowing:hover .headphones-svg {
+  animation: pulsingAura 2s ease-in-out infinite;
+}
+
+@keyframes pulsingAura {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 rgba(147, 51, 234, 0));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.4));
+    transform: scale(1.05);
+  }
+}
+
+/* Shadowing Hover: 背景发光阴影 */
+.mode-card-shadowing:hover {
+  box-shadow: 0 0 20px 5px rgba(147, 51, 234, 0.3);
+}
+
+/* ========================================
+   模式内容
+   ======================================== */
+
+.mode-content {
+  text-align: center;
+}
+
+.mode-label {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2D2D2D;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.01em;
+}
+
+.mode-hint {
+  font-size: 13px;
+  color: #666666;
+  margin: 0;
+}
+
+/* ========================================
+   响应式设计
+   ======================================== */
+
+@media (max-width: 640px) {
+  .modal-container {
+    padding: 40px 24px 32px;
+    border-radius: 20px;
+  }
+
+  .modal-title {
+    font-size: 22px;
+  }
+
+  .mode-options {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mode-card {
+    flex-direction: row;
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .mode-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .paper-svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .pen-svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .headphones-svg {
+    width: 48px;
+    height: 48px;
+  }
+}

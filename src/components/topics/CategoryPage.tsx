@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { getCategoryMetadataBySlug, categoryToSlug, slugToCategory } from '@/lib/utils/category'
 import { getSupabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
+import { TrainingModeModal } from './TrainingModeModal'
+import { TrainingModeErrorBoundary } from './TrainingModeErrorBoundary'
 import DifficultySelector from './DifficultySelector'
 import DurationSelector from './DurationSelector'
 
@@ -21,6 +23,8 @@ type Material = {
   play_count: number
   is_premium: boolean  // 🔴 添加付费标识
   slug?: string
+  // 🔴 新增：用于弹窗的类别 slug
+  category_slug?: string
 }
 
 const ITEMS_PER_PAGE = 20
@@ -45,6 +49,10 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // 🔴 新增：训练模式弹窗状态
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null)
+
   // 🔴 从 URL 参数读取页码，默认为 1
   const currentPage = Number(searchParams.get('page')) || 1
 
@@ -52,6 +60,27 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // 🔴 新增：打开训练模式选择弹窗
+  const handleOpenModal = (material: Material, e?: React.MouseEvent) => {
+    console.log('🔍 [DEBUG] handleOpenModal 被调用:', {
+      title: material.title,
+      hasEvent: !!e,
+      isModalOpen: isModalOpen
+    })
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setSelectedMaterial(material)
+    setIsModalOpen(true)
+  }
+
+  // 🔴 新增：关闭弹窗
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedMaterial(null)
+  }
 
   const categoryMetadata = getCategoryMetadataBySlug(categorySlug)
 
@@ -427,7 +456,8 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                 return (
                   <div
                     key={material.id}
-                    className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow group"
+                    onClick={(e) => handleOpenModal(material, e)}
+                    className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
                   >
                     {/* Thumbnail */}
                     <div className="relative aspect-video bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
@@ -478,44 +508,18 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
 
                       {/* Action Buttons */}
                       <div className="flex gap-2">
-                        <Link
-                          href={`/topics/${categorySlug}/${material.slug || titleToSlug(material.title)}?mode=dictation`}
-                          onClick={() => {
-                            // 🔴 保存滚动位置和页码
-                            if (typeof window !== 'undefined') {
-                              const scrollKey = `category_${categorySlug}_scroll`
-                              const pageKey = `category_${categorySlug}_page`
-                              try {
-                                sessionStorage.setItem(scrollKey, window.scrollY.toString())
-                                sessionStorage.setItem(pageKey, currentPage.toString())
-                              } catch (e) {
-                                console.error('Failed to save state:', e)
-                              }
-                            }
-                          }}
+                        <button
+                          onClick={(e) => handleOpenModal(material, e)}
                           className="flex-1 text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           Dictation
-                        </Link>
-                        <Link
-                          href={`/topics/${categorySlug}/${material.slug || titleToSlug(material.title)}?mode=shadowing`}
-                          onClick={() => {
-                            // 🔴 保存滚动位置和页码
-                            if (typeof window !== 'undefined') {
-                              const scrollKey = `category_${categorySlug}_scroll`
-                              const pageKey = `category_${categorySlug}_page`
-                              try {
-                                sessionStorage.setItem(scrollKey, window.scrollY.toString())
-                                sessionStorage.setItem(pageKey, currentPage.toString())
-                              } catch (e) {
-                                console.error('Failed to save state:', e)
-                              }
-                            }
-                          }}
+                        </button>
+                        <button
+                          onClick={(e) => handleOpenModal(material, e)}
                           className="flex-1 text-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
                         >
                           Shadowing
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -567,6 +571,21 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
           </>
         )}
       </div>
+
+      {/* 🔴 训练模式选择弹窗（带 Error Boundary 保护） */}
+      <TrainingModeErrorBoundary>
+        <TrainingModeModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          material={selectedMaterial ? {
+            id: selectedMaterial.id,
+            title: selectedMaterial.title,
+            category: selectedMaterial.category,
+            slug: selectedMaterial.slug || titleToSlug(selectedMaterial.title),
+            audio_path: selectedMaterial.audio_path
+          } : null}
+        />
+      </TrainingModeErrorBoundary>
     </div>
   )
 }

@@ -1,9 +1,6 @@
-'use client';
-
 import { type Material } from '@/lib/supabase/client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { TrainingModeModal } from './TrainingModeModal'
-import { TrainingModeErrorBoundary } from './TrainingModeErrorBoundary'
 
 // 🔴 全局计数器，用于标识第一张图片
 let imageCounter = 0
@@ -28,8 +25,10 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   const [isFirstImage, setIsFirstImage] = useState(false)
   const [shouldLoadImage, setShouldLoadImage] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [audioPreloaded, setAudioPreloaded] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // 🔴 调试：检查 is_premium 字段
   useEffect(() => {
@@ -97,6 +96,15 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
     return `${R2_WORKER_URL}/${path}`
   }
 
+  // 获取音频 URL
+  const getAudioUrl = (path: string | null) => {
+    if (!path) return null
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path
+    }
+    return `${R2_WORKER_URL}/${path}`
+  }
+
   // 获取 Supabase fallback URL
   const getSupabaseUrl = (path: string | null) => {
     if (!path) return null
@@ -120,11 +128,61 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // 🔴 第二阶段：拦截点击事件，触发弹窗
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault() // 阻止默认跳转
-    e.stopPropagation() // 阻止事件冒泡
-    setIsModalOpen(true) // 打开训练模式选择弹窗
+  // 🔴 核心功能：打开弹窗并预加载音频
+  const handleOpenModal = (e?: React.MouseEvent) => {
+    console.log('🔍 [MaterialCard] handleOpenModal 被调用:', {
+      title: material.title,
+      hasEvent: !!e,
+      audioPreloaded: audioPreloaded
+    })
+
+    // 阻止事件冒泡和默认行为
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    // 打开弹窗
+    setIsModalOpen(true)
+
+    // 🔴 性能优化：弹窗打开时立即预加载音频
+    if (!audioPreloaded && material.audio_path) {
+      const audioUrl = getAudioUrl(material.audio_path)
+      if (audioUrl) {
+        console.log('🔍 [MaterialCard] 开始预加载音频:', audioUrl)
+        audioRef.current = new Audio(audioUrl)
+
+        // 静默预加载（不自动播放）
+        audioRef.current.preload = 'auto'
+        audioRef.current.load()
+
+        audioRef.current.addEventListener('canplaythrough', () => {
+          console.log('✅ [MaterialCard] 音频预加载完成:', material.title)
+          setAudioPreloaded(true)
+        }, { once: true })
+
+        audioRef.current.addEventListener('error', () => {
+          console.error('❌ [MaterialCard] 音频预加载失败:', material.title)
+        }, { once: true })
+      }
+    }
+  }
+
+  // 🔴 卡片点击处理（封面/标题区域）
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    console.log('🔍 [MaterialCard] 卡片被点击:', material.title)
+    handleOpenModal(e)
+  }
+
+  // 🔴 按钮点击处理
+  const handleDictationClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    console.log('🔍 [MaterialCard] Dictation 按钮被点击:', material.title)
+    handleOpenModal(e)
+  }
+
+  const handleShadowingClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    console.log('🔍 [MaterialCard] Shadowing 按钮被点击:', material.title)
+    handleOpenModal(e)
   }
 
   const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
@@ -160,11 +218,21 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
     }
   }
 
+  // 🔴 清理音频资源
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.src = ''
+        audioRef.current = null
+      }
+    }
+  }, [])
+
   return (
     <>
       <div
         ref={cardRef}
-        onClick={handleClick}
+        onClick={handleCardClick}
         className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
       >
         {/* 封面图 */}
@@ -254,34 +322,48 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
           </div>
 
           {/* 标题 */}
-          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 min-h-[2.5rem]">
+          <h3 className="font-semibold text-gray-900 mb-4 line-clamp-2 min-h-[2.5rem]">
             {material.title}
           </h3>
 
           {/* 元信息 */}
-          <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
             <span>{formatFileSize(material.audio_size)} MB</span>
             {material.duration && (
               <span>{formatDuration(material.duration)}</span>
             )}
           </div>
+
+          {/* 🔴 恢复：Dictation 和 Shadowing 按钮 */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleDictationClick}
+              className="flex-1 text-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
+            >
+              Dictation
+            </button>
+            <button
+              onClick={handleShadowingClick}
+              className="flex-1 text-center px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 active:scale-95 transition-all cursor-pointer"
+            >
+              Shadowing
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 🔴 第二阶段：训练模式选择弹窗（带 Error Boundary 保护） */}
-      <TrainingModeErrorBoundary>
-        <TrainingModeModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          material={{
-            id: material.id,
-            title: material.title,
-            category: material.category,
-            slug: material.slug,
-            audio_path: material.audio_path
-          }}
-        />
-      </TrainingModeErrorBoundary>
+      {/* 学习模式选择弹窗 */}
+      <TrainingModeModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        material={{
+          id: material.id,
+          title: material.title,
+          category: material.category,
+          slug: material.slug,
+          audio_path: material.audio_path
+        }}
+      />
     </>
   )
 }

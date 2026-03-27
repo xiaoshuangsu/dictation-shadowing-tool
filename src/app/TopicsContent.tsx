@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { categoryToSlug } from '@/lib/utils/category'
 import { getSupabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
+import { TrainingModeModal } from '@/components/topics/TrainingModeModal'
 
 type Material = {
   id: string
@@ -52,6 +53,10 @@ export function MaterialsPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [imageLoadedStates, setImageLoadedStates] = useState<Record<string, boolean>>({})
+
+  // 🔴 弹窗状态
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null)
 
   // 获取每个分类的前4个素材和总数
   useEffect(() => {
@@ -148,6 +153,28 @@ export function MaterialsPageContent() {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // 🔴 打开弹窗
+  const handleOpenModal = (material: Material, e?: React.MouseEvent) => {
+    console.log('🔍 [TopicsContent] handleOpenModal 被调用:', {
+      title: material.title,
+      hasEvent: !!e
+    })
+
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
+    setSelectedMaterial(material)
+    setModalOpen(true)
+  }
+
+  // 🔴 关闭弹窗
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setSelectedMaterial(null)
   }
 
   // 计算总素材数和分类数
@@ -284,20 +311,20 @@ export function MaterialsPageContent() {
                                 {material.title}
                               </h3>
 
-                              {/* 操作按钮 */}
+                              {/* 🔴 操作按钮（改成按钮，添加弹窗） */}
                               <div className="flex gap-2">
-                                <Link
-                                  href={`/topics/${categoryToSlug(material.category)}/${material.slug || titleToSlug(material.title)}?mode=dictation`}
-                                  className="flex-1 text-center px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
+                                <button
+                                  onClick={(e) => handleOpenModal(material, e)}
+                                  className="flex-1 text-center px-2 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
                                 >
                                   Dictation
-                                </Link>
-                                <Link
-                                  href={`/topics/${categoryToSlug(material.category)}/${material.slug || titleToSlug(material.title)}?mode=shadowing`}
-                                  className="flex-1 text-center px-2 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 transition-colors whitespace-nowrap"
+                                </button>
+                                <button
+                                  onClick={(e) => handleOpenModal(material, e)}
+                                  className="flex-1 text-center px-2 py-1.5 bg-gray-600 text-white text-xs font-medium rounded-lg hover:bg-gray-700 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
                                 >
                                   Shadowing
-                                </Link>
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -311,6 +338,21 @@ export function MaterialsPageContent() {
           )}
         </div>
       </div>
+
+      {/* 🔴 训练模式选择弹窗 */}
+      {selectedMaterial && (
+        <TrainingModeModal
+          isOpen={modalOpen}
+          onClose={handleCloseModal}
+          material={{
+            id: selectedMaterial.id,
+            title: selectedMaterial.title,
+            category: selectedMaterial.category,
+            slug: selectedMaterial.slug || titleToSlug(selectedMaterial.title),
+            audio_path: selectedMaterial.audio_path
+          }}
+        />
+      )}
     </div>
   )
 }

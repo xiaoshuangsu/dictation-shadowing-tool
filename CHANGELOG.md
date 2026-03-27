@@ -11,6 +11,78 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.6.0] - 2026-03-27
+
+### Added
+- **训练模式选择弹窗** 🎯
+  - 新增 `TrainingModeModal` 组件，提供 Dictation 和 Shadowing 两种训练模式选择
+  - 对齐 ShadowHub 品牌视觉规范：
+    - Dictation 模式：纯白纸张 + 紫色笔图标，展示书写动画
+    - Shadowing 模式：紫色头戴式耳机图标，展示发光动画
+    - 浅灰色背景框 + 紫色主题色（#9333EA）
+  - 弹窗设计：居中显示，带关闭按钮（X），点击背景关闭
+  - CSS 动效：悬停时图标轻微放大，点击时缩放反馈
+
+- **React Error Boundary 防御** 🛡️
+  - 新增 `TrainingModeErrorBoundary` 组件，包裹弹窗防止崩溃
+  - 弹窗异常时显示友好错误提示，不影响页面其他功能
+  - 错误信息记录到控制台，方便问题排查
+
+### Changed
+- **素材卡片交互重构** 🎨
+  - **Topics 页面**（素材列表页）：
+    - 移除原有 `<Link>` 标签直接跳转
+    - 点击 Dictation/Shadowing 按钮触发弹窗选择
+    - 保持原有卡片样式（圆角、阴影、难度标签、时长标签）
+    - 添加按钮点击缩放反馈（`active:scale-95`）
+  - **CategoryPage 页面**（分类详情页）：
+    - 卡片封面和按钮点击统一触发弹窗
+    - 移除直接跳转逻辑，改为通过弹窗选择模式
+
+- **URL 格式统一** 🔗
+  - 练习页面 URL 格式：`/topics/{category-slug}/{material-slug}/?mode={mode}`
+  - 使用查询参数 `?mode=dictation` 或 `?mode=shadowing`
+  - 分类名称自动转换为英文 slug（中文 → 英文）
+  - 修复旧版 URL 格式问题（路径模式 → 查询参数模式）
+
+### Performance
+- **静默异步预加载机制** ⚡
+  - 弹窗打开时立即预加载音频和挖空数据，不阻塞 UI
+  - 音频预加载：
+    - 使用 `canplaythrough` 事件监听，等待音频可播放
+    - 超时机制：5 秒后自动放弃，不影响用户操作
+    - Promise 包装，确保异步加载不阻塞主线程
+  - 挖空数据预加载：
+    - Fetch API 请求 `/api/cloze/{materialId}`
+    - 超时机制：3 秒后自动放弃
+    - 静默失败，预加载失败不影响正常跳转
+
+- **容错处理** 🛡️
+  - 预加载失败时只打印错误日志，不抛出异常
+  - 用户点击弹窗按钮时，无论预加载成功或失败都能正常跳转
+  - 添加详细的调试日志，方便排查问题
+
+### Technical Details
+- **新增文件**：
+  - `src/components/topics/TrainingModeModal.tsx` - 弹窗组件
+  - `src/components/topics/TrainingModeModal.css` - 弹窗样式
+  - `src/components/topics/TrainingModeErrorBoundary.tsx` - 错误边界
+
+- **修改文件**：
+  - `src/app/TopicsContent.tsx` - 集成弹窗功能
+  - `src/components/topics/CategoryPage.tsx` - 集成弹窗功能
+  - `src/components/topics/MaterialCardWithModal.tsx` - 添加按钮和弹窗
+
+- **删除文件**：
+  - `src/app/debug-modal/` - 临时测试路由（已清理）
+
+- **用户体验改进**：
+  - 移除原有 3D 翻页动画，改为简洁的弹窗选择
+  - 统一交互逻辑：卡片整体和按钮都能触发弹窗
+  - 点击反馈：按钮缩放、鼠标悬停效果
+
+---
+
 ## [29.5.2] - 2026-03-26
 
 ### Performance
