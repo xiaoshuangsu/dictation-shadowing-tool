@@ -13,6 +13,7 @@
 4. [模式切换进度丢失](#4-模式切换进度丢失)
 5. [深度链接跳转逻辑](#5-深度链接跳转逻辑)
 6. [连字符词分词问题](#6-连字符词分词问题)
+7. [挖空词分词索引不一致与撇号丢失](#7-挖空词分词索引不一致与撇号丢失-v2961)
 
 ---
 
@@ -559,5 +560,98 @@ type Material = {
 
 ---
 
-**版本**：V29.3.0
-**更新日期**：2026-03-24
+## 7. 挖空词分词索引不一致与撇号丢失 (V29.6.1)
+
+### 症状
+- 挖空位置错误：数据库 `blanks.index=5` 指向 "information"，但前端挖空了 "I"
+- 撇号丢失：句子 "It's 07786643091." 挖空后显示 "[ ]s 07786643091."，撇号消失
+- 标点符号问题：虽然 v6.1 修复了标点符号保留，但挖空词索引仍错位
+
+### 根本原因
+
+**问题 1：分词索引不一致**
+- v6.1 修复标点符号时，WordMode 改用正则分词 `/([a-zA-Z0-9'-]+|[.,!?;:]+|\s+)/g`
+- 但挖空脚本仍使用空格分词 `split(' ')`
+- 两种分词的索引体系不同：
+  ```
+  空格分词: ["Good", "morning.", "I", "want", "some", "information"]
+                      index 5 = "information"
+
+  正则分词: ["Good", " ", "morning", ".", " ", "I", ...]
+                      index 5 = "I" ❌ 错位
+  ```
+- 前端直接用 `blanks.index` 索引正则分词结果，导致挖空错误
+
+**问题 2：撇号丢失（字符编码问题）**
+- 数据库使用 **U+2019**（弯撇号/智能引号）：`It's`
+- 但正则表达式只匹配 **U+0027**（ASCII 撇号）：`'`
+- 正则 `/([a-zA-Z0-9'-]+|[.,!?;:]+|\s+)/g` 不包含 U+2019
+- "It's" 被拆分成 `["It", "'", "s"]`，撇号丢失
+
+### 解决方案
+
+**修复 1：双重分词 + 索引转换**
+```typescript
+// WordMode.tsx
+const spaceTokens = sentence.text.split(' ')        // 空格分词
+const renderTokens = sentence.text.match(/([a-zA-Z0-9'\u2019-]+|[.,!?;:]+|\s+)/g) || []  // 正则分词
+
+// 索引转换：spaceTokens index → renderTokens index
+let spaceTokenCount = 0;
+let renderIndex = -1;
+
+for (let i = 0; i < renderTokens.length; i++) {
+  const token = renderTokens[i];
+  // 跳过纯空格和纯标点的 token
+  if (/^\s+$/.test(token) || /^[.,!?;:]+$/.test(token)) {
+    continue;
+  }
+  // 找到第 blank.index 个非标点/空格的 token
+  if (spaceTokenCount === blank.index) {
+    renderIndex = i;
+    break;
+  }
+  spaceTokenCount++;
+}
+```
+
+**修复 2：正则表达式支持两种撇号**
+```typescript
+// 从：
+/([a-zA-Z0-9'-]+|[.,!?;:]+|\s+)/g
+
+// 改为：
+/([a-zA-Z0-9'\u2019-]+|[.,!?;:]+|\s+)/g
+//                        ^^^^^^ 添加 U+2019 支持
+```
+
+### 效果验证
+
+**测试用例 1**："Andrea Brown."
+- 数据库：`{word: "Andrea", index: 0}`
+- 渲染：`[     ] Brown.` ✅ 正确
+
+**测试用例 2**："It's 07786643091."
+- 数据库：`{word: "It's", index: 0}`
+- 渲染：`[     ] 07786643091.` ✅ 撇号保留
+
+**测试用例 3**："Good morning. I want some information"
+- 数据库：`{word: "information", index: 5}`
+- 空格分词：index 5 = "information"
+- 正则分词：index 11 = "information"（转换后）
+- 渲染：`Good morning. I want some [     ]` ✅ 正确
+
+### 关键要点
+- ✅ **向后兼容**：数据库 `blanks` 数据无需修改
+- ✅ **双重分词**：空格分词用于匹配，正则分词用于渲染
+- ✅ **索引转换**：必须先验证再转换，不能直接用 `blanks.index`
+- ✅ **字符编码**：正则表达式必须同时支持 U+0027 和 U+2019
+
+### 相关文件
+- `src/components/WordMode.tsx` - 核心修复
+- `scripts/reprocess_ietts_blanks.py` - 添加 word/index 验证逻辑
+
+---
+
+**版本**：V29.6.1
+**更新日期**：2026-03-27

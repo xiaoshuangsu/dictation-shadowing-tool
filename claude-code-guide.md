@@ -117,6 +117,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://cuxotlijjnxbsirpdkgr.supabase.co
 **前端组件**：
 - `src/components/VideoPlayer.tsx` - 视频播放组件
 - `src/components/AudioPlayer.tsx` - 音频播放组件
+- `src/components/WordMode.tsx` - **单词挖空组件**（Dictation 模式）
 - `src/app/practice/page.tsx` - 练习页面（旧版，含 getCdnUrl 函数）
 - `src/app/topics/[category]/[slug]/PracticePage.tsx` - 练习页面（新版，三栏布局）
 
@@ -316,6 +317,26 @@ cat RESUME_PREPOPULATION.md
 - **视频编码必须为 H.264/AAC**
 - **建议文件大小 < 20MB**
 
+### 4. 挖空逻辑分词规范（V29.6.1 修复）
+- **挖空脚本**（`scripts/reprocess_ietts_blanks.py`）使用**空格分词**：`split(' ')`
+  - 生成的 `blanks.index` 基于空格分词
+  - 数据库中的 `blanks` 数据必须与空格分词一致
+
+- **前端 WordMode** 使用**双重分词**：
+  - `spaceTokens`：空格分词，用于匹配 `blanks.index`
+  - `renderTokens`：正则分词，用于渲染原文（保留标点）
+  - **必须添加索引转换逻辑**：将空格分词的 index 转换为正则分词的 index
+
+- **正则表达式必须支持两种撇号**：
+  - ASCII 撇号（U+0027）：`'`
+  - 弯撇号/智能引号（U+2019）：`'\u2019`
+  - 正则：`/([a-zA-Z0-9'\u2019-]+|[.,!?;:]+|\s+)/g`
+
+- **关键原则**：
+  - ❌ **禁止**：直接用 `blanks.index` 索引正则分词结果（会错位）
+  - ✅ **正确**：先用空格分词验证，再转换为正则分词索引
+  - ✅ **向后兼容**：数据库 `blanks` 数据无需修改，前端自动适配
+
 ---
 
 **版本**：V27.0.5
@@ -350,8 +371,8 @@ cat CONTEXT_RESTORE.md
 
 ---
 
-**版本**：V27.1.0
-**更新日期**：2026-03-22
+**版本**：V29.6.1
+**更新日期**：2026-03-27
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
 **GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
