@@ -365,8 +365,8 @@ cat CONTEXT_RESTORE.md
 
 ---
 
-**版本**：V29.6.1
-**更新日期**：2026-03-27
+**版本**：V29.6.2
+**更新日期**：2026-03-28
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
 **GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
@@ -379,17 +379,20 @@ cat CONTEXT_RESTORE.md
 
 | 脚本名称 | 版本 | 路径 | 功能描述 | 最后更新 |
 |---------|------|------|----------|----------|
-| **主挖空脚本** | v6.0 | `scripts/reprocess_ietts_blanks.py` | 雅思素材挖空重处理，支持空格分词索引转换和撇号保留 | 2026-03-26 |
+| **主挖空脚本** | v6.1 | `scripts/reprocess_ietts_blanks.py` | 雅思素材挖空重处理，支持索引转换和自动修正 | 2026-03-28 |
 | **CAM 13/14 批量** | v1.0 | `scripts/reprocess_cam13_14_only.py` | 批量处理 CAM 13/14 系列素材（32个） | 2026-03-28 |
 
 **挖空逻辑版本历史**：
+- v6.1 (2026-03-28): **新增索引转换逻辑（自动修正 GLM 返回的错误 index）**
 - v6.0 (2026-03-26): 新增黑名单（情态助动词、疑问代词、低级认知词）+ 修复事实词过滤与提权规则冲突
 - v5.2 (2026-03-26): 长单词提权、音节复杂度加成、月份提权、禁止填充语
 - v5.1 (2026-03-26): 修复 W6 占比过高，扩展黑名单和权重规则
 - v5.0 (2026-03-26): 语言习得导向重构，权重系统，固定搭配识别
 
-**关键修复**（V29.6.1）：
-- ✅ 空格分词索引 → 正则分词索引的转换逻辑
+**关键修复**（v6.1）：
+- ✅ **索引转换逻辑**：验证 word 是否与 index 位置的词匹配
+- ✅ **自动修正**：GLM 返回错误 index 时，在句子中查找实际位置
+- ✅ 空格分词索引 → 正则分词索引的转换逻辑（前端）
 - ✅ 正则表达式支持 ASCII 撇号（U+0027）和弯撇号（U+2019）
 - ✅ 数据库 `blanks.index` 基于空格分词，前端自动适配
 
@@ -397,11 +400,11 @@ cat CONTEXT_RESTORE.md
 
 | 脚本名称 | 版本 | 路径 | 功能描述 | 最后更新 |
 |---------|------|------|----------|----------|
-| **批量上传** | v6.0 | `scripts/ingest_bulk.py` | Engnovate 批量素材导入，GLM 翻译，智能挖空 | 2026-03-26 |
+| **批量上传** | v6.1 | `scripts/ingest_bulk.py` | Engnovate 批量素材导入，GLM 翻译，智能挖空，索引转换 | 2026-03-28 |
 | **单个上传** | - | `scripts/ingest_single.py` | 单个素材上传 | - |
 | **YouTube 上传** | - | `scripts/ingest_youtube_ytdlp.py` | YouTube 素材自动上传 | - |
 
-**注意**：`ingest_bulk.py` (v6.0) 和 `reprocess_ietts_blanks.py` (v6.0) 均为独立实现，逻辑相同但未共享代码。
+**注意**：`ingest_bulk.py` (v6.1) 和 `reprocess_ietts_blanks.py` (v6.1) 均为独立实现，逻辑相同但未共享代码。
 
 ### 翻译脚本（Translation Scripts）
 
