@@ -694,7 +694,13 @@ def is_proper_noun(word: str, sentence_text: str = '', index: int = -1) -> bool:
         'america', 'american', 'britain', 'british', 'england', 'english', 'scotland', 'irish',
         'europe', 'european', 'asia', 'asian', 'africa', 'pacific', 'atlantic',
         'australia', 'australian', 'canada', 'canadian', 'india', 'indian',
-        'cambridge', 'oxford', 'yale', 'harvard', 'stanford'
+        'cambridge', 'oxford', 'yale', 'harvard', 'stanford',
+        # 🔥 v6.2 新增：加拿大省份/地区
+        'alberta', 'british columbia', 'manitoba', 'new brunswick', 'newfoundland', 'labrador',
+        'nova scotia', 'ontario', 'prince edward island', 'quebec', 'saskatchewan',
+        'northwest territories', 'nunavut', 'yukon',
+        # 美国州份（常见）
+        'california', 'texas', 'florida', 'new york', 'washington'
     ]
     if word_clean.lower() in place_names:
         return True
