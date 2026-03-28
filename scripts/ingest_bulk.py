@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量素材导入脚本 v6.0
+批量素材导入脚本 v6.1
 从 Engnovate 抓取多个 Dictation/Shadowing 练习
 
 特点：
@@ -18,12 +18,14 @@
 - 前端组件：必须添加 crossOrigin="anonymous" 属性
 - Worker 响应：必须返回 Access-Control-Allow-Origin: *
 
-🎯 v6.0 挖空逻辑：
+🎯 v6.1 挖空逻辑：
+- 🆕 新增：索引转换逻辑（验证 word 是否与 index 位置的词匹配）
+- 🆕 新增：自动修正错误的 index（在句子中查找实际位置）
 - 在 v5.2 基础上新增情态助动词、疑问代词、低级认知词
 - 🔥 修复：解决 v4.0 事实词过滤与 v5.2 提权规则的冲突
 - 🔥 新增：语言习得导向本地评分算法（长单词提权、音节复杂度加成）
 
-语言习得导向评分算法（v6.0）：
+语言习得导向评分算法（v6.1）：
 - 词长权重（0-30分）：10+字母30分，8-9字母25分，6-7字母15分
 - 音节复杂度（0-30分）：4+音节30分，3音节20分，2音节10分
 - 词性权重（0-20分）：形容词/副词20分，动词15分，名词10分
@@ -36,6 +38,7 @@
 - src/components/topics/MaterialCard.tsx (line 170)
 
 版本历史：
+- v6.1 (2026-03-28): 新增索引转换逻辑（同步 reprocess_ietts_blanks.py v6.1 修复）
 - v6.0 (2026-03-26): 新增黑名单 + 修复逻辑冲突（月份/时间词汇提权生效）
 - v5.2 (2026-03-25): 新增填充语/虚词（then, too, either, though, anyway, actually）
 - v5.1 (2026-03-25): 新增问候语、常见形容词、常见动词
@@ -1185,6 +1188,25 @@ def generate_blanks_with_glm(sentence_text: str, category: str, blanked_words: d
                 # 验证 index 范围
                 if index < 0 or index >= len(words):
                     continue
+
+                # 🔥 v6.1 新增：验证 word 是否与 index 位置的词匹配
+                word_at_index = words[index].strip('.,!?;:"\'').lower()
+                if word_at_index != word.lower():
+                    # 尝试在句子中查找 word 的实际位置
+                    actual_index = -1
+                    for i, w in enumerate(words):
+                        if w.strip('.,!?;:"\'').lower() == word.lower():
+                            actual_index = i
+                            break
+
+                    if actual_index >= 0:
+                        # 使用实际找到的 index
+                        index = actual_index
+                        print(f"    ⚠️  修正 index: {candidate.get('index')} -> {actual_index} (word='{word}')")
+                    else:
+                        # word 不在句子中，跳过这个候选词
+                        print(f"    ⚠️  跳过无效候选词: word='{word}' 不在句子中")
+                        continue
 
                 # 🔴 v4: 使用 should_skip_word 综合判断
                 if should_skip_word(word, sentence_text, index):

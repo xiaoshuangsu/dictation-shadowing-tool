@@ -370,3 +370,138 @@ cat CONTEXT_RESTORE.md
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
 **GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
+
+---
+
+## 📚 核心脚本索引（快速恢复）
+
+### 挖空脚本（Blank Logic）
+
+| 脚本名称 | 版本 | 路径 | 功能描述 | 最后更新 |
+|---------|------|------|----------|----------|
+| **主挖空脚本** | v6.0 | `scripts/reprocess_ietts_blanks.py` | 雅思素材挖空重处理，支持空格分词索引转换和撇号保留 | 2026-03-26 |
+| **CAM 13/14 批量** | v1.0 | `scripts/reprocess_cam13_14_only.py` | 批量处理 CAM 13/14 系列素材（32个） | 2026-03-28 |
+
+**挖空逻辑版本历史**：
+- v6.0 (2026-03-26): 新增黑名单（情态助动词、疑问代词、低级认知词）+ 修复事实词过滤与提权规则冲突
+- v5.2 (2026-03-26): 长单词提权、音节复杂度加成、月份提权、禁止填充语
+- v5.1 (2026-03-26): 修复 W6 占比过高，扩展黑名单和权重规则
+- v5.0 (2026-03-26): 语言习得导向重构，权重系统，固定搭配识别
+
+**关键修复**（V29.6.1）：
+- ✅ 空格分词索引 → 正则分词索引的转换逻辑
+- ✅ 正则表达式支持 ASCII 撇号（U+0027）和弯撇号（U+2019）
+- ✅ 数据库 `blanks.index` 基于空格分词，前端自动适配
+
+### 素材上传脚本（Ingest Scripts）
+
+| 脚本名称 | 版本 | 路径 | 功能描述 | 最后更新 |
+|---------|------|------|----------|----------|
+| **批量上传** | v6.0 | `scripts/ingest_bulk.py` | Engnovate 批量素材导入，GLM 翻译，智能挖空 | 2026-03-26 |
+| **单个上传** | - | `scripts/ingest_single.py` | 单个素材上传 | - |
+| **YouTube 上传** | - | `scripts/ingest_youtube_ytdlp.py` | YouTube 素材自动上传 | - |
+
+**注意**：`ingest_bulk.py` (v6.0) 和 `reprocess_ietts_blanks.py` (v6.0) 均为独立实现，逻辑相同但未共享代码。
+
+### 翻译脚本（Translation Scripts）
+
+| 脚本名称 | 版本 | 路径 | 功能描述 | 最后更新 |
+|---------|------|------|----------|----------|
+| **中文翻译** | - | `scripts/translate.js` | 英译中翻译 | - |
+| **越南语翻译** | - | `scripts/translate_to_vietnamese.py` | 英译越南语翻译 | - |
+
+### 文本规范化（Text Normalization）
+
+| 脚本名称 | 版本 | 路径 | 功能描述 | 最后更新 |
+|---------|------|------|----------|----------|
+| **文本规范化** | - | `scripts/text_normalizer.py` | 连字符词空格清理，确保 `word-word` 格式统一 | - |
+
+---
+
+## 🚀 快速恢复指令
+
+### 场景 1：挖空逻辑问题（索引错误、撇号丢失）
+
+```bash
+# 恢复上下文
+cat claude-code-guide.md docs/knowledge_base.md
+
+# 验证修复
+python3 scripts/test_index_conversion.js
+
+# 批量重处理（单个素材）
+python3 scripts/reprocess_ietts_blanks.py
+
+# 批量重处理（CAM 13/14 系列）
+python3 scripts/reprocess_cam13_14_only.py
+```
+
+### 场景 2：连字符词分词问题
+
+```bash
+# 恢复上下文
+cat claude-code-guide.md docs/automation_standards.md
+
+# 测试文本规范化
+python3 scripts/text_normalizer.py
+
+# 检测数据库中的问题
+python3 scripts/find_hyphenated_words.py
+
+# 批量修复
+python3 scripts/fix_hyphen_spacing.py
+```
+
+### 场景 3：素材上传（Engnovate 批量导入）
+
+```bash
+# 恢复上下文
+cat claude-code-guide.md docs/automation_standards.md
+
+# 准备 URL 列表
+echo "https://engnovate.com/..." > /tmp/urls.txt
+
+# 运行批量上传
+python3 scripts/ingest_bulk.py
+```
+
+### 场景 4：点词翻译与生词本
+
+```bash
+# 恢复上下文
+cat claude-code-guide.md docs/dictionary_and_translation_implementation.md
+
+# 词典预生成恢复（重要！）
+cat RESUME_PREPOPULATION.md
+
+# 查看词典缓存统计
+# 访问 Supabase Table Editor：dictionary_cache 表
+```
+
+### 场景 5：代码开发与 Bug 修复
+
+```bash
+# 恢复上下文
+cat claude-code-guide.md docs/technical_deep_dive.md docs/knowledge_base.md
+
+# 查看版本历史
+git log --oneline -10
+
+# 查看最近的修改
+git diff HEAD~1
+```
+
+---
+
+## 📖 重要文档版本索引
+
+| 文档名称 | 版本 | 更新日期 | 用途 |
+|---------|------|----------|------|
+| `claude-code-guide.md` | V29.6.1 | 2026-03-27 | 项目主指南，脚本索引 |
+| `docs/knowledge_base.md` | V29.6.1 | 2026-03-27 | Bug 记录与解决方案 |
+| `docs/automation_standards.md` | V19.9 | 2026-03-18 | 素材上传规范 |
+| `docs/dictionary_and_translation_implementation.md` | V20.1 | 2026-03-21 | 点词翻译与生词本 |
+| `docs/dictionary_cache_guide.md` | - | - | 词典缓存优化 |
+| `RESUME_PREPOPULATION.md` | - | - | 词典预生成恢复口令 |
+
+---
