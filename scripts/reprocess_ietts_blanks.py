@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-重新处理雅思素材挖空逻辑 v6.1
+重新处理雅思素材挖空逻辑 v6.2
 语言习得导向（Language Acquisition）的智能挖空
 
 特点：
@@ -20,8 +20,11 @@
 14. 🔥 v6.0 修复：解决 v4.0 事实词过滤与 v5.2 提权规则的冲突
 15. 🆕 v6.1 新增：索引转换逻辑（验证 word 是否与 index 位置的词匹配）
 16. 🆕 v6.1 新增：自动修正错误的 index（在句子中查找实际位置）
+17. 🆕 v6.2 新增：平局决胜规则（权重相同时优先索引大、长度长、名词）
+18. 🆕 v6.2 新增：感叹词黑名单（oh, ah, wow, hey, oops 等）
 
 版本历史：
+- v6.2 (2026-03-28): 新增平局决胜规则 + 感叹词黑名单
 - v6.1 (2026-03-28): 新增索引转换逻辑（自动修正 GLM 返回的错误 index）
 - v6.0 (2026-03-26): 新增黑名单 + 修复逻辑冲突（月份/时间词汇提权生效）
 - v5.2 (2026-03-26): 长单词提权、音节复杂度加成、月份提权、禁止填充语
@@ -109,6 +112,10 @@ STRICT_BLACKLIST = [
 
     # ===== 🔥 v6.0 新增：低级认知词/填充词 =====
     'think', 'uh', 'hmm', 'um',
+
+    # ===== 🔥 v6.2 新增：感叹词（无听写意义）=====
+    'oh', 'ah', 'wow', 'hey', 'oops', 'ugh', 'ew', 'whoa', 'yeah', 'yay', 'aww',
+    'phew', 'eek', 'yikes', 'gosh', 'jeez', 'man',
 
     # ===== 其他 =====
     'there', 'here', 'just', 'really', 'very'
@@ -270,6 +277,48 @@ def should_skip_word(word: str, sentence_text: str = '', index: int = -1) -> boo
     return False
 
 # ==================== 🔥 v5.0 新增：权重系统 ====================
+
+def calculate_tiebreaker_score(word: str, index: int, sentence_text: str = '') -> float:
+    """计算平局决胜分数（权重相同时使用）
+
+    平局决胜优先级：
+    1. 索引越大（避免句首感叹词）：权重 0.5
+    2. 词长越长（address > oh）：权重 0.3
+    3. 名词优先（名词 > 感叹词/动词/形容词）：权重 0.2
+
+    Args:
+        word: 待评估的单词
+        index: 单词在句子中的位置
+        sentence_text: 完整句子（可选）
+
+    Returns:
+        平局决胜分数（0-1）
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+    score = 0.0
+
+    # 规则1: 索引越大（避免句首感叹词）
+    # 归一化到 0-0.5 范围
+    if sentence_text:
+        words_count = len(sentence_text.split())
+        if words_count > 0:
+            score += (index / words_count) * 0.5
+
+    # 规则2: 词长越长
+    # 归一化到 0-0.3 范围（假设最大词长 20）
+    word_length = len(word_clean)
+    score += min(word_length / 20.0, 1.0) * 0.3
+
+    # 规则3: 名词优先
+    # 通过后缀判断是否为名词
+    noun_suffixes = ['ment', 'tion', 'ness', 'ity', 'ence', 'ance', 'dom', 'ship', 'ism', 'ist']
+    if any(word_clean.endswith(suffix) for suffix in noun_suffixes):
+        score += 0.2
+    elif word_clean.endswith('s') and not word_clean.endswith('ss'):
+        # 可能是复数名词
+        score += 0.1
+
+    return score
 
 def calculate_word_weight(word: str, sentence_text: str = '', index: int = -1) -> int:
     """计算单词的权重（0-10）
@@ -706,7 +755,23 @@ def generate_blank_for_sentence(sentence_text: str, blanked_words: dict = None) 
 
                 # 🔥 v5.0: 计算权重，选择权重最高的候选词
                 weight = calculate_word_weight(word, sentence_text, index)
+
+                # 🔥 v6.2: 平局决胜规则（权重相同时使用）
+                is_better = False
                 if weight > best_weight:
+                    is_better = True
+                elif weight == best_weight and weight > 0:
+                    # 权重相等时，使用平局决胜分数
+                    current_tiebreaker = calculate_tiebreaker_score(word, index, sentence_text)
+                    best_tiebreaker = calculate_tiebreaker_score(
+                        best_candidate.get('word', '') if best_candidate else '',
+                        best_candidate.get('index', -1) if best_candidate else -1,
+                        sentence_text
+                    )
+                    if current_tiebreaker > best_tiebreaker:
+                        is_better = True
+
+                if is_better:
                     best_weight = weight
                     best_candidate = {
                         "word": word,
@@ -763,12 +828,15 @@ def fallback_blank_selection_v5(sentence_text: str, blanked_words: dict) -> Opti
         # 计算权重
         weight = calculate_word_weight(word, sentence_text, i)
         if weight > 0:
-            candidates_with_weights.append((weight, i, word))
+            # 🔥 v6.2: 同时计算平局决胜分数
+            tiebreaker = calculate_tiebreaker_score(word, i, sentence_text)
+            candidates_with_weights.append((weight, tiebreaker, i, word))
 
-    # 按权重排序，选择权重最高的词
+    # 🔥 v6.2: 按权重 + 平局决胜分数排序
     if candidates_with_weights:
-        candidates_with_weights.sort(key=lambda x: x[0], reverse=True)
-        weight, index, word = candidates_with_weights[0]
+        # 先按权重降序，再按平局决胜分数降序
+        candidates_with_weights.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        weight, tiebreaker, index, word = candidates_with_weights[0]
 
         return {
             "word": word.strip('.,!?;:"\''),
@@ -855,7 +923,32 @@ def process_material(slug: str) -> bool:
 
 
 def main():
-    # 读取素材列表
+    import sys
+
+    # 检查是否提供了命令行参数（单个素材）
+    if len(sys.argv) > 1:
+        # 单素材模式
+        slug = sys.argv[1]
+
+        print("="*70)
+        print(f"  单素材挖空测试 - v6.2")
+        print("="*70)
+        print(f"时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"素材: {slug}")
+        print("="*70)
+
+        if process_material(slug):
+            print("\n" + "="*70)
+            print("  ✅ 测试成功")
+            print("="*70)
+        else:
+            print("\n" + "="*70)
+            print("  ❌ 测试失败")
+            print("="*70)
+
+        return
+
+    # 批量模式（原逻辑）
     cam_file = Path('/tmp/cam10_11_12_all.txt')  # 🔥 v6.0: Cam 10/11/12 全量刷新（48个素材）
 
     if not cam_file.exists():
@@ -871,7 +964,7 @@ def main():
         return
 
     print("="*70)
-    print("  批量重新挖空 - Cam 10/11/12 素材（v6.0 语言习得导向）")
+    print("  批量重新挖空 - Cam 10/11/12 素材（v6.2 语言习得导向）")
     print("="*70)
     print(f"时间: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"总数: {len(slugs)} 个素材")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量素材导入脚本 v6.1
+批量素材导入脚本 v6.2
 从 Engnovate 抓取多个 Dictation/Shadowing 练习
 
 特点：
@@ -18,14 +18,16 @@
 - 前端组件：必须添加 crossOrigin="anonymous" 属性
 - Worker 响应：必须返回 Access-Control-Allow-Origin: *
 
-🎯 v6.1 挖空逻辑：
+🎯 v6.2 挖空逻辑：
+- 🆕 新增：平局决胜规则（权重相同时优先索引大、长度长、名词）
+- 🆕 新增：感叹词黑名单（oh, ah, wow, hey, oops 等）
 - 🆕 新增：索引转换逻辑（验证 word 是否与 index 位置的词匹配）
 - 🆕 新增：自动修正错误的 index（在句子中查找实际位置）
 - 在 v5.2 基础上新增情态助动词、疑问代词、低级认知词
 - 🔥 修复：解决 v4.0 事实词过滤与 v5.2 提权规则的冲突
 - 🔥 新增：语言习得导向本地评分算法（长单词提权、音节复杂度加成）
 
-语言习得导向评分算法（v6.1）：
+语言习得导向评分算法（v6.2）：
 - 词长权重（0-30分）：10+字母30分，8-9字母25分，6-7字母15分
 - 音节复杂度（0-30分）：4+音节30分，3音节20分，2音节10分
 - 词性权重（0-20分）：形容词/副词20分，动词15分，名词10分
@@ -38,6 +40,7 @@
 - src/components/topics/MaterialCard.tsx (line 170)
 
 版本历史：
+- v6.2 (2026-03-28): 新增平局决胜规则 + 感叹词黑名单（同步 reprocess_ietts_blanks.py v6.2）
 - v6.1 (2026-03-28): 新增索引转换逻辑（同步 reprocess_ietts_blanks.py v6.1 修复）
 - v6.0 (2026-03-26): 新增黑名单 + 修复逻辑冲突（月份/时间词汇提权生效）
 - v5.2 (2026-03-25): 新增填充语/虚词（then, too, either, though, anyway, actually）
@@ -613,6 +616,10 @@ STRICT_BLACKLIST = [
     # ===== 🔥 v6.0 新增：低级认知词/填充词 =====
     'think', 'uh', 'hmm', 'um',
 
+    # ===== 🔥 v6.2 新增：感叹词（无听写意义）=====
+    'oh', 'ah', 'wow', 'hey', 'oops', 'ugh', 'ew', 'whoa', 'yeah', 'yay', 'aww',
+    'phew', 'eek', 'yikes', 'gosh', 'jeez', 'man',
+
     # ===== 其他 =====
     'there', 'here', 'just', 'really', 'very'
 ]
@@ -919,6 +926,48 @@ def is_collocation_core(word: str, index: int, words: list) -> bool:
 
     return False
 
+def calculate_tiebreaker_score(word: str, index: int, sentence_text: str = '') -> float:
+    """计算平局决胜分数（权重相同时使用）
+
+    平局决胜优先级：
+    1. 索引越大（避免句首感叹词）：权重 0.5
+    2. 词长越长（address > oh）：权重 0.3
+    3. 名词优先（名词 > 感叹词/动词/形容词）：权重 0.2
+
+    Args:
+        word: 待评估的单词
+        index: 单词在句子中的位置
+        sentence_text: 完整句子（可选）
+
+    Returns:
+        平局决胜分数（0-1）
+    """
+    word_clean = word.lower().strip('.,!?;:"\'')
+    score = 0.0
+
+    # 规则1: 索引越大（避免句首感叹词）
+    # 归一化到 0-0.5 范围
+    if sentence_text:
+        words_count = len(sentence_text.split())
+        if words_count > 0:
+            score += (index / words_count) * 0.5
+
+    # 规则2: 词长越长
+    # 归一化到 0-0.3 范围（假设最大词长 20）
+    word_length = len(word_clean)
+    score += min(word_length / 20.0, 1.0) * 0.3
+
+    # 规则3: 名词优先
+    # 通过后缀判断是否为名词
+    noun_suffixes = ['ment', 'tion', 'ness', 'ity', 'ence', 'ance', 'dom', 'ship', 'ism', 'ist']
+    if any(word_clean.endswith(suffix) for suffix in noun_suffixes):
+        score += 0.2
+    elif word_clean.endswith('s') and not word_clean.endswith('ss'):
+        # 可能是复数名词
+        score += 0.1
+
+    return score
+
 def calculate_word_score(word: str, index: int = 0, sentence_text: str = "") -> float:
     """计算单词的学习价值分数（语言习得导向）
 
@@ -1065,14 +1114,18 @@ def fallback_blank_selection(sentence_text: str, blanked_words: dict = None, dig
         # 计算学习价值分数
         score = calculate_word_score(word, i, sentence_text)
 
+        # 🔥 v6.2: 计算平局决胜分数
+        tiebreaker = calculate_tiebreaker_score(word, i, sentence_text)
+
         scored_words.append({
             'index': i,
             'word': word.strip('.,!?;:"\''),
-            'score': score
+            'score': score,
+            'tiebreaker': tiebreaker
         })
 
-    # 按分数降序排序
-    scored_words.sort(key=lambda x: x['score'], reverse=True)
+    # 🔥 v6.2: 按分数 + 平局决胜分数排序
+    scored_words.sort(key=lambda x: (x['score'], x['tiebreaker']), reverse=True)
 
     # 返回分数最高的词
     if scored_words:
