@@ -94,15 +94,17 @@ STRICT_BLACKLIST = [
     'hello', 'hi', 'hey', 'goodbye', 'bye', 'thanks', 'please',
 
     # ===== 🔥 v5.1 新增：常见形容词（低价值）=====
-    'good', 'bad', 'big', 'small', 'right', 'wrong', 'sure', 'clear',
+    # 🔥 v6.2 修改：移除 bad, good（日常对话中有价值）
+    'big', 'small', 'right', 'wrong', 'sure', 'clear',
     'nice', 'fine', 'okay', 'alright', 'great', 'little',
 
     # ===== 🔥 v5.1 新增：常见动词（低价值）=====
-    'say', 'says', 'said', 'tell', 'told', 'ask', 'get', 'make', 'go', 'come', 'take',
+    'say', 'says', 'said', 'tell', 'told', 'ask', 'get', 'make', 'take',
     'let', 'put', 'call', 'keep', 'give', 'find', 'show', 'hold',
 
     # ===== 🔥 v5.2 新增：填充语/虚词（句末或句中）=====
-    'then', 'too', 'either', 'though', 'anyway', 'actually',
+    # 🔥 v6.2 修改：移除 too（程度副词有学习价值）
+    'then', 'either', 'though', 'anyway', 'actually',
 
     # ===== 🔥 v6.0 新增：情态助动词 =====
     'can', 'could', 'would', 'should', 'may', 'might', 'must', 'shall',
@@ -588,6 +590,14 @@ def log(msg: str):
 BLANKS_PROMPT = """你是一位英语教学专家，专注于设计**语言习得导向**的高质量词汇训练内容。
 
 **核心目标**：通过挖空训练，帮助学习者内化【高价值表达】、【逻辑连接】和【具象动作】，而非拼写无意义的虚词。
+
+**⚠️ 日常对话特别说明**：
+如果句子是简单的日常对话（如电话聊天、问候、邀请）：
+- ✅ 优先选择：动词（speak, meet, see, go）、名词（bus, school, idea）、形容词（sick, bad, good）
+- ✅ 即使是基础词，只要不是纯功能词，就应该挖掘
+- ✅ 避开：人名（Sally, Hannah）、问候语（Hi, Hello, Okay）、纯虚词（I, you, please）
+- ✅ 示例："Can I speak to Sally?" → 选择 "speak"（动词）
+- ✅ 示例："That's too bad" → 选择 "bad"（形容词）
 
 **权重系统**（按优先级排序）：
 1. **【权重 10】程度、逻辑与频率副词** (40%)：
