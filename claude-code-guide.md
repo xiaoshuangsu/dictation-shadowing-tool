@@ -21,7 +21,7 @@
 
 ---
 
-## 🏗️ 架构与账号配置（V29.6.1 更新）
+## 🏗️ 架构与账号配置（V29.6.3 更新）
 
 ### 当前架构（2026-03-22 迁移到 Vercel）
 
@@ -356,17 +356,18 @@ cat CONTEXT_RESTORE.md
 ```
 
 ### 方式二：一句话恢复
-> "请先阅读 `claude-code-guide.md`，当前版本是 V29.6.1（2026-03-27），主要实现了：
-> - **挖空逻辑修复**：修复分词索引不一致和撇号丢失问题（v6.1 修复引入的 bug）
+> "请先阅读 `claude-code-guide.md`，当前版本是 V29.6.3（2026-03-29），主要实现了：
+> - **Cam 15 素材**：添加 Cambridge IELTS 15 全套素材（16个）
+> - **页码返回修复**：修复从练习页面返回时页码丢失问题
+> - **v6.2 挖空逻辑**：处理了日常生活分类（102个）和 BBC Learning English（3个）
 > - **双重分词机制**：空格分词匹配 blanks.index，正则分词渲染原文（保留标点）
-> - **字符编码支持**：正则表达式同时支持 ASCII 撇号（U+0027）和弯撇号（U+2019）
-> - **Vercel 部署**：从 GitHub Pages 迁移到 Vercel，启用 API Routes
-> - **训练模式选择弹窗**：Dictation 和 Shadowing 两种模式选择"
+> - **索引转换逻辑**：GLM 返回错误 index 时自动修正
+> - **Vercel 部署**：从 GitHub Pages 迁移到 Vercel，启用 API Routes"
 
 ---
 
-**版本**：V29.6.2
-**更新日期**：2026-03-28
+**版本**：V29.6.3
+**更新日期**：2026-03-29
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
 **GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
@@ -379,7 +380,7 @@ cat CONTEXT_RESTORE.md
 
 | 脚本名称 | 版本 | 路径 | 功能描述 | 最后更新 |
 |---------|------|------|----------|----------|
-| **主挖空脚本** | v6.1 | `scripts/reprocess_ietts_blanks.py` | 雅思素材挖空重处理，支持索引转换和自动修正 | 2026-03-28 |
+| **主挖空脚本** | v6.2 | `scripts/reprocess_ietts_blanks.py` | 雅思素材挖空重处理，支持索引转换和自动修正 | 2026-03-28 |
 | **CAM 13/14 批量** | v1.0 | `scripts/reprocess_cam13_14_only.py` | 批量处理 CAM 13/14 系列素材（32个） | 2026-03-28 |
 
 **挖空逻辑版本历史**：
@@ -404,7 +405,7 @@ cat CONTEXT_RESTORE.md
 | **单个上传** | - | `scripts/ingest_single.py` | 单个素材上传 | - |
 | **YouTube 上传** | - | `scripts/ingest_youtube_ytdlp.py` | YouTube 素材自动上传 | - |
 
-**注意**：`ingest_bulk.py` (v6.1) 和 `reprocess_ietts_blanks.py` (v6.1) 均为独立实现，逻辑相同但未共享代码。
+**注意**：`ingest_bulk.py` (v6.2) 和 `reprocess_ietts_blanks.py` (v6.2) 均为独立实现，逻辑相同但未共享代码。
 
 ### 翻译脚本（Translation Scripts）
 
@@ -500,7 +501,7 @@ git diff HEAD~1
 
 | 文档名称 | 版本 | 更新日期 | 用途 |
 |---------|------|----------|------|
-| `claude-code-guide.md` | V29.6.1 | 2026-03-27 | 项目主指南，脚本索引 |
+| `claude-code-guide.md` | V29.6.3 | 2026-03-29 | 项目主指南，脚本索引 |
 | `docs/knowledge_base.md` | V29.6.1 | 2026-03-27 | Bug 记录与解决方案 |
 | `docs/automation_standards.md` | V19.9 | 2026-03-18 | 素材上传规范 |
 | `docs/dictionary_and_translation_implementation.md` | V20.1 | 2026-03-21 | 点词翻译与生词本 |
