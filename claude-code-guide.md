@@ -21,7 +21,7 @@
 
 ---
 
-## 🏗️ 架构与账号配置（V29.6.3 更新）
+## 🏗️ 架构与账号配置（V29.6.2 更新）
 
 ### 当前架构（2026-03-22 迁移到 Vercel）
 
@@ -356,9 +356,8 @@ cat CONTEXT_RESTORE.md
 ```
 
 ### 方式二：一句话恢复
-> "请先阅读 `claude-code-guide.md`，当前版本是 V29.6.3（2026-03-29），主要实现了：
-> - **Cam 15 素材**：添加 Cambridge IELTS 15 全套素材（16个）
-> - **页码返回修复**：修复从练习页面返回时页码丢失问题
+> "请先阅读 `claude-code-guide.md`，当前版本是 V29.6.2（2026-03-29），主要实现了：
+> - **翻译语言扩展**：支持 20 种语言（含新增 16 种：Arabic, Deutsch, Español, 日本語, Malay, Russian, Türkçe, Greek, Indonesian, Korean, Português, Thai, Ukrainian, Bengali, Mongolian, Hindi）
 > - **v6.2 挖空逻辑**：处理了日常生活分类（102个）和 BBC Learning English（3个）
 > - **双重分词机制**：空格分词匹配 blanks.index，正则分词渲染原文（保留标点）
 > - **索引转换逻辑**：GLM 返回错误 index 时自动修正
@@ -366,7 +365,7 @@ cat CONTEXT_RESTORE.md
 
 ---
 
-**版本**：V29.6.3
+**版本**：V29.6.2
 **更新日期**：2026-03-29
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
@@ -501,7 +500,7 @@ git diff HEAD~1
 
 | 文档名称 | 版本 | 更新日期 | 用途 |
 |---------|------|----------|------|
-| `claude-code-guide.md` | V29.6.3 | 2026-03-29 | 项目主指南，脚本索引 |
+| `claude-code-guide.md` | V29.6.2 | 2026-03-29 | 项目主指南，脚本索引 |
 | `docs/knowledge_base.md` | V29.6.1 | 2026-03-27 | Bug 记录与解决方案 |
 | `docs/automation_standards.md` | V19.9 | 2026-03-18 | 素材上传规范 |
 | `docs/dictionary_and_translation_implementation.md` | V20.1 | 2026-03-21 | 点词翻译与生词本 |

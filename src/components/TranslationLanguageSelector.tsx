@@ -3,12 +3,28 @@
 import { useState, useEffect, useRef } from 'react'
 import { Languages, ChevronDown, X } from 'lucide-react'
 
-export type TranslationLanguage = 'zh' | 'zh_hant' | 'vi' | 'hide'
+export type TranslationLanguage = 'zh' | 'zh_hant' | 'vi' | 'ar' | 'de' | 'es' | 'ja' | 'ms' | 'ru' | 'tr' | 'el' | 'id' | 'ko' | 'pt' | 'th' | 'uk' | 'bn' | 'mn' | 'hi' | 'hide'
 
 const LANGUAGE_OPTIONS = [
   { value: 'zh' as TranslationLanguage, label: '中文 (简体)' },
   { value: 'zh_hant' as TranslationLanguage, label: '中文 (繁體)' },
   { value: 'vi' as TranslationLanguage, label: 'Tiếng Việt' },
+  { value: 'ar' as TranslationLanguage, label: 'العربية' },
+  { value: 'de' as TranslationLanguage, label: 'Deutsch' },
+  { value: 'es' as TranslationLanguage, label: 'Español' },
+  { value: 'ja' as TranslationLanguage, label: '日本語' },
+  { value: 'ms' as TranslationLanguage, label: 'Bahasa Melayu' },
+  { value: 'ru' as TranslationLanguage, label: 'Русский' },
+  { value: 'tr' as TranslationLanguage, label: 'Türkçe' },
+  { value: 'el' as TranslationLanguage, label: 'Ελληνικά' },
+  { value: 'id' as TranslationLanguage, label: 'Bahasa Indonesia' },
+  { value: 'ko' as TranslationLanguage, label: '한국어' },
+  { value: 'pt' as TranslationLanguage, label: 'Português' },
+  { value: 'th' as TranslationLanguage, label: 'ภาษาไทย' },
+  { value: 'uk' as TranslationLanguage, label: 'Українська' },
+  { value: 'bn' as TranslationLanguage, label: 'বাংলা' },
+  { value: 'mn' as TranslationLanguage, label: 'Монгол' },
+  { value: 'hi' as TranslationLanguage, label: 'हिन्दी' },
   { value: 'hide' as TranslationLanguage, label: '隐藏 (Hide)' }
 ]
 
@@ -31,7 +47,7 @@ export function getStoredLanguage(): TranslationLanguage {
       return 'zh'
     }
 
-    if (stored && ['zh', 'zh_hant', 'vi', 'hide'].includes(stored)) {
+    if (stored && ['zh', 'zh_hant', 'vi', 'ar', 'de', 'es', 'ja', 'ms', 'ru', 'tr', 'el', 'id', 'ko', 'pt', 'th', 'uk', 'bn', 'mn', 'hi', 'hide'].includes(stored)) {
       return stored as TranslationLanguage
     }
   } catch (e) {
@@ -147,7 +163,7 @@ export function TranslationLanguageSelector({ onLanguageChange }: TranslationLan
 
               {/* 下拉菜单 */}
               {isDropdownOpen && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-auto">
                   {LANGUAGE_OPTIONS.map((option) => (
                     <button
                       key={option.value}

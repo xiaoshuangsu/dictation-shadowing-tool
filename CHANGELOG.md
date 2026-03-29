@@ -11,6 +11,26 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.6.2] - 2026-03-29
+
+### Added
+- **扩展翻译语言支持至 20 种** 🌍
+  - **新增语言**（16 种）：Arabic (ar), Deutsch (de), Español (es), 日本語 (ja), Malay (ms), Russian (ru), Türkçe (tr), Greek (el), Indonesian (id), Korean (ko), Português (pt), Thai (th), Ukrainian (uk), Bengali (bn), Mongolian (mn), Hindi (hi)
+  - **原有语言**（3 种）：中文简体 (zh), 中文繁体 (zh_hant), 越南语 (vi)
+  - **总计**：20 种语言选项（含"隐藏"选项）
+  - **更新文件**：
+    - `src/components/TranslationLanguageSelector.tsx` - 扩展语言类型和选项列表
+    - `src/components/WordTooltip.tsx` - 更新 WordDefinition 接口和语言映射
+    - `src/lib/utils/wordTranslation.ts` - 同步 WordDefinition 接口
+  - **UI 优化**：下拉菜单高度从 `max-h-48` 增加到 `max-h-80`，改善滚动体验
+  - **向后兼容**：新语言暂时映射到英语释义，待后端 API 支持后更新
+
+### Technical Notes
+- **语言映射策略**：
+  - 由于后端 GLM API 目前只支持 4 种语言（zh-CN, zh-Hant, vi, en）
+  - 新增语言暂时映射到英语释义作为替代方案
+  - 未来需要更新 `/api/word-definition/route.ts` 和 `dictionary_cache` 表以支持完整多语言
+
 ## [29.6.1] - 2026-03-27
 
 ### Fixed

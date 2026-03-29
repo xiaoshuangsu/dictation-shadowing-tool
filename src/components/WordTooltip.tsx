@@ -25,6 +25,22 @@ export interface WordDefinition {
     'zh-Hant': string
     'vi': string
     'en': string
+    'ar': string
+    'de': string
+    'es': string
+    'ja': string
+    'ms': string
+    'ru': string
+    'tr': string
+    'el': string
+    'id': string
+    'ko': string
+    'pt': string
+    'th': string
+    'uk': string
+    'bn': string
+    'mn': string
+    'hi': string
   }
   example?: string
   audioUrls?: {
@@ -47,10 +63,27 @@ interface WordTooltipProps {
 }
 
 // 语言代码映射
+// 注意：新增语言暂时映射到英语释义，待后端 API 支持后更新
 const LANGUAGE_MAP: Record<string, keyof WordDefinition['definitions']> = {
   'zh': 'zh-CN',
   'zh_hant': 'zh-Hant',
   'vi': 'vi',
+  'ar': 'en',      // 阿拉伯语 → 暂时显示英语释义
+  'de': 'en',      // 德语 → 暂时显示英语释义
+  'es': 'en',      // 西班牙语 → 暂时显示英语释义
+  'ja': 'en',      // 日语 → 暂时显示英语释义
+  'ms': 'en',      // 马来语 → 暂时显示英语释义
+  'ru': 'en',      // 俄语 → 暂时显示英语释义
+  'tr': 'en',      // 土耳其语 → 暂时显示英语释义
+  'el': 'en',      // 希腊语 → 暂时显示英语释义
+  'id': 'en',      // 印尼语 → 暂时显示英语释义
+  'ko': 'en',      // 韩语 → 暂时显示英语释义
+  'pt': 'en',      // 葡萄牙语 → 暂时显示英语释义
+  'th': 'en',      // 泰语 → 暂时显示英语释义
+  'uk': 'en',      // 乌克兰语 → 暂时显示英语释义
+  'bn': 'en',      // 孟加拉语 → 暂时显示英语释义
+  'mn': 'en',      // 蒙古语 → 暂时显示英语释义
+  'hi': 'en',      // 印地语 → 暂时显示英语释义
   'hide': 'zh-CN'  // 默认简体中文
 }
 

@@ -12,6 +12,22 @@ export interface WordDefinition {
     'zh-Hant': string
     'vi': string
     'en': string
+    'ar': string
+    'de': string
+    'es': string
+    'ja': string
+    'ms': string
+    'ru': string
+    'tr': string
+    'el': string
+    'id': string
+    'ko': string
+    'pt': string
+    'th': string
+    'uk': string
+    'bn': string
+    'mn': string
+    'hi': string
   }
   example?: string
   audioUrls?: {
