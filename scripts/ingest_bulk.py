@@ -1782,10 +1782,15 @@ def process_url(url: str, index: int, total: int) -> bool:
 
 def main():
     # 读取 URL 列表
-    urls_file = Path('/tmp/cam14_test4_missing.txt')  # 🔥 v6.0: 导入 Cam 14 Test 4 缺失素材
+    # 支持命令行参数指定文件，或使用默认路径
+    if len(sys.argv) > 1:
+        urls_file = Path(sys.argv[1])
+    else:
+        urls_file = Path('/tmp/cam14_test4_missing.txt')  # 默认路径
 
     if not urls_file.exists():
         log(f"错误: URLs 文件不存在: {urls_file}")
+        log(f"用法: python3 {Path(__file__).name} <urls_file>")
         sys.exit(1)
 
     with open(urls_file) as f:
