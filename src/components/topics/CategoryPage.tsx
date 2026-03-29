@@ -124,6 +124,18 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
     }
   }, [selectedDifficulty, selectedDuration, searchQuery, categorySlug])
 
+  // 🔴 保存当前页码到 sessionStorage（用于从练习页面返回时恢复）
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const storageKey = `category_${categorySlug}_page`
+    try {
+      sessionStorage.setItem(storageKey, currentPage.toString())
+    } catch (e) {
+      console.error('Failed to save page:', e)
+    }
+  }, [currentPage, categorySlug])
+
   // 🔴 恢复滚动位置
   useEffect(() => {
     if (typeof window === 'undefined' || loading) return
