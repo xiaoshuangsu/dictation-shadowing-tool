@@ -268,8 +268,9 @@ def reprocess_material(client, material: Dict) -> Tuple[bool, str]:
                         total_translations += 1
                     else:
                         failed_translations += 1
-                        log_to_file(f"翻译失败: {lang}，使用原文 ({slug} 句子{i+1})", 'WARN')
-                        new_translations[lang] = sentence_text  # 使用原文作为后备
+                        # 使用 TODO_RETRY 标记，不填入原文
+                        new_translations[lang] = "[TODO_RETRY]"
+                        log_to_file(f"翻译失败: {lang}，标记为 TODO_RETRY ({slug} 句子{i+1})", 'ERROR')
 
             # 合并翻译
             merged_translations = {**existing_translations, **new_translations}
@@ -285,9 +286,21 @@ def reprocess_material(client, material: Dict) -> Tuple[bool, str]:
             'transcript': transcript
         }).eq('id', material_id).execute()
 
+        # 检查是否有 TODO_RETRY 标记
+        todo_count = 0
+        for sentence in transcript:
+            for lang, trans in sentence.get('translation', {}).items():
+                if trans == "[TODO_RETRY]":
+                    todo_count += 1
+
         status_msg = f"✓ 翻译 {total_translations} 条"
         if failed_translations > 0:
-            status_msg += f"，失败 {failed_translations} 条（使用原文）"
+            status_msg += f"，失败 {failed_translations} 条（标记为 TODO_RETRY）"
+
+        # 如果有 TODO_RETRY，记录到日志
+        if todo_count > 0:
+            log_to_file(f"TODO_RETRY 素材: {slug} (ID: {material_id})，失败数量: {todo_count}", 'WARN')
+            status_msg += f" [TODO: {todo_count}]"
 
         return True, status_msg
 
