@@ -28,13 +28,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { Volume2, X } from 'lucide-react'
 import { AuthUser } from '@/lib/hooks/useAuth'
+import logger from '@/lib/utils/logger'
 
 interface ReviewWord {
-  id: string  // user_words 表的 ID（用于更新状态）
+  id: string
   word: string
   phonetic: string
-  pos?: string  // 词性 (part of speech)
-  definition: string  // JSON string 或纯文本
+  pos?: string
+  definition: string
   context_sentence: string
   audio_url_us?: string
   audio_url_uk?: string
@@ -42,11 +43,10 @@ interface ReviewWord {
 
 interface ReviewOverlayProps {
   words: ReviewWord[]
-  user: AuthUser | null  // 🔴 新增：通过 props 传递 user
+  user: AuthUser | null
   onClose: () => void
 }
 
-// 解析多语言释义
 const parseDefinition = (definitionStr: string) => {
   try {
     return JSON.parse(definitionStr)
@@ -61,36 +61,31 @@ const parseDefinition = (definitionStr: string) => {
 }
 
 export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayProps) {
-  // 🔴 移除 useAuth 调用，改用 props 传递的 user
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [userInput, setUserInput] = useState('')
   const [isCorrect, setIsCorrect] = useState(false | null)
-  const [showedAnswer, setShowedAnswer] = useState(false)  // 是否点击了"查看答案"
-  const [isShaking, setIsShaking] = useState(false)  // 抖动效果
+  const [showedAnswer, setShowedAnswer] = useState(false)
+  const [isShaking, setIsShaking] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentWord = words[currentIndex]
   const isLastCard = currentIndex === words.length - 1
 
-  // 解析当前单词的释义
   const definition = parseDefinition(currentWord.definition)
   const chineseDefinition = definition['zh-CN'] || ''
   const englishDefinition = definition['en'] || ''
 
-  // 🔴 自动聚焦输入框
   useEffect(() => {
     if (!flipped && inputRef.current) {
       inputRef.current.focus()
     }
   }, [currentIndex, flipped])
 
-  // 🔴 切换卡片时重置状态
   useEffect(() => {
     setShowedAnswer(false)
   }, [currentIndex])
 
-  // 🔴 实时校验拼写
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setUserInput(value)
@@ -100,13 +95,11 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
 
     if (normalizedInput === normalizedWord) {
       setIsCorrect(true)
-      // 延迟翻转，让用户看到完整的正确单词
       setTimeout(() => {
         setFlipped(true)
       }, 300)
     } else {
       setIsCorrect(false)
-      // 如果输入完整但错误，触发抖动效果
       if (value.length > 0 && value.length >= normalizedWord.length) {
         setIsShaking(true)
         setTimeout(() => setIsShaking(false), 500)
@@ -114,39 +107,31 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
     }
   }
 
-  // 🔴 处理 Enter 键提交
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !flipped) {
-      // 如果已答对，翻转
       if (isCorrect) {
         setFlipped(true)
-      }
-      // 如果输入框为空，触发"查看答案"
-      else if (userInput.trim() === '') {
+      } else if (userInput.trim() === '') {
         handleShowAnswer()
       }
     }
   }
 
-  // 🔴 查看答案
   const handleShowAnswer = () => {
     setShowedAnswer(true)
     setFlipped(true)
   }
 
-  // 🔴 下一个单词（支持三种状态：learning/familiar/mastered）
   const handleNext = async (masteryStatus?: 'learning' | 'familiar' | 'mastered') => {
-    // 更新数据库掌握状态
     if (masteryStatus && user?.id) {
-      console.log(`[ReviewOverlay] 更新单词 "${currentWord.word}" (ID: ${currentWord.id}) 掌握状态为: ${masteryStatus}`)
+      logger.debug(`[ReviewOverlay] 更新单词 "${currentWord.word}" (ID: ${currentWord.id}) 掌握状态为: ${masteryStatus}`)
 
       try {
-        // 调用 API 更新掌握状态
         const response = await fetch('/api/user-words', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.id}`  // 🔴 传递用户 ID
+            'Authorization': `Bearer ${user.id}`
           },
           body: JSON.stringify({
             wordId: currentWord.id,
@@ -156,7 +141,7 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
 
         if (response.ok) {
           const result = await response.json()
-          console.log(`[ReviewOverlay] ✅ 成功更新单词状态:`, result)
+          logger.debug(`[ReviewOverlay] ✅ 成功更新单词状态:`, result)
         } else {
           const errorData = await response.json()
           console.error('[ReviewOverlay] ❌ 更新单词状态失败:', errorData)
@@ -166,9 +151,8 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
       }
     }
 
-    // 🔴 自动切换到下一个单词（不再停留在当前卡片）
     if (isLastCard) {
-      onClose()  // 最后一个单词，关闭训练
+      onClose()
       return
     }
 
@@ -179,20 +163,14 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
     setShowedAnswer(false)
   }
 
-  // 🔴 创建填空句（智能 Cloze 打码，修复答案泄露）
   const createBlankSentence = (sentence: string, word: string) => {
     const lowerWord = word.toLowerCase().trim()
 
-    // 🔴 策略：使用更宽松的匹配规则
-    // 1. 首先尝试精确匹配（忽略大小写）
     let processed = sentence.replace(new RegExp(`\\b${word}\\b`, 'gi'), (match) => {
-      // 🔴 深色下划线提示用户这里需要填写
       return `<span class="font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50 px-1 rounded">${'_____'}</span>`
     })
 
-    // 2. 如果没有替换，尝试匹配单词的任何变形（包含该单词的词）
     if (!processed.includes('<span')) {
-      // 匹配包含该单词的任何形式（如 talked → talk，talks → talk）
       const pattern = new RegExp(`\\b\\w*${lowerWord}\\w*\\b`, 'gi')
       processed = sentence.replace(pattern, (match) => {
         return `<span class="font-bold text-blue-600 border-b-2 border-blue-600 bg-blue-50 px-1 rounded">${'_____'}</span>`
@@ -202,16 +180,13 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
     return processed
   }
 
-  // 🔴 创建高亮原句（背面显示，高亮目标词）
   const createHighlightSentence = (sentence: string, word: string) => {
     const lowerWord = word.toLowerCase().trim()
 
-    // 首先尝试精确匹配
     let processed = sentence.replace(new RegExp(`\\b${word}\\b`, 'gi'), (match) => {
       return `<span class="font-bold text-yellow-300 bg-yellow-500/30 px-1 rounded">${match}</span>`
     })
 
-    // 如果没有替换，尝试匹配单词的任何变形
     if (!processed.includes('<span')) {
       const pattern = new RegExp(`\\b\\w*${lowerWord}\\w*\\b`, 'gi')
       processed = sentence.replace(pattern, (match) => {
@@ -222,7 +197,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
     return processed
   }
 
-  // 🔴 播放音频
   const playAudio = (variant: 'us' | 'uk') => {
     const audioUrl = variant === 'us' ? currentWord.audio_url_us : currentWord.audio_url_uk
     if (audioUrl) {
@@ -233,7 +207,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      {/* 关闭按钮 */}
       <button
         onClick={onClose}
         className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
@@ -241,16 +214,13 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
         <X className="w-8 h-8" />
       </button>
 
-      {/* 闪卡容器 */}
       <div className="w-full max-w-2xl">
-        {/* 进度指示器 */}
         <div className="text-center text-white mb-4">
           <span className="text-lg font-semibold">
             {currentIndex + 1} / {words.length}
           </span>
         </div>
 
-        {/* 3D 翻转容器 */}
         <div
           className={`relative w-full h-[520px] perspective-1000 ${
             flipped ? 'flipped' : ''
@@ -264,16 +234,13 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
               transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
             }}
           >
-            {/* 🔴 正面：Question Face */}
             <div
               className={`absolute w-full h-full bg-white rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-300 ${
                 isCorrect ? 'shadow-[0_0_30px_rgba(34,197,94,0.5)]' : 'shadow-2xl'
               }`}
               style={{ backfaceVisibility: 'hidden' }}
             >
-              {/* 顶部区域：词性 + 释义 */}
               <div>
-                {/* 词性 - 置顶显示 */}
                 {currentWord.pos && (
                   <div className="text-center mb-3">
                     <span className="text-xs text-gray-400 uppercase tracking-wide">
@@ -282,15 +249,12 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                   </div>
                 )}
 
-                {/* 释义区域：中文翻译（主）+ 英文定义（辅） */}
                 <div className="text-center">
-                  {/* 中文翻译 - 主要提示 */}
                   {chineseDefinition && (
                     <p className="text-[22px] font-bold text-gray-900 text-center mb-2">
                       {chineseDefinition}
                     </p>
                   )}
-                  {/* 英文定义 - 辅助参考 */}
                   {englishDefinition && (
                     <p className="text-base text-gray-400 text-center">
                       {englishDefinition}
@@ -299,7 +263,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 </div>
               </div>
 
-              {/* 中间区域：例句块（正中心） */}
               <div className="bg-blue-50/50 rounded-xl p-6 border border-blue-100/50 my-4">
                 <p
                   className="text-base text-gray-700 leading-relaxed text-center"
@@ -309,21 +272,17 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 />
               </div>
 
-              {/* 例句块下方：音标 + 发音按钮 */}
               <div className="flex items-center justify-center gap-3 mb-4">
-                {/* 音标 */}
                 {currentWord.phonetic && (
                   <p className="text-base text-gray-600 font-medium">
                     {currentWord.phonetic}
                   </p>
                 )}
 
-                {/* 分隔线 - 音标与喇叭之间 */}
                 {currentWord.phonetic && (currentWord.audio_url_us || currentWord.audio_url_uk) && (
                   <div className="w-px h-5 bg-gray-200"></div>
                 )}
 
-                {/* US 发音按钮 */}
                 {currentWord.audio_url_us && (
                   <button
                     onClick={() => playAudio('us')}
@@ -335,12 +294,10 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                   </button>
                 )}
 
-                {/* 分隔线 - US与UK之间 */}
                 {currentWord.audio_url_us && currentWord.audio_url_uk && (
                   <div className="w-px h-5 bg-gray-200"></div>
                 )}
 
-                {/* UK 发音按钮 */}
                 {currentWord.audio_url_uk && (
                   <button
                     onClick={() => playAudio('uk')}
@@ -353,7 +310,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 )}
               </div>
 
-              {/* 底部区域：输入框 */}
               <div className="space-y-3">
                 <input
                   ref={inputRef}
@@ -375,7 +331,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                   autoComplete="off"
                 />
 
-                {/* 提示文字 */}
                 {!flipped && userInput.length > 0 && (
                   <p className="text-center text-sm">
                     {isCorrect === true ? (
@@ -386,7 +341,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                   </p>
                 )}
 
-                {/* Show Answer 按钮 - 只保留英文 */}
                 {!flipped && !isCorrect && (
                   <button
                     onClick={handleShowAnswer}
@@ -398,7 +352,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
               </div>
             </div>
 
-            {/* 🔴 背面：Answer Face */}
             <div
               className="absolute w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-8 flex flex-col text-white"
               style={{
@@ -406,7 +359,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 transform: 'rotateY(180deg)'
               }}
             >
-              {/* 单词标题 */}
               <div className="flex-1 flex flex-col items-center justify-center mb-6">
                 <h2 className="text-5xl font-bold mb-4">{currentWord.word}</h2>
                 {currentWord.phonetic && (
@@ -414,7 +366,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 )}
               </div>
 
-              {/* 🔴 完整原句（高亮目标词） */}
               {currentWord.context_sentence && (
                 <div className="bg-white/10 rounded-lg p-4 mb-8 backdrop-blur-sm">
                   <p
@@ -426,7 +377,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 </div>
               )}
 
-              {/* 音频按钮 */}
               <div className="flex items-center justify-center gap-6 mb-8">
                 <button
                   onClick={() => playAudio('us')}
@@ -446,17 +396,13 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 </button>
               </div>
 
-              {/* 自评按钮 */}
               {isCorrect || showedAnswer ? (
                 <div className="space-y-3 md:space-y-4">
-                  {/* 状态提示 */}
                   <p className="text-center text-sm md:text-base text-white/90 font-medium">
                     {isCorrect ? 'Great job! You nailed it! 😊' : 'Keep practicing! 💪'}
                   </p>
 
-                  {/* 🔴 三个选择按钮（响应式：移动端横向并排，桌面端保持横向） */}
                   <div className="flex flex-row md:flex-row gap-1.5 md:gap-3">
-                    {/* 完全不会 (Learning) - 红色系 */}
                     <button
                       onClick={() => handleNext('learning')}
                       className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-red-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-red-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
@@ -469,7 +415,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                       </div>
                     </button>
 
-                    {/* 有点模糊 (Familiar) - 黄色系 */}
                     <button
                       onClick={() => handleNext('familiar')}
                       className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-yellow-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-yellow-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
@@ -482,7 +427,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                       </div>
                     </button>
 
-                    {/* 太简单了 (Mastered) - 绿色系 */}
                     <button
                       onClick={() => handleNext('mastered')}
                       className="flex-1 px-2 py-2 md:px-5 md:py-4 bg-green-500 text-white rounded-lg md:rounded-xl font-bold text-xs md:text-base hover:bg-green-600 transition-all shadow-lg hover:shadow-xl active:scale-95"
@@ -497,7 +441,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                   </div>
                 </div>
               ) : (
-                /* 默认 Next 按钮（向后兼容） */
                 <button
                   onClick={() => handleNext()}
                   className="w-full px-8 py-4 bg-white text-blue-600 font-bold rounded-lg hover:bg-gray-100 transition-colors text-lg"

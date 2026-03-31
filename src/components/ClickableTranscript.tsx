@@ -15,11 +15,12 @@ import { useRef, useEffect } from 'react'
 import ClickableWord from './ClickableWord'
 import { tokenizeSentence } from '@/lib/utils/wordTranslation'
 import type { Sentence } from '@/types'
+import logger from '@/lib/utils/logger'
 
 interface ClickableTranscriptProps {
   sentences: Sentence[]
   currentIndex: number
-  highlightIndex?: number | null  // 🔴 跳转播放时高亮的句子索引
+  highlightIndex?: number | null
   onSelectSentence: (index: number) => void
   showTranscript: boolean
   onToggleTranscript: () => void
@@ -27,8 +28,8 @@ interface ClickableTranscriptProps {
   materialId?: string
   materialTitle?: string
   audioSrc?: string
-  hasStarted?: boolean  // 🔴 新增：是否已经开始播放
-  isBlocked?: boolean  // 🔴 新增：是否处于拦截状态
+  hasStarted?: boolean
+  isBlocked?: boolean
 }
 
 export default function ClickableTranscript({
@@ -42,25 +43,20 @@ export default function ClickableTranscript({
   materialId,
   materialTitle,
   audioSrc,
-  hasStarted = false,  // 🔴 默认 false，未开始播放
-  isBlocked = false  // 🔴 默认 false，未拦截
+  hasStarted = false,
+  isBlocked = false
 }: ClickableTranscriptProps) {
-  // 🔴 自动滚动：存储每个句子元素的引用
   const sentenceRefs = useRef<(HTMLDivElement | null)[]>([])
-  // 🔴 Transcript 容器引用：用于精准的容器内滚动
   const containerRef = useRef<HTMLDivElement>(null)
-  // 🔴 禁用初始化自动滚动：跟踪组件是否已经挂载
   const isMountedRef = useRef(false)
 
-  // 🔴 标记组件已挂载 + 强制初始复位
   useEffect(() => {
     isMountedRef.current = true
-    console.log('🔧 [ClickableTranscript] 组件已挂载')
+    logger.debug('[ClickableTranscript] 组件已挂载')
 
-    // 🔴 强制初始复位：确保容器 scrollTop 为 0
     if (containerRef.current) {
       containerRef.current.scrollTop = 0
-      console.log('🔧 [ClickableTranscript] 初始化：强制 scrollTop = 0')
+      logger.debug('[ClickableTranscript] 初始化：强制 scrollTop = 0')
     }
 
     return () => {
@@ -68,17 +64,14 @@ export default function ClickableTranscript({
     }
   }, [])
 
-  // 🔴 精准的容器内滚动逻辑（防止全局滚动冒泡）
   useEffect(() => {
-    // 🔴 禁止初始化自动滚动：组件未挂载 或 未开始播放
     if (!isMountedRef.current) {
-      console.log('🚫 [ClickableTranscript] 组件未挂载，跳过自动滚动')
+      logger.debug('[ClickableTranscript] 组件未挂载，跳过自动滚动')
       return
     }
 
-    // 🔴 关键修复：只有在开始播放后才允许滚动
     if (!hasStarted) {
-      console.log('🚫 [ClickableTranscript] 未开始播放，跳过自动滚动')
+      logger.debug('[ClickableTranscript] 未开始播放，跳过自动滚动')
       return
     }
 
@@ -87,14 +80,12 @@ export default function ClickableTranscript({
       const container = containerRef.current
 
       if (targetElement && container) {
-        console.log('🔄 [ClickableTranscript] 容器内滚动到句子', currentIndex)
+        logger.debug('[ClickableTranscript] 容器内滚动到句子', currentIndex)
 
-        // 🔴 修复滚动偏移计算：减去容器自身的 offsetTop
-        // 这样可以正确计算元素在容器内的相对位置
         const targetScrollTop = targetElement.offsetTop - container.offsetTop - 24
 
         container.scrollTo({
-          top: Math.max(0, targetScrollTop),  // 确保不会滚成负数
+          top: Math.max(0, targetScrollTop),
           behavior: 'smooth'
         })
       }
@@ -118,7 +109,6 @@ export default function ClickableTranscript({
         className="space-y-2 max-h-[calc(100vh-200px)] overflow-y-auto pt-4 transcript-scroll-container"
       >
         {sentences.map((sentence, index) => {
-          // 🔴 判断是否为高亮句子（跳转播放时的视觉焦点）
           const isHighlighted = highlightIndex === index
 
           return (
@@ -132,16 +122,15 @@ export default function ClickableTranscript({
               }}
               className={`p-3 rounded cursor-pointer transition-all relative ${
                 isHighlighted
-                  ? 'bg-yellow-100 border-2 border-yellow-400 animate-pulse shadow-lg scale-105'  // 🔴 高亮闪烁效果
+                  ? 'bg-yellow-100 border-2 border-yellow-400 animate-pulse shadow-lg scale-105'
                   : index === currentIndex
                   ? 'bg-blue-100 border-2 border-blue-500'
                   : index < currentIndex
                   ? 'bg-green-50 border border-green-200'
                   : 'bg-gray-50 border border-gray-200'
               } ${isBlocked ? 'cursor-not-allowed opacity-75' : ''}`}
-              style={{ scrollMarginTop: '40px' }}  // 🔴 强制执行 CSS 边距
+              style={{ scrollMarginTop: '40px' }}
             >
-              {/* 🔴 拦截状态下的锁图标覆盖层 */}
               {isBlocked && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded hover:bg-black/10 transition-colors">
                   <svg className="w-5 h-5 text-purple-600 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,8 +150,6 @@ export default function ClickableTranscript({
                   {index + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  {/* 🔴 SEO 优化：始终渲染真实内容，使用 CSS 控制可见性 */}
-                  {/* 这样搜索引擎可以抓取到完整的 Transcript 内容 */}
                   <div className={!showTranscript ? 'blur-sm select-none' : ''}>
                     <ClickableSentence
                       text={sentence.text}
@@ -173,10 +160,8 @@ export default function ClickableTranscript({
                     />
                   </div>
 
-                  {/* 翻译 */}
                   {showTranscript && sentence.translation && (
                     <p className="text-sm text-gray-700 italic mt-1">
-                      {/* 支持 Translation JSONB 格式，根据语言选择显示对应翻译 */}
                       {typeof sentence.translation === 'string'
                         ? sentence.translation
                         : (sentence.translation?.[translationLanguage] || '')}
@@ -192,12 +177,6 @@ export default function ClickableTranscript({
   )
 }
 
-/**
- * 可点击单词的句子组件
- *
- * 将句子拆分为单词和分隔符，只有单词可以点击
- * 使用通用的 ClickableWord 组件
- */
 interface ClickableSentenceProps {
   text: string
   sentence: Sentence
@@ -207,7 +186,6 @@ interface ClickableSentenceProps {
 }
 
 function ClickableSentence({ text, sentence, materialId, materialTitle, audioSrc }: ClickableSentenceProps) {
-  // 分词
   const tokens = tokenizeSentence(text)
 
   return (

@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState, useEffect } from "react"
+import logger from '@/lib/utils/logger'
 
 interface Sentence {
   id: number
@@ -19,7 +20,7 @@ interface AudioPlayerProps {
   onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void
   onLoadingChange?: (isLoading: boolean) => void
   onReady?: (audioElement: HTMLAudioElement) => void
-  endBuffer?: number  // 自定义结束时间补偿值（负数表示向后延伸）
+  endBuffer?: number
 }
 
 export default function AudioPlayer({
@@ -32,7 +33,7 @@ export default function AudioPlayer({
   onPlaybackTimeUpdate,
   onLoadingChange,
   onReady,
-  endBuffer = -0.2  // 默认向后延伸 200ms
+  endBuffer = -0.2
 }: AudioPlayerProps) {
   const audioRefInternal = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -45,33 +46,29 @@ export default function AudioPlayer({
       hasCalledReadyRef.current = true
 
       const audio = audioRefInternal.current
-      console.log('🎵 [AudioPlayer] Audio element created, readyState:', audio.readyState)
-      console.log('🎵 [AudioPlayer] Audio src:', audio.src)
+      logger.debug('[AudioPlayer] Audio element created, readyState:', audio.readyState)
 
-      // 监听加载进度（只在用户触发加载后才会触发）
       const handleLoadStart = () => {
-        console.log('🎵 [AudioPlayer] Load started')
+        logger.debug('[AudioPlayer] Load started')
       }
 
       const handleLoadedMetadata = () => {
-        console.log('🎵 [AudioPlayer] Metadata loaded, readyState:', audio.readyState)
-        console.log('🎵 [AudioPlayer] Duration:', audio.duration)
+        logger.debug('[AudioPlayer] Metadata loaded, readyState:', audio.readyState, 'Duration:', audio.duration)
       }
 
       const handleCanPlay = () => {
-        console.log('🎵 [AudioPlayer] Audio can play, readyState:', audio.readyState)
+        logger.debug('[AudioPlayer] Audio can play, readyState:', audio.readyState)
       }
 
       const handleCanPlayThrough = () => {
-        console.log('🎵 [AudioPlayer] Audio fully loaded, readyState:', audio.readyState)
+        logger.debug('[AudioPlayer] Audio fully loaded, readyState:', audio.readyState)
       }
 
       const handleError = (e: Event) => {
-        console.error('🎵 [AudioPlayer] Error loading audio:', e)
+        console.error('[AudioPlayer] Error loading audio:', e)
         const error = (e.target as HTMLAudioElement).error
         if (error) {
-          console.error('🎵 [AudioPlayer] Error code:', error.code)
-          console.error('🎵 [AudioPlayer] Error message:', error.message)
+          console.error('[AudioPlayer] Error code:', error.code, 'Error message:', error.message)
         }
       }
 
@@ -81,13 +78,10 @@ export default function AudioPlayer({
       audio.addEventListener('canplaythrough', handleCanPlayThrough)
       audio.addEventListener('error', handleError)
 
-      // 🔴 不再在组件挂载时调用 audio.load()
-      // 移动浏览器会阻止预加载，等待用户交互后再加载
-      console.log('🎵 [AudioPlayer] Waiting for user interaction to load audio')
+      logger.debug('[AudioPlayer] Waiting for user interaction to load audio')
 
       onReady(audio)
 
-      // 清理函数
       return () => {
         audio.removeEventListener('loadstart', handleLoadStart)
         audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
@@ -266,17 +260,15 @@ export default function AudioPlayer({
     }
 
     const trySeekAndPlay = () => {
-      // 🔴 关键修复：在用户交互时调用 load()，触发浏览器加载音频
-      console.log('🎵 [AudioPlayer] User clicked, calling audio.load()...')
-      console.log('🎵 [AudioPlayer] readyState before load:', audio.readyState)
+      logger.debug('[AudioPlayer] User clicked, calling audio.load()...')
+      logger.debug('[AudioPlayer] readyState before load:', audio.readyState)
 
       audio.load()
 
-      // 等待音频加载到可以播放的状态
       if (audio.readyState < 2) {
-        console.log('🎵 [AudioPlayer] Waiting for audio to load...')
+        logger.debug('[AudioPlayer] Waiting for audio to load...')
         audio.addEventListener('canplay', () => {
-          console.log('🎵 [AudioPlayer] Audio loaded, readyState:', audio.readyState)
+          logger.debug('[AudioPlayer] Audio loaded, readyState:', audio.readyState)
           performSeek()
         }, { once: true })
         return
@@ -317,7 +309,5 @@ export default function AudioPlayer({
     }
   }, [])
 
-  // 🔴 临时移除 crossorigin，测试是否是 CORS 导致的加载问题
-  // 如果能正常加载，说明是 Worker 的 CORS 配置有问题
   return <audio ref={audioRefInternal} src={audioSrc} preload="auto" />
 }

@@ -81,9 +81,9 @@ def log_to_file(msg: str, level: str = 'INFO'):
         f.write(f"[{timestamp}] [{level}] {msg}\n")
 
 def log(msg: str, level: str = 'INFO'):
-    """控制台日志"""
+    """控制台日志（强制刷新）"""
     timestamp = datetime.now().strftime('%H:%M:%S')
-    print(f"[{timestamp}] {msg}")
+    print(f"[{timestamp}] {msg}", flush=True)  # 强制刷新
     log_to_file(msg, level)
 
 def log_error(msg: str):
@@ -299,13 +299,13 @@ def reprocess_material(client, material: Dict) -> Tuple[bool, str]:
 
 def main():
     """主函数：批量处理所有素材"""
-    print("="*80)
-    print("  雅思听力素材翻译 - 生产版本")
-    print("  支持 19 种语言增量翻译")
-    print("="*80)
-    print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"日志文件: {LOG_FILE}")
-    print("="*80)
+    print("="*80, flush=True)
+    print("  雅思听力素材翻译 - 生产版本", flush=True)
+    print("  支持 19 种语言增量翻译", flush=True)
+    print("="*80, flush=True)
+    print(f"开始时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
+    print(f"日志文件: {LOG_FILE}", flush=True)
+    print("="*80, flush=True)
 
     # 连接数据库
     client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -318,7 +318,7 @@ def main():
     total_count = len(all_materials)
 
     log(f"总共 {total_count} 个素材")
-    print("="*80)
+    print("="*80, flush=True)
 
     # 统计
     success_count = 0
@@ -331,7 +331,7 @@ def main():
         slug = material.get('slug', 'unknown')
         title = material.get('title', 'Unknown')
 
-        print(f"\n处理素材 [{i}/{total_count}]: {title} ({slug})")
+        print(f"\n处理素材 [{i}/{total_count}]: {title} ({slug})", flush=True)
 
         # 处理素材
         success, message = reprocess_material(client, material)
@@ -339,14 +339,14 @@ def main():
         if success:
             if "skipping" in message.lower():
                 skipped_count += 1
-                print(f"  ⏭️  {message}")
+                print(f"  ⏭️  {message}", flush=True)
             else:
                 success_count += 1
-                print(f"  ✅ {message}")
+                print(f"  ✅ {message}", flush=True)
         else:
             failed_count += 1
             failed_materials.append(slug)
-            print(f"  ❌ {message}")
+            print(f"  ❌ {message}", flush=True)
 
         # 随机休眠 1-2 秒（防止 API 限流）
         if i < total_count:
@@ -354,21 +354,21 @@ def main():
             time.sleep(sleep_time)
 
     # 最终统计
-    print("\n" + "="*80)
-    print("  处理完成")
-    print("="*80)
-    print(f"总素材数: {total_count}")
-    print(f"成功处理: {success_count}")
-    print(f"跳过已完成: {skipped_count}")
-    print(f"失败: {failed_count}")
-    print(f"完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("\n" + "="*80, flush=True)
+    print("  处理完成", flush=True)
+    print("="*80, flush=True)
+    print(f"总素材数: {total_count}", flush=True)
+    print(f"成功处理: {success_count}", flush=True)
+    print(f"跳过已完成: {skipped_count}", flush=True)
+    print(f"失败: {failed_count}", flush=True)
+    print(f"完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
 
     if failed_materials:
-        print("\n失败的素材:")
+        print("\n失败的素材:", flush=True)
         for slug in failed_materials:
-            print(f"  - {slug}")
+            print(f"  - {slug}", flush=True)
 
-    print("="*80)
+    print("="*80, flush=True)
     log(f"批量处理完成: 成功 {success_count}, 跳过 {skipped_count}, 失败 {failed_count}")
 
 if __name__ == '__main__':

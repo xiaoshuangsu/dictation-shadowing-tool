@@ -11,6 +11,27 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.7.7] - 2026-03-31
+
+### Perf
+- **规范化日志管理，优化 VideoPlayer 性能** ⚡
+  - **引入统一 Logger 机制**：
+    - 创建 `src/lib/utils/logger.ts` 工具类
+    - 开发环境输出带时间戳的日志
+    - 生产环境完全禁用调试日志（仅保留 error）
+    - 支持多种日志级别：log, info, warn, error, debug
+  - **全局日志替换**：
+    - `VideoPlayer.tsx` - 所有调试日志替换为 logger.debug
+    - `AudioPlayer.tsx` - 所有调试日志替换为 logger.debug
+    - `ClickableTranscript.tsx` - 替换调试日志
+    - `ReviewOverlay.tsx` - 替换调试日志
+    - `TrainingModeModal.tsx` - 替换调试日志
+  - **性能优化**：
+    - VideoPlayer 添加 `React.memo` 优化渲染
+    - 减少无效渲染，降低生产环境控制台输出
+  - **保留错误日志**：
+    - 所有组件保留 `console.error` 用于生产环境错误追踪
+
 ## [29.7.5] - 2026-03-31
 
 ### Refactor
