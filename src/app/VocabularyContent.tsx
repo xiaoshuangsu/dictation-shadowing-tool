@@ -423,6 +423,7 @@ export function VocabularyPageContent() {
       {/* 训练遮罩层 */}
       {trainingMode && words && (
         <ReviewOverlay
+          user={user}
           words={words.map(w => ({
             id: w.id,
             word: w.word,

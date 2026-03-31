@@ -11,6 +11,28 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.7.1] - 2026-03-31
+
+### Fixed
+- **彻底修复 React Error #310（移除 ReviewOverlay 条件式 Hook 调用）** 🐛
+  - **问题**：Vocabulary 页面触发 #310 报错并导致整个应用崩溃
+  - **根本原因**：`ReviewOverlay` 组件内部调用了 `useAuth()` Hook
+    - `ReviewOverlay` 被条件渲染：`{trainingMode && words && <ReviewOverlay />}`
+    - 当条件为 true 时，`useAuth` 被调用
+    - 当条件为 false 时，`useAuth` 不被调用
+    - 这违反了 React Hook 规则：Hook 必须在每次渲染时以相同的顺序调用
+  - **最终修复**：
+    - ✅ 移除 `ReviewOverlay` 内部的 `useAuth` Hook 调用
+    - ✅ 改为通过 props 传递 `user`
+    - ✅ 确保 Hook 调用顺序完全固定
+  - **影响范围**：
+    - `src/components/ReviewOverlay.tsx`（移除 useAuth，添加 user prop）
+    - `src/app/VocabularyContent.tsx`（传递 user prop）
+  - **技术说明**：
+    - 条件渲染的组件内部不能使用 Hook
+    - 解决方案：将 Hook 调用移到父组件，通过 props 传递数据
+    - 这符合 React 最佳实践：保持组件的纯净性和可预测性
+
 ## [29.7.0] - 2026-03-31
 
 ### Fixed

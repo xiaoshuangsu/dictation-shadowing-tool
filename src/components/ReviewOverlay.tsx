@@ -17,17 +17,17 @@
  * - 背面：显示单词标题，完整原句（高亮目标词）
  * - 背面：自评按钮（Still Learning/Mastered）
  *
- * 修复：
- * - 修复答案泄露问题（Cloze 打码）
- * - 在背面显示完整原句
- * - 正面添加音标和发音按钮
+ * 修复（V29.7.1）：
+ * - 移除内部的 useAuth Hook 调用
+ * - 改为通过 props 传递 user
+ * - 避免条件渲染导致的 Hook 顺序问题
  */
 
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { Volume2, X } from 'lucide-react'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { AuthUser } from '@/lib/hooks/useAuth'
 
 interface ReviewWord {
   id: string  // user_words 表的 ID（用于更新状态）
@@ -42,6 +42,7 @@ interface ReviewWord {
 
 interface ReviewOverlayProps {
   words: ReviewWord[]
+  user: AuthUser | null  // 🔴 新增：通过 props 传递 user
   onClose: () => void
 }
 
@@ -59,8 +60,8 @@ const parseDefinition = (definitionStr: string) => {
   }
 }
 
-export default function ReviewOverlay({ words, onClose }: ReviewOverlayProps) {
-  const { user } = useAuth()  // 🔴 获取用户信息
+export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayProps) {
+  // 🔴 移除 useAuth 调用，改用 props 传递的 user
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
   const [userInput, setUserInput] = useState('')
