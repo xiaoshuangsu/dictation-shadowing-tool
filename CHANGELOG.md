@@ -11,6 +11,30 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.6.3] - 2026-03-31
+
+### Fixed
+- **修复 TrainingModeModal 预加载逻辑崩溃问题** 🐛
+  - **问题 1**：重复域名拼接导致音频 URL 错误
+    - 现象：`https://media.shadowhub.app/https://media.shadowhub.app/audio.mp3`
+    - 原因：未检测 `audio_path` 是否已是完整 URL
+    - 修复：添加 `startsWith('http')` 检测，避免重复拼接
+  - **问题 2**：AbortError 导致错误日志和弹窗
+    - 现象：用户跳转时控制台报错 "预加载失败"
+    - 原因：将正常取消操作误判为错误
+    - 修复：使用 `DOMException` 代替普通 `Error`，AbortError 时静默返回
+  - **问题 3**：硬编码 localhost 域名
+    - 现象：生产环境日志显示 `localhost:3000`
+    - 原因：硬编码 `http://localhost:3000${practiceUrl}`
+    - 修复：使用 `NEXT_PUBLIC_SITE_URL` 环境变量，自动适配生产/开发环境
+  - **影响范围**：
+    - `src/components/topics/TrainingModeModal.tsx`
+    - `.env.local` - 新增 `NEXT_PUBLIC_SITE_URL=https://shadowhub.app`
+
+### Technical Notes
+- **预加载优化**：AbortError 不再设置 `error` 状态，避免影响页面数据判断
+- **环境变量注入**：Vercel 部署时自动读取 `NEXT_PUBLIC_SITE_URL`，无需手动配置
+
 ## [29.6.2] - 2026-03-29
 
 ### Added

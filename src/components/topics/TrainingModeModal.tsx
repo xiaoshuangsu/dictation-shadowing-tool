@@ -58,7 +58,10 @@ export function TrainingModeModal({ isOpen, onClose, material }: TrainingModeMod
 
     try {
       // 1. 预加载音频（Promise 包装，不阻塞主线程）
-      const audioUrl = `https://media.shadowhub.app/${material.audio_path}`;
+      // 🔴 修复：避免重复域名拼接
+      const audioUrl = material.audio_path.startsWith('http')
+        ? material.audio_path
+        : `https://media.shadowhub.app/${material.audio_path}`;
       console.log('🔍 [TrainingModeModal] 开始预加载音频:', audioUrl);
 
       await preloadAudio(audioUrl, signal);
@@ -70,9 +73,15 @@ export function TrainingModeModal({ isOpen, onClose, material }: TrainingModeMod
       console.log('✅ [TrainingModeModal] 预加载完成:', material.title);
       setPreloadStatus('success');
     } catch (error) {
-      // 🔴 防御性加固：检查是否是用户取消操作
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('⚠️ [TrainingModeModal] 预加载被用户取消');
+      // 🔴 修复：检查是否是 AbortError（正常取消操作）
+      const isAbortError = error instanceof Error && (
+        error.name === 'AbortError' ||
+        error.message === 'AbortError'
+      );
+
+      if (isAbortError) {
+        console.log('⚠️ [TrainingModeModal] 预加载被用户取消（跳转或关闭弹窗）');
+        // 🔴 关键修复：不设置 error 状态，避免影响后续操作
         return;
       }
 
@@ -87,7 +96,7 @@ export function TrainingModeModal({ isOpen, onClose, material }: TrainingModeMod
     return new Promise((resolve, reject) => {
       // 🔴 防御性加固：检查是否已取消
       if (signal.aborted) {
-        reject(new Error('AbortError'));
+        reject(new DOMException('Aborted', 'AbortError'));
         return;
       }
 
@@ -104,7 +113,7 @@ export function TrainingModeModal({ isOpen, onClose, material }: TrainingModeMod
       // 🔴 防御性加固：监听 abort 事件
       signal.addEventListener('abort', () => {
         clearTimeout(timeoutId);
-        reject(new Error('AbortError'));
+        reject(new DOMException('Aborted', 'AbortError'));
       });
 
       // 监听加载完成事件
@@ -185,8 +194,13 @@ export function TrainingModeModal({ isOpen, onClose, material }: TrainingModeMod
     // 3. 强制格式检查：确保使用查询参数模式（不是路径模式）
     const practiceUrl = `/topics/${encodedCategorySlug}/${encodedMaterialSlug}/?mode=${mode}`;
 
-    // 🔴 日志增强：输出完整编码后的 URL，方便控制台点击测试
-    const fullUrl = `http://localhost:3000${practiceUrl}`;
+    // 🔴 修复：根据环境生成完整 URL
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : 'http://localhost:3000'
+    );
+    const fullUrl = `${baseUrl}${practiceUrl}`;
     console.log('🔍 [TrainingModeModal] 跳转到:', fullUrl);
     console.log('🔍 [TrainingModeModal] 路径组成:', {
       category: material.category,
