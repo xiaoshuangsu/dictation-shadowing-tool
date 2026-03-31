@@ -66,8 +66,8 @@ const swrConfig: SWRConfiguration = {
   revalidateOnFocus: false,       // 焦点切换时不重新验证（避免 Loading 闪烁）
   revalidateOnReconnect: false,   // 网络重连时不重新请求
 
-  // 🔴 长时间缓存：1小时内只要有缓存就不再请求
-  dedupingInterval: 3600000,      // 1小时（60分钟 × 60秒 × 1000ms）
+  // 🔴 长时间缓存：10秒内不重复请求（优化高频请求）
+  dedupingInterval: 10000,        // 10秒内不重复请求
 
   // 🔴 加载状态优化
   keepPreviousData: true,         // 请求期间保留旧数据（避免白屏）
