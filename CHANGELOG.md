@@ -11,6 +11,39 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.6.5] - 2026-03-31
+
+### Fixed
+- **全面优化 SEO 和 Sitemap 逻辑** 🌐
+  - **问题**：Google Search Console 报告重复内容和末尾斜杠问题
+  - **修复**：
+    - ✅ 统一 Sitemap 规范：所有 URL 不带末尾斜杠（与 trailingSlash: false 一致）
+    - ✅ 添加全局 Canonical Tag：动态生成规范网址，移除斜杠和查询参数
+    - ✅ 修复 Vocabulary 页面索引：改为 `index: true, follow: true`（之前被阻止）
+    - ✅ 添加重定向逻辑：`/* (带斜杠)` → `/* (不带斜杠)` [301 永久重定向]
+  - **影响范围**：
+    - `src/components/CanonicalLink.tsx`（新建）
+    - `src/app/layout.tsx` - 添加全局 Canonical Link
+    - `src/app/vocabulary/page.tsx` - 允许搜索引擎索引
+    - `next.config.js` - 添加 redirects 配置
+  - **SEO 效果**：
+    - 解决重复内容问题（带/不带斜杠）
+    - 解决查询参数导致的重复索引（?mode=dictation）
+    - 告诉 Google 索引迁移到规范 URL
+  - **验证**：构建成功，所有检查通过
+
+### Technical Notes
+- **Canonical Tag 逻辑**：
+  - 用户访问 `https://shadowhub.app/topics/daily-life/slug/?mode=dictation`
+  - Canonical 标签指向 `https://shadowhub.app/topics/daily-life/slug`
+  - 移除末尾斜杠和查询参数
+- **Sitemap 规范**：
+  - 所有 URL 不带末尾斜杠
+  - 符合 trailingSlash: false 配置
+- **重定向规则**：
+  - 301 永久重定向告诉搜索引擎索引迁移
+  - 自动将带斜杠请求重定向到不带斜杠
+
 ## [29.6.4] - 2026-03-31
 
 ### Fixed

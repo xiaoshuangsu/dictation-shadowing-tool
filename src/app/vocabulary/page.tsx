@@ -3,13 +3,13 @@ import type { Metadata } from 'next'
 import { VocabularyPageContent } from '../VocabularyContent'
 
 // 🔴 SEO 优化：Vocabulary 生词本元数据
-// 注意：设置 robots: { index: false, follow: false } 防止搜索引擎索引用户的私人单词
+// ✅ 允许搜索引擎索引（修改为 index, follow）
 export const metadata: Metadata = {
   title: 'My Vocabulary & Spaced Repetition - ShadowHub',
   description: 'Review your saved words and phrases with our intelligent spaced repetition system.',
   robots: {
-    index: false,
-    follow: false,
+    index: true,
+    follow: true,
   },
   alternates: {
     canonical: 'https://shadowhub.app/vocabulary',

@@ -21,6 +21,18 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk',
   },
 
+  // 🔴 SEO 重定向：移除末尾斜杠（永久重定向 301）
+  // 告诉搜索引擎索引需要迁移到不带斜杠的 URL
+  async redirects() {
+    return [
+      {
+        source: '/:path*/',  // 匹配所有带末尾斜杠的路径
+        destination: '/:path*',  // 重定向到不带斜杠的路径
+        permanent: true,  // 301 永久重定向
+      },
+    ]
+  },
+
   // 🔴 代理重写：开发环境下将媒体请求代理到 HTTPS Worker，避免混合内容警告
   // 注意：rewrites 在静态导出模式下不生效，但开发模式下可用
   async rewrites() {

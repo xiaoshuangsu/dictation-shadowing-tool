@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import "./globals.css"
 import Navigation from "@/components/Navigation"
+import { CanonicalLink } from "@/components/CanonicalLink"
 
 export const metadata: Metadata = {
   title: "ShadowHub - English Dictation & Shadowing Practice",
@@ -26,6 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        {/* 🔴 SEO: 动态 Canonical Tag */}
+        <CanonicalLink />
+
         <Navigation />
         <main className="pt-16">{children}</main>
       </body>
