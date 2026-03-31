@@ -9,7 +9,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
 import ReviewOverlay from '@/components/ReviewOverlay'
+import { useUserWords } from '@/lib/hooks/useUserWords'
 
 interface UserWord {
   id: string
@@ -55,54 +56,25 @@ export function VocabularyPageContent() {
   const [materialInfoMap, setMaterialInfoMap] = useState<Record<string, { category: string; slug: string }>>({})
   const [trainingMode, setTrainingMode] = useState(false)
 
-  // 🔴 使用本地 state 管理数据，实现瞬时加载
-  const [words, setWords] = useState<UserWord[]>([])
-  const [loading, setLoading] = useState(false)
-  const [dueCount, setDueCount] = useState(0)
+  // 🔴 使用 SWR Hook 获取生词数据（全局缓存）
+  const { data, words, isLoading, error, mutate } = useUserWords(filterStatus, user?.id)
 
-  // 获取生词列表
-  const fetchWords = async (showLoading = true) => {
+  // 🔴 计算今日待复习数量
+  const dueCount = useMemo(() => {
+    if (!words || !words.length) return 0
+    const now = new Date()
+    return words.filter((word: UserWord) => {
+      if (word.mastery_status !== 'learning') return false
+      if (!word.next_review_at) return true
+      return new Date(word.next_review_at) <= now
+    }).length
+  }, [words])
+
+  // 🔴 手动刷新数据（SWR mutate）
+  const fetchWords = async () => {
     if (!user) return
-
-    if (showLoading) setLoading(true)
-    try {
-      const response = await fetch(`/api/user-words?status=${filterStatus === 'all' ? '' : filterStatus}`, {
-        headers: { 'Authorization': `Bearer ${user.id}` }
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        const fetchedWords = data.words || []
-
-        // 🔴 计算今日待复习数量
-        const now = new Date()
-        const due = fetchedWords.filter((word: UserWord) => {
-          if (word.mastery_status !== 'learning') return false
-          if (!word.next_review_at) return true
-          return new Date(word.next_review_at) <= now
-        })
-        setDueCount(due.length)
-
-        // 🔴 排序：已过期的单词排在前面
-        const sortedWords = [...fetchedWords].sort((a: UserWord, b: UserWord) => {
-          const now = new Date()
-          const aIsDue = a.mastery_status === 'learning' &&
-            (!a.next_review_at || new Date(a.next_review_at) <= now)
-          const bIsDue = b.mastery_status === 'learning' &&
-            (!b.next_review_at || new Date(b.next_review_at) <= now)
-
-          if (aIsDue && !bIsDue) return -1
-          if (!aIsDue && bIsDue) return 1
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        })
-
-        setWords(sortedWords)
-      }
-    } catch (error) {
-      console.error('获取生词失败:', error)
-    } finally {
-      if (showLoading) setLoading(false)
-    }
+    // 触发 SWR 重新验证
+    mutate()
   }
 
   // 🔴 播放单词发音
@@ -131,8 +103,8 @@ export function VocabularyPageContent() {
 
       const data = await response.json()
       if (data.success) {
-        // 🔴 乐观更新：立即从列表中移除
-        setWords(prev => prev.filter(w => w.id !== wordId))
+        // 🔴 乐观更新：使用 SWR mutate 立即更新列表
+        mutate()
       }
     } catch (error) {
       console.error('删除生词失败:', error)
@@ -173,25 +145,13 @@ export function VocabularyPageContent() {
     }
   }, [])
 
-  // 🔴 首次加载：显示 loading
-  // 后续切换：保持旧数据，无白屏闪烁
-  useEffect(() => {
-    if (user && words.length === 0) {
-      fetchWords(true)
-    }
-  }, [user])
-
-  // 🔴 过滤器变化时重新加载
-  useEffect(() => {
-    if (user) {
-      fetchWords(true)
-    }
-  }, [filterStatus])
+  // 🔴 使用 SWR 后，不需要手动加载数据
+  // SWR 会自动处理首次加载和缓存
 
   // 加载素材信息
   useEffect(() => {
     const fetchMaterialInfo = async () => {
-      if (!words.length) return
+      if (!words || !words.length) return
 
       const materialIds = Array.from(new Set(words.map(w => w.material_id).filter(Boolean))) as string[]
       if (materialIds.length === 0) return
@@ -349,7 +309,7 @@ export function VocabularyPageContent() {
 
       {/* Word List */}
       <div className="max-w-7xl mx-auto px-4 pb-12">
-        {loading && words.length === 0 ? (
+        {isLoading && words.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>

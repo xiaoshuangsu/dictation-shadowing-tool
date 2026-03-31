@@ -50,24 +50,24 @@ async function fetcher(url: string): Promise<UserWordsResponse> {
 }
 
 /**
- * SWR 配置：优化性能
+ * SWR 配置：优化性能 - 实现真正的零延迟切换
  */
 const swrConfig: SWRConfiguration = {
-  // 🔴 关键优化：禁用自动重新验证
-  revalidateOnFocus: false,      // 切换标签时不重新请求
-  revalidateOnMount: false,      // 组件挂载时不重新请求（如果有缓存）
-  revalidateOnReconnect: false,  // 网络重连时不重新请求
+  // 🔴 关键优化：完全禁用自动重新验证
+  revalidateIfStale: false,       // 即使数据过期也不重新验证
+  revalidateOnFocus: false,       // 切换标签时不重新请求
+  revalidateOnReconnect: false,   // 网络重连时不重新请求
 
-  // 🔴 保持数据新鲜度
-  dedupingInterval: 60000 * 5,   // 5 分钟内相同请求去重（避免重复请求）
-
-  // 🔴 缓存策略
-  shouldRetryOnError: true,      // 出错时自动重试
-  errorRetryCount: 3,            // 重试次数
-  errorRetryInterval: 5000,      // 重试间隔（5秒）
+  // 🔴 长时间缓存：1小时内只要有缓存就不再请求
+  dedupingInterval: 3600000,      // 1小时（60分钟 × 60秒 × 1000ms）
 
   // 🔴 加载状态优化
-  keepPreviousData: true,        // 请求期间保留旧数据（避免白屏）
+  keepPreviousData: true,         // 请求期间保留旧数据（避免白屏）
+
+  // 🔴 错误处理
+  shouldRetryOnError: true,       // 出错时自动重试
+  errorRetryCount: 3,             // 重试次数
+  errorRetryInterval: 5000,       // 重试间隔（5秒）
 }
 
 /**
@@ -116,11 +116,7 @@ export function useUserWords(status: string = 'all', userId?: string | null) {
       }
       return response.json()
     },
-    {
-      ...swrConfig,
-      // 🔴 禁用挂载时重新验证（如果有缓存）
-      revalidateOnMount: false,
-    }
+    swrConfig  // 使用全局配置，已设置 revalidateIfStale: false
   )
 
   return {
@@ -147,10 +143,7 @@ export function useWordSaved(word: string, userId?: string | null) {
       const result = await response.json()
       return result.saved || false
     },
-    {
-      ...swrConfig,
-      revalidateOnMount: false,
-    }
+    swrConfig  // 使用全局配置，已设置 revalidateIfStale: false
   )
 
   return {

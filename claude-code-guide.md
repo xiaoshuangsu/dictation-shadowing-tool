@@ -365,7 +365,7 @@ cat CONTEXT_RESTORE.md
 
 ---
 
-**版本**：V29.6.6
+**版本**：V29.6.7
 **更新日期**：2026-03-31
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
