@@ -141,7 +141,7 @@ export function useAuth(): AuthState {
         subscription.unsubscribe()
       }
     }
-  }, [loading, fetchProfile])
+  }, [fetchProfile])
 
   const login = useCallback(async (email: string, password: string) => {
     try {

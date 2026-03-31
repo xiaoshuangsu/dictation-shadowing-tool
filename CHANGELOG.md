@@ -11,6 +11,23 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.6.9] - 2026-03-31
+
+### Fixed
+- **修复 React Error #310（Vocabulary 页面打不开）** 🐛
+  - **问题**：Vocabulary 页面无法打开，控制台显示 React Error #310
+  - **根本原因**：`useAuth` Hook 的 `useEffect` 依赖项包含 `loading`，导致无限循环
+    - `loading` 在依赖数组中：`useEffect(..., [loading, fetchProfile])`
+    - `loading` 也在 effect 中被修改：`setLoading(false)`
+    - 这导致 effect 重复运行，Hook 调用顺序不一致
+  - **修复**：从 `useEffect` 依赖项中移除 `loading`，只保留 `fetchProfile`
+  - **影响范围**：
+    - `src/lib/hooks/useAuth.ts`（修复 useEffect 依赖项）
+  - **技术说明**：
+    - `loading` state 的变化不应该触发 effect 重新运行
+    - `fetchProfile` 使用 `useCallback` 包装，依赖项稳定
+    - Effect 只在组件挂载时运行一次，`fetchProfile` 变化时重新运行
+
 ## [29.6.8] - 2026-03-31
 
 ### Fixed
