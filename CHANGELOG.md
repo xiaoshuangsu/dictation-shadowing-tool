@@ -14,6 +14,16 @@
 ## [29.6.5] - 2026-03-31
 
 ### Fixed
+- **修复重定向循环问题（ERR_TOO_MANY_REDIRECTS）** 🔄
+  - **问题**：`trailingSlash: false` 与手动 redirects 配置冲突
+  - **原因**：两者同时处理末尾斜杠导致无限重定向
+  - **修复**：移除手动 redirects 配置，完全交给 Next.js 默认处理
+  - **影响范围**：`next.config.js`
+
+### Fixed
+- **全面优化 SEO 和 Sitemap 逻辑** 🌐
+
+### Fixed
 - **全面优化 SEO 和 Sitemap 逻辑** 🌐
   - **问题**：Google Search Console 报告重复内容和末尾斜杠问题
   - **修复**：
