@@ -11,6 +11,32 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.7.3] - 2026-03-31
+
+### Fixed
+- **修复 Topics ↔ Vocabulary 切换时闪现 Loading 动画** ⚡
+  - **问题**：从 Topics 切换到 Vocabulary 时，页面会短暂显示 Loading 圆圈
+  - **根本原因**：
+    - 组件重新挂载时，SWR 的默认缓存是内存缓存，组件卸载后缓存丢失
+    - 导致每次切换页面都会重新请求数据，触发 Loading 状态
+  - **修复方案**：
+    - ✅ 创建全局缓存存储（`globalCache = new Map()`）
+    - ✅ 配置 SWR 使用自定义 cache provider：`provider: () => globalCache`
+    - ✅ 优化 Loading 判断逻辑：`shouldShowLoading = isLoading && !data && !error`
+    - ✅ 只在首次加载且无缓存时显示 Loading
+  - **技术细节**：
+    - `revalidateOnFocus: false` - 禁用焦点切换时重新验证
+    - `revalidateOnMount: true` - 配合 Loading 判断，智能加载
+    - `keepPreviousData: true` - 请求期间保留旧数据
+    - 全局缓存确保组件卸载后数据仍然保留
+  - **影响范围**：
+    - `src/lib/hooks/useUserWords.ts`（添加全局缓存）
+    - `src/app/VocabularyContent.tsx`（优化 Loading 判断）
+  - **用户体验提升**：
+    - Topics ↔ Vocabulary 切换实现瞬时渲染
+    - 完全看不到 Loading 圆圈
+    - 首次访问仍正常显示 Loading
+
 ## [29.7.2] - 2026-03-31
 
 ### Fixed

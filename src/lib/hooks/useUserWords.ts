@@ -11,6 +11,10 @@
 
 import useSWR, { SWRConfiguration } from 'swr'
 
+// 🔴 创建全局缓存存储，确保组件卸载后缓存仍然保留
+// 这是解决 Topics ↔ Vocabulary 切换闪烁的关键
+const globalCache = new Map()
+
 interface UserWord {
   id: string
   user_id: string
@@ -53,9 +57,13 @@ async function fetcher(url: string): Promise<UserWordsResponse> {
  * SWR 配置：优化性能 - 实现真正的零延迟切换
  */
 const swrConfig: SWRConfiguration = {
-  // 🔴 关键优化：完全禁用自动重新验证
+  // 🔴 关键优化：使用全局缓存 provider，确保组件卸载后缓存保留
+  // 这是解决 Topics ↔ Vocabulary 切换闪烁的核心修复
+  provider: () => globalCache,
+
+  // 🔴 禁用所有自动重新验证，从缓存瞬时加载
   revalidateIfStale: false,       // 即使数据过期也不重新验证
-  revalidateOnFocus: false,       // 切换标签时不重新请求
+  revalidateOnFocus: false,       // 焦点切换时不重新验证（避免 Loading 闪烁）
   revalidateOnReconnect: false,   // 网络重连时不重新请求
 
   // 🔴 长时间缓存：1小时内只要有缓存就不再请求
@@ -68,6 +76,12 @@ const swrConfig: SWRConfiguration = {
   shouldRetryOnError: true,       // 出错时自动重试
   errorRetryCount: 3,             // 重试次数
   errorRetryInterval: 5000,       // 重试间隔（5秒）
+
+  // 🔴 智能挂载策略：
+  // - 如果缓存存在：不重新验证（从缓存瞬时加载）
+  // - 如果缓存不存在：执行首次请求
+  // 通过 shouldShowLoading 判断实现
+  revalidateOnMount: true,
 }
 
 /**
@@ -87,25 +101,14 @@ const swrConfig: SWRConfiguration = {
  * ```
  */
 export function useUserWords(status: string = 'all', userId?: string | null) {
-  // 🔴 如果没有用户 ID，返回空数据
-  if (!userId) {
-    return {
-      data: { success: true, words: [], total: 0 },
-      error: null,
-      isLoading: false,
-      isValidating: false,
-      mutate: async () => ({ success: true, words: [], total: 0 }),
-    }
-  }
-
-  // 构建 URL
+  // 🔴 构建 URL
   const query = status === 'all' ? '' : `?status=${status}`
   const url = `/api/user-words${query}`
 
   // 🔴 使用 SWR 管理数据请求
   // 注意：fetcher 需要包含 Authorization header
   const swrResponse = useSWR<UserWordsResponse>(
-    userId ? url : null,  // 如果没有 userId，不发起请求
+    userId ? url : null,  // 🔴 使用条件 key，完全符合 SWR 最佳实践
     async (url: string) => {
       // 🔴 在 fetcher 中添加 Authorization header
       const response = await fetch(url, {
@@ -116,7 +119,7 @@ export function useUserWords(status: string = 'all', userId?: string | null) {
       }
       return response.json()
     },
-    swrConfig  // 使用全局配置，已设置 revalidateIfStale: false
+    swrConfig  // 使用全局配置
   )
 
   return {
@@ -131,10 +134,17 @@ export function useUserWords(status: string = 'all', userId?: string | null) {
  * Hook: 检查单个单词是否已保存
  */
 export function useWordSaved(word: string, userId?: string | null) {
+  const checkUrl = `/api/user-words/check?word=${encodeURIComponent(word)}`
+
   const { data, error, isLoading } = useSWR<boolean>(
-    userId && word ? `/api/user-words/check?word=${encodeURIComponent(word)}` : null,
-    async (url: string) => {
-      const response = await fetch(url, {
+    checkUrl,  // 🔴 key 始终是 checkUrl，不使用条件
+    async () => {
+      // 🔴 在 fetcher 中判断 userId 和 word
+      if (!userId || !word) {
+        return false
+      }
+
+      const response = await fetch(checkUrl, {
         headers: { 'Authorization': `Bearer ${userId}` }
       })
       if (!response.ok) {

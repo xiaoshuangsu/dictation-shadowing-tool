@@ -65,7 +65,15 @@ export function VocabularyPageContent() {
   const [trainingMode, setTrainingMode] = useState(false)
 
   // 🔴 SWR Hook（容错化：支持 null key）
-  const { data, words, isLoading, error, mutate } = useUserWords(filterStatus, user?.id)
+  const { data, words, isLoading, isValidating, error, mutate } = useUserWords(filterStatus, user?.id)
+
+  // 🔴 关键优化：只在首次加载且没有任何数据时显示 Loading
+  // 判断逻辑：
+  // - isLoading: 正在加载
+  // - !data: 没有缓存数据（首次访问）
+  // - !error: 没有错误
+  // 这确保从 Topics 切回 Vocabulary 时，如果缓存存在，不会显示 Loading
+  const shouldShowLoading = isLoading && !data && !error
 
   // Derived State Hooks
   const dueCount = useMemo(() => {
@@ -179,7 +187,9 @@ export function VocabularyPageContent() {
     )
   }
 
-  if (isLoading && !words) {
+  // 🔴 关键修复：只在首次加载且无缓存时显示 Loading
+  // 如果有缓存数据（data 存在），即使 isLoading 也不显示 Loading
+  if (shouldShowLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b border-gray-200">
