@@ -11,6 +11,26 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.6.4] - 2026-03-31
+
+### Fixed
+- **修复 API 路由末尾斜杠导致的 500 错误** 🐛
+  - **问题**：`GET https://shadowhub.app/api/user-words/` 返回 500 错误
+  - **原因**：`next.config.js` 中 `trailingSlash: true` 导致所有 URL 自动添加末尾斜杠，API 路由无法正确处理
+  - **修复**：
+    - 禁用 `trailingSlash`，设置为 `false`
+    - 创建 `src/lib/utils/url.ts` 工具函数，规范化 URL 拼接
+    - 使用 `new URL()` 构造函数，自动处理斜杠拼接
+    - 更新 `TrainingModeModal.tsx` 使用新的工具函数
+  - **影响范围**：
+    - `next.config.js`
+    - `src/lib/utils/url.ts`（新建）
+    - `src/components/topics/TrainingModeModal.tsx`
+  - **标准格式**：API 路由和页面路由均不带末尾斜杠
+    - ✅ `/api/user-words`
+    - ✅ `/topics/daily-life/material-slug`
+    - ❌ `/api/user-words/`
+
 ## [29.6.3] - 2026-03-31
 
 ### Fixed

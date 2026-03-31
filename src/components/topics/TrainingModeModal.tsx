@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import { categoryToSlug } from '@/lib/utils/category';
+import { buildPageUrl } from '@/lib/utils/url';
 import './TrainingModeModal.css';
 
 export type TrainingMode = 'dictation' | 'shadowing';
@@ -194,13 +195,8 @@ export function TrainingModeModal({ isOpen, onClose, material }: TrainingModeMod
     // 3. 强制格式检查：确保使用查询参数模式（不是路径模式）
     const practiceUrl = `/topics/${encodedCategorySlug}/${encodedMaterialSlug}/?mode=${mode}`;
 
-    // 🔴 修复：根据环境生成完整 URL
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || (
-      typeof window !== 'undefined'
-        ? window.location.origin
-        : 'http://localhost:3000'
-    );
-    const fullUrl = `${baseUrl}${practiceUrl}`;
+    // 🔴 修复：使用规范化 URL 工具函数，避免斜杠拼接问题
+    const fullUrl = buildPageUrl(practiceUrl);
     console.log('🔍 [TrainingModeModal] 跳转到:', fullUrl);
     console.log('🔍 [TrainingModeModal] 路径组成:', {
       category: material.category,

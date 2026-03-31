@@ -9,8 +9,9 @@ const nextConfig = {
     unoptimized: true,
   },
 
-  // Ensure trailing slash for proper routing
-  trailingSlash: true,
+  // 🔴 修复：禁用 trailingSlash，避免 API 路由末尾斜杠导致的 500 错误
+  // Next.js App Router 自动处理路由匹配，不需要强制末尾斜杠
+  trailingSlash: false,
 
   // Explicitly embed environment variables into the client bundle
   // This is required for static export to work with public env vars
