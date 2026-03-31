@@ -335,8 +335,6 @@ export async function getMaterialProgressFallback(
   userId: string,
   practiceMode: 'dictation' | 'shadowing'
 ): Promise<MaterialProgress[]> {
-  console.log(`📊 [Progress] Fetching progress for user ${userId}, mode ${practiceMode}`)
-
   // 1. 获取用户的所有练习记录（包含material_id, sentence_id和completed_at）
   // 注意：不过滤 material_id 为 null 的记录，以支持旧数据
   const { data: records, error } = await supabase
@@ -346,43 +344,46 @@ export async function getMaterialProgressFallback(
     .eq('practice_mode', practiceMode)
     .order('completed_at', { ascending: false })
 
-  console.log(`📊 [Progress] Query result:`, { error, recordsCount: records?.length || 0, recordsSample: records?.slice(0, 3) })
-
   if (error) {
     console.error('❌ [Progress] Failed to fetch practice records:', error)
     return []
   }
 
   if (!records || records.length === 0) {
-    console.log(`⚠️ [Progress] No records found for ${practiceMode}`)
     return []
   }
-
-  console.log(`📈 [Progress] Found ${records.length} total records for ${practiceMode}`)
 
   // 2. 获取所有素材的信息（用于后续匹配）
   const { data: materials } = await supabase
     .from('materials')
     .select('id, title, category, transcript, thumbnail_path')
 
-  console.log(`📊 [Progress] Materials query:`, { materialsCount: materials?.length || 0 })
-
   if (!materials || materials.length === 0) {
     console.warn('⚠️ [Progress] No materials found')
     return []
   }
 
-  // 创建 material_id -> 详细信息的映射
+  // 🔴 新增：创建 material_id -> 详细信息的映射（包含 blanks 统计）
   const materialInfo = new Map<string, {
     sentenceCount: number
+    skippableCount: number  // 🔴 无 blanks 的句子数（自动完成）
     thumbnail: string | null
     title: string
     category: string
   }>()
   for (const material of materials as any[]) {
-    const sentenceCount = material.transcript?.length || 0
+    const transcript = material.transcript || []
+    const sentenceCount = transcript.length
+
+    // 🔴 计算无 blanks 的句子数（自动完成）
+    const skippableCount = transcript.filter((s: any) => {
+      // blanks 不存在、为空数组、或数组为空
+      return !s.blanks || !Array.isArray(s.blanks) || s.blanks.length === 0
+    }).length
+
     materialInfo.set(material.id, {
       sentenceCount,
+      skippableCount,
       thumbnail: material.thumbnail_path,
       title: material.title,
       category: material.category || '未分类'
@@ -413,9 +414,6 @@ export async function getMaterialProgressFallback(
     let resolvedMaterialId = materialId
     if (!materialId) {
       resolvedMaterialId = titleToMaterialId.get(audioTitle) || audioTitle
-      console.log(`🔍 [Progress] Old record: "${audioTitle}" (sentence ${sentenceId}) -> matched to material_id: ${resolvedMaterialId}`)
-    } else {
-      console.log(`✅ [Progress] New record: material_id=${materialId}, audio_title="${audioTitle}" (sentence ${sentenceId})`)
     }
 
     const current = materialMap.get(resolvedMaterialId)
@@ -446,17 +444,14 @@ export async function getMaterialProgressFallback(
   Array.from(materialMap.entries()).forEach(([resolvedMaterialId, { uniqueSentences, lastAt, lastSentenceIndex, audioTitle }]) => {
     const info = materialInfo.get(resolvedMaterialId)
     const totalSentences = info?.sentenceCount || 0
-    const completedSentences = uniqueSentences.size
+    const skippableCount = info?.skippableCount || 0  // 🔴 无 blanks 的句子数
+    const practicedSentences = uniqueSentences.size  // 🔴 用户已练习的句子数
+
+    // 🔴 新的完成率计算公式：(已练习 + 自动完成) / 总句数
+    const completedSentences = practicedSentences + skippableCount
+
     const thumbnail = info?.thumbnail
     const title = info?.title || audioTitle  // 优先使用 materials.title，回退到 audio_title
-
-    console.log(`📊 [Progress] Processing material:`, {
-      resolvedMaterialId,
-      title,
-      audioTitle,
-      totalSentences,
-      completedSentences
-    })
 
     result.push({
       audioTitle: title,  // 使用 materials.title
@@ -470,24 +465,6 @@ export async function getMaterialProgressFallback(
       slug: resolvedMaterialId,  // 使用 resolvedMaterialId 作为 slug
       sentenceIds: Array.from(uniqueSentences).sort((a, b) => a - b),
       category: info?.category || '未分类'
-    })
-
-    console.log(`✅ [Progress] ${title}: ${completedSentences}/${totalSentences} (${totalSentences > 0 ? Math.round(completedSentences/totalSentences*100) : 0}%)`)
-    console.log(`   Material ID: ${resolvedMaterialId}`)
-    console.log(`   Sentence IDs: [${Array.from(uniqueSentences).sort((a, b) => a - b).join(', ')}]`)
-  })
-
-  console.log(`📊 [Progress] Final result count: ${result.length}`)
-
-  // 打印每个素材的详细信息
-  result.forEach((item, index) => {
-    console.log(`📊 [Progress] Result[${index}]:`, {
-      audioTitle: item.audioTitle,
-      materialId: item.materialId,
-      slug: item.slug,
-      totalSentences: item.totalSentences,
-      completedSentences: item.completedSentences,
-      lastPracticedAt: item.lastPracticedAt
     })
   })
 

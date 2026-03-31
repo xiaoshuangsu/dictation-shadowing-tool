@@ -106,39 +106,17 @@ export default function WordMode({
           }
 
           if (renderIndex >= 0) {
-            console.log('🎯 使用 blanks 字段挖空:', {
-              word: blankWord,
-              blankIndex,
-              spaceToken: spaceTokens[blankIndex],
-              renderIndex,
-              renderToken: renderTokens[renderIndex],
-              isCore: blank.is_core
-            })
             return {
               targetTokenIndex: renderIndex,
               hiddenWord: blankWord  // 使用 blanks 中的原始 word（不含标点）
             }
           }
-        } else {
-          console.warn('⚠️ blanks 字段不匹配:', {
-            blankWord,
-            blankIndex,
-            wordAtIndex,
-            cleanBlankWord,
-            cleanWordAtIndex
-          })
         }
-      } else {
-        console.warn('⚠️ blanks index 超出范围:', {
-          blankIndex,
-          spaceTokensLength: spaceTokens.length
-        })
       }
     }
 
     // 🔴 修复：如果没有有效的 blanks 字段，不挖空（而不是使用随机算法）
     // 随机算法会导致挖空黑名单词（如 my, that, is 等）
-    console.log('⚠️  没有 blanks 字段，跳过挖空')
     return {
       targetTokenIndex: -1,  // -1 表示不挖空
       hiddenWord: ""

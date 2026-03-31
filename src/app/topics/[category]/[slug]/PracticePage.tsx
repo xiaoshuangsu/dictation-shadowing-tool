@@ -436,8 +436,54 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }
 
-  const handleNext = () => {
+  // 🔴 新增：检查句子是否有 blanks（是否需要练习）
+  const isSkippableSentence = (sentence: Sentence) => {
+    // blanks 不存在、为空数组、或数组为空 → 自动跳过
+    return !sentence.blanks || !Array.isArray(sentence.blanks) || sentence.blanks.length === 0
+  }
+
+  // 🔴 新增：自动跳过无 blanks 的句子并记录完成
+  const handleAutoSkipSentence = async (sentence: Sentence, index: number) => {
+    // 自动标记为完成
+    const newCompleted = new Set(completedSentences)
+    newCompleted.add(index)
+    setCompletedSentences(newCompleted)
+    setCorrectCount(correctCount + 1)
+    const newCorrectSet = new Set(correctSentences)
+    newCorrectSet.add(index)
+    setCorrectSentences(newCorrectSet)
+
+    // 🔴 保存练习记录到数据库（标记为自动完成）
+    if (user && material) {
+      try {
+        await savePracticeRecord({
+          userId: user.id,
+          sentenceId: sentence.id,
+          sentenceText: sentence.text,
+          practiceMode: mode,
+          dictationMode: mode === 'dictation' ? dictationMode : undefined,
+          isCorrect: true,  // 自动完成的句子标记为正确
+          usedShowWords: false,
+          audioTitle: material.title,
+          materialId: material.id,
+          durationSeconds: 0
+        })
+      } catch (error) {
+        console.error('❌ [AutoSkip] 保存记录失败:', error)
+      }
+    }
+  }
+
+  const handleNext = async () => {
     const currentIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
+    const currentSentence = sampleSentences[currentIndex]
+
+    // 🔴 如果当前句子无 blanks，自动标记为完成
+    if (currentSentence && isSkippableSentence(currentSentence)) {
+      await handleAutoSkipSentence(currentSentence, currentIndex)
+    }
+
+    // 移动到下一句（不连续跳过）
     if (currentIndex < sampleSentences.length - 1) {
       const newIndex = currentIndex + 1
       if (mode === 'dictation') {
