@@ -1,11 +1,21 @@
+/**
+ * Topics Page - 素材列表页
+ *
+ * 修复目标：
+ * - 修复 React Error #310（Hook 顺序问题）
+ * - 使用 SWR 全局缓存，实现瞬时加载
+ * - 禁用自动重新验证，避免切换标签时重新加载
+ * - 与 Vocabulary 页面保持一致的缓存策略
+ */
+
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { categoryToSlug } from '@/lib/utils/category'
-import { getSupabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
 import { TrainingModeModal } from '@/components/topics/TrainingModeModal'
+import { useMaterials, CATEGORIES } from '@/lib/hooks/useMaterials'
 
 type Material = {
   id: string
@@ -20,23 +30,6 @@ type Material = {
   slug?: string
 }
 
-// 分类顺序和配置
-const CATEGORIES = [
-  { id: '日常生活', label: 'Daily Life' },
-  { id: 'Science and Facts', label: 'Science and Facts' },
-  { id: '历史演讲', label: 'Historical Speeches' },
-  { id: 'TED演讲', label: 'TED Talks' },
-  { id: '文化历史', label: 'Culture & History' },
-  { id: '心灵故事', label: 'Heart & Soul Stories' },
-  { id: '艺术文化', label: 'Arts & Culture' },
-  { id: '故事', label: 'Stories' },
-  { id: '动画片', label: 'Cartoons' },
-  { id: '人物访谈', label: 'Interviews' },
-  { id: 'BBC Learning English', label: 'BBC Learning English' },
-  { id: 'VOA Learning English', label: 'VOA Learning English' },
-  { id: 'IELTS Listening', label: 'IELTS Listening' },
-]
-
 // 难度颜色映射
 const DIFFICULTY_COLORS: Record<string, string> = {
   A1: 'bg-green-100 text-green-700 border-green-200',
@@ -48,86 +41,17 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 }
 
 export function MaterialsPageContent() {
-  const [materialsByCategory, setMaterialsByCategory] = useState<Record<string, Material[]>>({})
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // 🔴 所有 Hook 必须在组件顶部调用，不能有任何条件返回在 Hook 之前
+
+  // 🔴 使用 SWR Hook 获取素材数据（全局缓存）
+  const { materialsByCategory, categoryCounts, isLoading, error } = useMaterials()
+
+  // 🔴 状态管理
   const [imageLoadedStates, setImageLoadedStates] = useState<Record<string, boolean>>({})
 
   // 🔴 弹窗状态
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null)
-
-  // 获取每个分类的前4个素材和总数
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    async function fetchMaterials() {
-      try {
-        const supabaseClient = getSupabase()
-        const result: Record<string, Material[]> = {}
-        const counts: Record<string, number> = {}
-
-        // 并行获取所有分类的素材（每个分类最多4个）和总数
-        const promises = CATEGORIES.map(async (category) => {
-          const DEFAULT_COVER = 'thumbnails/culture-history-cover.jpg'
-
-          // 对于 Daily Life 分类，获取更多素材以便筛选有自定义封面的
-          const limit = category.id === '日常生活' ? 50 : 4
-
-          // 获取素材
-          const { data, error } = await supabaseClient
-            .from('materials')
-            .select('*')
-            .eq('category', category.id)
-            .order('title')
-            .limit(limit)
-
-          if (!error && data) {
-            // 对于 Daily Life，优先显示有自定义封面的素材
-            if (category.id === '日常生活') {
-              const customCoverMaterials = data.filter(m =>
-                m.thumbnail_path && m.thumbnail_path !== DEFAULT_COVER
-              )
-              const defaultCoverMaterials = data.filter(m =>
-                !m.thumbnail_path || m.thumbnail_path === DEFAULT_COVER
-              )
-              // 合并：自定义封面在前，默认封面在后，各取前几个
-              const customMaterials = customCoverMaterials.slice(0, 4)
-              const remainingCount = 4 - customMaterials.length
-              const defaultMaterials = defaultCoverMaterials.slice(0, remainingCount)
-              result[category.id] = [...customMaterials, ...defaultMaterials]
-            } else {
-              result[category.id] = data.slice(0, 4)
-            }
-          }
-
-          // 获取该分类的总数
-          const { count } = await supabaseClient
-            .from('materials')
-            .select('*', { count: 'exact', head: true })
-            .eq('category', category.id)
-
-          if (count !== null) {
-            counts[category.id] = count
-          }
-        })
-
-        await Promise.all(promises)
-
-        setMaterialsByCategory(result)
-        setCategoryCounts(counts)
-        setError(null)
-      } catch (err) {
-        console.error('获取素材失败:', err)
-        setError('加载失败，请检查网络连接')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchMaterials()
-  }, [])
 
   // R2 URL 配置
   const R2_WORKER_URL = 'https://media.shadowhub.app'
@@ -177,7 +101,7 @@ export function MaterialsPageContent() {
     setSelectedMaterial(null)
   }
 
-  // 计算总素材数和分类数
+  // 🔴 计算总素材数和分类数
   const totalMaterials = Object.values(materialsByCategory).reduce((sum, materials) => sum + materials.length, 0)
   const totalCategories = Object.keys(materialsByCategory).length
 
@@ -210,7 +134,7 @@ export function MaterialsPageContent() {
       {/* 素材列表（按分类分组） */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-8">
-          {loading ? (
+          {isLoading && Object.keys(materialsByCategory).length === 0 ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               <p className="mt-4 text-gray-600">Loading...</p>

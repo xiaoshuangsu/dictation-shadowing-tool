@@ -11,6 +11,37 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.6.8] - 2026-03-31
+
+### Fixed
+- **修复 React Hook 顺序错误（React Error #310）** 🐛
+  - **问题**：在 Hook 调用之后有条件返回（`if (loading) return`），违反了 React Hook 规则
+  - **原因**：Vocabulary 页面使用 SWR 后，Hook 调用顺序需要保持固定
+  - **修复**：
+    - ✅ 所有 Hook 必须在组件顶部调用，不能有任何条件返回在 Hook 之前
+    - ✅ 条件渲染逻辑完全放在 JSX 中
+    - ✅ 确保 Hook 调用顺序固定，符合 React 规则
+  - **影响范围**：
+    - `src/app/VocabularyContent.tsx`（优化 Hook 调用顺序）
+    - `src/app/TopicsContent.tsx`（重构，修复 Hook 顺序）
+
+### Performance
+- **Topics 页面缓存优化** ⚡
+  - **创建 `useMaterials` Hook**：使用 SWR 管理素材数据，实现全局缓存
+  - **缓存策略**：
+    - ✅ 完全禁用自动重新验证：`revalidateIfStale: false`
+    - ✅ 长时间缓存：`dedupingInterval: 3600000`（1小时）
+    - ✅ 保留旧数据：`keepPreviousData: true`
+  - **用户体验**：
+    - Vocabulary ↔ Topics 反复横跳：✅ 零延迟，数据瞬间显示
+    - 站内路由切换：✅ 无白屏闪烁
+  - **影响范围**：
+    - `src/lib/hooks/useMaterials.ts`（新建，SWR Hook）
+    - `src/app/TopicsContent.tsx`（重构，使用 SWR）
+  - **技术实现**：
+    - 与 Vocabulary 页面保持一致的缓存策略
+    - SWR 全局单例缓存，路由切换不丢失数据
+
 ## [29.6.7] - 2026-03-31
 
 ### Performance

@@ -1,10 +1,10 @@
 /**
  * Vocabulary Page - 生词本列表页
  *
- * 优化目标：
- * - 使用 SWR 管理数据，实现瞬时加载
+ * 修复目标：
+ * - 修复 React Error #310（Hook 顺序问题）
+ * - 使用 SWR 全局缓存，实现瞬时加载
  * - 禁用自动重新验证，避免切换标签时重新加载
- * - 保持数据新鲜度，手动控制何时刷新
  */
 
 'use client'
@@ -25,7 +25,7 @@ interface UserWord {
   user_id: string
   word: string
   phonetic: string
-  definition: string  // JSON string
+  definition: string
   context_sentence: string
   material_id: string | null
   material_title: string | null
@@ -49,6 +49,7 @@ interface Definition {
 }
 
 export function VocabularyPageContent() {
+  // 🔴 所有 Hook 必须在组件顶部调用，不能有任何条件返回在 Hook 之前
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [currentLanguage, setCurrentLanguage] = useState<keyof Definition>('zh-CN')
@@ -69,13 +70,6 @@ export function VocabularyPageContent() {
       return new Date(word.next_review_at) <= now
     }).length
   }, [words])
-
-  // 🔴 手动刷新数据（SWR mutate）
-  const fetchWords = async () => {
-    if (!user) return
-    // 触发 SWR 重新验证
-    mutate()
-  }
 
   // 🔴 播放单词发音
   const playAudio = (audioUrl: string) => {
@@ -145,9 +139,6 @@ export function VocabularyPageContent() {
     }
   }, [])
 
-  // 🔴 使用 SWR 后，不需要手动加载数据
-  // SWR 会自动处理首次加载和缓存
-
   // 加载素材信息
   useEffect(() => {
     const fetchMaterialInfo = async () => {
@@ -180,34 +171,6 @@ export function VocabularyPageContent() {
     fetchMaterialInfo()
   }, [words])
 
-  // 登录中/未登录
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">请先登录</h1>
-          <Link
-            href="/login"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            前往登录
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   // 解析多语言释义
   const parseDefinition = (definitionStr: string): Definition => {
     try {
@@ -235,6 +198,9 @@ export function VocabularyPageContent() {
     mastered: { label: 'Mastered', color: 'bg-green-100 text-green-800' }
   }
 
+  // 🔴 关键修复：将条件渲染逻辑放在 JSX 中，而不是在 Hook 调用之后 return
+  // 这样所有 Hook 的调用顺序都是固定的，符合 React 规则
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -244,11 +210,11 @@ export function VocabularyPageContent() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Vocabulary</h1>
               <p className="text-gray-600 mt-1">
-                {words.length} words total
+                {words?.length || 0} words total
               </p>
             </div>
             <div className="flex items-center gap-4">
-              {words.length > 0 && (
+              {words && words.length > 0 && (
                 <button
                   onClick={() => setTrainingMode(true)}
                   className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
@@ -273,7 +239,7 @@ export function VocabularyPageContent() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              All ({words.length})
+              All ({words?.length || 0})
             </button>
             <button
               onClick={() => setFilterStatus('learning')}
@@ -309,11 +275,26 @@ export function VocabularyPageContent() {
 
       {/* Word List */}
       <div className="max-w-7xl mx-auto px-4 pb-12">
-        {isLoading && words.length === 0 ? (
+        {/* 🔴 登录中/未登录状态检查 - 放在 JSX 中，而不是 Hook 之后 */}
+        {authLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        ) : words.length === 0 ? (
+        ) : !user ? (
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">请先登录</h1>
+            <Link
+              href="/login"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              前往登录
+            </Link>
+          </div>
+        ) : isLoading && !words ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : !words || words.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <p className="text-gray-500 mb-4">No words saved yet</p>
             <p className="text-sm text-gray-400">
@@ -440,7 +421,7 @@ export function VocabularyPageContent() {
       </div>
 
       {/* 训练遮罩层 */}
-      {trainingMode && (
+      {trainingMode && words && (
         <ReviewOverlay
           words={words.map(w => ({
             id: w.id,
@@ -453,7 +434,7 @@ export function VocabularyPageContent() {
           }))}
           onClose={() => {
             setTrainingMode(false)
-            fetchWords()
+            mutate()
           }}
         />
       )}
