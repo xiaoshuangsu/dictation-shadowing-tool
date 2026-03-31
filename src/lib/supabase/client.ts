@@ -22,35 +22,27 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
 
-// 🔴 关键修复：实施单例模式，避免多个 GoTrueClient 实例冲突
+// Implement singleton pattern to avoid multiple GoTrueClient instances
 let supabaseInstance: ReturnType<typeof createClient> | null = null
 
 /**
- * 获取 Supabase 客户端实例（单例模式）
+ * Get Supabase client instance (singleton pattern)
  *
- * 确保整个应用只有一个 Supabase 客户端实例，避免：
- * - 多个 GoTrueClient 实例冲突
- * - 认证状态不一致
- * - 加载卡死问题
+ * Ensures the entire application has only one Supabase client instance, avoiding:
+ * - Multiple GoTrueClient instance conflicts
+ * - Authentication state inconsistency
+ * - Loading freezing issues
  *
- * 容错处理：即使凭证缺失也不会抛出错误
+ * Error handling: Credentials missing will not throw errors
  */
 export const getSupabase = () => {
-  // 🔴 容错处理：检查凭证是否存在
+  // Error handling: Check if credentials exist
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('[Supabase] ⚠️  Missing credentials, using hardcoded values')
+    console.warn('[Supabase] Missing credentials, using hardcoded values')
   }
 
   if (!supabaseInstance) {
-    // 🔴 在构建期间（SSG），创建静默版本避免错误
-    const isBuildTime = typeof window === 'undefined'
-
-    if (isBuildTime) {
-      console.log('[Supabase] Creating singleton instance (build time)')
-    } else {
-      console.log('[Supabase] Creating singleton instance (browser)')
-    }
-
+    // Create new instance
     supabaseInstance = createClient(
       supabaseUrl,
       supabaseAnonKey,
@@ -63,23 +55,12 @@ export const getSupabase = () => {
         },
       }
     )
-
-    // Debug logging (仅在浏览器环境)
-    if (typeof window !== 'undefined') {
-      console.log('[Supabase] URL:', supabaseUrl.substring(0, 30) + '...')
-      console.log('[Supabase] Key present:', !!supabaseAnonKey)
-      const isValidFormat = supabaseAnonKey.startsWith('eyJ') || supabaseAnonKey.startsWith('sb_publishable')
-      console.log('[Supabase] Key format valid:', isValidFormat)
-    }
-  } else {
-    console.log('[Supabase] Reusing existing singleton instance')
   }
 
   return supabaseInstance
 }
 
-// 向后兼容：导出默认的 supabase 实例
-// 使用 getter 函数确保总是返回同一个实例
+// Backward compatibility: Export default supabase instance
 export const supabase = getSupabase()
 export default supabase
 
@@ -121,12 +102,11 @@ export interface Material {
   play_count: number
   created_at: string
   updated_at: string
-  is_premium: boolean  // 是否为付费素材
-  // 新增字段：支持 YouTube 和 R2 视频
+  is_premium: boolean
   source_type: 'r2' | 'youtube'
   youtube_id?: string | null
   video_path?: string | null
-  transcript?: any  // JSONB 类型，存储句子级别的转录数据
+  transcript?: any
 }
 
 export interface UserWord {
@@ -134,7 +114,7 @@ export interface UserWord {
   user_id: string
   word: string
   phonetic: string | null
-  definition: string  // JSON 格式：{"zh": "你好", "vi": "xin chào"}
+  definition: string
   context_sentence: string | null
   material_id: string | null
   material_title: string | null
@@ -155,7 +135,7 @@ export async function savePracticeRecord(data: {
   isCorrect: boolean
   usedShowWords: boolean
   audioTitle: string
-  materialId?: string  // 添加 materialId 参数
+  materialId?: string
   durationSeconds?: number
 }) {
   const { data: record, error } = await (supabase as any)
@@ -169,7 +149,7 @@ export async function savePracticeRecord(data: {
       is_correct: data.isCorrect,
       used_show_words: data.usedShowWords,
       audio_title: data.audioTitle,
-      material_id: data.materialId || null,  // 添加 material_id 字段
+      material_id: data.materialId || null,
       duration_seconds: data.durationSeconds || null,
     })
     .select()
@@ -290,7 +270,7 @@ export async function getUserProfile(userId: string) {
 }
 
 /**
- * 素材进度统计接口
+ * Material progress statistics interface
  */
 export interface MaterialProgress {
   audioTitle: string
@@ -299,21 +279,20 @@ export interface MaterialProgress {
   lastPracticedAt: string
   practiceMode: 'dictation' | 'shadowing'
   thumbnail?: string | null
-  lastPracticedSentenceIndex?: number  // 最后练习的句子索引（0-based）
-  materialId?: string  // 素材 ID
-  slug?: string  // 素材的友好 slug（用于 URL 路由），如果没有则使用 materialId
-  sentenceIds?: number[]  // 已完成的句子ID列表（排序后）
-  category?: string  // 素材分类
+  lastPracticedSentenceIndex?: number
+  materialId?: string
+  slug?: string
+  sentenceIds?: number[]
+  category?: string
 }
 
 /**
- * 获取用户的素材进度（按素材聚合，使用高效的SQL查询）
+ * Get user material progress (aggregated by material, using efficient SQL query)
  */
 export async function getMaterialProgress(
   userId: string,
   practiceMode: 'dictation' | 'shadowing'
 ): Promise<MaterialProgress[]> {
-  // 使用 Supabase RPC 调用自定义 SQL 函数（最高效）
   const { data, error } = await (supabase as any)
     .rpc('get_material_progress', {
       p_user_id: userId,
@@ -329,14 +308,12 @@ export async function getMaterialProgress(
 }
 
 /**
- * 备用方案：使用客户端聚合（如果没有SQL函数）
+ * Fallback: Use client-side aggregation (if SQL function not available)
  */
 export async function getMaterialProgressFallback(
   userId: string,
   practiceMode: 'dictation' | 'shadowing'
 ): Promise<MaterialProgress[]> {
-  // 1. 获取用户的所有练习记录（包含material_id, sentence_id和completed_at）
-  // 注意：不过滤 material_id 为 null 的记录，以支持旧数据
   const { data: records, error } = await supabase
     .from('practice_records')
     .select('material_id, audio_title, sentence_id, completed_at')
@@ -345,7 +322,7 @@ export async function getMaterialProgressFallback(
     .order('completed_at', { ascending: false })
 
   if (error) {
-    console.error('❌ [Progress] Failed to fetch practice records:', error)
+    console.error('Failed to fetch practice records:', error)
     return []
   }
 
@@ -353,20 +330,17 @@ export async function getMaterialProgressFallback(
     return []
   }
 
-  // 2. 获取所有素材的信息（用于后续匹配）
   const { data: materials } = await supabase
     .from('materials')
     .select('id, title, category, transcript, thumbnail_path')
 
   if (!materials || materials.length === 0) {
-    console.warn('⚠️ [Progress] No materials found')
     return []
   }
 
-  // 🔴 新增：创建 material_id -> 详细信息的映射（包含 blanks 统计）
   const materialInfo = new Map<string, {
     sentenceCount: number
-    skippableCount: number  // 🔴 无 blanks 的句子数（自动完成）
+    skippableCount: number
     thumbnail: string | null
     title: string
     category: string
@@ -375,9 +349,7 @@ export async function getMaterialProgressFallback(
     const transcript = material.transcript || []
     const sentenceCount = transcript.length
 
-    // 🔴 计算无 blanks 的句子数（自动完成）
     const skippableCount = transcript.filter((s: any) => {
-      // blanks 不存在、为空数组、或数组为空
       return !s.blanks || !Array.isArray(s.blanks) || s.blanks.length === 0
     }).length
 
@@ -390,14 +362,11 @@ export async function getMaterialProgressFallback(
     })
   }
 
-  // 创建 title -> material_id 的映射（用于旧记录匹配）
   const titleToMaterialId = new Map<string, string>()
   for (const material of materials as any[]) {
     titleToMaterialId.set(material.title, material.id)
   }
 
-  // 3. 客户端聚合（按 material_id 分组，使用Set去重句子ID）
-  // 对于 material_id 为 null 的旧记录，通过 audio_title 匹配找到对应的 material_id
   const materialMap = new Map<string, {
     uniqueSentences: Set<number>
     lastAt: string
@@ -410,7 +379,6 @@ export async function getMaterialProgressFallback(
     const sentenceId = record.sentence_id
     const audioTitle = record.audio_title || 'Unknown'
 
-    // 如果 material_id 为 null，尝试通过 audio_title 匹配
     let resolvedMaterialId = materialId
     if (!materialId) {
       resolvedMaterialId = titleToMaterialId.get(audioTitle) || audioTitle
@@ -438,23 +406,21 @@ export async function getMaterialProgressFallback(
     }
   }
 
-  // 4. 组合数据
   const result: MaterialProgress[] = []
 
   Array.from(materialMap.entries()).forEach(([resolvedMaterialId, { uniqueSentences, lastAt, lastSentenceIndex, audioTitle }]) => {
     const info = materialInfo.get(resolvedMaterialId)
     const totalSentences = info?.sentenceCount || 0
-    const skippableCount = info?.skippableCount || 0  // 🔴 无 blanks 的句子数
-    const practicedSentences = uniqueSentences.size  // 🔴 用户已练习的句子数
+    const skippableCount = info?.skippableCount || 0
+    const practicedSentences = uniqueSentences.size
 
-    // 🔴 新的完成率计算公式：(已练习 + 自动完成) / 总句数
     const completedSentences = practicedSentences + skippableCount
 
     const thumbnail = info?.thumbnail
-    const title = info?.title || audioTitle  // 优先使用 materials.title，回退到 audio_title
+    const title = info?.title || audioTitle
 
     result.push({
-      audioTitle: title,  // 使用 materials.title
+      audioTitle: title,
       totalSentences,
       completedSentences,
       lastPracticedAt: lastAt,
@@ -462,13 +428,12 @@ export async function getMaterialProgressFallback(
       thumbnail,
       lastPracticedSentenceIndex: lastSentenceIndex,
       materialId: resolvedMaterialId,
-      slug: resolvedMaterialId,  // 使用 resolvedMaterialId 作为 slug
+      slug: resolvedMaterialId,
       sentenceIds: Array.from(uniqueSentences).sort((a, b) => a - b),
       category: info?.category || '未分类'
     })
   })
 
-  // 按最后练习时间排序
   result.sort((a, b) =>
     new Date(b.lastPracticedAt).getTime() - new Date(a.lastPracticedAt).getTime()
   )

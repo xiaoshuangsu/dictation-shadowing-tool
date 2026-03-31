@@ -11,6 +11,24 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.7.8] - 2026-03-31
+
+### Perf
+- **深度清理核心逻辑冗余日志** 🧹
+  - **PracticePage.tsx 清理**：
+    - 删除所有表情符号日志（🎵🎵🎵、🔴🔴🔴 等）
+    - 删除交互日志（=== handlePlayOrNext Called ===、播放按钮被点击了）
+    - 删除敏感数据输出（Material found、ID、audio_path、video_path 等）
+    - 删除 Supabase 初始化日志（Creating singleton instance）
+    - 删除滚动和状态变更日志（🔧 页面加载、🎯 跳转到句子等）
+  - **Supabase client.ts 清理**：
+    - 移除所有初始化日志
+    - 移除 URL 和 Key 格式验证日志
+    - 移除单例模式复用日志
+  - **性能提升**：
+    - 包体积减少 1.25 kB（practice/page：10.4 kB → 9.15 kB）
+    - 生产环境控制台更加简洁，只保留错误日志
+
 ## [29.7.7] - 2026-03-31
 
 ### Perf

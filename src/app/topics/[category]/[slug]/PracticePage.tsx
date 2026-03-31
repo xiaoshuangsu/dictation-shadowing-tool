@@ -8,6 +8,7 @@ import { onDictationComplete, onShadowingComplete } from '@/lib/supabase/streak'
 import { titleToSlug } from '@/lib/utils/slug'
 import { slugToCategory, getCategoryMetadataBySlug } from '@/lib/utils/category'
 import { useAuth } from '@/lib/hooks/useAuth'
+import logger from '@/lib/utils/logger'
 import type { Sentence } from '@/types'
 
 // Import components
@@ -35,10 +36,8 @@ interface Material {
   thumbnail_path: string | null
   transcript: any[]
   duration?: number | null
-  // 新增字段：支持 YouTube 和 R2 视频
   source_type?: 'r2' | 'youtube'
   youtube_id?: string | null
-  // 付费素材标识
   is_premium?: boolean
 }
 
@@ -52,7 +51,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
 
-  // 🔴 获取返回页码（从 sessionStorage）
   const [returnPageParam, setReturnPageParam] = useState('')
 
   useEffect(() => {
@@ -69,59 +67,42 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }, [category])
 
-  // Get mode from URL params, default to 'dictation'
   const modeParam = searchParams.get('mode') as PracticeMode | null
   const [mode, setMode] = useState<PracticeMode>(modeParam || 'dictation')
 
-  // Dictation mode (word/whole sentence)
   const [dictationMode, setDictationMode] = useState<DictationMode>('word')
 
-  // Get start index from URL
   const startIndexParam = searchParams.get('start')
   const startIndex = startIndexParam ? parseInt(startIndexParam, 10) : 0
 
-  // Get timestamp from URL (for vocabulary page jump-to-play)
   const timestampParam = searchParams.get('t')
 
-  // Material data
   const [material, setMaterial] = useState<Material | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Audio/Video state
   const [sampleSentences, setSampleSentences] = useState<Sentence[]>(defaultSentences)
 
-  // 🔴 模式独立的进度追踪
   const [dictationIndex, setDictationIndex] = useState(0)
   const [shadowingIndex, setShadowingIndex] = useState(0)
 
-  // 🔴 开发环境检测
-  const isDevelopment = process.env.NODE_ENV === 'development'
-
-  // 🔴 CDN URL helper - 提升到组件外部，避免重渲染时重复调用
-  // 仅用于 R2 存储的素材
   const getCdnUrl = useCallback((url: string | null): string | undefined => {
     if (!url) return undefined
 
-    // 如果是完整 URL，直接使用
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      // 检查完整 URL 是否缺少 .mp4 后缀
       if (url.includes('/videos/') && !url.endsWith('.mp4')) {
         return `${url}.mp4`
       }
       return url
     }
 
-    // 直接使用生产环境 URL，避免代理重写问题
     const workerUrl = 'https://media.shadowhub.app'
     let finalUrl = `${workerUrl}/${url}`
 
-    // 确保视频 URL 有 .mp4 后缀
     if (url.includes('video') && !url.endsWith('.mp4')) {
       finalUrl = `${finalUrl}.mp4`
     }
 
-    // 确保音频 URL 有 .mp3 后缀
     if (url.includes('audio') && !url.endsWith('.mp3') && !url.endsWith('.m4a')) {
       finalUrl = `${finalUrl}.mp3`
     }
@@ -129,23 +110,19 @@ export default function PracticePage({ category, slug }: { category: string; slu
     return finalUrl
   }, [])
 
-  // 🔴 辅助函数：判断素材类型并获取相应的播放器信息
-  // 使用 useMemo 缓存结果，避免每次渲染都重新计算
   const playerInfo = useMemo(() => {
     if (!material) return null
 
-    const sourceType = material.source_type || 'r2'  // 默认为 R2
+    const sourceType = material.source_type || 'r2'
 
     if (sourceType === 'youtube' && material.youtube_id) {
-      // YouTube 视频
       return {
         type: 'youtube' as const,
-        audioSrc: undefined,  // YouTube 不需要单独的音频源
+        audioSrc: undefined,
         videoUrl: undefined,
         thumbnailPath: getCdnUrl(material.thumbnail_path)
       }
     } else {
-      // R2 存储（音频或视频）
       return {
         type: 'r2' as const,
         audioSrc: getCdnUrl(material.audio_path),
@@ -155,22 +132,16 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }, [material, getCdnUrl])
 
-  // 🔴 Audio ref - 用于在用户点击时直接激活音频播放权限
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const handleAudioReady = (audioElement: HTMLAudioElement) => {
-    console.log('🎵🎵🎵 handleAudioReady called! 🎵🎵🎵')
-    console.log('🎵 Audio element:', audioElement)
-    console.log('🎵 Audio src:', audioElement.src)
     audioRef.current = audioElement
-    console.log('🎵 Audio element ready, saved ref for play activation')
   }
 
-  // Practice state
-  const [hasStarted, setHasStarted] = useState(false)  // 新增：跟踪是否已开始播放
-  const [videoDegraded, setVideoDegraded] = useState(false)  // 🔴 视频降级状态
-  const [toastMessage, setToastMessage] = useState<string | null>(null)  // 🔴 Toast 提示消息
+  const [hasStarted, setHasStarted] = useState(false)
+  const [videoDegraded, setVideoDegraded] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const [highlightSentenceIndex, setHighlightSentenceIndex] = useState<number | null>(null)  // 🔴 跳转播放的高亮句子索引
+  const [highlightSentenceIndex, setHighlightSentenceIndex] = useState<number | null>(null)
   const [completedSentences, setCompletedSentences] = useState<Set<number>>(new Set())
   const [correctSentences, setCorrectSentences] = useState<Set<number>>(new Set())
   const [incorrectSentences, setIncorrectSentences] = useState<Set<number>>(new Set())
@@ -184,59 +155,39 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const [hasPlayedCurrent, setHasPlayedCurrent] = useState(false)
   const [correctCount, setCorrectCount] = useState(0)
 
-  // Audio playback tracking
   const audioPlaybackSecondsRef = useRef(0)
 
-  // 🔴 Premium 拦截逻辑：开发者白名单
-  // TODO: 未来需要从用户 profile 中读取 isPro 状态
-  // 开发者白名单：这些邮箱无视 is_premium 状态，可以访问所有练习功能
   const DEVELOPER_WHITELIST = [
     'suxiaoshuang@3dpea.com',
-    // 可以添加更多开发者邮箱
   ]
 
-  // 判断用户是否为 Pro（白名单或付费用户）
   const isPro = useMemo(() => {
     if (!user) return false
 
-    // 检查是否在开发者白名单中
     if (user.email && DEVELOPER_WHITELIST.includes(user.email)) {
-      console.log('👨‍💻 开发者白名单用户，跳过拦截')
       return true
     }
 
-    // TODO: 未来添加 user.is_pro 或 user.subscription 检查
     return false
   }, [user])
 
   const isBlocked = material?.is_premium && !isPro
 
-  // 🔴 移动端优化：练习区域 ref，用于切换句子时确保可见
   const practiceAreaRef = useRef<HTMLDivElement>(null)
 
-  // 🔴 桌面端优化：页面加载时确保滚动到顶部，避免面包屑和标题被隐藏
-  // 🔴 页面加载时滚动到顶部，确保所有内容可见
-  // 🔴 强制复位：作为兜底方案，确保刷新后页面强制回到最顶部
   useEffect(() => {
-    // 所有设备都滚动到顶部，确保面包屑、标题和导航栏完全可见
     window.scrollTo({ top: 0, behavior: 'auto' })
-    console.log('🔧 页面加载：滚动到顶部，确保所有内容可见')
-  }, []) // 只在组件挂载时执行一次
+  }, [])
 
-  // 🔴 强制复位兜底方案：在数据加载完成后再次确保页面在顶部
   useEffect(() => {
     if (!loading && material && sampleSentences.length > 0) {
-      // 数据加载完成后，强制滚动到顶部
       window.scrollTo({ top: 0, behavior: 'auto' })
-      console.log('🔧 数据加载完成：强制滚动到顶部，防止自动滚动偏移')
     }
   }, [loading, material, sampleSentences.length])
 
-  // Fetch material data
   useEffect(() => {
     async function findMaterial() {
       try {
-        // 🔴 关键修复：直接通过 slug 查询，避免获取所有素材
         const { data: found, error } = await supabase
           .from('materials')
           .select('*')
@@ -244,62 +195,42 @@ export default function PracticePage({ category, slug }: { category: string; slu
           .single()
 
         if (error) {
-          console.error('❌ Database query error:', error)
+          console.error('Database query error:', error)
           setError('Failed to load material')
           return
         }
 
         if (!found) {
-          console.log('❌ Material not found with slug:', slug)
           setError('Material not found')
           return
         }
 
         setMaterial(found)
-        console.log('📦 Material found:', found.title)
-        console.log('📦 ID:', found.id)
-        console.log('📦 source_type:', found.source_type || 'r2')
-        console.log('📦 youtube_id:', found.youtube_id)
-        console.log('📦 audio_path:', found.audio_path)
-        console.log('📦 video_path:', found.video_path)
 
-        // 🔴 关键修复：transcript 可能是 JSON 字符串或数组
         let transcriptData = found.transcript
         if (typeof transcriptData === 'string') {
           try {
             transcriptData = JSON.parse(transcriptData)
-            console.log('📦 Parsed transcript from JSON string')
           } catch (e) {
-            console.error('❌ Failed to parse transcript JSON:', e)
+            console.error('Failed to parse transcript JSON:', e)
             transcriptData = null
           }
         }
 
-        // Set transcript
         if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
           const transcript = transcriptData.map((s: any, index: number) => ({
             ...s,
             id: s.id ?? index,
-            // 🔴 关键修复：直接使用原始值，保留精度
-            // 如果 startTime 是字符串 "9.10"，不转换以避免精度丢失
-            // 浏览器会自动将字符串转换为数字，并保留 "9.10" 的精度
             startTime: s.startTime,
             endTime: s.endTime,
-            // 🔴 修复：保留完整的 translation 对象，支持多语言切换
-            // 只有当 translation 是简单字符串时才直接使用
             translation: typeof s.translation === 'object' && s.translation !== null
-              ? s.translation  // 保留完整对象，让组件根据 translationLanguage 选择语言
+              ? s.translation
               : s.translation
           }))
           setSampleSentences(transcript)
-
-          console.log('✅ Loaded transcript:', transcript.length, 'sentences')
-          console.log('📝 First sentence:', transcript[0].text)
-        } else {
-          console.log('⚠️  No transcript found')
         }
       } catch (err) {
-        console.error('❌ Error loading material:', err)
+        console.error('Error loading material:', err)
         setError('Failed to load material')
       } finally {
         setLoading(false)
@@ -309,17 +240,14 @@ export default function PracticePage({ category, slug }: { category: string; slu
     findMaterial()
   }, [slug])
 
-  // Update mode when URL params change
   useEffect(() => {
     if (modeParam && modeParam !== mode) {
       setMode(modeParam)
     }
   }, [modeParam])
 
-  // 🔴 处理 start 参数：当从个人中心跳转时，设置对应模式的索引
   useEffect(() => {
     if (startIndex > 0) {
-      // 根据当前模式设置对应的索引
       if (mode === 'dictation') {
         setDictationIndex(startIndex)
       } else if (mode === 'shadowing') {
@@ -328,14 +256,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }, [startIndex, mode])
 
-  // 🔴 处理时间戳参数：当从生词本跳转时，找到对应的句子并播放
   useEffect(() => {
     if (!timestampParam || sampleSentences.length === 0) return
 
     const timestamp = parseFloat(timestampParam)
     if (isNaN(timestamp)) return
 
-    // 找到包含该时间戳的句子
     const targetIndex = sampleSentences.findIndex(sentence => {
       const startTime = typeof sentence.startTime === 'string' ? parseFloat(sentence.startTime) : sentence.startTime
       const endTime = typeof sentence.endTime === 'string' ? parseFloat(sentence.endTime) : sentence.endTime
@@ -343,33 +269,26 @@ export default function PracticePage({ category, slug }: { category: string; slu
     })
 
     if (targetIndex !== -1) {
-      // 设置对应模式的索引
       if (mode === 'dictation') {
         setDictationIndex(targetIndex)
       } else if (mode === 'shadowing') {
         setShadowingIndex(targetIndex)
       }
 
-      // 自动开始播放
       setHasStarted(true)
       setAutoPlayTrigger(prev => prev + 1)
 
-      // 🔴 视觉聚焦：2-3 秒高亮闪烁动画
       setHighlightSentenceIndex(targetIndex)
       setTimeout(() => {
         setHighlightSentenceIndex(null)
-      }, 3000)  // 3 秒后移除高亮
+      }, 3000)
 
-      // 🔴 清理 URL：移除 ?t= 参数（使用 router.replace 避免页面刷新）
       const url = new URL(window.location.href)
       url.searchParams.delete('t')
       router.replace(url.pathname + url.search, { scroll: false })
-
-      console.log(`🎯 跳转到句子 ${targetIndex + 1}，时间戳 ${timestamp}秒`)
     }
   }, [timestampParam, sampleSentences, mode, router])
 
-  // 🔴 显示 Toast 提示（默认 3 秒后自动消失）
   const showToast = (message: string, duration = 3000) => {
     setToastMessage(message)
     if (toastTimeoutRef.current) {
@@ -380,22 +299,15 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }, duration)
   }
 
-  // 🔴 监听视频降级事件
   useEffect(() => {
-    console.log('🎬 [PracticePage] 添加 videoDegraded 事件监听器')
     const handleVideoDegraded = (event: Event) => {
-      console.log('🎬 [PracticePage] 收到视频降级事件:', event)
       setVideoDegraded(true)
       showToast('检测到网络较慢，已自动为您隐藏视频并切换至纯音频学习模式')
-      console.log('🎬 [PracticePage] videoDegraded 状态已设置为 true')
     }
 
-    // 添加事件监听
     window.addEventListener('videoDegraded', handleVideoDegraded)
 
-    // 清理函数
     return () => {
-      console.log('🎬 [PracticePage] 移除 videoDegraded 事件监听器')
       window.removeEventListener('videoDegraded', handleVideoDegraded)
       if (toastTimeoutRef.current) {
         clearTimeout(toastTimeoutRef.current)
@@ -403,25 +315,19 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }, [])
 
-  // Handle mode toggle
   const handleModeChange = (newMode: PracticeMode) => {
-    // Update URL without triggering navigation
     const url = new URL(window.location.href)
     url.searchParams.set('mode', newMode)
     window.history.replaceState({}, '', url.toString())
     setMode(newMode)
 
-    // 🔴 修复：重置播放状态，但保持各模式的独立进度
     setHasStarted(false)
     setHasPlayedCurrent(false)
-    // 不重置索引 - 每个 mode 保持自己的进度
   }
 
-  // Current sentence - 根据模式选择对应的索引
   const currentSentenceIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
   const currentSentence = sampleSentences[currentSentenceIndex] || sampleSentences[0]
 
-  // Navigation
   const handlePrevious = () => {
     const currentIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
     if (currentIndex > 0) {
@@ -436,15 +342,11 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }
 
-  // 🔴 新增：检查句子是否有 blanks（是否需要练习）
   const isSkippableSentence = (sentence: Sentence) => {
-    // blanks 不存在、为空数组、或数组为空 → 自动跳过
     return !sentence.blanks || !Array.isArray(sentence.blanks) || sentence.blanks.length === 0
   }
 
-  // 🔴 新增：自动跳过无 blanks 的句子并记录完成
   const handleAutoSkipSentence = async (sentence: Sentence, index: number) => {
-    // 自动标记为完成
     const newCompleted = new Set(completedSentences)
     newCompleted.add(index)
     setCompletedSentences(newCompleted)
@@ -453,7 +355,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
     newCorrectSet.add(index)
     setCorrectSentences(newCorrectSet)
 
-    // 🔴 保存练习记录到数据库（标记为自动完成）
     if (user && material) {
       try {
         await savePracticeRecord({
@@ -462,14 +363,14 @@ export default function PracticePage({ category, slug }: { category: string; slu
           sentenceText: sentence.text,
           practiceMode: mode,
           dictationMode: mode === 'dictation' ? dictationMode : undefined,
-          isCorrect: true,  // 自动完成的句子标记为正确
+          isCorrect: true,
           usedShowWords: false,
           audioTitle: material.title,
           materialId: material.id,
           durationSeconds: 0
         })
       } catch (error) {
-        console.error('❌ [AutoSkip] 保存记录失败:', error)
+        console.error('AutoSkip: Failed to save record:', error)
       }
     }
   }
@@ -478,12 +379,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
     const currentIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
     const currentSentence = sampleSentences[currentIndex]
 
-    // 🔴 如果当前句子无 blanks，自动标记为完成
     if (currentSentence && isSkippableSentence(currentSentence)) {
       await handleAutoSkipSentence(currentSentence, currentIndex)
     }
 
-    // 移动到下一句（不连续跳过）
     if (currentIndex < sampleSentences.length - 1) {
       const newIndex = currentIndex + 1
       if (mode === 'dictation') {
@@ -497,72 +396,40 @@ export default function PracticePage({ category, slug }: { category: string; slu
   }
 
   const handlePlayOrNext = () => {
-    console.log("=== handlePlayOrNext Called ===")
-    console.log("Button Clicked, current index:", currentSentenceIndex)
-    console.log("hasStarted:", hasStarted)
-    console.log("sampleSentences.length:", sampleSentences.length)
-    console.log("🎵 audioRef.current:", audioRef.current)
-    console.log("🎵 audioRef readyState:", audioRef.current?.readyState)
-    console.log("🎵 playerInfo:", playerInfo ? { type: playerInfo.type, hasAudio: !!playerInfo.audioSrc } : null)
-
-    // 🔴 优化：只在必要时激活 Safari 权限
-    // 如果音频已经有 src 且 readyState > 0，直接跳过激活，避免延迟
     if (audioRef.current && audioRef.current.readyState > 0) {
-      console.log("🎵 Audio already ready (readyState:", audioRef.current.readyState, "), skipping activation")
+      // Audio already ready
     } else if (audioRef.current) {
       const audio = audioRef.current
-      console.log("🎵 Activating Safari play permission...")
 
       const originalTime = audio.currentTime
       const originalVolume = audio.volume
 
-      // 激活权限：静音播放，立即暂停
       audio.volume = 0
       audio.play().then(() => {
         audio.pause()
         audio.currentTime = originalTime
         audio.volume = originalVolume
-        console.log('🔓 Safari 音频播放权限已激活')
       }).catch(err => {
-        console.log('⚠️ 激活音频权限时出错（可忽略）:', err.message)
         audio.currentTime = originalTime
         audio.volume = originalVolume
       })
-    } else {
-      console.log('⚠️ audioRef.current is null')
     }
 
-    // 场景 A：第一次点击，播放当前第一句
     if (!hasStarted) {
-      console.log("场景 A: 第一次点击，播放当前句 (index 0)")
-
-      // 🔴 设备区分逻辑：移动端 vs 桌面端
       const isMobile = window.innerWidth < 1024
       if (isMobile) {
-        // 移动端：向上隐藏标题，确保练习区域处于视觉中心
         window.scrollTo({ top: 0, behavior: 'smooth' })
-      } else {
-        // 桌面端：禁止任何向上偏移操作，保持 Header 和标题始终可见
-        console.log('🖥️ 桌面端：不执行滚动操作，保持所有内容可见')
       }
 
-      // 🔴 关键优化：异步更新状态，避免阻塞音频启动
-      // 使用 requestAnimationFrame 确保 play() 在下一个事件循环执行
       requestAnimationFrame(() => {
         setHasStarted(true)
         setAutoPlayTrigger(prev => prev + 1)
       })
-      console.log("设置 hasStarted = true, 触发播放 index 0")
       return
     }
 
-    // 场景 B：后续点击，先递增索引，再播放（不滚动页面）
     const currentIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
     if (currentIndex < sampleSentences.length - 1) {
-      console.log("场景 B: 切换到下一句")
-      console.log("当前索引:", currentIndex, "< 总数:", sampleSentences.length - 1)
-
-      // 🔴 关键优化：异步更新状态，避免阻塞音频启动
       requestAnimationFrame(() => {
         const newIndex = currentIndex + 1
         if (mode === 'dictation') {
@@ -570,46 +437,27 @@ export default function PracticePage({ category, slug }: { category: string; slu
         } else {
           setShadowingIndex(newIndex)
         }
-        console.log("更新索引:", currentIndex, "->", newIndex)
-        // 索引更新后，触发播放
         setAutoPlayTrigger(prev => prev + 1)
-        console.log("触发播放新索引")
       })
     } else {
-      console.log("场景 C: 已是最后一句，重播")
-      // 已是最后一句，重播
       setAutoPlayTrigger(prev => prev + 1)
     }
-    console.log("=== handlePlayOrNext End ===")
   }
 
-  // Reset state when sentence changes
   useLayoutEffect(() => {
-    console.log("=== useLayoutEffect: currentSentenceIndex changed ===")
-    console.log("New index:", currentSentenceIndex)
-    console.log("Current sentence:", sampleSentences[currentSentenceIndex]?.text)
     setIsRevealed(false)
-    // Don't reset hasPlayedCurrent here - it's controlled by user clicks
   }, [currentSentenceIndex])
 
-  // 🔴 设备区分逻辑：切换句子后的滚动行为
   useLayoutEffect(() => {
-    if (!hasStarted) return // 只在播放后才执行
+    if (!hasStarted) return
 
-    // 检测是否为移动端（< 1024px）
     const isMobile = window.innerWidth < 1024
     if (!isMobile) {
-      // 桌面端：禁止任何滚动操作，保持所有内容可见
-      console.log('🖥️ 桌面端：句子切换时不执行滚动')
       return
     }
 
-    // 移动端：确保练习区域可见
-    // 使用 setTimeout 确保在 DOM 更新后执行
     const timer = setTimeout(() => {
       if (practiceAreaRef.current) {
-        // 手动计算滚动位置，确保播放组件完全可见
-        // Header 的高度大约是 120px（面包屑 + 切换按钮）
         const headerHeight = 120
         const elementTop = practiceAreaRef.current.getBoundingClientRect().top
         const scrollTop = window.pageYOffset + elementTop - headerHeight
@@ -624,7 +472,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
     return () => clearTimeout(timer)
   }, [currentSentenceIndex, hasStarted])
 
-  // Dictation completion handlers
   const handleDictationComplete = async (isCorrect: boolean, usedShowWords?: boolean, duration?: number) => {
     const newCompleted = new Set(completedSentences)
     newCompleted.add(currentSentenceIndex)
@@ -638,20 +485,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
 
     setIsRevealed(false)
-    // Don't auto-advance - let user click Next button
 
-    // 🔴 保存练习记录到数据库
     if (user && material && currentSentence) {
       try {
-        console.log('💾 [PracticePage] 保存练习记录:', {
-          userId: user.id,
-          sentenceId: currentSentence.id,
-          sentenceText: currentSentence.text?.substring(0, 50),
-          practiceMode: mode,
-          isCorrect,
-          audioTitle: material.title
-        })
-
         await savePracticeRecord({
           userId: user.id,
           sentenceId: currentSentence.id,
@@ -665,9 +501,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
           durationSeconds: duration
         })
 
-        console.log('✅ [PracticePage] 练习记录保存成功')
-
-        // 更新连胜和统计数据
         if (mode === 'dictation') {
           const seconds = duration || 0
           const minutes = seconds / 60
@@ -678,7 +511,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
           await onShadowingComplete(user.id, minutes)
         }
       } catch (error) {
-        console.error('❌ [PracticePage] 保存练习记录失败:', error)
+        console.error('Failed to save practice record:', error)
       }
     }
   }
@@ -691,7 +524,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
     handleDictationComplete(isCorrect, false, durationSeconds)
   }
 
-  // Audio handlers
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time)
   }
@@ -700,11 +532,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
     audioPlaybackSecondsRef.current = totalSeconds
   }
 
-  // Calculate stats
   const totalPractices = completedSentences.size
   const accuracy = totalPractices > 0 ? Math.round((correctCount / totalPractices) * 100) : 0
 
-  // Show loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -716,7 +546,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
     )
   }
 
-  // Show error state
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -739,27 +568,21 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const isLastSentence = currentSentenceIndex === sampleSentences.length - 1
   const isFirstSentence = currentSentenceIndex === 0
 
-  // 🔴 根据素材分类动态设置音频结束时间补偿值
-  // IELTS Listening 时间戳更精准，使用较小的延伸值（50ms）
-  // 其他素材使用默认值（200ms）以避免尾音截断
   const getEndBuffer = (): number => {
     if (material?.category === 'IELTS Listening') {
-      return 0.05  // 50ms，更精准
+      return 0.05
     }
-    return -0.2   // 200ms 向后延伸，避免尾音截断
+    return -0.2
   }
 
   const endBuffer = getEndBuffer()
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 🔴 Toast 提示 */}
       {toastMessage && (
         <>
-          {/* 🔴 半透明黑色背景遮罩 */}
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50"></div>
 
-          {/* 🔴 垂直居中的 Toast 提示 */}
           <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 bg-white px-6 py-4 rounded-lg shadow-xl max-w-sm mx-auto text-center">
             <div className="flex items-center justify-center gap-2 text-gray-800">
               <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -771,10 +594,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
         </>
       )}
 
-      {/* Header - Three Level Navigation */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4 space-y-3">
-          {/* Level 1: Breadcrumb Navigation */}
           <div className="flex items-center gap-2 text-sm">
             <Link href="/topics" className="text-blue-600 hover:text-blue-700">
               Topics
@@ -790,16 +611,12 @@ export default function PracticePage({ category, slug }: { category: string; slu
             </Link>
           </div>
 
-          {/* Level 2: Material Title - H1 for SEO */}
-          {/* 🔴 SEO 优化：H1 标签始终存在于 DOM 中，确保搜索引擎能抓取 */}
-          {/* 视觉上在移动端播放后可以缩小，但语义结构保持完整 */}
           <div className={`${hasStarted ? 'max-lg:py-2' : ''} text-center transition-all duration-300`}>
             <h1 className={`${hasStarted ? 'max-lg:text-lg max-lg:font-semibold' : 'text-2xl md:text-3xl'} font-bold text-gray-900`}>
               {material.title}
             </h1>
           </div>
 
-          {/* Level 3: Mode Toggle Tabs (Centered) */}
           <div id="mode-toggle-tabs" className="flex justify-center">
             <div className="flex gap-2 bg-gray-100 rounded-lg p-1">
               <button
@@ -827,13 +644,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
         </div>
       </div>
 
-      {/* Main Content - Three Column Layout */}
       <div className="max-w-[1920px] mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Video Player (25%) - 🔴 移动端播放后隐藏，桌面端始终显示 */}
           <div className={`${hasStarted ? 'max-lg:hidden' : ''} lg:col-span-1 w-full transition-all duration-300`}>
             <div className="bg-white rounded-lg shadow-sm p-4 sticky top-40">
-              {/* 🔴 左栏标题：参考 Transcript 样式 */}
               {playerInfo && (() => {
                 const isVideoMaterial = playerInfo.type === 'youtube' || playerInfo.videoUrl
                 return (
@@ -845,9 +659,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                 )
               })()}
 
-              {/* 🔴 根据素材类型渲染播放器 */}
               {playerInfo && (() => {
-                // YouTube 视频
                 if (playerInfo.type === 'youtube' && material.youtube_id && !videoDegraded) {
                   return (
                     <YouTubePlayer
@@ -858,12 +670,11 @@ export default function PracticePage({ category, slug }: { category: string; slu
                       onPlayEnd={() => {}}
                       onTimeUpdate={handleTimeUpdate}
                       onLoadingChange={() => {}}
-                      practiceMode={hasStarted && autoPlayTrigger > 0}  // 🔴 只在开始练习后启用句子循环
+                      practiceMode={hasStarted && autoPlayTrigger > 0}
                     />
                   )
                 }
 
-                // R2 视频
                 if (playerInfo.videoUrl && !videoDegraded) {
                   return (
                     <VideoPlayer
@@ -876,7 +687,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
                   )
                 }
 
-                // 纯音频素材：显示封面图
                 if (playerInfo.thumbnailPath) {
                   return (
                     <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
@@ -898,7 +708,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
                   )
                 }
 
-                // 没有封面图时显示占位符
                 return (
                   <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden shadow-lg flex items-center justify-center">
                     <p className="text-gray-400 text-sm">No cover image</p>
@@ -908,17 +717,13 @@ export default function PracticePage({ category, slug }: { category: string; slu
             </div>
           </div>
 
-          {/* Middle Column - Practice Area (50%) - 🔴 移动端播放后占据全宽，桌面端保持三栏 */}
           <div
             ref={practiceAreaRef}
             className={`lg:col-span-[2] w-full bg-white rounded-lg shadow-sm p-6 transition-all duration-300`}
           >
-            {/* Hidden Audio Player - Only for R2 materials */}
             {playerInfo && (() => {
               const isR2Material = playerInfo.type === 'r2'
 
-              // 只有 R2 素材才使用 AudioPlayer
-              // YouTube 素材通过 UniversalPlayer 内置的音频控制
               if (!isR2Material || !playerInfo.audioSrc || !currentSentence) {
                 return null
               }
@@ -944,21 +749,16 @@ export default function PracticePage({ category, slug }: { category: string; slu
               )
             })()}
 
-            {/* 🔴 拦截状态下的统一内容渲染 */}
             {isBlocked ? (
-              // 🔴 付费素材拦截状态：拦截面板占据整个中栏（包括播放控制和进度）
               <PremiumBlocker materialTitle={material.title} />
             ) : (
-              // 🔴 免费素材或 Pro 用户：显示完整的播放控制和练习组件
               <>
-                {/* Progress Indicator */}
                 <div className="text-center mb-3">
                   <div className="text-xs text-gray-900">
                     {currentSentenceIndex + 1} <span className="text-gray-400">/</span> {sampleSentences.length}
                   </div>
                 </div>
 
-                {/* Playback Controls */}
                 <div className="bg-gray-100 rounded-lg p-3 mb-4">
                   <div className="flex justify-between items-center gap-2">
                     <div className="flex items-center gap-2">
@@ -985,10 +785,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                         </svg>
                       </button>
                       <button
-                        onClick={() => {
-                          console.log('🔴🔴🔴 播放按钮被点击了！🔴🔴🔴')
-                          handlePlayOrNext()
-                        }}
+                        onClick={handlePlayOrNext}
                         className="p-2 rounded-lg hover:bg-gray-200"
                         title={hasPlayedCurrent ? "下一句" : "播放"}
                       >
@@ -1025,13 +822,10 @@ export default function PracticePage({ category, slug }: { category: string; slu
                   </div>
                 </div>
 
-                {/* Practice Area */}
                 <div className="min-h-[400px]">
               {isBlocked ? (
-                // 🔴 付费素材拦截状态：显示拦截面板
                 <PremiumBlocker materialTitle={material.title} />
               ) : (
-                // 🔴 免费素材或 Pro 用户：显示正常练习组件
                 mode === 'dictation' ? (
                   dictationMode === 'word' ? (
                     <WordMode
@@ -1066,10 +860,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     />
                   )
                 ) : (playerInfo && (() => {
-                  // Shadowing 模式：支持 R2 和 YouTube 素材
                   const isR2Material = playerInfo.type === 'r2'
 
-                  // R2 素材需要 audioSrc
                   if (isR2Material && !playerInfo.audioSrc) {
                     return (
                       <div className="flex items-center justify-center h-64 text-gray-500">
@@ -1078,7 +870,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
                     )
                   }
 
-                  // YouTube 素材不需要 audioSrc，直接显示 ShadowingPanel
                   return (
                     <ShadowingPanel
                       sentence={currentSentence}
@@ -1100,7 +891,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
             </>
             )}
 
-            {/* Stats - 只在非拦截状态显示 */}
             {!isBlocked && (
               <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
                 <div>Completed: {totalPractices}/{sampleSentences.length}</div>
@@ -1109,17 +899,14 @@ export default function PracticePage({ category, slug }: { category: string; slu
             )}
           </div>
 
-          {/* Right Column - Transcript (25%) */}
           <div className="lg:col-span-1 w-full">
             <ClickableTranscript
               sentences={sampleSentences}
               currentIndex={currentSentenceIndex}
               highlightIndex={highlightSentenceIndex}
               onSelectSentence={(index) => {
-                // 🔴 拦截逻辑：付费素材在拦截状态下，点击句子提示升级
                 if (isBlocked) {
                   showToast('🔒 Premium Feature: Unlock PRO to practice with transcripts')
-                  // 视觉焦点引导至中栏拦截按钮
                   const modeToggleTabs = document.getElementById('mode-toggle-tabs')
                   if (modeToggleTabs) {
                     modeToggleTabs.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -1127,8 +914,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
                   return
                 }
 
-                // 正常逻辑：切换到选中的句子并触发播放
-                // 根据当前模式更新对应的索引
                 if (mode === 'dictation') {
                   setDictationIndex(index)
                 } else {
@@ -1142,8 +927,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
               materialId={material.id}
               materialTitle={material.title}
               audioSrc={playerInfo?.audioSrc}
-              hasStarted={hasStarted}  // 🔴 传递播放状态，控制自动滚动
-              isBlocked={isBlocked}  // 🔴 传递拦截状态
+              hasStarted={hasStarted}
+              isBlocked={isBlocked}
             />
           </div>
         </div>
