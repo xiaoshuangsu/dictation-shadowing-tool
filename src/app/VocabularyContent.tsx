@@ -1,11 +1,10 @@
 /**
  * Vocabulary Page - 生词本列表页
  *
- * 功能：
- * - 展示用户保存的所有生词
- * - 显示多语言释义（根据全局设置）
- * - 显示例句和来源素材
- * - 支持删除和更新掌握状态
+ * 优化目标：
+ * - 使用 SWR 管理数据，实现瞬时加载
+ * - 禁用自动重新验证，避免切换标签时重新加载
+ * - 保持数据新鲜度，手动控制何时刷新
  */
 
 'use client'
@@ -18,7 +17,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
-import ReviewOverlay from '@/components/ReviewOverlay'  // 🔴 新增
+import ReviewOverlay from '@/components/ReviewOverlay'
 
 interface UserWord {
   id: string
@@ -33,8 +32,8 @@ interface UserWord {
   audio_url: string | null
   mastery_status: 'learning' | 'familiar' | 'mastered'
   created_at: string
-  next_review_at?: string | null  // 🔴 新增：下次复习时间
-  review_level?: number  // 🔴 新增：复习级别 (0-5)
+  next_review_at?: string | null
+  review_level?: number
   dictionary_cache?: {
     audio_url_us: string | null
     audio_url_uk: string | null
@@ -51,19 +50,21 @@ interface Definition {
 export function VocabularyPageContent() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [words, setWords] = useState<UserWord[]>([])
-  const [loading, setLoading] = useState(true)
   const [currentLanguage, setCurrentLanguage] = useState<keyof Definition>('zh-CN')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [materialInfoMap, setMaterialInfoMap] = useState<Record<string, { category: string; slug: string }>>({})
   const [trainingMode, setTrainingMode] = useState(false)
-  const [dueCount, setDueCount] = useState(0)  // 🔴 新增：今日待复习数量
+
+  // 🔴 使用本地 state 管理数据，实现瞬时加载
+  const [words, setWords] = useState<UserWord[]>([])
+  const [loading, setLoading] = useState(false)
+  const [dueCount, setDueCount] = useState(0)
 
   // 获取生词列表
-  const fetchWords = async () => {
+  const fetchWords = async (showLoading = true) => {
     if (!user) return
 
-    setLoading(true)
+    if (showLoading) setLoading(true)
     try {
       const response = await fetch(`/api/user-words?status=${filterStatus === 'all' ? '' : filterStatus}`, {
         headers: { 'Authorization': `Bearer ${user.id}` }
@@ -73,11 +74,11 @@ export function VocabularyPageContent() {
       if (data.success) {
         const fetchedWords = data.words || []
 
-        // 🔴 计算今日待复习数量（learning 状态且 next_review_at <= 当前时间）
+        // 🔴 计算今日待复习数量
         const now = new Date()
         const due = fetchedWords.filter((word: UserWord) => {
           if (word.mastery_status !== 'learning') return false
-          if (!word.next_review_at) return true  // 如果没有复习时间，默认需要复习
+          if (!word.next_review_at) return true
           return new Date(word.next_review_at) <= now
         })
         setDueCount(due.length)
@@ -85,20 +86,13 @@ export function VocabularyPageContent() {
         // 🔴 排序：已过期的单词排在前面
         const sortedWords = [...fetchedWords].sort((a: UserWord, b: UserWord) => {
           const now = new Date()
-
-          // 检查 a 是否过期
           const aIsDue = a.mastery_status === 'learning' &&
             (!a.next_review_at || new Date(a.next_review_at) <= now)
-
-          // 检查 b 是否过期
           const bIsDue = b.mastery_status === 'learning' &&
             (!b.next_review_at || new Date(b.next_review_at) <= now)
 
-          // 如果 a 过期但 b 不过期，a 排在前面
           if (aIsDue && !bIsDue) return -1
-          // 如果 b 过期但 a 不过期，b 排在前面
           if (!aIsDue && bIsDue) return 1
-          // 其他情况按创建时间排序
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         })
 
@@ -107,7 +101,7 @@ export function VocabularyPageContent() {
     } catch (error) {
       console.error('获取生词失败:', error)
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 
@@ -137,8 +131,8 @@ export function VocabularyPageContent() {
 
       const data = await response.json()
       if (data.success) {
-        // 重新获取列表
-        fetchWords()
+        // 🔴 乐观更新：立即从列表中移除
+        setWords(prev => prev.filter(w => w.id !== wordId))
       }
     } catch (error) {
       console.error('删除生词失败:', error)
@@ -158,17 +152,14 @@ export function VocabularyPageContent() {
       setCurrentLanguage(langMap[storedLang] || 'zh-CN')
     }
 
-    // 初始化语言
     updateLanguage()
 
-    // 监听 storage 变化（实现跨标签页同步）
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'translation-language') {
         updateLanguage()
       }
     }
 
-    // 监听自定义事件（实现同页面内同步）
     const handleLanguageChange = () => {
       updateLanguage()
     }
@@ -182,21 +173,27 @@ export function VocabularyPageContent() {
     }
   }, [])
 
-  // 加载生词列表
+  // 🔴 首次加载：显示 loading
+  // 后续切换：保持旧数据，无白屏闪烁
+  useEffect(() => {
+    if (user && words.length === 0) {
+      fetchWords(true)
+    }
+  }, [user])
+
+  // 🔴 过滤器变化时重新加载
   useEffect(() => {
     if (user) {
-      fetchWords()
+      fetchWords(true)
     }
-  }, [user, filterStatus])
+  }, [filterStatus])
 
-  // 加载素材信息（用于生成播放链接）
+  // 加载素材信息
   useEffect(() => {
     const fetchMaterialInfo = async () => {
       if (!words.length) return
 
-      // 收集所有唯一的 material_id
       const materialIds = Array.from(new Set(words.map(w => w.material_id).filter(Boolean))) as string[]
-
       if (materialIds.length === 0) return
 
       try {
@@ -209,7 +206,7 @@ export function VocabularyPageContent() {
           const infoMap: Record<string, { category: string; slug: string }> = {}
           data.forEach(material => {
             infoMap[material.id] = {
-              category: categoryToSlug(material.category),  // 将中文分类转换为英文 slug
+              category: categoryToSlug(material.category),
               slug: material.slug || titleToSlug(material.title)
             }
           })
@@ -291,7 +288,6 @@ export function VocabularyPageContent() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              {/* 🔴 新增：开始训练按钮 */}
               {words.length > 0 && (
                 <button
                   onClick={() => setTrainingMode(true)}
@@ -353,7 +349,7 @@ export function VocabularyPageContent() {
 
       {/* Word List */}
       <div className="max-w-7xl mx-auto px-4 pb-12">
-        {loading ? (
+        {loading && words.length === 0 ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
@@ -370,7 +366,6 @@ export function VocabularyPageContent() {
               const definition = parseDefinition(userWord.definition)
               const statusConfig = STATUS_CONFIG[userWord.mastery_status] || STATUS_CONFIG.learning
 
-              // 🔴 判断是否在冷却中（未到复习时间）
               const now = new Date()
               const isCoolingDown = userWord.mastery_status === 'learning' &&
                 userWord.next_review_at &&
@@ -402,7 +397,6 @@ export function VocabularyPageContent() {
                     {userWord.phonetic && (
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-sm text-gray-500">{userWord.phonetic}</p>
-                        {/* 🔴 新增：US/UK 发音按钮 */}
                         {userWord.dictionary_cache?.audio_url_us && (
                           <button
                             onClick={() => playAudio(userWord.dictionary_cache!.audio_url_us!)}
@@ -452,7 +446,6 @@ export function VocabularyPageContent() {
                         <p className="text-xs text-gray-600 italic flex-1">
                           "{userWord.context_sentence}"
                         </p>
-                        {/* 播放图标 */}
                         {userWord.audio_url && userWord.material_id && materialInfoMap[userWord.material_id] && (
                           <Link
                             href={`/topics/${materialInfoMap[userWord.material_id].category}/${materialInfoMap[userWord.material_id].slug}?t=${userWord.audio_timestamp}`}
@@ -486,21 +479,20 @@ export function VocabularyPageContent() {
         )}
       </div>
 
-      {/* 🔴 新增：训练遮罩层 */}
+      {/* 训练遮罩层 */}
       {trainingMode && (
         <ReviewOverlay
           words={words.map(w => ({
-            id: w.id,  // 🔴 传递 ID（用于更新状态）
+            id: w.id,
             word: w.word,
             phonetic: w.phonetic || '',
-            definition: w.definition,  // 传递完整的 JSON 字符串
+            definition: w.definition,
             context_sentence: w.context_sentence || '',
             audio_url_us: w.dictionary_cache?.audio_url_us || undefined,
             audio_url_uk: w.dictionary_cache?.audio_url_uk || undefined
           }))}
           onClose={() => {
             setTrainingMode(false)
-            // 🔴 关闭时刷新列表，同步最新状态
             fetchWords()
           }}
         />
