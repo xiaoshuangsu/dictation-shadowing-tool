@@ -4,17 +4,15 @@
  * Provides authentication state and methods (login, register, logout)
  * using Supabase Auth.
  *
- * V9 优化：
- * - 防止 INITIAL_SESSION 重复触发
- * - 防止重复 fetch profile（使用 profileFetchedRef）
- * - 延长超时到 20 秒，适应静态导出环境
- * - 简化初始化逻辑，只依赖 onAuthStateChange
- * - 确保监听器正确清理
+ * V10 优化（修复 React Error #310）：
+ * - 移除 useCallback，避免依赖问题
+ * - 直接在 useEffect 中定义函数
+ * - 确保 Hook 顺序固定
  */
 
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
 export interface AuthUser {
@@ -42,38 +40,6 @@ export function useAuth(): AuthState {
   const profileFetchedRef = useRef(false) // 防止重复 fetch profile
   const timeoutRef = useRef<NodeJS.Timeout>()
 
-  // 获取 profile 的函数（封装以便复用）
-  const fetchProfile = useCallback(async (userId: string, email: string) => {
-    // 如果已经获取过，直接返回 null
-    if (profileFetchedRef.current) {
-      return null
-    }
-
-    try {
-      const profilePromise = supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      const timeoutPromise = new Promise((resolve) =>
-        setTimeout(() => resolve({ data: null }), 10000)
-      )
-
-      const data = await Promise.race([profilePromise, timeoutPromise]) as { data: any }
-      const profile = data.data
-
-      // 标记已获取
-      profileFetchedRef.current = true
-
-      return profile
-    } catch (error) {
-      console.error('[useAuth] Failed to fetch profile:', error)
-      profileFetchedRef.current = true // 即使失败也标记，避免重复尝试
-      return null
-    }
-  }, [])
-
   // Initialize auth state on mount
   useEffect(() => {
     let mounted = true
@@ -84,6 +50,38 @@ export function useAuth(): AuthState {
         setLoading(false)
       }
     }, 20000)
+
+    // 获取 profile 的函数（直接定义在 effect 内部，避免依赖问题）
+    const fetchProfile = async (userId: string, email: string) => {
+      // 如果已经获取过，直接返回 null
+      if (profileFetchedRef.current) {
+        return null
+      }
+
+      try {
+        const profilePromise = supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
+
+        const timeoutPromise = new Promise((resolve) =>
+          setTimeout(() => resolve({ data: null }), 10000)
+        )
+
+        const data = await Promise.race([profilePromise, timeoutPromise]) as { data: any }
+        const profile = data.data
+
+        // 标记已获取
+        profileFetchedRef.current = true
+
+        return profile
+      } catch (error) {
+        console.error('[useAuth] Failed to fetch profile:', error)
+        profileFetchedRef.current = true // 即使失败也标记，避免重复尝试
+        return null
+      }
+    }
 
     // 只依赖 onAuthStateChange，避免重复触发
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -141,7 +139,8 @@ export function useAuth(): AuthState {
         subscription.unsubscribe()
       }
     }
-  }, [fetchProfile])
+    // 🔴 空依赖数组：effect 只在组件挂载时运行一次
+    }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     try {

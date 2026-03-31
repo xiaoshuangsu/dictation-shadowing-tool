@@ -11,6 +11,26 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.7.0] - 2026-03-31
+
+### Fixed
+- **彻底修复 React Error #310（Vocabulary 页面打不开）** 🐛
+  - **问题**：之前修复无效，Vocabulary 页面仍然报错 React Error #310
+  - **根本原因**：`useAuth` Hook 的 `useCallback` 依赖项问题
+    - `fetchProfile` 使用 `useCallback` 包装，空依赖数组 `[]`
+    - `useEffect` 依赖 `fetchProfile`：`useEffect(..., [fetchProfile])`
+    - 虽然空依赖数组的 `useCallback` 返回稳定的引用，但在某些情况下仍可能导致问题
+  - **最终修复**：
+    - ✅ 移除 `fetchProfile` 的 `useCallback` 包装
+    - ✅ 直接在 `useEffect` 内部定义 `fetchProfile` 函数
+    - ✅ `useEffect` 依赖数组设置为空 `[]`，确保只在组件挂载时运行一次
+  - **影响范围**：
+    - `src/lib/hooks/useAuth.ts`（彻底重构 useEffect 依赖管理）
+  - **技术说明**：
+    - 将函数直接定义在 effect 内部是 React 官方推荐的模式
+    - 避免了 `useCallback` 和 `useEffect` 之间的复杂依赖关系
+    - 确保 Hook 调用顺序完全固定，不会在不同渲染之间变化
+
 ## [29.6.9] - 2026-03-31
 
 ### Fixed
