@@ -63,6 +63,7 @@ export function VocabularyPageContent() {
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [materialInfoMap, setMaterialInfoMap] = useState<Record<string, { category: string; slug: string }>>({})
   const [trainingMode, setTrainingMode] = useState(false)
+  const [singleWordTraining, setSingleWordTraining] = useState<UserWord | null>(null)  // 🔴 单点练习模式
 
   // 🔴 SWR Hook（容错化：支持 null key）
   const { data, words, isLoading, isValidating, error, mutate } = useUserWords(filterStatus, user?.id)
@@ -238,6 +239,25 @@ export function VocabularyPageContent() {
     })
   }
 
+  // 🔴 新增：处理单词卡片点击（单点练习模式）
+  const handleWordCardClick = (word: UserWord, e: React.MouseEvent) => {
+    // 防止删除按钮、发音按钮等触发
+    e.stopPropagation()
+    setSingleWordTraining(word)
+  }
+
+  // 🔴 新增：关闭单点练习模式
+  const handleCloseSingleTraining = () => {
+    setSingleWordTraining(null)
+    mutate(undefined, true)  // 🔴 强制重新验证，确保从数据库获取最新状态
+  }
+
+  // 🔴 新增：关闭全局练习模式
+  const handleCloseGlobalTraining = () => {
+    setTrainingMode(false)
+    mutate(undefined, true)  // 🔴 强制重新验证，确保从数据库获取最新状态
+  }
+
   const handleDeleteWord = async (wordId: string) => {
     if (!confirm('Are you sure you want to delete this word?')) return
 
@@ -253,7 +273,7 @@ export function VocabularyPageContent() {
 
       const data = await response.json()
       if (data.success) {
-        mutate()
+        mutate(undefined, true)  // 🔴 强制重新验证
       }
     } catch (error) {
       console.error('删除生词失败:', error)
@@ -373,9 +393,11 @@ export function VocabularyPageContent() {
             return (
               <div
                 key={userWord.id}
-                className={`bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow ${
+                onClick={(e) => handleWordCardClick(userWord, e)}
+                className={`bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-all cursor-pointer hover:border-blue-300 ${
                   isCoolingDown ? 'opacity-50' : ''
                 }`}
+                title="点击练习此单词"
               >
                 {/* 单词和音标 */}
                 <div className="mb-3">
@@ -384,7 +406,10 @@ export function VocabularyPageContent() {
                       {userWord.word}
                     </h3>
                     <button
-                      onClick={() => handleDeleteWord(userWord.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteWord(userWord.id)
+                      }}
                       className="text-gray-400 hover:text-red-600"
                       title="删除"
                     >
@@ -398,7 +423,10 @@ export function VocabularyPageContent() {
                       <p className="text-sm text-gray-500">{userWord.phonetic}</p>
                       {userWord.dictionary_cache?.audio_url_us && (
                         <button
-                          onClick={() => playAudio(userWord.dictionary_cache!.audio_url_us!)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            playAudio(userWord.dictionary_cache!.audio_url_us!)
+                          }}
                           className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors text-xs font-medium"
                           title="US pronunciation (美音)"
                         >
@@ -410,7 +438,10 @@ export function VocabularyPageContent() {
                       )}
                       {userWord.dictionary_cache?.audio_url_uk && (
                         <button
-                          onClick={() => playAudio(userWord.dictionary_cache!.audio_url_uk!)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            playAudio(userWord.dictionary_cache!.audio_url_uk!)
+                          }}
                           className="flex items-center gap-1 text-purple-600 hover:text-purple-700 transition-colors text-xs font-medium"
                           title="UK pronunciation (英音)"
                         >
@@ -478,6 +509,7 @@ export function VocabularyPageContent() {
       </div>
 
       {/* 训练遮罩层 */}
+      {/* 全局练习模式 */}
       {trainingMode && (
         <ReviewOverlay
           user={user}
@@ -490,10 +522,24 @@ export function VocabularyPageContent() {
             audio_url_us: w.dictionary_cache?.audio_url_us || undefined,
             audio_url_uk: w.dictionary_cache?.audio_url_uk || undefined
           }))}
-          onClose={() => {
-            setTrainingMode(false)
-            mutate()
-          }}
+          onClose={handleCloseGlobalTraining}
+        />
+      )}
+
+      {/* 🔴 单点练习模式 */}
+      {singleWordTraining && (
+        <ReviewOverlay
+          user={user}
+          words={[{
+            id: singleWordTraining.id,
+            word: singleWordTraining.word,
+            phonetic: singleWordTraining.phonetic || '',
+            definition: singleWordTraining.definition,
+            context_sentence: singleWordTraining.context_sentence || '',
+            audio_url_us: singleWordTraining.dictionary_cache?.audio_url_us || undefined,
+            audio_url_uk: singleWordTraining.dictionary_cache?.audio_url_uk || undefined
+          }]}
+          onClose={handleCloseSingleTraining}
         />
       )}
     </div>

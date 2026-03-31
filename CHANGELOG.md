@@ -11,6 +11,37 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.7.4] - 2026-03-31
+
+### Added
+- **单词卡片点击即练习（Specific Word Training）** ⭐
+  - **功能**：点击 Vocabulary 列表中的任意单词卡片，立即弹出闪卡练习该单词
+  - **双模式支持**：
+    - ✅ 全局练习模式：点击 "Start Training" 练习所有单词（显示 1/N 进度）
+    - ✅ 单点练习模式：点击单个单词卡片（显示 1/1 进度）
+  - **UI 改进**：
+    - 单词卡片添加 `cursor-pointer` 和 hover 效果
+    - 防止冒泡：删除按钮、发音按钮（US/UK）不触发练习弹窗
+  - **代码重构**：
+    - 新增 `singleWordTraining` state 存储单点练习的单词
+    - 新增 `handleWordCardClick` 处理卡片点击
+    - 新增 `handleCloseSingleTraining` / `handleCloseGlobalTraining` 关闭弹窗
+  - **影响范围**：
+    - `src/app/VocabularyContent.tsx`（核心修改）
+
+### Fixed
+- **修复练习后单词分类不更新的问题** 🐛
+  - **问题**：在闪卡中选择 "Too Easy" 后，单词没有从 Learning 分类转到 Mastered 分类
+  - **根本原因**：SWR 的 `mutate()` 默认不重新验证，只更新缓存
+  - **修复方案**：
+    - ✅ 所有 `mutate()` 调用添加第二个参数 `true`：`mutate(undefined, true)`
+    - ✅ 强制 SWR 从数据库获取最新数据
+  - **影响范围**：
+    - `src/app/VocabularyContent.tsx`（修复三处 mutate 调用）
+  - **技术说明**：
+    - `mutate()` - 只更新缓存，不重新请求
+    - `mutate(undefined, true)` - 强制重新验证（revalidate）
+
 ## [29.7.3] - 2026-03-31
 
 ### Fixed
