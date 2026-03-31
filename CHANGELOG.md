@@ -11,6 +11,31 @@
 > - 这些标记仅用于功能开发跟踪，不代表项目的正式版本号
 > - v22.0.0 统一版本号体系，避免混乱
 
+## [29.7.2] - 2026-03-31
+
+### Fixed
+- **手术级重构 Vocabulary 页面（彻底修复 React Error #310）** 🐛
+  - **问题**：Vocabulary 页面触发 #310 报错并导致整个应用崩溃
+  - **重构方案**：四阶段结构规范化
+    - ✅ 第一阶段：Hook 堆放区（无条件执行，绝对顶部）
+      - 所有 useAuth, useRouter, useState, useSWR, useMemo, useEffect 都在绝对顶部
+      - 严禁在 Hook 调用之前有任何提前返回
+    - ✅ 第二阶段：逻辑拦截区（在所有 Hook 之后）
+      - 提前状态判断：if (authLoading) return ...
+      - 提前状态判断：if (!user) return ...
+      - 提前状态判断：if (isLoading && !words) return ...
+      - 提前状态判断：if (!words || words.length === 0) return ...
+    - ✅ 第三阶段：辅助函数定义（在 return 之前）
+      - playAudio, handleDeleteWord, parseDefinition, getCurrentDefinition
+    - ✅ 第四阶段：渲染区（无条件渲染）
+      - 所有逻辑已提前处理，JSX 中不再有复杂条件
+  - **技术说明**：
+    - Hook 调用顺序完全固定，不会在不同渲染之间变化
+    - 符合 React 最佳实践：Early Return 模式
+    - 消除了 JSX 中的复杂条件渲染逻辑
+  - **影响范围**：
+    - `src/app/VocabularyContent.tsx`（手术级重构）
+
 ## [29.7.1] - 2026-03-31
 
 ### Fixed

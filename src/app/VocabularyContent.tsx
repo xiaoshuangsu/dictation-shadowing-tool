@@ -1,10 +1,11 @@
 /**
  * Vocabulary Page - 生词本列表页
  *
- * 修复目标：
- * - 修复 React Error #310（Hook 顺序问题）
- * - 使用 SWR 全局缓存，实现瞬时加载
- * - 禁用自动重新验证，避免切换标签时重新加载
+ * V29.7.2 彻底重构（修复 React Error #310）：
+ * - 所有 Hook 绝对顶层化
+ * - 提前状态判断，避免 JSX 中的复杂条件
+ * - SWR 容错化，支持 null key
+ * - 确保 Hook 调用顺序完全固定
  */
 
 'use client'
@@ -49,18 +50,24 @@ interface Definition {
 }
 
 export function VocabularyPageContent() {
-  // 🔴 所有 Hook 必须在组件顶部调用，不能有任何条件返回在 Hook 之前
+  // ============================================================
+  // 🔴 第一阶段：Hook 堆放区（无条件执行，绝对顶部）
+  // ============================================================
+
+  // Auth Hooks
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+
+  // State Hooks
   const [currentLanguage, setCurrentLanguage] = useState<keyof Definition>('zh-CN')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [materialInfoMap, setMaterialInfoMap] = useState<Record<string, { category: string; slug: string }>>({})
   const [trainingMode, setTrainingMode] = useState(false)
 
-  // 🔴 使用 SWR Hook 获取生词数据（全局缓存）
+  // 🔴 SWR Hook（容错化：支持 null key）
   const { data, words, isLoading, error, mutate } = useUserWords(filterStatus, user?.id)
 
-  // 🔴 计算今日待复习数量
+  // Derived State Hooks
   const dueCount = useMemo(() => {
     if (!words || !words.length) return 0
     const now = new Date()
@@ -71,41 +78,7 @@ export function VocabularyPageContent() {
     }).length
   }, [words])
 
-  // 🔴 播放单词发音
-  const playAudio = (audioUrl: string) => {
-    const audio = new Audio(audioUrl)
-    audio.play().catch(error => {
-      console.error('播放音频失败:', error)
-    })
-  }
-
-  // 删除生词
-  const handleDeleteWord = async (wordId: string) => {
-    if (!user) return
-
-    if (!confirm('Are you sure you want to delete this word?')) return
-
-    try {
-      const response = await fetch('/api/user-words', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          wordId
-        })
-      })
-
-      const data = await response.json()
-      if (data.success) {
-        // 🔴 乐观更新：使用 SWR mutate 立即更新列表
-        mutate()
-      }
-    } catch (error) {
-      console.error('删除生词失败:', error)
-    }
-  }
-
-  // 同步全局翻译语言
+  // Effect Hooks
   useEffect(() => {
     const updateLanguage = () => {
       const storedLang = getStoredLanguage()
@@ -139,7 +112,6 @@ export function VocabularyPageContent() {
     }
   }, [])
 
-  // 加载素材信息
   useEffect(() => {
     const fetchMaterialInfo = async () => {
       if (!words || !words.length) return
@@ -171,7 +143,113 @@ export function VocabularyPageContent() {
     fetchMaterialInfo()
   }, [words])
 
-  // 解析多语言释义
+  // ============================================================
+  // 🔴 第二阶段：逻辑拦截区（在所有 Hook 之后）
+  // ============================================================
+
+  // 提前状态判断，避免 JSX 中的复杂条件
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <h1 className="text-3xl font-bold text-gray-900">Vocabulary</h1>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 pb-12">
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">请先登录</h1>
+            <Link
+              href="/login"
+              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              前往登录
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isLoading && !words) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <h1 className="text-3xl font-bold text-gray-900">Vocabulary</h1>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 pb-12">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!words || words.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <h1 className="text-3xl font-bold text-gray-900">Vocabulary</h1>
+            <p className="text-gray-600 mt-1">0 words total</p>
+          </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 pb-12">
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <p className="text-gray-500 mb-4">No words saved yet</p>
+            <p className="text-sm text-gray-400">
+              Click on any word in practice mode, then click "Add to Vocabulary" to save it
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ============================================================
+  // 🔴 第三阶段：辅助函数定义（在 return 之前）
+  // ============================================================
+
+  const playAudio = (audioUrl: string) => {
+    const audio = new Audio(audioUrl)
+    audio.play().catch(error => {
+      console.error('播放音频失败:', error)
+    })
+  }
+
+  const handleDeleteWord = async (wordId: string) => {
+    if (!confirm('Are you sure you want to delete this word?')) return
+
+    try {
+      const response = await fetch('/api/user-words', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          wordId
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        mutate()
+      }
+    } catch (error) {
+      console.error('删除生词失败:', error)
+    }
+  }
+
   const parseDefinition = (definitionStr: string): Definition => {
     try {
       return JSON.parse(definitionStr)
@@ -185,21 +263,20 @@ export function VocabularyPageContent() {
     }
   }
 
-  // 获取当前语言的释义
   const getCurrentDefinition = (definitionStr: string): string => {
     const def = parseDefinition(definitionStr)
     return def[currentLanguage] || def['zh-CN'] || 'No definition'
   }
 
-  // 掌握状态配置
   const STATUS_CONFIG = {
     learning: { label: 'Learning', color: 'bg-blue-100 text-blue-800' },
     familiar: { label: 'Familiar', color: 'bg-yellow-100 text-yellow-800' },
     mastered: { label: 'Mastered', color: 'bg-green-100 text-green-800' }
   }
 
-  // 🔴 关键修复：将条件渲染逻辑放在 JSX 中，而不是在 Hook 调用之后 return
-  // 这样所有 Hook 的调用顺序都是固定的，符合 React 规则
+  // ============================================================
+  // 🔴 第四阶段：渲染区（无条件渲染，所有逻辑已提前处理）
+  // ============================================================
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -210,18 +287,16 @@ export function VocabularyPageContent() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Vocabulary</h1>
               <p className="text-gray-600 mt-1">
-                {words?.length || 0} words total
+                {words.length} words total
               </p>
             </div>
             <div className="flex items-center gap-4">
-              {words && words.length > 0 && (
-                <button
-                  onClick={() => setTrainingMode(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
-                >
-                  Start Training
-                </button>
-              )}
+              <button
+                onClick={() => setTrainingMode(true)}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:scale-105"
+              >
+                Start Training
+              </button>
             </div>
           </div>
         </div>
@@ -239,7 +314,7 @@ export function VocabularyPageContent() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              All ({words?.length || 0})
+              All ({words.length})
             </button>
             <button
               onClick={() => setFilterStatus('learning')}
@@ -275,153 +350,125 @@ export function VocabularyPageContent() {
 
       {/* Word List */}
       <div className="max-w-7xl mx-auto px-4 pb-12">
-        {/* 🔴 登录中/未登录状态检查 - 放在 JSX 中，而不是 Hook 之后 */}
-        {authLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : !user ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">请先登录</h1>
-            <Link
-              href="/login"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              前往登录
-            </Link>
-          </div>
-        ) : isLoading && !words ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : !words || words.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <p className="text-gray-500 mb-4">No words saved yet</p>
-            <p className="text-sm text-gray-400">
-              Click on any word in practice mode, then click "Add to Vocabulary" to save it
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {words.map((userWord) => {
-              const definition = parseDefinition(userWord.definition)
-              const statusConfig = STATUS_CONFIG[userWord.mastery_status] || STATUS_CONFIG.learning
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {words.map((userWord) => {
+            const definition = parseDefinition(userWord.definition)
+            const statusConfig = STATUS_CONFIG[userWord.mastery_status] || STATUS_CONFIG.learning
 
-              const now = new Date()
-              const isCoolingDown = userWord.mastery_status === 'learning' &&
-                userWord.next_review_at &&
-                new Date(userWord.next_review_at) > now
+            const now = new Date()
+            const isCoolingDown = userWord.mastery_status === 'learning' &&
+              userWord.next_review_at &&
+              new Date(userWord.next_review_at) > now
 
-              return (
-                <div
-                  key={userWord.id}
-                  className={`bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow ${
-                    isCoolingDown ? 'opacity-50' : ''
-                  }`}
-                >
-                  {/* 单词和音标 */}
-                  <div className="mb-3">
-                    <div className="flex items-start justify-between">
-                      <h3 className="text-xl font-bold text-gray-900">
-                        {userWord.word}
-                      </h3>
-                      <button
-                        onClick={() => handleDeleteWord(userWord.id)}
-                        className="text-gray-400 hover:text-red-600"
-                        title="删除"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                    {userWord.phonetic && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm text-gray-500">{userWord.phonetic}</p>
-                        {userWord.dictionary_cache?.audio_url_us && (
-                          <button
-                            onClick={() => playAudio(userWord.dictionary_cache!.audio_url_us!)}
-                            className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors text-xs font-medium"
-                            title="US pronunciation (美音)"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                            </svg>
-                            <span>US</span>
-                          </button>
-                        )}
-                        {userWord.dictionary_cache?.audio_url_uk && (
-                          <button
-                            onClick={() => playAudio(userWord.dictionary_cache!.audio_url_uk!)}
-                            className="flex items-center gap-1 text-purple-600 hover:text-purple-700 transition-colors text-xs font-medium"
-                            title="UK pronunciation (英音)"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
-                            </svg>
-                            <span>UK</span>
-                          </button>
-                        )}
-                      </div>
-                    )}
+            return (
+              <div
+                key={userWord.id}
+                className={`bg-white rounded-lg shadow-sm p-4 border border-gray-200 hover:shadow-md transition-shadow ${
+                  isCoolingDown ? 'opacity-50' : ''
+                }`}
+              >
+                {/* 单词和音标 */}
+                <div className="mb-3">
+                  <div className="flex items-start justify-between">
+                    <h3 className="text-xl font-bold text-gray-900">
+                      {userWord.word}
+                    </h3>
+                    <button
+                      onClick={() => handleDeleteWord(userWord.id)}
+                      className="text-gray-400 hover:text-red-600"
+                      title="删除"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16" />
+                      </svg>
+                    </button>
                   </div>
-
-                  {/* 掌握状态 */}
-                  <div className="mb-3">
-                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${statusConfig.color}`}>
-                      {statusConfig.label}
-                    </span>
-                  </div>
-
-                  {/* 释义 */}
-                  <div className="mb-3">
-                    <p className="text-sm text-gray-700">
-                      {getCurrentDefinition(userWord.definition)}
-                    </p>
-                  </div>
-
-                  {/* 例句 */}
-                  {userWord.context_sentence && (
-                    <div className="bg-gray-50 rounded p-2 mb-3">
-                      <div className="flex items-start gap-2">
-                        <p className="text-xs text-gray-600 italic flex-1">
-                          "{userWord.context_sentence}"
-                        </p>
-                        {userWord.audio_url && userWord.material_id && materialInfoMap[userWord.material_id] && (
-                          <Link
-                            href={`/topics/${materialInfoMap[userWord.material_id].category}/${materialInfoMap[userWord.material_id].slug}?t=${userWord.audio_timestamp}`}
-                            className="flex-shrink-0 text-blue-600 hover:text-blue-700"
-                            title="Jump to play"
-                          >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M8 5v14l11-7z"/>
-                            </svg>
-                          </Link>
-                        )}
-                      </div>
+                  {userWord.phonetic && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-sm text-gray-500">{userWord.phonetic}</p>
+                      {userWord.dictionary_cache?.audio_url_us && (
+                        <button
+                          onClick={() => playAudio(userWord.dictionary_cache!.audio_url_us!)}
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors text-xs font-medium"
+                          title="US pronunciation (美音)"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                          </svg>
+                          <span>US</span>
+                        </button>
+                      )}
+                      {userWord.dictionary_cache?.audio_url_uk && (
+                        <button
+                          onClick={() => playAudio(userWord.dictionary_cache!.audio_url_uk!)}
+                          className="flex items-center gap-1 text-purple-600 hover:text-purple-700 transition-colors text-xs font-medium"
+                          title="UK pronunciation (英音)"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                          </svg>
+                          <span>UK</span>
+                        </button>
+                      )}
                     </div>
                   )}
-
-                  {/* 来源素材 */}
-                  {userWord.material_title && (
-                    <div className="text-xs text-gray-500">
-                      From: {userWord.material_title}
-                    </div>
-                  )}
-
-                  {/* 时间 */}
-                  <div className="text-xs text-gray-400 mt-2">
-                    {new Date(userWord.created_at).toLocaleDateString('en-US')}
-                  </div>
                 </div>
-              )
-            })}
-          </div>
-        )}
+
+                {/* 掌握状态 */}
+                <div className="mb-3">
+                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${statusConfig.color}`}>
+                    {statusConfig.label}
+                  </span>
+                </div>
+
+                {/* 释义 */}
+                <div className="mb-3">
+                  <p className="text-sm text-gray-700">
+                    {getCurrentDefinition(userWord.definition)}
+                  </p>
+                </div>
+
+                {/* 例句 */}
+                {userWord.context_sentence && (
+                  <div className="bg-gray-50 rounded p-2 mb-3">
+                    <div className="flex items-start gap-2">
+                      <p className="text-xs text-gray-600 italic flex-1">
+                        "{userWord.context_sentence}"
+                      </p>
+                      {userWord.audio_url && userWord.material_id && materialInfoMap[userWord.material_id] && (
+                        <Link
+                          href={`/topics/${materialInfoMap[userWord.material_id].category}/${materialInfoMap[userWord.material_id].slug}?t=${userWord.audio_timestamp}`}
+                          className="flex-shrink-0 text-blue-600 hover:text-blue-700"
+                          title="Jump to play"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z"/>
+                          </svg>
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 来源素材 */}
+                {userWord.material_title && (
+                  <div className="text-xs text-gray-500">
+                    From: {userWord.material_title}
+                  </div>
+                )}
+
+                {/* 时间 */}
+                <div className="text-xs text-gray-400 mt-2">
+                  {new Date(userWord.created_at).toLocaleDateString('en-US')}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* 训练遮罩层 */}
-      {trainingMode && words && (
+      {trainingMode && (
         <ReviewOverlay
           user={user}
           words={words.map(w => ({
