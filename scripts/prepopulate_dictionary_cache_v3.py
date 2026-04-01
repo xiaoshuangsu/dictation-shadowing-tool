@@ -636,25 +636,171 @@ class OxfordScraper:
 # 模块 C：19 国语言翻译（简化版 - 仅包含基础语言）
 # ══════════════════════════════════════════════════════════════════════════════
 
-def translate_word_basic(word: str, en_definition: str) -> Dict[str, str]:
+# ══════════════════════════════════════════════════════════════════════════════
+# 模块 C：19 国语言翻译引擎
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TranslationEngine:
     """
-    基础翻译（仅包含 en, zh, zh_hant, vi）
+    19 国语言翻译引擎
 
-    参数:
-        word: 单词
-        en_definition: 英文释义
-
-    返回:
-        翻译字典 {'en': '...', 'zh': '...', 'zh_hant': '...', 'vi': '...'}
+    使用 GLM API 进行批量翻译，支持指数退避重试
     """
-    translations = {}
 
-    # 英文释义
-    translations['en'] = en_definition
+    # 重试配置
+    MAX_RETRIES = 3
+    INITIAL_BACKOFF = 2.0  # 初始退避时间（秒）
+    BACKOFF_MULTIPLIER = 2.0  # 退避倍数
 
-    # 使用 GLM API 翻译
-    try:
-        logger.info(f"  🌍 翻译: {word}")
+    # Prompt 模板（紧凑 JSON 格式，降低 Token 消耗）
+    SYSTEM_PROMPT = """你是专业多语言词典翻译引擎。将英文释义翻译为19种语言。
+
+{languages_prompt}
+
+单词：{word}
+释义：{definition}
+
+严格返回紧凑JSON（无额外文字）：
+{json_template}"""
+
+    # 语言 Prompt 模板
+    LANGUAGE_PROMPTS = {
+        'zh': '简中',
+        'zh_hant': '繁中',
+        'vi': '越南',
+        'ar': '阿拉伯',
+        'de': '德语',
+        'es': '西语',
+        'ja': '日语',
+        'ms': '马来',
+        'ru': '俄语',
+        'tr': '土语',
+        'el': '希腊',
+        'id': '印尼',
+        'ko': '韩语',
+        'pt': '葡语',
+        'th': '泰语',
+        'uk': '乌克',
+        'bn': '孟加',
+        'mn': '蒙语',
+        'hi': '印地'
+    }
+
+    def __init__(self):
+        """初始化翻译引擎"""
+        logger.info("🌍 TranslationEngine 初始化完成")
+        logger.info(f"   支持 {len(ALL_19_LANGUAGES)} 种语言")
+
+    def translate(self, word: str, en_definition: str) -> Dict[str, str]:
+        """
+        翻译为 19 国语言
+
+        参数:
+            word: 单词
+            en_definition: 英文释义
+
+        返回:
+            翻译字典 {'en': '...', 'zh': '...', 'zh_hant': '...', ...}
+        """
+        translations = {'en': en_definition}
+
+        # 分组翻译（确保稳定性）
+        # 第一组：原有 3 种 + Group A
+        group1_langs = EXISTING_LANGUAGES + GROUP_A
+        group1_result = self._translate_with_retry(
+            word, en_definition, group1_langs, "Group 1"
+        )
+        translations.update(group1_result)
+
+        # 冷却时间（缓解 Rate Limit）
+        time.sleep(1)
+
+        # 第二组：Group B
+        group2_result = self._translate_with_retry(
+            word, en_definition, GROUP_B, "Group 2"
+        )
+        translations.update(group2_result)
+
+        return translations
+
+    def _translate_with_retry(
+        self,
+        word: str,
+        en_definition: str,
+        target_languages: List[str],
+        group_name: str
+    ) -> Dict[str, str]:
+        """
+        带重试的翻译请求
+
+        参数:
+            word: 单词
+            en_definition: 英文释义
+            target_languages: 目标语言列表
+            group_name: 分组名称（用于日志）
+
+        返回:
+            翻译字典
+        """
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            try:
+                result = self._call_glm_api(word, en_definition, target_languages)
+                logger.info(f"  ✅ {group_name} 翻译完成")
+                return result
+
+            except Exception as e:
+                if attempt < self.MAX_RETRIES:
+                    # 指数退避
+                    backoff_time = self.INITIAL_BACKOFF * (self.BACKOFF_MULTIPLIER ** (attempt - 1))
+                    logger.warning(
+                        f"  ⚠️  {group_name} 翻译失败（尝试 {attempt}/{self.MAX_RETRIES}）: {e}"
+                    )
+                    logger.warning(f"  ⏱️  等待 {backoff_time:.1f} 秒后重试...")
+                    time.sleep(backoff_time)
+                else:
+                    logger.error(f"  ❌ {group_name} 翻译失败（已达最大重试次数）: {e}")
+                    # 返回空字典（不影响其他语言）
+                    return {}
+
+        return {}
+
+    def _call_glm_api(
+        self,
+        word: str,
+        en_definition: str,
+        target_languages: List[str]
+    ) -> Dict[str, str]:
+        """
+        调用 GLM API 进行翻译
+
+        参数:
+            word: 单词
+            en_definition: 英文释义
+            target_languages: 目标语言列表
+
+        返回:
+            翻译字典
+
+        异常:
+            requests.RequestException: API 请求失败
+            json.JSONDecodeError: JSON 解析失败
+        """
+        # 构建 Prompt
+        languages_prompt = " ".join([
+            f"{self.LANGUAGE_PROMPTS[lang]}({lang})"
+            for lang in target_languages
+        ])
+
+        json_template = "{" + ", ".join([f'"{lang}": "翻译"' for lang in target_languages]) + "}"
+
+        system_content = self.SYSTEM_PROMPT.format(
+            languages_prompt=languages_prompt,
+            word=word,
+            definition=en_definition,
+            json_template=json_template
+        )
+
+        # 调用 API
         response = requests.post(
             f"{GLM_BASE_URL}/chat/completions",
             headers={
@@ -666,53 +812,49 @@ def translate_word_basic(word: str, en_definition: str) -> Dict[str, str]:
                 'messages': [
                     {
                         'role': 'system',
-                        'content': f"""请将以下英文单词释义翻译为简体中文、繁体中文和越南语。
-单词：{word}
-释义：{en_definition}
-
-请严格按照以下 JSON 格式返回（不要有任何额外文字）：
-{{
-  "zh": "简体中文释义",
-  "zh_hant": "繁體中文釋義",
-  "vi": "Tiếng Việt"
-}}"""
+                        'content': system_content
                     },
                     {
                         'role': 'user',
-                        'content': f"请翻译：{word}"
+                        'content': word
                     }
                 ],
-                'temperature': 0.3
+                'temperature': 0.3,
+                'max_tokens': 800,
+                'top_p': 0.7
             },
             timeout=30
         )
 
-        if response.status_code == 200:
-            data = response.json()
-            content = data.get('choices', [{}])[0].get('message', {}).get('content')
+        # 检查响应状态
+        if response.status_code != 200:
+            raise requests.RequestException(
+                f"GLM API 错误 ({response.status_code}): {response.text}"
+            )
 
-            if content:
-                # 解析 JSON
-                try:
-                    result = json.loads(content)
-                    translations.update(result)
-                    logger.info(f"  ✅ 翻译完成")
-                    return translations
-                except json.JSONDecodeError:
-                    # 尝试提取 JSON
-                    json_match = re.search(r'\{[\s\S]*\}', content)
-                    if json_match:
-                        result = json.loads(json_match.group(0))
-                        translations.update(result)
-                        logger.info(f"  ✅ 翻译完成")
-                        return translations
+        # 解析响应
+        data = response.json()
+        content = data.get('choices', [{}])[0].get('message', {}).get('content')
 
-        logger.warning(f"  ⚠️  GLM API 失败，使用空翻译")
-        return translations
+        if not content:
+            raise ValueError("GLM API 返回空内容")
 
-    except Exception as e:
-        logger.error(f"  ❌ 翻译失败: {e}")
-        return translations
+        # 解析 JSON
+        try:
+            result = json.loads(content)
+            return result
+        except json.JSONDecodeError:
+            # 尝试提取 JSON（兼容性处理）
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                result = json.loads(json_match.group(0))
+                return result
+
+            raise ValueError(f"无法解析 GLM 响应: {content[:200]}...")
+
+
+# 创建全局翻译引擎实例
+translation_engine = TranslationEngine()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -879,7 +1021,7 @@ def main():
         return
 
     # 处理单词
-    logger.info(f"\n🔄 开始处理 {len(words)} 个单词")
+    logger.info(f"\n🔄 开始处理 {len(words)} 个单词（19 国语言翻译）")
     logger.info("-" * 70)
 
     success_count = 0
@@ -888,8 +1030,8 @@ def main():
         word = word_data['word']
         logger.info(f"\n[{idx}/{len(words)}] 处理: {word}")
 
-        # 1. 翻译
-        translations = translate_word_basic(
+        # 1. 翻译为 19 国语言（使用 TranslationEngine）
+        translations = translation_engine.translate(
             word,
             word_data['definition']
         )
