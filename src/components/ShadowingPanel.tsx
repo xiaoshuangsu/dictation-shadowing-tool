@@ -265,12 +265,28 @@ export default function ShadowingPanel({
 
   const currentTranslation = getCurrentTranslation()
 
-  // 获取语言标签
+  // 获取语言标签（与 TranslationLanguageSelector 保持一致）
   const getLanguageLabel = (lang: TranslationLanguage): string => {
     const labels = {
       'zh': '中文 (简体)',
       'zh_hant': '中文 (繁體)',
       'vi': 'Tiếng Việt',
+      'ar': 'العربية',
+      'de': 'Deutsch',
+      'es': 'Español',
+      'ja': '日本語',
+      'ms': 'Bahasa Melayu',
+      'ru': 'Русский',
+      'tr': 'Türkçe',
+      'el': 'Ελληνικά',
+      'id': 'Bahasa Indonesia',
+      'ko': '한국어',
+      'pt': 'Português',
+      'th': 'ภาษาไทย',
+      'uk': 'Українська',
+      'bn': 'বাংলা',
+      'mn': 'Монгол',
+      'hi': 'हिन्दी',
       'hide': ''
     }
     return labels[lang] || ''
