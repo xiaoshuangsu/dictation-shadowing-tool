@@ -356,8 +356,8 @@ cat CONTEXT_RESTORE.md
 ```
 
 ### 方式二：一句话恢复
-> "请先阅读 `claude-code-guide.md`，当前版本是 V29.7.9（2026-03-31），主要实现了：
-> - **YouTube 脚本 v2.0**：完整自动化流程（yt-dlp 字幕抓取 → 智能断句 → 时间轴优化 → 智能挖空 v6.2 → 19国翻译 → 入库）
+> "请先阅读 `claude-code-guide.md`，当前版本是 V29.7.10（2026-04-01），主要实现了：
+> - **YouTube 脚本 v2.2**：完整自动化流程（LLM 标点恢复 → yt-dlp 字幕抓取 → 智能断句 → 时间轴优化 → 智能挖空 v6.2 → 19国翻译 → 入库）
 > - **翻译语言扩展**：支持 19 种语言（原有 3 种 + 新增 16 种：Arabic, Deutsch, Español, 日本語, Bahasa Melayu, Russian, Türkçe, Greek, Indonesian, 한국어, Português, ภาษาไทย, Українська, বাংলা, Монгол, हिन्दी）
 > - **v6.2 挖空逻辑**：语言习得导向，权重系统，索引转换，自动修正
 > - **Prompt 干扰修复**：自动清理 GLM 返回的 prompt 内容
@@ -366,15 +366,20 @@ cat CONTEXT_RESTORE.md
 
 ---
 
-**版本**：V29.7.9
-**更新日期**：2026-03-31
+**版本**：V29.7.11
+**更新日期**：2026-04-01
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
 **GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
 
 **最新更新**：
-- ✅ **YouTube 脚本 v2.0**：完整自动化流程（智能挖空 v6.2 + 19 国翻译）
-- ✅ **Prompt 干扰修复**：自动清理 GLM 返回的 prompt 内容
+- ✅ **词典预生成脚本 V3.0**：模块化架构（6 个模块），Oxford 3000 + 19国翻译 + Edge TTS + R2 存储
+- ✅ **TranslationEngine 翻译引擎**：19 国语言批量翻译，指数退避重试（2s→4s→8s）
+- ✅ **OxfordScraper 抓取模块**：支持空行容错，已修复 Accept-Encoding 问题
+- ✅ **数据库迁移完成**：7142 条记录迁移到 JSONB 结构，translations 字段支持 19 种语言
+- ✅ **测试验证**：20 个单词联调测试，100% 成功率
+- ✅ **YouTube 脚本 v2.2**：完整自动化流程（LLM 标点恢复 + 智能断句 v6.3 + 智能挖空 v6.2 + 19 国翻译）
+- ✅ **YouTube 批量处理脚本 v2.2**：批量处理，断点恢复，每完成一个立即入库
 - ✅ **翻译语言扩展**：19 种语言（原有 3 种 + 新增 16 种）
 
 ---
@@ -408,16 +413,25 @@ cat CONTEXT_RESTORE.md
 |---------|------|------|----------|----------|
 | **批量上传** | v6.1 | `scripts/ingest_bulk.py` | Engnovate 批量素材导入，GLM 翻译，智能挖空，索引转换 | 2026-03-28 |
 | **单个上传** | - | `scripts/ingest_single.py` | 单个素材上传 | - |
-| **YouTube 上传** | **v2.0** | `scripts/ingest_youtube_ytdlp.py` | **YouTube 自动化完整版：智能断句 + 挖空(v6.2) + 19国翻译** | **2026-03-31** |
+| **YouTube 上传** | **v2.2** | `scripts/ingest_youtube_ytdlp.py` | **YouTube 自动化完整版：LLM 标点恢复 + 智能断句 + 挖空(v6.2) + 19国翻译** | **2026-04-01** |
+| **YouTube 批量上传** | **v2.2** | `scripts/ingest_youtube_batch.py` | **批量处理，断点恢复，每完成一个立即入库** | **2026-04-01** |
 
-**YouTube 脚本特点（v2.0）**：
-- ✅ **完整自动化流程**：yt-dlp 字幕抓取 → 智能断句 → 时间轴优化 → 智能挖空 → 19国翻译 → 入库
+**YouTube 脚本特点（v2.2）**：
+- ✅ **完整自动化流程**：yt-dlp 字幕抓取 → LLM 标点恢复 → 智能断句 → 时间轴优化 → 智能挖空 → 19国翻译 → 入库
+- ✅ **LLM 标点恢复**（v2.2 新增）：自动修复字幕缺失的标点符号
+- ✅ **智能断句（v6.3）**：简化时间戳对齐逻辑，末尾滞后容差
 - ✅ **智能挖空（v6.2 逻辑）**：语言习得导向，权重系统，索引转换，自动修正
 - ✅ **19 种语言翻译**：原有 3 种（zh, zh_hant, vi）+ 新增 16 种（Group A + Group B）
 - ✅ **Iframe 兼容性**：自动设置 `source_type: "youtube"` 和 `youtube_id`
 - ✅ **翻译顺序**：原有语言 → Group A → Group B（确保稳定性）
 - ✅ **错误处理**：失败标记 `[TODO_RETRY]`，支持后续重试
 - ✅ **Prompt 干扰修复**：自动清理 GLM 返回的 prompt 内容
+
+**批量处理脚本特点（v2.2）**：
+- ✅ **每完成一个立即入库**：避免中途中断导致数据丢失
+- ✅ **断点恢复**：自动跳过已入库的视频
+- ✅ **进度保存**：`/tmp/youtube_batch_progress.json` 记录处理进度
+- ✅ **统计报告**：显示成功/失败/跳过的数量
 
 **注意**：`ingest_bulk.py` (v6.2) 和 `reprocess_ietts_blanks.py` (v6.2) 均为独立实现，逻辑相同但未共享代码。
 
@@ -427,6 +441,82 @@ cat CONTEXT_RESTORE.md
 |---------|------|------|----------|----------|
 | **中文翻译** | - | `scripts/translate.js` | 英译中翻译 | - |
 | **越南语翻译** | - | `scripts/translate_to_vietnamese.py` | 英译越南语翻译 | - |
+
+### 词典预生成脚本（Dictionary Cache Prepopulation）
+
+| 脚本名称 | 版本 | 路径 | 功能描述 | 最后更新 |
+|---------|------|------|----------|----------|
+| **词典预生成** | **V3.0** | `scripts/prepopulate_dictionary_cache_v3.py` | **Oxford 3000 + 19国翻译 + Edge TTS + R2 存储** | **2026-04-01** |
+
+**V3.0 模块化架构**：
+- ✅ **【模块 A】基础框架与配置**：dotenv, Supabase, R2, 19 国语言定义
+- ✅ **【模块 B】OxfordScraper 抓取模块**：从 engnovate.com 抓取 Oxford 3000 单词数据（支持空行容错）
+- ✅ **【模块 C】TranslationEngine 翻译引擎**：19 国语言批量翻译，指数退避重试，语种分组
+- ✅ **【模块 D】Edge TTS 音频生成**：异步音频生成
+- ✅ **【模块 E】R2 上传**：S3 兼容接口上传到 R2
+- ✅ **【模块 F】数据保存**：JSONB translations + audio_r2_url（向后兼容 definitions 字段）
+
+**TranslationEngine 核心特性**：
+- **批量翻译**：一次性请求 19 种语言（分组处理：Group 1: 11种 + Group 2: 8种）
+- **指数退避重试**：2s → 4s → 8s（MAX_RETRIES=3）
+- **成本优化**：紧凑 Prompt（语言缩写：简中, 繁中, 越南, 阿拉伯...）
+- **冷却机制**：分组间冷却 1 秒（缓解 Rate Limit）
+
+**翻译语言列表（19 种）**：
+- **原有 (3种)**：zh, zh_hant, vi
+- **Group A (8种)**：ar, de, es, ja, ms, ru, tr, el
+- **Group B (8种)**：id, ko, pt, th, uk, bn, mn, hi
+
+**数据结构**：
+```json
+{
+  "word": "act",
+  "phonetic": "/ækt/",
+  "translations": {
+    "en": "to do something for a particular purpose...",
+    "zh": "执行",
+    "zh_hant": "執行",
+    "vi": "thực hiện",
+    "ar": "فعل",
+    "de": "tun",
+    ... (19 种语言)
+  },
+  "example": "We need to act quickly.",
+  "audio_r2_url": "https://media.shadowhub.app/audio/dictionary/act.mp3"
+}
+```
+
+**使用方法**：
+```bash
+# 测试模式（3 个单词）
+python3 scripts/prepopulate_dictionary_cache_v3.py --test --oxford --limit 3
+
+# 自定义单词数量
+python3 scripts/prepopulate_dictionary_cache_v3.py --test --oxford --limit 20
+```
+
+**测试结果（2026-04-01）**：
+- ✅ 20 个单词联调测试
+- ✅ 100% 成功率（20/20）
+- ✅ translations 字段包含完整 19 种语言
+- ✅ audio_r2_url 指向正确的 R2 路径
+
+**恢复口令（重要！）**：
+> "请先阅读 `claude-code-guide.md`，词典预生成脚本已更新到 V3.0，实现了模块化架构（6 个模块）：
+> - 【模块 A】基础框架与配置（dotenv, Supabase, R2, 19 国语言）
+> - 【模块 B】OxfordScraper 抓取模块（支持空行容错，已修复 Accept-Encoding 问题）
+> - 【模块 C】TranslationEngine 翻译引擎（19 国语言批量翻译，指数退避重试 2s→4s→8s）
+> - 【模块 D】Edge TTS 音频生成（异步）
+> - 【模块 E】R2 上传（S3 兼容接口）
+> - 【模块 F】数据保存（同时填充 definitions 旧字段和 translations 新字段）
+>
+> TranslationEngine 分组翻译：
+> - Group 1: 原有 (3种) + Group A (8种) = 11 种
+> - 冷却 1 秒
+> - Group 2: Group B (8种)
+>
+> 数据库迁移已完成（7142 条记录），translations 字段为 JSONB 类型。
+> 测试结果：20 个单词 100% 成功，translations 包含完整 19 种语言。
 
 ### 文本规范化（Text Normalization）
 
@@ -487,9 +577,10 @@ python3 scripts/ingest_bulk.py
 
 ```bash
 # 恢复上下文
-cat claude-code-guide.md scripts/ingest_youtube_ytdlp.py
+cat claude-code-guide.md scripts/ingest_youtube_ytdlp.py scripts/ingest_youtube_batch.py
 
-# 单个视频入库（默认分类：Science and Facts，难度：B2）
+# ========== 单个视频入库 ==========
+# 默认分类：Science and Facts，难度：B2
 python3 scripts/ingest_youtube_ytdlp.py "https://youtu.be/xxxxx"
 
 # 指定分类和难度
@@ -497,17 +588,35 @@ python3 scripts/ingest_youtube_ytdlp.py "https://youtu.be/xxxxx" --category "Sci
 
 # 查看帮助
 python3 scripts/ingest_youtube_ytdlp.py --help
+
+# ========== 批量视频入库（推荐）==========
+# 批量处理多个视频，每完成一个立即入库
+python3 scripts/ingest_youtube_batch.py \
+  "https://youtu.be/xxxxx" \
+  "https://youtu.be/yyyyy" \
+  "https://youtu.be/zzzzz" \
+  --category "BBC Earth" \
+  --difficulty "C2"
+
+# 强制重新处理（即使已入库）
+python3 scripts/ingest_youtube_batch.py "https://youtu.be/xxxxx" --force
 ```
 
 **预期时间**：每个视频约 35-40 分钟（取决于句子数量，约 1 分钟/句）
 
-**自动化流程**：
-1. yt-dlp 获取字幕（绕过 PO Token）
-2. 智能断句（82 → 38 句）
-3. 时间轴优化（核心缩进 -0.5s + 强制真空带 0.2s）
-4. 智能挖空（v6.2 逻辑，W10=13, W9=2, W6=2）
-5. 19 国语言翻译（原有 3 种 + Group A 8 种 + Group B 8 种）
-6. 入库 Supabase（source_type: "youtube", youtube_id: "xxxxx"）
+**v2.2 自动化流程**：
+1. yt-dlp 获取字幕（Chrome cookies 绕过 bot 检测）
+2. **LLM 标点恢复**（v2.2 新增）
+3. 智能断句（v6.3，82 → 38 句）
+4. 时间轴优化（简化对齐逻辑 + 末尾滞后容差）
+5. 智能挖空（v6.2 逻辑，W10=13, W9=2, W6=2）
+6. 19 国语言翻译（原有 3 种 + Group A 8 种 + Group B 8 种）
+7. 入库 Supabase（source_type: "youtube", youtube_id: "xxxxx"）
+
+**批量处理优势**：
+- ✅ 每完成一个立即入库（避免数据丢失）
+- ✅ 支持断点恢复（跳过已入库视频）
+- ✅ 进度保存（`/tmp/youtube_batch_progress.json`）
 
 **数据格式**：
 ```json
@@ -525,6 +634,85 @@ python3 scripts/ingest_youtube_ytdlp.py --help
   }
 }
 ```
+
+### 场景 3.75：词典预生成脚本（Oxford 3000 + 19国翻译）
+
+```bash
+# 恢复上下文（使用恢复口令）
+cat claude-code-guide.md scripts/prepopulate_dictionary_cache_v3.py
+
+# ========== 测试模式（推荐先运行）==========
+# 测试 3 个单词
+python3 scripts/prepopulate_dictionary_cache_v3.py --test --oxford --limit 3
+
+# 测试 20 个单词
+python3 scripts/prepopulate_dictionary_cache_v3.py --test --oxford --limit 20
+
+# ========== 验证数据 ==========
+# 检查 Supabase 中的 translations 字段
+# 访问 Supabase Table Editor → dictionary_cache 表
+# 验证 translations (JSONB) 字段包含 19 种语言
+
+# ========== 验证 translations 字段完整性 ==========
+python3 << 'EOF'
+import os
+from dotenv import load_dotenv
+from supabase import create_client
+
+load_dotenv('.env.local')
+supabase = create_client(
+    os.getenv('NEXT_PUBLIC_SUPABASE_URL'),
+    os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+)
+
+# 查询单词
+response = supabase.table('dictionary_cache').select('*').eq('word', 'act').execute()
+translations = response.data[0]['translations']
+
+# 检查语言数量
+print(f"翻译语言数量: {len(translations)} 种")
+
+# 检查 19 种语言是否都存在
+expected = ['en', 'zh', 'zh_hant', 'vi', 'ar', 'de', 'es', 'ja', 'ms', 'ru', 'tr', 'el', 'id', 'ko', 'pt', 'th', 'uk', 'bn', 'mn', 'hi']
+missing = [lang for lang in expected if lang not in translations]
+
+if missing:
+    print(f"❌ 缺失语言: {missing}")
+else:
+    print("✅ 所有 19 种语言翻译完整！")
+EOF
+```
+
+**V3.0 模块化架构**：
+- ✅ **【模块 A】基础框架与配置**：dotenv, Supabase, R2, 19 国语言定义
+- ✅ **【模块 B】OxfordScraper 抓取模块**：支持空行容错，已修复 Accept-Encoding 问题
+- ✅ **【模块 C】TranslationEngine 翻译引擎**：19 国语言批量翻译，指数退避重试
+- ✅ **【模块 D】Edge TTS 音频生成**：异步音频生成
+- ✅ **【模块 E】R2 上传**：S3 兼容接口上传到 R2
+- ✅ **【模块 F】数据保存**：同时填充 definitions（旧）和 translations（新）
+
+**TranslationEngine 分组翻译策略**：
+- **Group 1**：原有 (3种: zh, zh_hant, vi) + Group A (8种: ar, de, es, ja, ms, ru, tr, el) = 11 种
+- **冷却 1 秒**（缓解 Rate Limit）
+- **Group 2**：Group B (8种: id, ko, pt, th, uk, bn, mn, hi) = 8 种
+
+**指数退避重试机制**：
+- **重试次数**：MAX_RETRIES = 3
+- **退避时间**：2s → 4s → 8s（BACKOFF_MULTIPLIER = 2.0）
+
+**成本优化**：
+- **紧凑 Prompt**：语言缩写（简中, 繁中, 越南, 阿拉伯...）
+- **批量翻译**：一次性请求所有语言
+
+**预期性能**：
+- 每个单词约 15-20 秒（翻译 2 次 + 音频生成 + R2 上传）
+- 20 个单词约 6-8 分钟
+
+**数据库迁移状态**：
+- ✅ 已完成（7142 条记录）
+- ✅ translations 字段（JSONB）
+- ✅ audio_r2_url 字段
+- ✅ 向后兼容 definitions 字段
 
 ### 场景 4：点词翻译与生词本
 
@@ -558,7 +746,7 @@ git diff HEAD~1
 
 | 文档名称 | 版本 | 更新日期 | 用途 |
 |---------|------|----------|------|
-| `claude-code-guide.md` | V29.7.9 | 2026-03-31 | 项目主指南，脚本索引，YouTube 自动化 |
+| `claude-code-guide.md` | V29.7.10 | 2026-04-01 | 项目主指南，脚本索引，YouTube 批量处理 |
 | `docs/knowledge_base.md` | V29.6.1 | 2026-03-27 | Bug 记录与解决方案 |
 | `docs/automation_standards.md` | V19.9 | 2026-03-18 | 素材上传规范 |
 | `docs/dictionary_and_translation_implementation.md` | V20.1 | 2026-03-21 | 点词翻译与生词本 |
