@@ -226,12 +226,7 @@ class OxfordScraper:
 
     # 请求头（模拟浏览器）
     HEADERS = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9,zh-CN;q=0.8,zh;q=0.7',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
 
     # 延迟范围（秒）
@@ -815,11 +810,23 @@ def save_to_cache(
         是否成功
     """
     try:
+        # 准备数据（向后兼容：同时填充 definitions 和 translations）
+        en_definition = translations.get('en', '')
+
+        # 构造旧格式的 definitions（用于向后兼容）
+        definitions = {
+            'en': en_definition,
+            'zh-CN': translations.get('zh', ''),
+            'zh-Hant': translations.get('zh_hant', ''),
+            'vi': translations.get('vi', '')
+        }
+
         cache_data = {
             'word': word,
             'phonetic': phonetic,
-            'translations': translations,
-            'example': dictionary_example,  # 使用 dictionary_example 字段
+            'definitions': definitions,  # 旧字段（向后兼容）
+            'translations': translations,  # 新字段（19 国语言）
+            'example': dictionary_example,
             'audio_r2_url': audio_r2_url,
             'hit_count': 0
         }
