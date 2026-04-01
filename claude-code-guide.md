@@ -356,20 +356,26 @@ cat CONTEXT_RESTORE.md
 ```
 
 ### 方式二：一句话恢复
-> "请先阅读 `claude-code-guide.md`，当前版本是 V29.6.2（2026-03-29），主要实现了：
-> - **翻译语言扩展**：支持 20 种语言（含新增 16 种：Arabic, Deutsch, Español, 日本語, Malay, Russian, Türkçe, Greek, Indonesian, Korean, Português, Thai, Ukrainian, Bengali, Mongolian, Hindi）
-> - **v6.2 挖空逻辑**：处理了日常生活分类（102个）和 BBC Learning English（3个）
+> "请先阅读 `claude-code-guide.md`，当前版本是 V29.7.9（2026-03-31），主要实现了：
+> - **YouTube 脚本 v2.0**：完整自动化流程（yt-dlp 字幕抓取 → 智能断句 → 时间轴优化 → 智能挖空 v6.2 → 19国翻译 → 入库）
+> - **翻译语言扩展**：支持 19 种语言（原有 3 种 + 新增 16 种：Arabic, Deutsch, Español, 日本語, Bahasa Melayu, Russian, Türkçe, Greek, Indonesian, 한국어, Português, ภาษาไทย, Українська, বাংলা, Монгол, हिन्दी）
+> - **v6.2 挖空逻辑**：语言习得导向，权重系统，索引转换，自动修正
+> - **Prompt 干扰修复**：自动清理 GLM 返回的 prompt 内容
 > - **双重分词机制**：空格分词匹配 blanks.index，正则分词渲染原文（保留标点）
-> - **索引转换逻辑**：GLM 返回错误 index 时自动修正
 > - **Vercel 部署**：从 GitHub Pages 迁移到 Vercel，启用 API Routes"
 
 ---
 
-**版本**：V29.7.8
+**版本**：V29.7.9
 **更新日期**：2026-03-31
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
 **GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
+
+**最新更新**：
+- ✅ **YouTube 脚本 v2.0**：完整自动化流程（智能挖空 v6.2 + 19 国翻译）
+- ✅ **Prompt 干扰修复**：自动清理 GLM 返回的 prompt 内容
+- ✅ **翻译语言扩展**：19 种语言（原有 3 种 + 新增 16 种）
 
 ---
 
@@ -402,7 +408,16 @@ cat CONTEXT_RESTORE.md
 |---------|------|------|----------|----------|
 | **批量上传** | v6.1 | `scripts/ingest_bulk.py` | Engnovate 批量素材导入，GLM 翻译，智能挖空，索引转换 | 2026-03-28 |
 | **单个上传** | - | `scripts/ingest_single.py` | 单个素材上传 | - |
-| **YouTube 上传** | - | `scripts/ingest_youtube_ytdlp.py` | YouTube 素材自动上传 | - |
+| **YouTube 上传** | **v2.0** | `scripts/ingest_youtube_ytdlp.py` | **YouTube 自动化完整版：智能断句 + 挖空(v6.2) + 19国翻译** | **2026-03-31** |
+
+**YouTube 脚本特点（v2.0）**：
+- ✅ **完整自动化流程**：yt-dlp 字幕抓取 → 智能断句 → 时间轴优化 → 智能挖空 → 19国翻译 → 入库
+- ✅ **智能挖空（v6.2 逻辑）**：语言习得导向，权重系统，索引转换，自动修正
+- ✅ **19 种语言翻译**：原有 3 种（zh, zh_hant, vi）+ 新增 16 种（Group A + Group B）
+- ✅ **Iframe 兼容性**：自动设置 `source_type: "youtube"` 和 `youtube_id`
+- ✅ **翻译顺序**：原有语言 → Group A → Group B（确保稳定性）
+- ✅ **错误处理**：失败标记 `[TODO_RETRY]`，支持后续重试
+- ✅ **Prompt 干扰修复**：自动清理 GLM 返回的 prompt 内容
 
 **注意**：`ingest_bulk.py` (v6.2) 和 `reprocess_ietts_blanks.py` (v6.2) 均为独立实现，逻辑相同但未共享代码。
 
@@ -468,6 +483,49 @@ echo "https://engnovate.com/..." > /tmp/urls.txt
 python3 scripts/ingest_bulk.py
 ```
 
+### 场景 3.5：YouTube 视频自动入库
+
+```bash
+# 恢复上下文
+cat claude-code-guide.md scripts/ingest_youtube_ytdlp.py
+
+# 单个视频入库（默认分类：Science and Facts，难度：B2）
+python3 scripts/ingest_youtube_ytdlp.py "https://youtu.be/xxxxx"
+
+# 指定分类和难度
+python3 scripts/ingest_youtube_ytdlp.py "https://youtu.be/xxxxx" --category "Science and Facts" --difficulty "B2"
+
+# 查看帮助
+python3 scripts/ingest_youtube_ytdlp.py --help
+```
+
+**预期时间**：每个视频约 35-40 分钟（取决于句子数量，约 1 分钟/句）
+
+**自动化流程**：
+1. yt-dlp 获取字幕（绕过 PO Token）
+2. 智能断句（82 → 38 句）
+3. 时间轴优化（核心缩进 -0.5s + 强制真空带 0.2s）
+4. 智能挖空（v6.2 逻辑，W10=13, W9=2, W6=2）
+5. 19 国语言翻译（原有 3 种 + Group A 8 种 + Group B 8 种）
+6. 入库 Supabase（source_type: "youtube", youtube_id: "xxxxx"）
+
+**数据格式**：
+```json
+{
+  "id": 1,
+  "text": "One day around 850 CE, a goatherd named Kaldi observed that...",
+  "startTime": 6.79,
+  "endTime": 16.43,
+  "blanks": [{"word": "goatherd", "index": 6, "weight": 10}],
+  "translation": {
+    "zh": "公元850年左右的一天，一个名叫卡迪的牧羊人...",
+    "zh_hant": "公元850年左右的一天，一個名叫卡迪的牧羊人...",
+    "vi": "Vào khoảng năm 850 SCN...",
+    // ... 共 19 种语言
+  }
+}
+```
+
 ### 场景 4：点词翻译与生词本
 
 ```bash
@@ -500,7 +558,7 @@ git diff HEAD~1
 
 | 文档名称 | 版本 | 更新日期 | 用途 |
 |---------|------|----------|------|
-| `claude-code-guide.md` | V29.6.2 | 2026-03-29 | 项目主指南，脚本索引 |
+| `claude-code-guide.md` | V29.7.9 | 2026-03-31 | 项目主指南，脚本索引，YouTube 自动化 |
 | `docs/knowledge_base.md` | V29.6.1 | 2026-03-27 | Bug 记录与解决方案 |
 | `docs/automation_standards.md` | V19.9 | 2026-03-18 | 素材上传规范 |
 | `docs/dictionary_and_translation_implementation.md` | V20.1 | 2026-03-21 | 点词翻译与生词本 |
