@@ -50,7 +50,7 @@ export async function generateMetadata(
     // 通过 slug 查询素材
     const { data: material, error } = await supabase
       .from('materials')
-      .select('title, slug, category')
+      .select('title, slug, category, thumbnail_path, og_image')
       .eq('slug', params.slug)
       .single()
 
@@ -70,6 +70,9 @@ export async function generateMetadata(
     const title = `${material.title} - ShadowHub Dictation & Shadowing Material`
     const description = `Practice English with "${material.title}". Improve your pronunciation and speaking skills with our interactive dictation and shadowing materials.`
 
+    // 获取缩略图 URL（优先使用 og_image，否则使用 thumbnail_path）
+    const imageUrl = material.og_image || material.thumbnail_path || `${baseUrl}/og-image.png`
+
     return {
       title,
       description,
@@ -82,11 +85,20 @@ export async function generateMetadata(
         url: canonicalUrl,
         siteName: 'ShadowHub',
         type: 'website',
+        images: [
+          {
+            url: imageUrl,
+            width: 1200,
+            height: 630,
+            alt: material.title,
+          },
+        ],
       },
       twitter: {
         card: 'summary_large_image',
         title,
         description,
+        images: [imageUrl],
       },
     }
   } catch (error) {
