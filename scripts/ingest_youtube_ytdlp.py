@@ -780,15 +780,17 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'extract_flat': True,  # 只提取元数据，不下载视频
+            'skip_download': True,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'ios', 'web'],
+                    'player_client': ['web'],
                 }
             },
             'nocheckcertificate': True,
-            # Cookies 配置已禁用（导致部分视频无法访问）
-            # 'cookiesfrombrowser': ('chrome',),
+            # 🔴 启用 Cookies 配置
+            'cookiesfrombrowser': ('chrome',),
+            # 🔴 启用远程组件（解决 JS Challenge）
+            'remote_components': ['ejs:github'],
         }
 
         log(f"   📡 正在获取视频信息...")
@@ -1554,15 +1556,17 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,
-            'extract_flat': True,  # 只提取元数据，不下载视频
+            'skip_download': True,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android', 'ios', 'web'],
+                    'player_client': ['web'],
                 }
             },
             'nocheckcertificate': True,
-            # Cookies 配置已禁用（导致部分视频无法访问）
-            # 'cookiesfrombrowser': ('chrome',),
+            # 🔴 启用 Cookies 配置
+            'cookiesfrombrowser': ('chrome',),
+            # 🔴 启用远程组件（解决 JS Challenge）
+            'remote_components': ['ejs:github'],
         }
 
         log(f"   📡 正在获取视频信息...")
