@@ -678,13 +678,20 @@ def translate_group(transcript: List[Dict], target_langs: List[str]) -> Tuple[in
     return success_count, failed_count
 
 
-def generate_translations_for_transcript(transcript: List[Dict]) -> Tuple[int, int, List[str]]:
+def generate_translations_for_transcript(transcript: List[Dict], basic_only: bool = False) -> Tuple[int, int, List[str]]:
     """为整个 transcript 生成翻译（19种语言：原有3种 + 新增16种）
+
+    Args:
+        transcript: 字幕数据
+        basic_only: 是否只翻译基础语言（zh, zh_hant, vi），跳过 16 国语言
 
     Returns:
         (total_success, total_failed, failed_groups)
     """
-    log(f"   🔧 正在生成翻译（19国语言）...")
+    if basic_only:
+        log(f"   🔧 正在生成翻译（基础模式：仅 3 种语言）...")
+    else:
+        log(f"   🔧 正在生成翻译（19国语言）...")
 
     total_success = 0
     total_failed = 0
@@ -700,6 +707,12 @@ def generate_translations_for_transcript(transcript: List[Dict]) -> Tuple[int, i
 
     if failed_existing > 0:
         failed_groups.append('EXISTING')
+
+    # 🔴 如果启用 basic_only，跳过 16 国语言
+    if basic_only:
+        log(f"   ⏭️  基础模式：跳过 16 国语言翻译（交给后台处理）")
+        log(f"   ✅ 翻译完成（仅基础语言）")
+        return total_success, total_failed, []
 
     # 处理 Group A
     log(f"   🔄 开始翻译 Group A (8 种语言)...")
@@ -924,15 +937,15 @@ def upsert_material(client: Client, metadata: Dict, transcript: List[Dict],
 def print_help():
     """打印帮助信息"""
     print("=" * 70)
-    print("🎯 YouTube 素材自动录入工具 - v2.0 完整版")
+    print("🎯 YouTube 素材自动录入工具 - v2.1 基础模式版")
     print("=" * 70)
     print("")
     print("功能：")
     print("  1. yt-dlp 获取字幕（绕过 PO Token）")
     print("  2. 智能断句 + 文本规范化 + 时间轴优化")
     print("  3. 智能挖空（v6.2 逻辑）")
-    print("  4. 16国语言翻译（Group A + Group B）")
-    print("  5. 入库 Supabase（前端开箱即用）")
+    print("  4. 翻译（基础模式：仅 zh, zh_hant, vi）")
+    print("  5. 入库 Supabase（后台自动补齐 16 国语言）")
     print("")
     print("使用方法：")
     print("  python3 scripts/ingest_youtube_ytdlp.py <YouTube_URL> [选项]")
@@ -940,6 +953,8 @@ def print_help():
     print("选项：")
     print("  --category <分类>    素材分类（默认: Science and Facts）")
     print("  --difficulty <难度>  难度等级（默认: B2）")
+    print("  --basic-only         仅翻译 3 种基础语言（默认开启，避免与后台抢 API）")
+    print("  --full-translation   翻译全部 19 种语言（慎用，可能导致 429 错误）")
     print("  --help              显示此帮助信息")
     print("")
     print("=" * 70)
@@ -1438,13 +1453,20 @@ def translate_group(transcript: List[Dict], target_langs: List[str]) -> Tuple[in
     return success_count, failed_count
 
 
-def generate_translations_for_transcript(transcript: List[Dict]) -> Tuple[int, int, List[str]]:
+def generate_translations_for_transcript(transcript: List[Dict], basic_only: bool = False) -> Tuple[int, int, List[str]]:
     """为整个 transcript 生成翻译（19种语言：原有3种 + 新增16种）
+
+    Args:
+        transcript: 字幕数据
+        basic_only: 是否只翻译基础语言（zh, zh_hant, vi），跳过 16 国语言
 
     Returns:
         (total_success, total_failed, failed_groups)
     """
-    log(f"   🔧 正在生成翻译（19国语言）...")
+    if basic_only:
+        log(f"   🔧 正在生成翻译（基础模式：仅 3 种语言）...")
+    else:
+        log(f"   🔧 正在生成翻译（19国语言）...")
 
     total_success = 0
     total_failed = 0
@@ -1460,6 +1482,12 @@ def generate_translations_for_transcript(transcript: List[Dict]) -> Tuple[int, i
 
     if failed_existing > 0:
         failed_groups.append('EXISTING')
+
+    # 🔴 如果启用 basic_only，跳过 16 国语言
+    if basic_only:
+        log(f"   ⏭️  基础模式：跳过 16 国语言翻译（交给后台处理）")
+        log(f"   ✅ 翻译完成（仅基础语言）")
+        return total_success, total_failed, []
 
     # 处理 Group A
     log(f"   🔄 开始翻译 Group A (8 种语言)...")
@@ -1682,15 +1710,15 @@ def upsert_material(client: Client, metadata: Dict, transcript: List[Dict],
 def print_help():
     """打印帮助信息"""
     print("=" * 70)
-    print("🎯 YouTube 素材自动录入工具 - v2.0 完整版")
+    print("🎯 YouTube 素材自动录入工具 - v2.1 基础模式版")
     print("=" * 70)
     print("")
     print("功能：")
     print("  1. yt-dlp 获取字幕（绕过 PO Token）")
     print("  2. 智能断句 + 文本规范化 + 时间轴优化")
     print("  3. 智能挖空（v6.2 逻辑）")
-    print("  4. 16国语言翻译（Group A + Group B）")
-    print("  5. 入库 Supabase（前端开箱即用）")
+    print("  4. 翻译（基础模式：仅 zh, zh_hant, vi）")
+    print("  5. 入库 Supabase（后台自动补齐 16 国语言）")
     print("")
     print("使用方法：")
     print("  python3 scripts/ingest_youtube_ytdlp.py <YouTube_URL> [选项]")
@@ -1698,6 +1726,8 @@ def print_help():
     print("选项：")
     print("  --category <分类>    素材分类（默认: Science and Facts）")
     print("  --difficulty <难度>  难度等级（默认: B2）")
+    print("  --basic-only         仅翻译 3 种基础语言（默认开启，避免与后台抢 API）")
+    print("  --full-translation   翻译全部 19 种语言（慎用，可能导致 429 错误）")
     print("  --help              显示此帮助信息")
     print("")
     print("=" * 70)
@@ -1714,6 +1744,7 @@ def main():
     # 解析选项
     category = DEFAULT_CATEGORY
     difficulty = DEFAULT_DIFFICULTY
+    basic_only = True  # 🔴 默认只翻译 3 种基础语言
 
     i = 2
     while i < len(sys.argv):
@@ -1723,15 +1754,25 @@ def main():
         elif sys.argv[i] == '--difficulty' and i + 1 < len(sys.argv):
             difficulty = sys.argv[i + 1]
             i += 2
+        elif sys.argv[i] == '--basic-only':
+            basic_only = True
+            i += 1
+        elif sys.argv[i] == '--full-translation':
+            basic_only = False
+            i += 1
         else:
             i += 1
 
     print("=" * 70)
-    print("🎯 YouTube 素材自动录入工具 - v2.0 完整版")
+    print("🎯 YouTube 素材自动录入工具 - v2.1 基础模式版")
     print("=" * 70)
     print(f"🔗 URL: {youtube_url}")
     print(f"📚 分类: {category}")
     print(f"📊 难度: {difficulty}")
+    if basic_only:
+        print(f"🌍 翻译模式: 基础模式（仅 zh, zh_hant, vi）")
+    else:
+        print(f"🌍 翻译模式: 完整模式（19 种语言）⚠️")
     print("=" * 70)
 
     try:
@@ -1761,8 +1802,8 @@ def main():
         # 3. 智能挖空（v6.2 逻辑）
         blank_count, weight_stats = generate_blanks_for_transcript(transcript)
 
-        # 4. 16国语言翻译（Group A + Group B）
-        translate_success, translate_failed, failed_groups = generate_translations_for_transcript(transcript)
+        # 4. 翻译（根据模式选择）
+        translate_success, translate_failed, failed_groups = generate_translations_for_transcript(transcript, basic_only=basic_only)
 
         # 5. 入库
         success = upsert_material(client, metadata, transcript, category, difficulty, failed_groups)
@@ -1776,6 +1817,8 @@ def main():
             print(f"📝 字幕条数: {len(transcript)}")
             print(f"🔍 挖空成功: {blank_count}")
             print(f"🌍 翻译成功: {translate_success}, 失败: {translate_failed}")
+            if basic_only:
+                print(f"⏳ 后台 PID 88691 将自动补齐 16 国语言")
             if failed_groups:
                 print(f"⚠️  待重试组: {', '.join(failed_groups)}")
             print(f"⏱️  时长: {metadata['duration'] // 60 if metadata.get('duration') else '?'}分{metadata['duration'] % 60 if metadata.get('duration') else '?'}秒")
@@ -1808,6 +1851,7 @@ def main():
     # 解析选项
     category = DEFAULT_CATEGORY
     difficulty = DEFAULT_DIFFICULTY
+    basic_only = True  # 🔴 默认只翻译 3 种基础语言
 
     i = 2
     while i < len(sys.argv):
@@ -1817,15 +1861,25 @@ def main():
         elif sys.argv[i] == '--difficulty' and i + 1 < len(sys.argv):
             difficulty = sys.argv[i + 1]
             i += 2
+        elif sys.argv[i] == '--basic-only':
+            basic_only = True
+            i += 1
+        elif sys.argv[i] == '--full-translation':
+            basic_only = False
+            i += 1
         else:
             i += 1
 
     print("=" * 70)
-    print("🎯 YouTube 素材自动录入工具 - v2.0 完整版")
+    print("🎯 YouTube 素材自动录入工具 - v2.1 基础模式版")
     print("=" * 70)
     print(f"🔗 URL: {youtube_url}")
     print(f"📚 分类: {category}")
     print(f"📊 难度: {difficulty}")
+    if basic_only:
+        print(f"🌍 翻译模式: 基础模式（仅 zh, zh_hant, vi）")
+    else:
+        print(f"🌍 翻译模式: 完整模式（19 种语言）⚠️")
     print("=" * 70)
 
     try:
@@ -1855,8 +1909,8 @@ def main():
         # 3. 智能挖空（v6.2 逻辑）
         blank_count, weight_stats = generate_blanks_for_transcript(transcript)
 
-        # 4. 16国语言翻译（Group A + Group B）
-        translate_success, translate_failed, failed_groups = generate_translations_for_transcript(transcript)
+        # 4. 翻译（根据模式选择）
+        translate_success, translate_failed, failed_groups = generate_translations_for_transcript(transcript, basic_only=basic_only)
 
         # 5. 入库
         success = upsert_material(client, metadata, transcript, category, difficulty, failed_groups)
@@ -1870,6 +1924,8 @@ def main():
             print(f"📝 字幕条数: {len(transcript)}")
             print(f"🔍 挖空成功: {blank_count}")
             print(f"🌍 翻译成功: {translate_success}, 失败: {translate_failed}")
+            if basic_only:
+                print(f"⏳ 后台 PID 88691 将自动补齐 16 国语言")
             if failed_groups:
                 print(f"⚠️  待重试组: {', '.join(failed_groups)}")
             print(f"⏱️  时长: {metadata['duration'] // 60 if metadata.get('duration') else '?'}分{metadata['duration'] % 60 if metadata.get('duration') else '?'}秒")
