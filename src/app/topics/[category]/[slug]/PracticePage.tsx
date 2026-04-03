@@ -327,6 +327,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
   const currentSentenceIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
   const currentSentence = sampleSentences[currentSentenceIndex] || sampleSentences[0]
+  const nextSentence = sampleSentences[currentSentenceIndex + 1] || null  // 🔴 获取下一句（用于时间戳重叠保护）
 
   const handlePrevious = () => {
     const currentIndex = mode === 'dictation' ? dictationIndex : shadowingIndex
@@ -671,6 +672,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
                       onTimeUpdate={handleTimeUpdate}
                       onLoadingChange={() => {}}
                       practiceMode={hasStarted && autoPlayTrigger > 0}
+                      nextSentence={nextSentence}  // 🔴 传递下一句用于时间戳重叠保护
                     />
                   )
                 }

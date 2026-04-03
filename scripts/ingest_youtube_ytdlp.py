@@ -84,6 +84,15 @@ def extract_video_id(url: str) -> str:
             return match.group(1)
     raise ValueError(f"无法从 URL 提取视频 ID: {url}")
 
+def title_to_slug(title: str) -> str:
+    """将标题转换为 slug"""
+    slug = title.lower()
+    slug = re.sub(r'[^a-z0-9]+', '-', slug)
+    slug = slug.strip('-')
+    if len(slug) > 100:
+        slug = slug[:100]
+    return slug
+
 
 def clean_text(text: str) -> str:
     import html
@@ -200,18 +209,24 @@ def merge_segments_improved(raw_segments: List[Dict]) -> List[Dict]:
         else:
             end_time = all_words[-1]['end']
 
-        # 🔴 末尾滞后容差：检查下一个单词是否属于当前句
+        # 🔴 关键修复：检查句子边界
+        # 如果最后一个单词的 end_time 与下一个单词的开始时间重叠
+        # 说明时间戳包含了下一句的内容，需要强制切分
         if end_idx + 1 < len(all_words):
-            next_word_time = all_words[end_idx + 1]['start']
-            gap = next_word_time - end_time
+            next_word = all_words[end_idx + 1]
+            next_start = next_word['start']
 
-            # 如果下一个单词在 300ms 内，且首字母小写，可能属于当前句
-            if gap < 0.3:
-                next_word = all_words[end_idx + 1]['word']
-                if next_word and next_word[0].islower() and next_word not in ['i', 'i\'m', 'i\'ve']:
-                    # 合并到当前句
-                    end_time = all_words[end_idx + 1]['end']
-                    word_cursor += 1
+            # 如果下一个单词的开始时间早于当前句的结束时间
+            # 说明时间戳重叠，需要使用下一个单词的开始时间作为结束时间
+            if next_start < end_time:
+                # 检查下一个单词是否是下一句的开始（首字母大写）
+                if next_word['word'] and next_word['word'][0].isupper():
+                    # 强制切分：使用下一个单词的开始时间
+                    end_time = next_start
+                    log(f"      ⚠️ 检测到句子边界重叠，强制切分: {end_time:.2f}s")
+
+        # 🔴 已移除"末尾滞后容差"逻辑（导致 UI 文本正确但音频念多的 Bug）
+        # 原逻辑会扩展 end_time 但不扩展 text，导致时间戳不匹配
 
         result.append({
             'text': sentence.strip(),
@@ -748,12 +763,19 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
         result['video_id'] = video_id
         result['thumbnail'] = f"https://i.ytimg.com/vi/{video_id}/maxresdefault.jpg"
 
-        # 配置 yt-dlp
+        # 配置 yt-dlp（绕过 YouTube bot 检测）
         ydl_opts = {
-            'skip_download': True,
             'quiet': True,
             'no_warnings': True,
-            'extract_flat': False,
+            'extract_flat': True,  # 只提取元数据，不下载视频
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios', 'web'],
+                }
+            },
+            'nocheckcertificate': True,
+            # Cookies 配置已禁用（导致部分视频无法访问）
+            # 'cookiesfrombrowser': ('chrome',),
         }
 
         log(f"   📡 正在获取视频信息...")
@@ -1500,12 +1522,19 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
         result['video_id'] = video_id
         result['thumbnail'] = f"https://i.ytimg.com/vi/{video_id}/maxresdefault.jpg"
 
-        # 配置 yt-dlp
+        # 配置 yt-dlp（绕过 YouTube bot 检测）
         ydl_opts = {
-            'skip_download': True,
             'quiet': True,
             'no_warnings': True,
-            'extract_flat': False,
+            'extract_flat': True,  # 只提取元数据，不下载视频
+            'extractor_args': {
+                'youtube': {
+                    'player_client': ['android', 'ios', 'web'],
+                }
+            },
+            'nocheckcertificate': True,
+            # Cookies 配置已禁用（导致部分视频无法访问）
+            # 'cookiesfrombrowser': ('chrome',),
         }
 
         log(f"   📡 正在获取视频信息...")

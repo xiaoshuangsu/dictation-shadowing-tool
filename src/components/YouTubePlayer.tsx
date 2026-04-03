@@ -20,6 +20,7 @@ interface YouTubePlayerProps {
   onReady?: () => void
   endBuffer?: number
   practiceMode?: boolean  // 🔴 新增：是否启用练习模式（句子循环）
+  nextSentence?: Sentence | null  // 🔴 新增：下一句（用于时间戳重叠保护）
 }
 
 // 全局声明 YouTube API
@@ -40,7 +41,8 @@ export default function YouTubePlayer({
   onLoadingChange,
   onReady,
   endBuffer = -0.2,
-  practiceMode = false  // 🔴 默认为自由播放模式
+  practiceMode = false,  // 🔴 默认为自由播放模式
+  nextSentence = null  // 🔴 默认无下一句
 }: YouTubePlayerProps) {
   const playerRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -49,6 +51,33 @@ export default function YouTubePlayer({
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isPlayingRef = useRef(false)
   const isPracticeModeRef = useRef(false)  // 🔴 标记是否在练习模式
+
+  // 🔴 时间戳重叠保护：计算安全的结束时间
+  const getSafeEndTime = useCallback((sentence: Sentence): number => {
+    const endTime = typeof sentence.endTime === 'string'
+      ? parseFloat(sentence.endTime)
+      : sentence.endTime
+
+    // 如果有下一句，检查是否重叠
+    if (nextSentence) {
+      const nextStartTime = typeof nextSentence.startTime === 'string'
+        ? parseFloat(nextSentence.startTime)
+        : nextSentence.startTime
+
+      // 如果当前句结束时间超过下一句开始时间，强制修正
+      if (endTime > nextStartTime) {
+        console.warn('[YouTubePlayer] 检测到时间戳重叠，强制修正:', {
+          originalEnd: endTime,
+          nextStart: nextStartTime,
+          overlap: endTime - nextStartTime
+        })
+        // 保留 100ms 缓冲
+        return Math.max(nextStartTime - 0.1, endTime - (endTime - nextStartTime))
+      }
+    }
+
+    return endTime
+  }, [nextSentence])
 
   // 加载 YouTube Iframe API
   useEffect(() => {
@@ -144,11 +173,9 @@ export default function YouTubePlayer({
 
         // 🔴 只在练习模式下检查句子结束时间
         if (isPracticeModeRef.current) {
-          const endTime = typeof currentSentence.endTime === 'string'
-            ? parseFloat(currentSentence.endTime)
-            : currentSentence.endTime
+          const safeEndTime = getSafeEndTime(currentSentence)
 
-          if (currentTime >= endTime - endBuffer) {
+          if (currentTime >= safeEndTime + endBuffer) {
             // 暂停并重置到开始时间
             playerRef.current.pauseVideo()
             const startTime = typeof currentSentence.startTime === 'string'
@@ -163,7 +190,7 @@ export default function YouTubePlayer({
         }
       }
     }, 100) // 每 100ms 更新一次
-  }, [currentSentence, endBuffer, onTimeUpdate, onPlayEnd])
+  }, [currentSentence, endBuffer, onTimeUpdate, onPlayEnd, getSafeEndTime])
 
   const stopTimeUpdate = useCallback(() => {
     if (timeUpdateIntervalRef.current) {
@@ -183,13 +210,12 @@ export default function YouTubePlayer({
       ? parseFloat(currentSentence.startTime)
       : currentSentence.startTime
 
-    const endTime = typeof currentSentence.endTime === 'string'
-      ? parseFloat(currentSentence.endTime)
-      : currentSentence.endTime
+    const safeEndTime = getSafeEndTime(currentSentence)
 
     console.log('[YouTubePlayer] 播放句子:', {
       startTime,
-      endTime,
+      endTime: safeEndTime,
+      originalEndTime: currentSentence.endTime,
       playbackRate
     })
 
@@ -213,7 +239,7 @@ export default function YouTubePlayer({
 
     // 启动时间更新
     startTimeUpdate()
-  }, [currentSentence, playbackRate, startTimeUpdate])
+  }, [currentSentence, playbackRate, startTimeUpdate, getSafeEndTime])
 
   // 自动播放触发
   useEffect(() => {
