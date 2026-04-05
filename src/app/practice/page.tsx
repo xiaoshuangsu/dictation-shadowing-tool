@@ -239,7 +239,10 @@ function HomeContent() {
 
         // 优先使用数据库中的 transcript 数据
         if (typedMaterial.transcript && Array.isArray(typedMaterial.transcript) && typedMaterial.transcript.length > 0) {
-          setSampleSentences(typedMaterial.transcript)
+          // 🔴 关键修复：过滤掉没有 text 字段的无效句子
+          const validSentences = typedMaterial.transcript.filter((s: any) => s.text && s.text.trim().length > 0)
+          console.log(`有效句子数: ${validSentences.length} / ${typedMaterial.transcript.length}`)
+          setSampleSentences(validSentences)
         } else {
           // 如果没有 transcript 数据，根据音频时长自动分割成固定长度的句子（每句约 10-15 秒）
           const duration = typedMaterial.duration || 60
