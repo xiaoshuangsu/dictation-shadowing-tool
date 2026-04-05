@@ -20,11 +20,11 @@ import { Volume2, X } from 'lucide-react'
 export interface WordDefinition {
   word: string
   phonetic: string
-  definitions: {
-    'zh-CN': string
-    'zh-Hant': string
-    'vi': string
+  translations: {
     'en': string
+    'zh': string
+    'zh_hant': string
+    'vi': string
     'ar': string
     'de': string
     'es': string
@@ -43,6 +43,7 @@ export interface WordDefinition {
     'hi': string
   }
   example?: string
+  audio_r2_url?: string
   audioUrls?: {
     us: string | null
     uk: string | null
@@ -63,28 +64,28 @@ interface WordTooltipProps {
 }
 
 // 语言代码映射
-// 注意：新增语言暂时映射到英语释义，待后端 API 支持后更新
-const LANGUAGE_MAP: Record<string, keyof WordDefinition['definitions']> = {
-  'zh': 'zh-CN',
-  'zh_hant': 'zh-Hant',
-  'vi': 'vi',
-  'ar': 'en',      // 阿拉伯语 → 暂时显示英语释义
-  'de': 'en',      // 德语 → 暂时显示英语释义
-  'es': 'en',      // 西班牙语 → 暂时显示英语释义
-  'ja': 'en',      // 日语 → 暂时显示英语释义
-  'ms': 'en',      // 马来语 → 暂时显示英语释义
-  'ru': 'en',      // 俄语 → 暂时显示英语释义
-  'tr': 'en',      // 土耳其语 → 暂时显示英语释义
-  'el': 'en',      // 希腊语 → 暂时显示英语释义
-  'id': 'en',      // 印尼语 → 暂时显示英语释义
-  'ko': 'en',      // 韩语 → 暂时显示英语释义
-  'pt': 'en',      // 葡萄牙语 → 暂时显示英语释义
-  'th': 'en',      // 泰语 → 暂时显示英语释义
-  'uk': 'en',      // 乌克兰语 → 暂时显示英语释义
-  'bn': 'en',      // 孟加拉语 → 暂时显示英语释义
-  'mn': 'en',      // 蒙古语 → 暂时显示英语释义
-  'hi': 'en',      // 印地语 → 暂时显示英语释义
-  'hide': 'zh-CN'  // 默认简体中文
+// V3.0 更新：直接映射到 translations 字段的语言键名
+const LANGUAGE_MAP: Record<string, keyof WordDefinition['translations']> = {
+  'zh': 'zh',          // 简体中文 → zh
+  'zh_hant': 'zh_hant', // 繁体中文 → zh_hant
+  'vi': 'vi',          // 越南语 → vi
+  'ar': 'ar',          // 阿拉伯语 → ar
+  'de': 'de',          // 德语 → de
+  'es': 'es',          // 西班牙语 → es
+  'ja': 'ja',          // 日语 → ja
+  'ms': 'ms',          // 马来语 → ms
+  'ru': 'ru',          // 俄语 → ru
+  'tr': 'tr',          // 土耳其语 → tr
+  'el': 'el',          // 希腊语 → el
+  'id': 'id',          // 印尼语 → id
+  'ko': 'ko',          // 韩语 → ko
+  'pt': 'pt',          // 葡萄牙语 → pt
+  'th': 'th',          // 泰语 → th
+  'uk': 'uk',          // 乌克兰语 → uk
+  'bn': 'bn',          // 孟加拉语 → bn
+  'mn': 'mn',          // 蒙古语 → mn
+  'hi': 'hi',          // 印地语 → hi
+  'hide': 'zh'         // 默认简体中文
 }
 
 export default function WordTooltip({
@@ -249,13 +250,13 @@ export default function WordTooltip({
   // 获取当前语言释义
   const getCurrentDefinition = () => {
     if (!definition) return ''
-    return definition.definitions[currentLanguage] || definition.definitions['zh-CN'] || ''
+    return definition.translations[currentLanguage] || definition.translations['zh'] || ''
   }
 
   // 获取英文释义（作为对照）
   const getEnglishDefinition = () => {
     if (!definition) return ''
-    return definition.definitions['en'] || ''
+    return definition.translations['en'] || ''
   }
 
   // 保存生词到数据库
@@ -288,7 +289,7 @@ export default function WordTooltip({
           userId: user.id,
           word: definition.word,
           phonetic: definition.phonetic,
-          definition: JSON.stringify(definition.definitions),  // 存储多语言 JSON
+          definition: JSON.stringify(definition.translations),  // 存储多语言 JSON（V3.0: translations）
           contextSentence: sentence,
           materialId,
           materialTitle,

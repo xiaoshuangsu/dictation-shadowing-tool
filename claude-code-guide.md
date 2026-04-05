@@ -373,20 +373,18 @@ cat CONTEXT_RESTORE.md
 
 ---
 
-**版本**：V29.7.12
+**版本**：V30.0.0
 **更新日期**：2026-04-05
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
 **GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
 
 **最新更新**：
-- ✅ **前端崩溃修复**（v29.7.9）：过滤无效句子，添加安全检查和错误边界
-  - 修复了翻译缺失导致的页面崩溃问题
-  - 添加 DebugErrorBoundary 组件捕获客户端错误
-  - 所有 sentence.text 的 split() 调用添加空字符串后备
-  - 数据库清理：删除 Cam 10 素材中的无效句子
-- ✅ **词典预生成脚本 V3.0**：模块化架构（6 个模块），Oxford 3000 + 19国翻译 + Edge TTS + R2 存储
-- ✅ **TranslationEngine 翻译引擎**：19 国语言批量翻译，指数退避重试（2s→4s→8s）
+- ✅ **词典系统 V3.0 全面升级**：多语言 JSONB 架构，R2 音频优化，全局语言同步
+  - 后端 API 重构：支持 20 种语言的 JSONB 动态查询及 dataSource: v3 标识
+  - 前端交互：WordTooltip 与全局语言偏好实时同步，支持 19 国语言切换
+  - 生词本增强：多语种释义显示，素材原句/时间戳精准关联及回跳
+  - 存储优化：全面启用 Cloudflare R2 音频链路，优化发音加载速度
 - ✅ **OxfordScraper 抓取模块**：支持空行容错，已修复 Accept-Encoding 问题
 - ✅ **数据库迁移完成**：7142 条记录迁移到 JSONB 结构，translations 字段支持 19 种语言
 - ✅ **测试验证**：20 个单词联调测试，100% 成功率

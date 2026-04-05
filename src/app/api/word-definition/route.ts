@@ -35,16 +35,42 @@ if (!GLM_API_KEY) {
   console.warn('⚠️ GLM_API_KEY 未设置，单词翻译功能将不可用')
 }
 
+// V3.0 数据结构：支持 20 种语言（en + 19 国语言）
 interface WordDefinition {
   word: string
   phonetic: string
-  definitions: {
-    'zh-CN': string
-    'zh-Hant': string
-    'vi': string
+  translations: {
     'en': string
+    'zh': string
+    'zh_hant': string
+    'vi': string
+    'ar': string
+    'de': string
+    'es': string
+    'ja': string
+    'ms': string
+    'ru': string
+    'tr': string
+    'el': string
+    'id': string
+    'ko': string
+    'pt': string
+    'th': string
+    'uk': string
+    'bn': string
+    'mn': string
+    'hi': string
   }
   example?: string
+  audio_r2_url?: string
+}
+
+// 向后兼容：旧格式数据结构（4 种语言）
+interface LegacyDefinition {
+  'zh-CN': string
+  'zh-Hant': string
+  'vi': string
+  'en': string
 }
 
 /**
@@ -97,10 +123,49 @@ export async function POST(request: Request) {
         .update({ hit_count: (cachedData.hit_count || 0) + 1 })
         .eq('word', normalizedWord)
 
-      // 解析多语言释义（新格式：definitions）
+      // ========================================
+      // V3.0 优先：返回 translations（20 种语言）
+      // ========================================
+      let translations = cachedData.translations
+
+      // 如果有 translations 字段，直接使用
+      if (translations && typeof translations === 'object') {
+        // 确保 translations 是对象（不是 JSON 字符串）
+        if (typeof translations === 'string') {
+          try {
+            translations = JSON.parse(translations)
+          } catch {
+            translations = null
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          definition: {
+            word: cachedData.word,
+            phonetic: cachedData.phonetic || '',
+            translations: translations || {},
+            example: cachedData.example || undefined
+          },
+          // 🔴 V3.0 音频优先：audio_r2_url
+          audio_r2_url: cachedData.audio_r2_url || null,
+          // 保留旧音频字段作为 fallback
+          audioUrls: {
+            us: cachedData.audio_url_us || null,
+            uk: cachedData.audio_url_uk || null
+          },
+          fromCache: true,
+          dataSource: 'v3' // 标记数据来源
+        })
+      }
+
+      // ========================================
+      // 向后兼容：使用旧的 definitions 字段
+      // ========================================
+      console.log('[API] ⚠️  Using legacy definitions format for:', normalizedWord)
+
       let definitions = cachedData.definitions
 
-      // 如果是新格式，直接使用
       // 如果是旧格式（definition_json），转换它
       if (!definitions && cachedData.definition_json) {
         const oldDef = typeof cachedData.definition_json === 'string'
@@ -124,25 +189,30 @@ export async function POST(request: Request) {
         }
       }
 
+      // 转换旧格式为新格式（4 种语言）
+      const legacyTranslations: Record<string, string> = {
+        'en': definitions?.['en'] || definitions?.en || '',
+        'zh': definitions?.['zh-CN'] || definitions?.['zh-CN'] || '',
+        'zh_hant': definitions?.['zh-Hant'] || definitions?.['zh-Hant'] || '',
+        'vi': definitions?.vi || definitions?.vi || ''
+      }
+
       return NextResponse.json({
         success: true,
         definition: {
           word: cachedData.word,
           phonetic: cachedData.phonetic || '',
-          definitions: definitions || {
-            'zh-CN': '暂无释义',
-            'zh-Hant': '暫無釋義',
-            'vi': 'Không có định nghĩa',
-            'en': 'No definition'
-          },
+          translations: legacyTranslations,
           example: cachedData.example || undefined
         },
-        // 🔴 添加音频 URL
+        // 旧格式没有 audio_r2_url
+        audio_r2_url: null,
         audioUrls: {
           us: cachedData.audio_url_us || null,
           uk: cachedData.audio_url_uk || null
         },
-        fromCache: true
+        fromCache: true,
+        dataSource: 'legacy' // 标记数据来源
       })
     }
 
@@ -273,8 +343,16 @@ export async function POST(request: Request) {
     }
 
     // ============================================
-    // 第三步：存入缓存（新格式：definitions）
+    // 第三步：存入缓存（同时存 translations 和 definitions）
     // ============================================
+    const translations = {
+      'en': glmDefinition.en || '',
+      'zh': glmDefinition['zh-CN'] || '',
+      'zh_hant': glmDefinition['zh-Hant'] || '',
+      'vi': glmDefinition.vi || ''
+    }
+
+    // 旧格式（向后兼容）
     const definitions = {
       'zh-CN': glmDefinition['zh-CN'],
       'zh-Hant': glmDefinition['zh-Hant'] || '',
@@ -287,7 +365,8 @@ export async function POST(request: Request) {
       .insert({
         word: normalizedWord,
         phonetic: glmDefinition.phonetic || '',
-        definitions: definitions,
+        translations: translations,  // 新字段
+        definitions: definitions,    // 旧字段（向后兼容）
         example: glmDefinition.example || null
       })
 
@@ -303,10 +382,16 @@ export async function POST(request: Request) {
       definition: {
         word: glmDefinition.word,
         phonetic: glmDefinition.phonetic || '',
-        definitions,
+        translations: translations,
         example: glmDefinition.example
       },
-      fromCache: false
+      audio_r2_url: null, // GLM 生成的没有音频
+      audioUrls: {
+        us: null,
+        uk: null
+      },
+      fromCache: false,
+      dataSource: 'glm' // 标记数据来源
     })
 
   } catch (error: any) {

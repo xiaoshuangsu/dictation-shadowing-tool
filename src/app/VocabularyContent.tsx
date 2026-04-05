@@ -42,11 +42,28 @@ interface UserWord {
   }
 }
 
+// V3.0 数据结构：支持 20 种语言
 interface Definition {
-  'zh-CN': string
-  'zh-Hant': string
-  'vi': string
   'en': string
+  'zh': string
+  'zh_hant': string
+  'vi': string
+  'ar': string
+  'de': string
+  'es': string
+  'ja': string
+  'ms': string
+  'ru': string
+  'tr': string
+  'el': string
+  'id': string
+  'ko': string
+  'pt': string
+  'th': string
+  'uk': string
+  'bn': string
+  'mn': string
+  'hi': string
 }
 
 export function VocabularyPageContent() {
@@ -91,13 +108,30 @@ export function VocabularyPageContent() {
   useEffect(() => {
     const updateLanguage = () => {
       const storedLang = getStoredLanguage()
+      // V3.0 更新：支持所有 19 种语言
       const langMap: Record<string, keyof Definition> = {
-        'zh': 'zh-CN',
-        'zh_hant': 'zh-Hant',
+        'zh': 'zh',
+        'zh_hant': 'zh_hant',
         'vi': 'vi',
-        'hide': 'zh-CN'
+        'ar': 'ar',
+        'de': 'de',
+        'es': 'es',
+        'ja': 'ja',
+        'ms': 'ms',
+        'ru': 'ru',
+        'tr': 'tr',
+        'el': 'el',
+        'id': 'id',
+        'ko': 'ko',
+        'pt': 'pt',
+        'th': 'th',
+        'uk': 'uk',
+        'bn': 'bn',
+        'mn': 'mn',
+        'hi': 'hi',
+        'hide': 'zh'
       }
-      setCurrentLanguage(langMap[storedLang] || 'zh-CN')
+      setCurrentLanguage(langMap[storedLang] || 'zh')
     }
 
     updateLanguage()
@@ -282,20 +316,55 @@ export function VocabularyPageContent() {
 
   const parseDefinition = (definitionStr: string): Definition => {
     try {
-      return JSON.parse(definitionStr)
-    } catch {
+      const parsed = JSON.parse(definitionStr)
+
+      // V3.0 适配：检查是否为新格式（translations）
+      if (parsed.en && (parsed.zh || parsed.zh_hant || parsed.vi)) {
+        // 新格式：直接返回 translations
+        return parsed
+      }
+
+      // 向后兼容：旧格式（zh-CN, zh-Hant, vi, en）
+      if (parsed['zh-CN'] || parsed['zh-Hant']) {
+        // 转换为新格式
+        return {
+          'en': parsed['en'] || parsed.en || '',
+          'zh': parsed['zh-CN'] || parsed['zh-CN'] || '',
+          'zh_hant': parsed['zh-Hant'] || parsed['zh-Hant'] || '',
+          'vi': parsed['vi'] || parsed.vi || '',
+          // 其他语言填充空字符串
+          'ar': '', 'de': '', 'es': '', 'ja': '', 'ms': '', 'ru': '', 'tr': '', 'el': '',
+          'id': '', 'ko': '', 'pt': '', 'th': '', 'uk': '', 'bn': '', 'mn': '', 'hi': ''
+        }
+      }
+
+      // 如果不是有效对象，返回默认值
       return {
-        'zh-CN': definitionStr || '暂无释义',
-        'zh-Hant': '',
+        'en': '',
+        'zh': definitionStr || '暂无释义',
+        'zh_hant': '',
         'vi': '',
-        'en': ''
+        'ar': '', 'de': '', 'es': '', 'ja': '', 'ms': '', 'ru': '', 'tr': '', 'el': '',
+        'id': '', 'ko': '', 'pt': '', 'th': '', 'uk': '', 'bn': '', 'mn': '', 'hi': ''
+      }
+    } catch {
+      // 解析失败，返回默认值
+      return {
+        'en': '',
+        'zh': definitionStr || '暂无释义',
+        'zh_hant': '',
+        'vi': '',
+        'ar': '', 'de': '', 'es': '', 'ja': '', 'ms': '', 'ru': '', 'tr': '', 'el': '',
+        'id': '', 'ko': '', 'pt': '', 'th': '', 'uk': '', 'bn': '', 'mn': '', 'hi': ''
       }
     }
   }
 
   const getCurrentDefinition = (definitionStr: string): string => {
     const def = parseDefinition(definitionStr)
-    return def[currentLanguage] || def['zh-CN'] || 'No definition'
+
+    // V3.0 Fallback 机制：当前语言 > 英文 > 中文 > 暂无释义
+    return def[currentLanguage] || def['en'] || def['zh'] || '暂无释义'
   }
 
   const STATUS_CONFIG = {

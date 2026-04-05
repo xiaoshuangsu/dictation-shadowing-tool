@@ -7,11 +7,11 @@
 export interface WordDefinition {
   word: string
   phonetic: string
-  definitions: {
-    'zh-CN': string
-    'zh-Hant': string
-    'vi': string
+  translations: {
     'en': string
+    'zh': string
+    'zh_hant': string
+    'vi': string
     'ar': string
     'de': string
     'es': string
@@ -30,6 +30,7 @@ export interface WordDefinition {
     'hi': string
   }
   example?: string
+  audio_r2_url?: string
   audioUrls?: {
     us: string | null
     uk: string | null
@@ -96,7 +97,8 @@ async function fetchGLMDefinition(word: string): Promise<WordDefinition | null> 
       // 返回定义，包含音频 URL
       return {
         ...data.definition,
-        audioUrls: data.audioUrls || { us: null, uk: null }
+        audio_r2_url: data.audio_r2_url || null,  // V3.0: R2 音频 URL
+        audioUrls: data.audioUrls || { us: null, uk: null }  // 保留旧字段作为 fallback
       }
     }
 

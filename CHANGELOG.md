@@ -1,5 +1,83 @@
 # Changelog
 
+## [30.0.0] - 2026-04-05
+
+### Feat
+- **词典系统 V3.0 全面升级** 🌍
+  - **后端 API 重构**
+    - `word-definition` 路由支持 20 种语言的 JSONB 动态查询
+    - 新增 `dataSource: v3` 标识，区分 V3.0 新格式和 Legacy 格式
+    - 向后兼容旧格式（`zh-CN`, `zh-Hant`），自动转换为新格式（`zh`, `zh_hant`）
+    - 优先返回 `translations` 字段（20 种语言），fallback 到 `definitions`（4 种语言）
+
+  - **存储优化：Cloudflare R2 音频链路**
+    - 优先使用 `audio_r2_url`（R2 高清单词发音）
+    - 保留旧音频字段作为 fallback（`audio_url_us`, `audio_url_uk`）
+    - API 同时返回两种音频格式，确保兼容性
+
+  - **前端交互：全局语言同步**
+    - `WordTooltip.tsx` 订阅全局语言偏好（localStorage: translation-language-preference）
+    - 监听 `storage` 和 `translation-language-change` 事件，实现跨页面实时同步
+    - 修正 `LANGUAGE_MAP` 映射，支持 19 国语言（原有 3 种 + 新增 16 种）
+    - 移除临时映射到 `en` 的逻辑，直接映射到对应语言键名
+
+  - **生词本增强：多语种释义显示**
+    - `VocabularyContent.tsx` 适配 V3.0 数据结构（20 种语言）
+    - 更新 `Definition` 接口，支持 `translations` 对象
+    - 更新 `langMap`，包含所有 19 种用户可选语言
+    - 重写 `parseDefinition()` 函数，支持新旧格式自动转换
+    - 新增 Fallback 机制：当前语言 > 英文 > 中文 > "暂无释义"
+
+  - **双轨制例句：素材原句 + 词典例句**
+    - 生词本保存素材原句（`context_sentence`）用于回跳练习
+    - 词典自带例句（`example`）作为参考展示
+    - 精准关联：material_id + audio_timestamp 确保秒级定位
+
+  - **类型定义更新**
+    - `src/lib/utils/wordTranslation.ts` - `WordDefinition` 接口更新
+    - `src/components/WordTooltip.tsx` - `WordDefinition` 接口更新
+    - 统一使用 `translations` 字段，包含 20 种语言
+
+### Tech Details
+- **语言列表（20 种）**：
+  - 原有（3 种）：`en`, `zh`, `zh_hant`, `vi`
+  - 新增（16 种）：`ar`, `de`, `es`, `ja`, `ms`, `ru`, `tr`, `el`, `id`, `ko`, `pt`, `th`, `uk`, `bn`, `mn`, `hi`
+
+- **数据结构对比**：
+  ```json
+  // 旧格式（Legacy）
+  {
+    "definitions": {
+      "zh-CN": "相加",
+      "zh-Hant": "相加",
+      "vi": "cộng",
+      "en": "to add"
+    }
+  }
+
+  // 新格式（V3.0）
+  {
+    "translations": {
+      "en": "to add",
+      "zh": "相加",
+      "zh_hant": "相加",
+      "vi": "cộng",
+      "de": "addieren",
+      "th": "เพิ่ม",
+      // ... 共 20 种语言
+    },
+    "audio_r2_url": "https://media.shadowhub.app/audio/dictionary/add.mp3"
+  }
+  ```
+
+- **修改文件清单**：
+  - `src/app/api/word-definition/route.ts` - API 层重构
+  - `src/components/WordTooltip.tsx` - 词典弹窗组件
+  - `src/app/VocabularyContent.tsx` - 生词本页面组件
+  - `src/lib/utils/wordTranslation.ts` - 类型定义
+  - `package.json` - 版本号更新
+  - `claude-code-guide.md` - 文档更新
+
 ## [29.7.9] - 2026-04-05
 
 ### Fix
