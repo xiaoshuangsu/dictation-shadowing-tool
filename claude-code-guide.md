@@ -356,7 +356,14 @@ cat CONTEXT_RESTORE.md
 ```
 
 ### 方式二：一句话恢复
-> "请先阅读 `claude-code-guide.md`，当前版本是 V29.7.10（2026-04-01），主要实现了：
+> "请先阅读 `claude-code-guide.md`，当前版本是 V29.7.9（2026-04-05），主要实现了：
+> - **YouTube 脚本 v2.2**：完整自动化流程（LLM 标点恢复 → yt-dlp 字幕抓取 → 智能断句 → 时间轴优化 → 智能挖空 v6.2 → 19国翻译 → 入库）
+> - **翻译语言扩展**：支持 19 种语言（原有 3 种 + 新增 16 种：Arabic, Deutsch, Español, 日本語, Bahasa Melayu, Russian, Türkçe, Greek, Indonesian, 한국어, Português, ภาษาไทย, Українська, বাংলা, Монгол, हिन্দी）
+> - **v6.2 挖空逻辑**：语言习得导向，权重系统，索引转换，自动修正
+> - **Prompt 干扰修复**：自动清理 GLM 返回的 prompt 内容
+> - **双重分词机制**：空格分词匹配 blanks.index，正则分词渲染原文（保留标点）
+> - **Vercel 部署**：从 GitHub Pages 迁移到 Vercel，启用 API Routes
+> - **前端崩溃修复**：过滤无效句子，添加安全检查和错误边界"
 > - **YouTube 脚本 v2.2**：完整自动化流程（LLM 标点恢复 → yt-dlp 字幕抓取 → 智能断句 → 时间轴优化 → 智能挖空 v6.2 → 19国翻译 → 入库）
 > - **翻译语言扩展**：支持 19 种语言（原有 3 种 + 新增 16 种：Arabic, Deutsch, Español, 日本語, Bahasa Melayu, Russian, Türkçe, Greek, Indonesian, 한국어, Português, ภาษาไทย, Українська, বাংলা, Монгол, हिन्दी）
 > - **v6.2 挖空逻辑**：语言习得导向，权重系统，索引转换，自动修正
@@ -366,13 +373,18 @@ cat CONTEXT_RESTORE.md
 
 ---
 
-**版本**：V29.7.11
-**更新日期**：2026-04-01
+**版本**：V29.7.9
+**更新日期**：2026-04-05
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
 **GitHub**：https://github.com/xiaoshuangsu/dictation-shadowing-tool
 
 **最新更新**：
+- ✅ **前端崩溃修复**（v29.7.9）：过滤无效句子，添加安全检查和错误边界
+  - 修复了翻译缺失导致的页面崩溃问题
+  - 添加 DebugErrorBoundary 组件捕获客户端错误
+  - 所有 sentence.text 的 split() 调用添加空字符串后备
+  - 数据库清理：删除 Cam 10 素材中的无效句子
 - ✅ **词典预生成脚本 V3.0**：模块化架构（6 个模块），Oxford 3000 + 19国翻译 + Edge TTS + R2 存储
 - ✅ **TranslationEngine 翻译引擎**：19 国语言批量翻译，指数退避重试（2s→4s→8s）
 - ✅ **OxfordScraper 抓取模块**：支持空行容错，已修复 Accept-Encoding 问题
