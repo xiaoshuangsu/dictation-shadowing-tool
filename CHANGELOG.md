@@ -1,5 +1,23 @@
 # Changelog
 
+## [29.7.9] - 2026-04-05
+
+### Fix
+- **修复翻译缺失导致的页面崩溃** 🛡️
+  - **问题**：后台翻译脚本处理 1.3 万条数据时，前端页面因翻译字段为空而崩溃（`split of undefined`）
+  - **修复方案**：
+    - 所有翻译组件添加安全检查，防止访问 null/undefined 翻译数据
+    - 实现优雅降级：翻译为空时显示原文（灰色）+ `(Translating...)` 标记
+    - 自动替换机制：后台翻译完成后，刷新页面自动显示译文
+  - **修改组件**：
+    - `ClickableTranscript.tsx` - 安全获取翻译，空时显示原文
+    - `DictationBox.tsx` - 新增 `getDisplayText()` 方法，支持后备显示
+    - `WordMode.tsx` - 新增 `getDisplayText()` 方法，支持后备显示
+    - `ShadowingPanel.tsx` - 新增 `getDisplayText()` 方法，支持后备显示
+  - **用户体验**：即使翻译尚未完成，用户也能正常使用听写和影子跟读功能
+- **修复 favicon.ico 404 错误**
+  - 创建 `/public/favicon.ico` 文件，消除浏览器控制台错误
+
 > **版本号体系说明**（自 v22.0.0 起）
 >
 > 本项目采用统一的语义化版本号体系（Semantic Versioning）：
