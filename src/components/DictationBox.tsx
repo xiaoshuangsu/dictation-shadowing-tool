@@ -338,20 +338,44 @@ export default function DictationBox({
     onTranslationLanguageChange?.(language, show)
   }
 
-  // 获取当前语言的翻译文本
+  // 获取当前语言的翻译文本（带安全保护）
   const getCurrentTranslation = (): string => {
+    // 如果 translation 为 null 或 undefined，返回空字符串
     if (!sentence.translation) return ''
 
     // 向后兼容：支持旧的 string 格式
     if (typeof sentence.translation === 'string') {
-      return sentence.translation
+      return sentence.translation || ''
     }
 
-    // 新的 Translation JSONB 格式
-    return sentence.translation[translationLanguage] || ''
+    // 新的 Translation JSONB 格式（安全访问）
+    if (typeof sentence.translation === 'object') {
+      return sentence.translation[translationLanguage] || ''
+    }
+
+    return ''
+  }
+
+  // 获取显示文本（翻译或原文）
+  const getDisplayText = (): { text: string; isFallback: boolean } => {
+    const translation = getCurrentTranslation()
+
+    // 如果翻译为空，返回原文作为后备
+    if (!translation || translation.trim() === '') {
+      return {
+        text: sentence.text,
+        isFallback: true
+      }
+    }
+
+    return {
+      text: translation,
+      isFallback: false
+    }
   }
 
   const currentTranslation = getCurrentTranslation()
+  const displayText = getDisplayText()
 
   // 获取语言标签（与 TranslationLanguageSelector 保持一致）
   const getLanguageLabel = (lang: TranslationLanguage): string => {
@@ -407,10 +431,13 @@ export default function DictationBox({
         </p>
 
         {/* Translation text - 根据多语言选择显示 */}
-        {showTranslation && currentTranslation && (
+        {showTranslation && (
           <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-sm text-gray-600 italic">
-              <span className="font-medium text-gray-700">{languageLabel}:</span> {currentTranslation}
+            <p className={`text-sm italic ${displayText.isFallback ? 'text-gray-400' : 'text-gray-600'}`}>
+              <span className="font-medium text-gray-700">{languageLabel}:</span> {displayText.text}
+              {displayText.isFallback && (
+                <span className="text-xs text-gray-300 ml-1">(Translating...)</span>
+              )}
             </p>
           </div>
         )}

@@ -160,11 +160,31 @@ export default function ClickableTranscript({
                     />
                   </div>
 
-                  {showTranscript && sentence.translation && (
-                    <p className="text-sm text-gray-700 italic mt-1">
-                      {typeof sentence.translation === 'string'
-                        ? sentence.translation
-                        : (sentence.translation?.[translationLanguage] || '')}
+                  {showTranscript && (
+                    <p className="text-sm italic mt-1">
+                      {(() => {
+                        // 安全获取翻译文本
+                        let translationText = ''
+
+                        if (typeof sentence.translation === 'string') {
+                          translationText = sentence.translation
+                        } else if (sentence.translation && typeof sentence.translation === 'object') {
+                          translationText = sentence.translation[translationLanguage] || ''
+                        }
+
+                        // 如果翻译为空，显示原文（灰色标记）
+                        if (!translationText || translationText.trim() === '') {
+                          return (
+                            <span className="text-gray-400">
+                              {sentence.text}
+                              <span className="text-xs text-gray-300 ml-1">(Translating...)</span>
+                            </span>
+                          )
+                        }
+
+                        // 正常显示翻译
+                        return <span className="text-gray-700">{translationText}</span>
+                      })()}
                     </p>
                   )}
                 </div>

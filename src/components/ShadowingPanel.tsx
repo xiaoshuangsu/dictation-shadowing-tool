@@ -250,20 +250,44 @@ export default function ShadowingPanel({
     onTranslationLanguageChange?.(language, show)
   }
 
-  // 获取当前语言的翻译文本
+  // 获取当前语言的翻译文本（带安全保护）
   const getCurrentTranslation = (): string => {
+    // 如果 translation 为 null 或 undefined，返回空字符串
     if (!sentence.translation) return ''
 
     // 向后兼容：支持旧的 string 格式
     if (typeof sentence.translation === 'string') {
-      return sentence.translation
+      return sentence.translation || ''
     }
 
-    // 新的 Translation JSONB 格式
-    return sentence.translation[translationLanguage] || ''
+    // 新的 Translation JSONB 格式（安全访问）
+    if (typeof sentence.translation === 'object') {
+      return sentence.translation[translationLanguage] || ''
+    }
+
+    return ''
+  }
+
+  // 获取显示文本（翻译或原文）
+  const getDisplayText = (): { text: string; isFallback: boolean } => {
+    const translation = getCurrentTranslation()
+
+    // 如果翻译为空，返回原文作为后备
+    if (!translation || translation.trim() === '') {
+      return {
+        text: sentence.text,
+        isFallback: true
+      }
+    }
+
+    return {
+      text: translation,
+      isFallback: false
+    }
   }
 
   const currentTranslation = getCurrentTranslation()
+  const displayText = getDisplayText()
 
   // 获取语言标签（与 TranslationLanguageSelector 保持一致）
   const getLanguageLabel = (lang: TranslationLanguage): string => {
@@ -1315,9 +1339,12 @@ export default function ShadowingPanel({
         )}
 
         {/* 多语言翻译 - 根据模式显示或隐藏，支持简/繁/越切换 */}
-        {displayMode !== 'blind' && sentence.translation && showTranslation && currentTranslation && (
-          <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed mt-4`}>
-            {currentTranslation}
+        {displayMode !== 'blind' && showTranslation && (
+          <p className={`text-base ${displayMode === 'translation-only' ? 'text-gray-900 font-medium' : 'text-gray-600 italic'} leading-relaxed mt-4 ${displayText.isFallback ? 'text-gray-400' : ''}`}>
+            {displayText.text}
+            {displayText.isFallback && (
+              <span className="text-xs text-gray-300 ml-1">(Translating...)</span>
+            )}
           </p>
         )}
 
