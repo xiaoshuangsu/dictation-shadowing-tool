@@ -22,6 +22,7 @@ import { TranslationLanguageSelector, type TranslationLanguage } from '@/compone
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 import ClickableTranscript from '@/components/ClickableTranscript'
 import PremiumBlocker from '@/components/PremiumBlocker'
+import DebugErrorBoundary from '@/components/DebugErrorBoundary'
 
 type PracticeMode = 'dictation' | 'shadowing'
 type DictationMode = 'word' | 'whole'
@@ -604,7 +605,8 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const endBuffer = getEndBuffer()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <DebugErrorBoundary>
+      <div className="min-h-screen bg-gray-50">
       {toastMessage && (
         <>
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50"></div>
@@ -961,5 +963,6 @@ export default function PracticePage({ category, slug }: { category: string; slu
         </div>
       </div>
     </div>
+    </DebugErrorBoundary>
   )
 }

@@ -297,3 +297,45 @@ usage: date [-jnRu] [-I[date|hours|minutes|seconds|ns]] [-f input_fmt]
             [[[[mm]dd]HH]MM[[cc]yy][.SS] | new_date] [+output_fmt]
 下一轮时间: 
 
+--------------------------------------------------------------------------------
+📊 监控周期 #246577 - 2026-04-05 10:46:15
+--------------------------------------------------------------------------------
+
+【1️⃣ 进程状态】
+✅ 翻译进程运行中
+  PID: 3165 | CPU: 0.0% | MEM: 0.2%
+
+【2️⃣ 最新进度】
+[10:45:43]   进度: 45/57, 成功: 355, 失败: 5
+
+【3️⃣ 拦截统计】
+  累计拦截: 0
+0 次
+scripts/auto_monitor.sh: line 40: [: 0
+0: integer expression expected
+
+【4️⃣ 翻译质量抽样】
+Traceback (most recent call last):
+  File "<stdin>", line 18, in <module>
+TypeError: 'SyncSelectRequestBuilder' object is not callable
+
+【5️⃣ 成功率统计】
+  [10:45:43]   进度: 45/57, 成功: 355, 失败: 5
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+grep: invalid option -- P
+usage: grep [-abcdDEFGHhIiJLlMmnOopqRSsUVvwXxZz] [-A num] [-B num] [-C[num]]
+	[-e pattern] [-f file] [--binary-files=value] [--color=when]
+	[--context[=num]] [--directories=action] [--label] [--line-buffered]
+	[--null] [pattern] [file ...]
+
+✅ 本轮监控完成，等待下一轮...
+date: illegal option -- d
+usage: date [-jnRu] [-I[date|hours|minutes|seconds|ns]] [-f input_fmt]
+            [ -z output_zone ] [-r filename|seconds] [-v[+|-]val[y|m|w|d|H|M|S]]
+            [[[[mm]dd]HH]MM[[cc]yy][.SS] | new_date] [+output_fmt]
+下一轮时间: 
+

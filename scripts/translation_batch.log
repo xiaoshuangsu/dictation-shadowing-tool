@@ -30191,3 +30191,168 @@ Aprenda a dar instruções no próximo vídeo.
 [2026-04-05 10:29:54] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
 [2026-04-05 10:30:20] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
 [2026-04-05 10:30:49] [INFO]   进度: 60/80, 成功: 479, 失败: 1
+[2026-04-05 10:31:29] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 10:31:39] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 10:31:46] [INFO]   进度: 65/80, 成功: 519, 失败: 1
+[2026-04-05 10:32:12] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 10:32:26] [WARN] 标签检测失败: id 未找到 <translation_result> 标签
+[2026-04-05 10:32:46] [INFO]   进度: 70/80, 成功: 559, 失败: 1
+[2026-04-05 10:32:49] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 10:33:51] [INFO]   进度: 75/80, 成功: 599, 失败: 1
+[2026-04-05 10:34:12] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 10:34:12] [WARN] 关键词检测: mn 触发重试 (指令关键词: 'Төрөл', 尝试 1/3)
+[2026-04-05 10:34:12] [DEBUG]   原文: What do you do every day?
+[2026-04-05 10:34:12] [DEBUG]   模型返回: <translation_result>Мэдэхүүн бичгийн төрөл>
+[2026-04-05 10:34:21] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 10:34:52] [INFO]   进度: 80/80, 成功: 639, 失败: 1
+[2026-04-05 10:34:54] [INFO]   ✅ Group B 完成: 成功 639, 失败 1，已保存
+[2026-04-05 10:34:56] [INFO]   🔄 开始翻译 Group A (8 种语言)...
+[2026-04-05 10:35:25] [WARN] 标签检测失败: ar 未找到 <translation_result> 标签
+[2026-04-05 10:35:28] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:35:30] [WARN] 标签检测失败: ms 未找到 <translation_result> 标签
+[2026-04-05 10:35:35] [WARN] 标签检测失败: el 未找到 <translation_result> 标签
+[2026-04-05 10:35:48] [WARN] 标签检测失败: tr 未找到 <translation_result> 标签
+[2026-04-05 10:36:14] [INFO]   进度: 5/57, 成功: 40, 失败: 0
+[2026-04-05 10:36:19] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:36:49] [WARN] 中文污染检测: ms 触发重试 (尝试 1/3)
+[2026-04-05 10:36:49] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:36:49] [DEBUG]   模型返回: Ini adalah基本上你的日节律时钟。
+[2026-04-05 10:36:52] [WARN] 中文污染检测: ms 触发重试 (尝试 2/3)
+[2026-04-05 10:36:52] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:36:52] [DEBUG]   模型返回: Ini adalah基本上你的日节律时钟。
+[2026-04-05 10:36:56] [WARN] 中文污染检测: ms 触发重试 (尝试 3/3)
+[2026-04-05 10:36:56] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:36:56] [DEBUG]   模型返回: Ini adalah基本上是你的昼夜节律时钟。
+[2026-04-05 10:36:56] [ERROR] ❌ 翻译失败: ms 已达最大重试次数
+[2026-04-05 10:36:56] [ERROR] 原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:36:56] [ERROR] 模型原始返回:
+Ini adalah基本上是你的昼夜节律时钟。
+[2026-04-05 10:36:56] [WARN] 翻译失败: ms → [TODO_RETRY] (句子8)
+[2026-04-05 10:36:57] [WARN] 中文污染检测: ru 触发重试 (尝试 1/3)
+[2026-04-05 10:36:57] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:36:57] [DEBUG]   模型返回: Это基本上是你的昼夜节律时钟。
+[2026-04-05 10:36:59] [WARN] 中文污染检测: ru 触发重试 (尝试 2/3)
+[2026-04-05 10:36:59] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:36:59] [DEBUG]   模型返回: Это基本上是你的昼夜节律时钟。
+[2026-04-05 10:37:02] [WARN] 中文污染检测: ru 触发重试 (尝试 3/3)
+[2026-04-05 10:37:02] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:37:02] [DEBUG]   模型返回: Это基本上是你的昼夜节律时钟。
+[2026-04-05 10:37:02] [ERROR] ❌ 翻译失败: ru 已达最大重试次数
+[2026-04-05 10:37:02] [ERROR] 原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:37:02] [ERROR] 模型原始返回:
+Это基本上是你的昼夜节律时钟。
+[2026-04-05 10:37:02] [WARN] 翻译失败: ru → [TODO_RETRY] (句子8)
+[2026-04-05 10:37:07] [WARN] 中文污染检测: el 触发重试 (尝试 1/3)
+[2026-04-05 10:37:07] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:37:07] [DEBUG]   模型返回: Αυτό είναι基本上是你的昼夜节律时钟。
+[2026-04-05 10:37:34] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:37:44] [INFO]   进度: 10/57, 成功: 78, 失败: 2
+[2026-04-05 10:37:49] [WARN] 中文污染检测: de 触发重试 (尝试 1/3)
+[2026-04-05 10:37:49] [DEBUG]   原文: At the same time, neurons in the hypothalamus and brainstem release a compound called GABA.
+[2026-04-05 10:37:49] [DEBUG]   模型返回: Gleichzeitig setzen Neuronen im Hypothalamus und im Gehirnstamm ein叫做GABA的化合物释放。
+[2026-04-05 10:37:51] [WARN] 中文污染检测: de 触发重试 (尝试 2/3)
+[2026-04-05 10:37:51] [DEBUG]   原文: At the same time, neurons in the hypothalamus and brainstem release a compound called GABA.
+[2026-04-05 10:37:51] [DEBUG]   模型返回: Gleichzeitig setzen Neuronen im Hypothalamus und dem Gehirnstamm ein叫做GABA的化合物释放。
+[2026-04-05 10:38:25] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:38:40] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:38:47] [WARN] 标签检测失败: tr 未找到 <translation_result> 标签
+[2026-04-05 10:38:52] [WARN] 中文污染检测: ar 触发重试 (尝试 1/3)
+[2026-04-05 10:38:52] [DEBUG]   原文: Ah, that map kind of looks like a face.
+[2026-04-05 10:38:52] [DEBUG]   模型返回: ها، يبدو那张地图有点像一张脸。
+[2026-04-05 10:38:54] [WARN] 中文污染检测: ar 触发重试 (尝试 2/3)
+[2026-04-05 10:38:54] [DEBUG]   原文: Ah, that map kind of looks like a face.
+[2026-04-05 10:38:54] [DEBUG]   模型返回: ها، يبدو那张地图有点像一张脸。
+[2026-04-05 10:38:57] [WARN] 中文污染检测: ar 触发重试 (尝试 3/3)
+[2026-04-05 10:38:57] [DEBUG]   原文: Ah, that map kind of looks like a face.
+[2026-04-05 10:38:57] [DEBUG]   模型返回: ها، يبدو那张地图有点像一张脸。
+[2026-04-05 10:38:57] [ERROR] ❌ 翻译失败: ar 已达最大重试次数
+[2026-04-05 10:38:57] [ERROR] 原文: Ah, that map kind of looks like a face.
+[2026-04-05 10:38:57] [ERROR] 模型原始返回:
+ها، يبدو那张地图有点像一张脸。
+[2026-04-05 10:38:57] [WARN] 翻译失败: ar → [TODO_RETRY] (句子15)
+[2026-04-05 10:39:04] [INFO]   进度: 15/57, 成功: 117, 失败: 3
+[2026-04-05 10:39:09] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:39:14] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 1/3)
+[2026-04-05 10:39:14] [DEBUG]   原文: Uh-oh, your attention has started to drift.
+[2026-04-05 10:39:14] [DEBUG]   模型返回: Ugh-oh, dikkatiniz kaymaya başladı.
+[2026-04-05 10:39:16] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 2/3)
+[2026-04-05 10:39:16] [DEBUG]   原文: Uh-oh, your attention has started to drift.
+[2026-04-05 10:39:16] [DEBUG]   模型返回: Ugh, dikkatiniz kaymaya başladı.
+[2026-04-05 10:39:20] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 3/3)
+[2026-04-05 10:39:20] [DEBUG]   原文: Uh-oh, your attention has started to drift.
+[2026-04-05 10:39:20] [DEBUG]   模型返回: Ugh, dikkatiniz kaymaya başladı.
+[2026-04-05 10:39:20] [ERROR] ❌ 翻译失败: tr 已达最大重试次数（关键词污染）
+[2026-04-05 10:39:20] [ERROR] 原文: Uh-oh, your attention has started to drift.
+[2026-04-05 10:39:20] [ERROR] 模型原始返回:
+<translation_result>Ugh, dikkatiniz kaymaya başladı.</translation_result>
+[2026-04-05 10:39:20] [WARN] 翻译失败: tr → [TODO_RETRY] (句子16)
+[2026-04-05 10:39:41] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:39:54] [WARN] 标签检测失败: ms 未找到 <translation_result> 标签
+[2026-04-05 10:40:13] [INFO]   进度: 20/57, 成功: 156, 失败: 4
+[2026-04-05 10:40:20] [WARN] 标签检测失败: ms 未找到 <translation_result> 标签
+[2026-04-05 10:40:46] [WARN] 标签检测失败: ms 未找到 <translation_result> 标签
+[2026-04-05 10:41:18] [INFO]   进度: 25/57, 成功: 196, 失败: 4
+[2026-04-05 10:42:26] [INFO]   进度: 30/57, 成功: 236, 失败: 4
+[2026-04-05 10:43:28] [INFO]   进度: 35/57, 成功: 276, 失败: 4
+[2026-04-05 10:44:14] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:44:24] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:44:30] [INFO]   进度: 40/57, 成功: 316, 失败: 4
+[2026-04-05 10:44:40] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 1/3)
+[2026-04-05 10:44:40] [DEBUG]   原文: You're a megdala, the part of the brain involved with processing emotion is going haywire.
+[2026-04-05 10:44:40] [DEBUG]   模型返回: Beyin duygusal işleme katılan bölge olan sen bir megdala, çılgına döndü.
+[2026-04-05 10:44:43] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 2/3)
+[2026-04-05 10:44:43] [DEBUG]   原文: You're a megdala, the part of the brain involved with processing emotion is going haywire.
+[2026-04-05 10:44:43] [DEBUG]   模型返回: Beyin duygusal işleme katılan bölge olan sen bir megdala, çılgına döndü.
+[2026-04-05 10:44:46] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 3/3)
+[2026-04-05 10:44:46] [DEBUG]   原文: You're a megdala, the part of the brain involved with processing emotion is going haywire.
+[2026-04-05 10:44:46] [DEBUG]   模型返回: Beyin duygusal işleme katılan bölge olan sen bir megdala, çılgına döndü.
+[2026-04-05 10:44:46] [ERROR] ❌ 翻译失败: tr 已达最大重试次数（关键词污染）
+[2026-04-05 10:44:46] [ERROR] 原文: You're a megdala, the part of the brain involved with processing emotion is going haywire.
+[2026-04-05 10:44:46] [ERROR] 模型原始返回:
+<translation_result>
+Beyin duygusal işleme katılan bölge olan sen bir megdala, çılgına döndü.
+</translation_result>
+[2026-04-05 10:44:46] [WARN] 翻译失败: tr → [TODO_RETRY] (句子41)
+[2026-04-05 10:45:07] [WARN] 标签检测失败: ru 未找到 <translation_result> 标签
+[2026-04-05 10:45:16] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:45:19] [WARN] 标签检测失败: tr 未找到 <translation_result> 标签
+[2026-04-05 10:45:24] [WARN] 标签检测失败: de 未找到 <translation_result> 标签
+[2026-04-05 10:45:43] [INFO]   进度: 45/57, 成功: 355, 失败: 5
+[2026-04-05 10:46:19] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:47:02] [INFO]   进度: 50/57, 成功: 395, 失败: 5
+[2026-04-05 10:47:08] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:47:16] [WARN] 标签检测失败: tr 未找到 <translation_result> 标签
+[2026-04-05 10:47:33] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:47:45] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 10:47:49] [WARN] 标签检测失败: ms 未找到 <translation_result> 标签
+[2026-04-05 10:48:05] [INFO]   进度: 55/57, 成功: 435, 失败: 5
+[2026-04-05 10:48:28] [INFO]   ✅ Group A 完成: 成功 451, 失败 5，已保存
+[2026-04-05 10:48:28] [INFO]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[2026-04-05 10:48:33] [INFO]   🔄 开始翻译 Group B (8 种语言)...
+[2026-04-05 10:48:58] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 10:49:13] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 10:49:45] [WARN] 关键词检测: mn 触发重试 (指令关键词: 'Төрөл', 尝试 1/3)
+[2026-04-05 10:49:45] [DEBUG]   原文: When you stay up all night, you're fighting against your body's natural circadian rhythms.
+[2026-04-05 10:49:45] [DEBUG]   模型返回: Түүнийг нь түр хүртэл тэнцэхэд, таны хүүхэлний эрүүл мэндийн хоёр цагийн хөгжилттэй төрөлд байна.
+[2026-04-05 10:50:00] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 10:50:32] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 10:50:38] [INFO]   进度: 5/57, 成功: 40, 失败: 0
+[2026-04-05 10:50:39] [WARN] 标签检测失败: id 未找到 <translation_result> 标签
+[2026-04-05 10:50:42] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 10:50:45] [WARN] 标签检测失败: uk 未找到 <translation_result> 标签
+[2026-04-05 10:51:29] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 10:51:41] [WARN] 中文污染检测: uk 触发重试 (尝试 1/3)
+[2026-04-05 10:51:41] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:51:41] [DEBUG]   模型返回: Це基本上 ваш годинник циркадних ритмів.
+[2026-04-05 10:51:43] [WARN] 中文污染检测: uk 触发重试 (尝试 2/3)
+[2026-04-05 10:51:43] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:51:43] [DEBUG]   模型返回: Це基本上 ваш годинник циркадних ритмів.
+[2026-04-05 10:51:46] [WARN] 中文污染检测: uk 触发重试 (尝试 3/3)
+[2026-04-05 10:51:46] [DEBUG]   原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:51:46] [DEBUG]   模型返回: Це基本上 ваш годинник циркадних ритмів.
+[2026-04-05 10:51:46] [ERROR] ❌ 翻译失败: uk 已达最大重试次数
+[2026-04-05 10:51:46] [ERROR] 原文: This is basically your circadian rhythms clock.
+[2026-04-05 10:51:46] [ERROR] 模型原始返回:
+Це基本上 ваш годинник циркадних ритмів.
+[2026-04-05 10:51:46] [WARN] 翻译失败: uk → [TODO_RETRY] (句子8)
+[2026-04-05 10:52:43] [INFO]   进度: 10/57, 成功: 79, 失败: 1
