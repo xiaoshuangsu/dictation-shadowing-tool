@@ -43,6 +43,7 @@ export interface MaterialsResponse {
 export const CATEGORIES = [
   { id: '日常生活', label: 'Daily Life' },
   { id: 'Science and Facts', label: 'Science and Facts' },
+  { id: 'BBC Earth', label: 'BBC Earth' },
   { id: '历史演讲', label: 'Historical Speeches' },
   { id: 'TED演讲', label: 'TED Talks' },
   { id: '文化历史', label: 'Culture & History' },

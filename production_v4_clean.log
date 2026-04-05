@@ -1,0 +1,2575 @@
+================================================================================
+  雅思听力素材翻译 - 生产版本 v3.0
+  分批翻译模式：16 语拆分为两组，每组 8 种
+================================================================================
+开始时间: 2026-04-04 09:09:23
+API 超时: 30 秒
+最大重试: 3 次
+重试延迟: [1, 2, 4] 秒（指数退避）
+日志文件: /Users/a/dictation/scripts/translation_batch.log
+TODO 列表: /Users/a/dictation/scripts/todo_retry_list.txt
+================================================================================
+
+语言分组:
+  原有 (3 种): zh, zh_hant, vi
+  Group A (8 种): ar, de, es, ja, ms, ru, tr, el
+  Group B (8 种): id, ko, pt, th, uk, bn, mn, hi
+================================================================================
+[09:09:23] 正在获取所有素材...
+[09:09:32] 总共 310 个素材
+================================================================================
+
+处理素材 [1/310]: Cam 15 Academic Listening Test 3 Part 1... (cam-15-academic-listening-test-3-part-1)
+[09:09:32]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[09:09:37]   🔄 开始翻译 Group B (8 种语言)...
+[09:09:44]   进度: 5/59, 成功: 0, 失败: 1
+[09:09:44]   进度: 10/59, 成功: 0, 失败: 1
+[09:09:44]   进度: 15/59, 成功: 0, 失败: 1
+[09:09:44]   进度: 20/59, 成功: 0, 失败: 1
+[09:09:50]   进度: 25/59, 成功: 2, 失败: 1
+[09:09:50]   进度: 30/59, 成功: 2, 失败: 1
+[09:09:50]   进度: 35/59, 成功: 2, 失败: 1
+[09:09:56]   进度: 40/59, 成功: 4, 失败: 1
+[09:09:56]   进度: 45/59, 成功: 4, 失败: 1
+[09:10:16]   进度: 50/59, 成功: 4, 失败: 3
+[09:10:16]   进度: 55/59, 成功: 4, 失败: 3
+[09:10:18]   ✅ Group B 完成: 成功 4, 失败 3，已保存
+[09:10:18]   🇻🇳 开始补课越南语（老版 Prompt）...
+[09:10:32]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 4 条，失败 5 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [2/310]: The Crane of GratitudeJapanese Fairy Tales in English... (the-crane-of-gratitudejapanese-fairy-tales-in-english)
+  ⏭️  [ID: 5cfbfb65-0afa-4665-8f9e-cef576ccccd6] Already up to date (all 19 语), skipping.
+
+处理素材 [3/310]: My First Pet... (my-first-pet)
+  ⏭️  [ID: cce96f3d-f3af-40a1-b092-622c808ca7b8] Already up to date (all 19 语), skipping.
+
+处理素材 [4/310]: Cam 12 Academic Listening Test 4 Part 1... (cam-12-academic-listening-test-4-part-1)
+  ⏭️  [ID: 2221f3f1-7c4a-42e4-81c9-34158b9a5568] Already up to date (all 19 语), skipping.
+
+处理素材 [5/310]: The Viking... (the-viking)
+  ⏭️  [ID: 0fbd404f-915e-4e25-b558-2a7b19729410] Already up to date (all 19 语), skipping.
+
+处理素材 [6/310]: Cam 12 Academic Listening Test 1 Part 4... (cam-12-academic-listening-test-1-part-4)
+  ⏭️  [ID: 616611e6-67b0-46c8-b398-a129e4019442] Already up to date (all 19 语), skipping.
+
+处理素材 [7/310]: April Fool's Day Joke _ English Conversation... (april-fools-day-joke-english-conversation)
+  ⏭️  [ID: 86d8e031-1dc0-4b0b-a5c1-50a0601a8dc3] Already up to date (all 19 语), skipping.
+
+处理素材 [8/310]: Cam 19 Academic Listening Test 3 Part 2... (cam-19-academic-listening-test-3-part-2)
+[09:10:42]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[09:10:47]   🔄 开始翻译 Group B (8 种语言)...
+[09:10:56]   进度: 5/38, 成功: 2, 失败: 0
+[09:11:12]   进度: 10/38, 成功: 3, 失败: 0
+[09:11:12]   进度: 15/38, 成功: 3, 失败: 0
+[09:11:19]   进度: 20/38, 成功: 5, 失败: 0
+[09:11:40]   进度: 25/38, 成功: 8, 失败: 0
+[09:11:44]   进度: 30/38, 成功: 9, 失败: 0
+[09:11:44]   进度: 35/38, 成功: 9, 失败: 0
+[09:11:46]   ✅ Group B 完成: 成功 9, 失败 0，已保存
+  ✅ ✓ 翻译 9 条
+
+处理素材 [9/310]: Jessica's First Day of School... (jessicas-first-day-of-school)
+  ⏭️  [ID: 7bdd0141-1977-4297-9876-0b931abd199b] Already up to date (all 19 语), skipping.
+
+处理素材 [10/310]: Cam 17 Academic Listening Test 4 Part 1... (cam-17-academic-listening-test-4-part-1)
+  ⏭️  [ID: 5e8fcecc-e38a-43eb-a17e-7a8bac22a020] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [10/310] - 3.2%
+================================================================================
+  已处理: 10 | 成功: 2 | 跳过: 8 | 失败: 0
+  成功率: 20.0%
+================================================================================
+
+处理素材 [11/310]: Cam 15 Academic Listening Test 4 Part 4... (cam-15-academic-listening-test-4-part-4)
+  ⏭️  [ID: 41ca7878-15de-448a-982a-9605b418eaf3] Already up to date (all 19 语), skipping.
+
+处理素材 [12/310]: Empty Your Mind - A Powerful Motivational Story for Your Lif... (empty-your-mind-a-powerful-motivational-story-for-your-life)
+  ⏭️  [ID: d96f97f5-cc6c-4c96-b768-6525572d9af2] Already up to date (all 19 语), skipping.
+
+处理素材 [13/310]: Cam 14 Academic Listening Test 2 Part 2... (cam-14-academic-listening-test-2-part-2)
+  ⏭️  [ID: cb86b950-8707-4c20-80f3-49f273a62401] Already up to date (all 19 语), skipping.
+
+处理素材 [14/310]: Ice Hockey... (ice-hockey)
+  ⏭️  [ID: 0f5281bf-b183-4404-aa36-9ce9c5d65420] Already up to date (all 19 语), skipping.
+
+处理素材 [15/310]: Cam 14 Academic Listening Test 4 Part 3... (cam-14-academic-listening-test-4-part-3)
+  ⏭️  [ID: 29ec81ba-ed25-4321-901f-8482136e76d9] Already up to date (all 19 语), skipping.
+
+处理素材 [16/310]: Canada: Provinces and Territories... (canada-provinces-and-territories)
+  ⏭️  [ID: a785ea1d-b348-4fdf-9102-70fadb6dba06] Already up to date (all 19 语), skipping.
+
+处理素材 [17/310]: My House... (my-house)
+  ⏭️  [ID: dbd627eb-7c5f-4afd-9b76-9d2844b0d869] Already up to date (all 19 语), skipping.
+
+处理素材 [18/310]: Your Struggle Is Your Power: The Seed That Never Gave Up | L... (your-struggle-is-your-power-the-seed-that-never-gave-up-life-lesson-story)
+[09:12:02]   🔄 开始翻译 Group A (8 种语言)...
+[09:13:12]   进度: 5/77, 成功: 37, 失败: 1
+[09:14:12]   进度: 10/77, 成功: 76, 失败: 2
+[09:15:15]   进度: 15/77, 成功: 114, 失败: 4
+[09:16:12]   进度: 20/77, 成功: 154, 失败: 4
+[09:17:07]   进度: 25/77, 成功: 191, 失败: 4
+[09:18:09]   进度: 30/77, 成功: 231, 失败: 4
+[09:18:51]   进度: 35/77, 成功: 265, 失败: 4
+[09:20:04]   进度: 40/77, 成功: 304, 失败: 5
+[09:21:02]   进度: 45/77, 成功: 342, 失败: 6
+[09:22:02]   进度: 50/77, 成功: 379, 失败: 7
+[09:22:49]   进度: 55/77, 成功: 417, 失败: 7
+[09:23:48]   进度: 60/77, 成功: 455, 失败: 7
+[09:24:57]   进度: 65/77, 成功: 494, 失败: 8
+[09:25:52]   进度: 70/77, 成功: 534, 失败: 8
+[09:26:59]   进度: 75/77, 成功: 574, 失败: 8
+[09:27:51]   ✅ Group A 完成: 成功 589, 失败 9，已保存
+[09:27:51]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[09:27:56]   🔄 开始翻译 Group B (8 种语言)...
+[09:30:12]   进度: 5/77, 成功: 40, 失败: 0
+[09:31:17]   进度: 10/77, 成功: 80, 失败: 0
+[09:32:29]   进度: 15/77, 成功: 120, 失败: 0
+[09:35:53]   进度: 20/77, 成功: 160, 失败: 0
+[09:40:33]   进度: 25/77, 成功: 200, 失败: 0
+[09:45:13]   进度: 30/77, 成功: 240, 失败: 0
+[09:48:22]   进度: 35/77, 成功: 280, 失败: 0
+[09:51:45]   进度: 40/77, 成功: 320, 失败: 0
+[09:54:46]   进度: 45/77, 成功: 360, 失败: 0
+[09:59:48]   进度: 50/77, 成功: 400, 失败: 0
+[10:03:56]   进度: 55/77, 成功: 440, 失败: 0
+[10:07:32]   进度: 60/77, 成功: 480, 失败: 0
+[10:11:56]   进度: 65/77, 成功: 519, 失败: 1
+[10:15:03]   进度: 70/77, 成功: 559, 失败: 1
+[10:19:42]   进度: 75/77, 成功: 599, 失败: 1
+[10:22:41]   ✅ Group B 完成: 成功 615, 失败 1，已保存
+[10:22:41]   🇻🇳 开始补课越南语（老版 Prompt）...
+[10:27:30]   ✅ 越南语补课完成: 成功 76, 失败 0，已保存
+  ✅ ✓ 翻译 1280 条，失败 10 条 [TODO_RETRY]
+
+处理素材 [19/310]: YouTube Test - English Learning... (None)
+  ⏭️  [ID: 6876ba03-c151-4b09-8bd8-f71652633240] Already up to date (all 19 语), skipping.
+
+处理素材 [20/310]: Jennifer the Firefighter... (jennifer-the-firefighter)
+  ⏭️  [ID: 35bac3af-d1af-4404-a5b6-6f5a385ed2b0] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [20/310] - 6.5%
+================================================================================
+  已处理: 20 | 成功: 3 | 跳过: 17 | 失败: 0
+  成功率: 15.0%
+================================================================================
+
+处理素材 [21/310]: It's raining... (its-raining)
+  ⏭️  [ID: 2e517eb9-cfb3-4128-830d-17d09a85bbce] Already up to date (all 19 语), skipping.
+
+处理素材 [22/310]: Cam 14 Academic Listening Test 2 Part 3... (cam-14-academic-listening-test-2-part-3)
+[10:27:37]   🔄 开始翻译 Group A (8 种语言)...
+[10:28:32]   进度: 5/48, 成功: 1, 失败: 0
+[10:28:40]   进度: 10/48, 成功: 1, 失败: 1
+[10:28:47]   进度: 15/48, 成功: 1, 失败: 2
+[10:28:51]   进度: 20/48, 成功: 2, 失败: 2
+[10:29:08]   进度: 25/48, 成功: 3, 失败: 3
+[10:29:08]   进度: 30/48, 成功: 3, 失败: 3
+[10:30:03]   进度: 35/48, 成功: 4, 失败: 4
+[10:30:03]   进度: 40/48, 成功: 4, 失败: 4
+[10:30:05]   进度: 45/48, 成功: 5, 失败: 4
+[10:30:10]   ✅ Group A 完成: 成功 6, 失败 4，已保存
+[10:30:10]   🇻🇳 开始补课越南语（老版 Prompt）...
+[10:30:18]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 6 条，失败 5 条 [TODO_RETRY]
+
+处理素材 [23/310]: Cam 17 Academic Listening Test 3 Part 4... (cam-17-academic-listening-test-3-part-4)
+  ⏭️  [ID: 48a094d5-664d-4d9f-bb75-e70af03e070a] Already up to date (all 19 语), skipping.
+
+处理素材 [24/310]: What time is it - Time for breakfast... (what-time-is-it-time-for-breakfast)
+  ⏭️  [ID: dea0c421-2726-4e99-9930-fe7b426e21e0] Already up to date (all 19 语), skipping.
+
+处理素材 [25/310]: Cam 11 Academic Listening Test 3 Part 2... (cam-11-academic-listening-test-3-part-2)
+[10:30:22]   🔄 开始翻译 Group A (8 种语言)...
+[10:30:36]   进度: 5/44, 成功: 2, 失败: 1
+[10:31:41]   进度: 10/44, 成功: 2, 失败: 2
+[10:31:44]   进度: 15/44, 成功: 3, 失败: 2
+[10:31:44]   进度: 20/44, 成功: 3, 失败: 2
+[10:31:44]   进度: 25/44, 成功: 3, 失败: 2
+[10:31:51]   进度: 30/44, 成功: 3, 失败: 3
+[10:31:51]   进度: 35/44, 成功: 3, 失败: 3
+[10:31:51]   进度: 40/44, 成功: 3, 失败: 3
+[10:31:54]   ✅ Group A 完成: 成功 3, 失败 3，已保存
+[10:31:54]   🇻🇳 开始补课越南语（老版 Prompt）...
+[10:32:04]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 3 条，失败 4 条 [TODO_RETRY]
+
+处理素材 [26/310]: Cam 15 Academic Listening Test 4 Part 3... (cam-15-academic-listening-test-4-part-3)
+  ⏭️  [ID: 4fdd2975-cf61-4b63-a1f1-d67dd2565a1e] Already up to date (all 19 语), skipping.
+
+处理素材 [27/310]: Corruption... (corruption)
+  ⏭️  [ID: 9d6f7911-8bc9-4f6f-b332-4d80ebe792c7] Already up to date (all 19 语), skipping.
+
+处理素材 [28/310]: Cam 19 Academic Listening Test 3 Part 1... (cam-19-academic-listening-test-3-part-1)
+  ⏭️  [ID: eadd1660-c3d0-4fb9-af6f-36addc1e1406] Already up to date (all 19 语), skipping.
+
+处理素材 [29/310]: Cam 13 Academic Listening Test 4 Part 4... (cam-13-academic-listening-test-4-part-4)
+[10:32:09]   🔄 开始翻译 Group A (8 种语言)...
+[10:33:31]   进度: 5/46, 成功: 1, 失败: 2
+[10:33:31]   进度: 10/46, 成功: 1, 失败: 2
+[10:33:31]   进度: 15/46, 成功: 1, 失败: 2
+[10:33:37]   进度: 20/46, 成功: 3, 失败: 2
+[10:33:37]   进度: 25/46, 成功: 3, 失败: 2
+[10:33:45]   进度: 30/46, 成功: 3, 失败: 3
+[10:35:12]   进度: 35/46, 成功: 3, 失败: 4
+[10:35:12]   进度: 40/46, 成功: 3, 失败: 4
+[10:35:19]   进度: 45/46, 成功: 3, 失败: 5
+[10:35:22]   ✅ Group A 完成: 成功 3, 失败 5，已保存
+[10:35:22]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[10:35:27]   🔄 开始翻译 Group B (8 种语言)...
+[10:36:36]   进度: 5/46, 成功: 2, 失败: 1
+[10:36:40]   进度: 10/46, 成功: 3, 失败: 1
+[10:36:45]   进度: 15/46, 成功: 4, 失败: 1
+[10:38:09]   进度: 20/46, 成功: 9, 失败: 1
+[10:39:56]   进度: 25/46, 成功: 10, 失败: 3
+[10:42:59]   进度: 30/46, 成功: 11, 失败: 5
+[10:43:15]   进度: 35/46, 成功: 13, 失败: 5
+[10:43:15]   进度: 40/46, 成功: 13, 失败: 5
+[10:44:19]   进度: 45/46, 成功: 13, 失败: 6
+[10:44:23]   ✅ Group B 完成: 成功 13, 失败 6，已保存
+[10:44:23]   🇻🇳 开始补课越南语（老版 Prompt）...
+[10:44:48]   ✅ 越南语补课完成: 成功 0, 失败 3，已保存
+  ✅ ✓ 翻译 16 条，失败 14 条 [TODO_RETRY]
+
+处理素材 [30/310]: Cam 17 Academic Listening Test 4 Part 2... (cam-17-academic-listening-test-4-part-2)
+[10:44:49]   🔄 开始翻译 Group A (8 种语言)...
+[10:44:52]   进度: 5/43, 成功: 1, 失败: 0
+[10:44:52]   进度: 10/43, 成功: 1, 失败: 0
+[10:44:52]   进度: 15/43, 成功: 1, 失败: 0
+[10:44:55]   进度: 20/43, 成功: 2, 失败: 0
+[10:44:55]   进度: 25/43, 成功: 2, 失败: 0
+[10:44:55]   进度: 30/43, 成功: 2, 失败: 0
+[10:46:28]   进度: 35/43, 成功: 3, 失败: 1
+[10:46:28]   进度: 40/43, 成功: 3, 失败: 1
+[10:47:38]   ✅ Group A 完成: 成功 3, 失败 2，已保存
+[10:47:38]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[10:47:43]   🔄 开始翻译 Group B (8 种语言)...
+[10:47:51]   进度: 5/43, 成功: 2, 失败: 0
+[10:47:56]   进度: 10/43, 成功: 3, 失败: 0
+[10:48:09]   进度: 15/43, 成功: 6, 失败: 0
+[10:49:12]   进度: 20/43, 成功: 8, 失败: 0
+[10:49:35]   进度: 25/43, 成功: 11, 失败: 0
+[10:49:35]   进度: 30/43, 成功: 11, 失败: 0
+[10:50:01]   进度: 35/43, 成功: 11, 失败: 2
+[10:51:09]   进度: 40/43, 成功: 13, 失败: 2
+[10:51:19]   ✅ Group B 完成: 成功 14, 失败 2，已保存
+[10:51:19]   🇻🇳 开始补课越南语（老版 Prompt）...
+[10:51:38]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 17 条，失败 6 条 [TODO_RETRY]
+
+================================================================================
+  进度统计 [30/310] - 9.7%
+================================================================================
+  已处理: 30 | 成功: 7 | 跳过: 23 | 失败: 0
+  成功率: 23.3%
+================================================================================
+
+处理素材 [31/310]: Talking about a Trip using the Past Simple _ An English Conv... (talking-about-a-trip-using-the-past-simple-an-english-conversation-about-a-past-trip)
+  ⏭️  [ID: 695d3fb9-bd83-4fc3-9617-a2c9bb4195e5] Already up to date (all 19 语), skipping.
+
+处理素材 [32/310]: Cam 17 Academic Listening Test 3 Part 3... (cam-17-academic-listening-test-3-part-3)
+  ⏭️  [ID: fbcc8826-49c8-49ed-8baf-7020b6c2f9d8] Already up to date (all 19 语), skipping.
+
+处理素材 [33/310]: The Wolf And The Lean Dog | Short Stories In English | Engli... (the-wolf-and-the-lean-dog-short-stories-in-english-english-cartoon-moral-stories-in-english)
+[10:51:42]   🔄 开始翻译 Group A (8 种语言)...
+[10:51:46]   进度: 5/25, 成功: 2, 失败: 0
+[10:51:55]   进度: 10/25, 成功: 2, 失败: 1
+[10:51:57]   进度: 15/25, 成功: 3, 失败: 1
+[10:51:57]   进度: 20/25, 成功: 3, 失败: 1
+[10:51:57]   进度: 25/25, 成功: 3, 失败: 1
+[10:51:59]   ✅ Group A 完成: 成功 3, 失败 1，已保存
+  ✅ ✓ 翻译 3 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [34/310]: Cam 13 Academic Listening Test 4 Part 3... (cam-13-academic-listening-test-4-part-3)
+[10:52:00]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[10:52:46]   🔄 开始翻译 Group B (8 种语言)...
+[10:52:49]   进度: 5/56, 成功: 1, 失败: 0
+[10:53:05]   进度: 10/56, 成功: 4, 失败: 0
+[10:53:20]   进度: 15/56, 成功: 5, 失败: 1
+[10:54:43]   进度: 20/56, 成功: 7, 失败: 1
+[10:54:46]   进度: 25/56, 成功: 8, 失败: 1
+[10:54:50]   进度: 30/56, 成功: 9, 失败: 1
+[10:54:50]   进度: 35/56, 成功: 9, 失败: 1
+[10:54:50]   进度: 40/56, 成功: 9, 失败: 1
+[10:54:53]   进度: 45/56, 成功: 10, 失败: 1
+[10:54:53]   进度: 50/56, 成功: 10, 失败: 1
+[10:54:53]   进度: 55/56, 成功: 10, 失败: 1
+[10:54:55]   ✅ Group B 完成: 成功 10, 失败 1，已保存
+[10:54:55]   🇻🇳 开始补课越南语（老版 Prompt）...
+[10:55:03]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 11 条，失败 1 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [35/310]: Cam 14 Academic Listening Test 2 Part 4... (cam-14-academic-listening-test-2-part-4)
+  ⏭️  [ID: bc1ab507-81e2-4593-b06e-70e5c0ec8c6e] Already up to date (all 19 语), skipping.
+
+处理素材 [36/310]: Cowboys... (cowboys)
+  ⏭️  [ID: 85680722-f107-4b7f-847c-83bd30176356] Already up to date (all 19 语), skipping.
+
+处理素材 [37/310]: Cam 13 Academic Listening Test 4 Part 2... (cam-13-academic-listening-test-4-part-2)
+  ⏭️  [ID: dc1e1565-a1e8-4a47-accd-db065f8dba17] Already up to date (all 19 语), skipping.
+
+处理素材 [38/310]: Cam 15 Academic Listening Test 4 Part 2... (cam-15-academic-listening-test-4-part-2)
+[10:56:05]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[10:56:10]   🔄 开始翻译 Group B (8 种语言)...
+[10:58:00]   进度: 5/28, 成功: 4, 失败: 1
+[10:58:20]   进度: 10/28, 成功: 7, 失败: 1
+[10:58:20]   进度: 15/28, 成功: 7, 失败: 1
+[10:59:30]   进度: 20/28, 成功: 9, 失败: 1
+[10:59:42]   进度: 25/28, 成功: 12, 失败: 1
+[10:59:44]   ✅ Group B 完成: 成功 12, 失败 1，已保存
+[10:59:44]   🇻🇳 开始补课越南语（老版 Prompt）...
+[10:59:55]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 12 条，失败 2 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [39/310]: Cam 19 Academic Listening Test 2 Part 4... (cam-19-academic-listening-test-2-part-4)
+  ⏭️  [ID: 15359cfa-5b1e-4ed1-bdc2-ce8062dae441] Already up to date (all 19 语), skipping.
+
+处理素材 [40/310]: 3 tips to boost your confidence - TED-Ed... (3-tips-to-boost-your-confidence-ted-ed)
+[10:59:58]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[11:00:52]   🔄 开始翻译 Group B (8 种语言)...
+[11:01:00]   进度: 5/50, 成功: 2, 失败: 0
+[11:01:13]   进度: 10/50, 成功: 3, 失败: 1
+[11:01:18]   进度: 15/50, 成功: 4, 失败: 1
+[11:01:18]   进度: 20/50, 成功: 4, 失败: 1
+[11:01:24]   进度: 25/50, 成功: 5, 失败: 1
+[11:01:31]   进度: 30/50, 成功: 7, 失败: 1
+[11:02:32]   进度: 35/50, 成功: 8, 失败: 1
+[11:02:32]   进度: 40/50, 成功: 8, 失败: 1
+[11:02:37]   进度: 45/50, 成功: 9, 失败: 1
+[11:04:00]   进度: 50/50, 成功: 12, 失败: 1
+[11:04:05]   ✅ Group B 完成: 成功 12, 失败 1，已保存
+[11:04:05]   🇻🇳 开始补课越南语（老版 Prompt）...
+[11:04:34]   ✅ 越南语补课完成: 成功 0, 失败 3，已保存
+  ✅ ✓ 翻译 12 条，失败 4 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+================================================================================
+  进度统计 [40/310] - 12.9%
+================================================================================
+  已处理: 40 | 成功: 11 | 跳过: 29 | 失败: 0
+  成功率: 27.5%
+================================================================================
+
+处理素材 [41/310]: [Telephone Conversations] Can I Speak to Sally? - Easy Dialo... (telephone-conversations-can-i-speak-to-sally-easy-dialogue-role-play)
+  ⏭️  [ID: d742ed42-654b-49ed-a329-269be83a89c1] Already up to date (all 19 语), skipping.
+
+处理素材 [42/310]: Describing your Hometown _ Adjectives, Prepositions of Place... (describing-your-hometown-adjectives-prepositions-of-place)
+  ⏭️  [ID: 0b388296-aa34-44d5-82c5-8b5fd33a521b] Already up to date (all 19 语), skipping.
+
+处理素材 [43/310]: Elementary School... (elementary-school)
+  ⏭️  [ID: 95fbe33f-31f7-4420-8f9d-b7040ca263eb] Already up to date (all 19 语), skipping.
+
+处理素材 [44/310]: What happens to your brain without any social contact? - Ter... (what-happens-to-your-brain-without-any-social-contact-terry-kupers)
+[11:04:39]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[11:05:28]   🔄 开始翻译 Group B (8 种语言)...
+[11:06:02]   进度: 5/43, 成功: 4, 失败: 0
+[11:06:06]   进度: 10/43, 成功: 5, 失败: 0
+[11:09:05]   进度: 15/43, 成功: 7, 失败: 0
+[11:09:09]   进度: 20/43, 成功: 8, 失败: 0
+[11:10:19]   进度: 25/43, 成功: 9, 失败: 0
+[11:12:10]   进度: 30/43, 成功: 13, 失败: 1
+[11:14:14]   进度: 35/43, 成功: 16, 失败: 2
+[11:16:47]   进度: 40/43, 成功: 20, 失败: 2
+[11:17:09]   ✅ Group B 完成: 成功 22, 失败 3，已保存
+[11:17:09]   🇻🇳 开始补课越南语（老版 Prompt）...
+[11:18:49]   ✅ 越南语补课完成: 成功 1, 失败 2，已保存
+  ✅ ✓ 翻译 23 条，失败 5 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [45/310]: Cam 19 Academic Listening Test 2 Part 3... (cam-19-academic-listening-test-2-part-3)
+  ⏭️  [ID: f8d9e481-2584-4416-aa40-3657d280676d] Already up to date (all 19 语), skipping.
+
+处理素材 [46/310]: Cam 14 Academic Listening Test 3 Part 1... (cam-14-academic-listening-test-3-part-1)
+  ⏭️  [ID: 9660236e-c39e-4ae7-b033-f510cc529a47] Already up to date (all 19 语), skipping.
+
+处理素材 [47/310]: Come to the Fair... (come-to-the-fair)
+  ⏭️  [ID: e9e992b6-5df3-4102-8580-69a2a5964127] Already up to date (all 19 语), skipping.
+
+处理素材 [48/310]: Cam 12 Academic Listening Test 4 Part 4... (cam-12-academic-listening-test-4-part-4)
+  ⏭️  [ID: 02c871c7-cc58-410b-9109-3a16371d319e] Already up to date (all 19 语), skipping.
+
+处理素材 [49/310]: B5L2 dialogue... (b5l2-dialogue)
+  ⏭️  [ID: 2ce13ee4-5bf7-4717-a5c4-ac044692d6d6] Already up to date (all 19 语), skipping.
+
+处理素材 [50/310]: Talking about daily routines in English (present simple)... (talking-about-daily-routines-in-english-present-simple)
+  ⏭️  [ID: f0ff69f1-6e6a-427b-ac25-a439e77b162e] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [50/310] - 16.1%
+================================================================================
+  已处理: 50 | 成功: 12 | 跳过: 38 | 失败: 0
+  成功率: 24.0%
+================================================================================
+
+处理素材 [51/310]: Cam 17 Academic Listening Test 3 Part 2... (cam-17-academic-listening-test-3-part-2)
+  ⏭️  [ID: 698e14a9-a383-4376-98c9-6bd2c46e97be] Already up to date (all 19 语), skipping.
+
+处理素材 [52/310]: Cam 19 Academic Listening Test 3 Part 3... (cam-19-academic-listening-test-3-part-3)
+  ⏭️  [ID: 902d3b35-77fe-44e2-9a3c-8d99f115ce00] Already up to date (all 19 语), skipping.
+
+处理素材 [53/310]: The Story of the Little Red Riding Hood - Fairy Tale - Story... (the-story-of-the-little-red-riding-hood-fairy-tale-story-for-children)
+  ⏭️  [ID: d5dd3c04-899a-45b1-8151-706def167811] Already up to date (all 19 语), skipping.
+
+处理素材 [54/310]: Cam 19 Academic Listening Test 2 Part 2... (cam-19-academic-listening-test-2-part-2)
+  ⏭️  [ID: 9545a2e2-2496-4180-9bab-f1246ee6b849] Already up to date (all 19 语), skipping.
+
+处理素材 [55/310]: TED Talk - How to Be Happier... (None)
+  ⏭️  [ID: 40e88dc6-1e3d-48d0-b232-830672b5cadb] Already up to date (all 19 语), skipping.
+
+处理素材 [56/310]: Memories... (memories)
+  ⏭️  [ID: 2544bd38-c3d1-4569-bbd0-2abb2008e081] Already up to date (all 19 语), skipping.
+
+处理素材 [57/310]: New Year's Day... (new-years-day)
+  ⏭️  [ID: aa6b7093-6eb5-4284-935a-46fdbbb284f7] Already up to date (all 19 语), skipping.
+
+处理素材 [58/310]: Valentine's Day Story Culture and History Stories for Kids... (valentines-day-story-culture-and-history-stories-for-kids)
+  ⏭️  [ID: c3c9e82d-b867-4603-851d-0b51ccd09851] Already up to date (all 19 语), skipping.
+
+处理素材 [59/310]: Handel's 'Messiah'... (handels-messiah)
+  ⏭️  [ID: f1e86100-38ac-4645-aa38-fe0e867167ed] Already up to date (all 19 语), skipping.
+
+处理素材 [60/310]: Cam 17 Academic Listening Test 3 Part 1... (cam-17-academic-listening-test-3-part-1)
+[11:20:04]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[11:20:09]   🔄 开始翻译 Group B (8 种语言)...
+[11:20:34]   进度: 5/54, 成功: 2, 失败: 0
+[11:20:34]   进度: 10/54, 成功: 2, 失败: 0
+[11:20:34]   进度: 15/54, 成功: 2, 失败: 0
+[11:20:34]   进度: 20/54, 成功: 2, 失败: 0
+[11:20:34]   进度: 25/54, 成功: 2, 失败: 0
+[11:20:34]   进度: 30/54, 成功: 2, 失败: 0
+[11:20:34]   进度: 35/54, 成功: 2, 失败: 0
+[11:20:34]   进度: 40/54, 成功: 2, 失败: 0
+[11:20:37]   进度: 45/54, 成功: 3, 失败: 0
+[11:20:39]   进度: 50/54, 成功: 4, 失败: 0
+[11:22:08]   ✅ Group B 完成: 成功 5, 失败 1，已保存
+  ✅ ✓ 翻译 5 条，失败 1 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+================================================================================
+  进度统计 [60/310] - 19.4%
+================================================================================
+  已处理: 60 | 成功: 13 | 跳过: 47 | 失败: 0
+  成功率: 21.7%
+================================================================================
+
+处理素材 [61/310]: Halloween (3)... (halloween-3)
+  ⏭️  [ID: 5c4d067d-a667-4e54-a631-6f6a7f7f3d4b] Already up to date (all 19 语), skipping.
+
+处理素材 [62/310]: My Mother... (my-mother)
+  ⏭️  [ID: 8ae025f5-2bae-4e47-99d1-9cfd6c8ce856] Already up to date (all 19 语), skipping.
+
+处理素材 [63/310]: Cam 12 Academic Listening Test 3 Part 2... (cam-12-academic-listening-test-3-part-2)
+[11:23:08]   🔄 开始翻译 Group A (8 种语言)...
+[11:23:29]   进度: 5/38, 成功: 1, 失败: 2
+[11:23:50]   进度: 10/38, 成功: 1, 失败: 4
+[11:24:48]   进度: 15/38, 成功: 2, 失败: 4
+[11:25:03]   进度: 20/38, 成功: 4, 失败: 5
+[11:25:03]   进度: 25/38, 成功: 4, 失败: 5
+[11:25:03]   进度: 30/38, 成功: 4, 失败: 5
+[11:25:09]   进度: 35/38, 成功: 6, 失败: 5
+[11:25:12]   ✅ Group A 完成: 成功 6, 失败 5，已保存
+[11:25:12]   🇻🇳 开始补课越南语（老版 Prompt）...
+[11:26:25]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 6 条，失败 7 条 [TODO_RETRY]
+
+处理素材 [64/310]: Jack and the beanstalk - Kids Stories - LearnEnglish Kids Br... (jack-and-the-beanstalk-kids-stories-learnenglish-kids-british-council)
+  ⏭️  [ID: 04529d4b-d1f1-4e0e-ba85-cc98adc38cab] Already up to date (all 19 语), skipping.
+
+处理素材 [65/310]: Cam 15 Academic Listening Test 2 Part 3... (cam-15-academic-listening-test-2-part-3)
+  ⏭️  [ID: 3044000d-7f01-4c86-a7e3-f57232b8993e] Already up to date (all 19 语), skipping.
+
+处理素材 [66/310]: Cam 15 Academic Listening Test 3 Part 3... (cam-15-academic-listening-test-3-part-3)
+  ⏭️  [ID: 2149b1b2-5e8e-4c93-8fb3-d514b2f1e6bd] Already up to date (all 19 语), skipping.
+
+处理素材 [67/310]: Cam 14 Academic Listening Test 3 Part 2... (cam-14-academic-listening-test-3-part-2)
+  ⏭️  [ID: 832bcbb4-9800-49e7-8ce5-ee2931541d1a] Already up to date (all 19 语), skipping.
+
+处理素材 [68/310]: Getting Old... (getting-old)
+  ⏭️  [ID: d548de43-3686-4f63-8b6e-b0e66e7c15be] Already up to date (all 19 语), skipping.
+
+处理素材 [69/310]: Cam 17 Academic Listening Test 2 Part 4... (cam-17-academic-listening-test-2-part-4)
+  ⏭️  [ID: e7237ce3-7198-4310-a795-ae7b5c84fa24] Already up to date (all 19 语), skipping.
+
+处理素材 [70/310]: Cam 13 Academic Listening Test 4 Part 1... (cam-13-academic-listening-test-4-part-1)
+  ⏭️  [ID: 232a549a-72fa-41ae-acba-1a74c0527405] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [70/310] - 22.6%
+================================================================================
+  已处理: 70 | 成功: 14 | 跳过: 56 | 失败: 0
+  成功率: 20.0%
+================================================================================
+
+处理素材 [71/310]: Cam 15 Academic Listening Test 4 Part 1... (cam-15-academic-listening-test-4-part-1)
+  ⏭️  [ID: 69fb7c45-26ca-4c32-a226-a0f72477f9a5] Already up to date (all 19 语), skipping.
+
+处理素材 [72/310]: Cam 11 Academic Listening Test 2 Part 1... (cam-11-academic-listening-test-2-part-1)
+[11:26:37]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[11:26:42]   🔄 开始翻译 Group B (8 种语言)...
+[11:26:49]   进度: 5/64, 成功: 0, 失败: 1
+[11:26:49]   进度: 10/64, 成功: 0, 失败: 1
+[11:26:49]   进度: 15/64, 成功: 0, 失败: 1
+[11:26:49]   进度: 20/64, 成功: 0, 失败: 1
+[11:26:49]   进度: 25/64, 成功: 0, 失败: 1
+[11:26:49]   进度: 30/64, 成功: 0, 失败: 1
+[11:28:22]   进度: 35/64, 成功: 1, 失败: 2
+[11:28:22]   进度: 40/64, 成功: 1, 失败: 2
+[11:28:22]   进度: 45/64, 成功: 1, 失败: 2
+[11:28:22]   进度: 50/64, 成功: 1, 失败: 2
+[11:28:22]   进度: 55/64, 成功: 1, 失败: 2
+[11:28:22]   进度: 60/64, 成功: 1, 失败: 2
+[11:28:24]   ✅ Group B 完成: 成功 1, 失败 2，已保存
+[11:28:24]   🇻🇳 开始补课越南语（老版 Prompt）...
+[11:29:34]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 1 条，失败 4 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [73/310]: Homework... (homework)
+  ⏭️  [ID: de45969c-92c9-47d1-89e8-cb0ad1ad9fbd] Already up to date (all 19 语), skipping.
+
+处理素材 [74/310]: Cam 12 Academic Listening Test 4 Part 2... (cam-12-academic-listening-test-4-part-2)
+[11:29:37]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[11:29:42]   🔄 开始翻译 Group B (8 种语言)...
+[11:30:00]   进度: 5/39, 成功: 1, 失败: 0
+[11:31:14]   进度: 10/39, 成功: 3, 失败: 0
+[11:31:14]   进度: 15/39, 成功: 3, 失败: 0
+[11:31:14]   进度: 20/39, 成功: 3, 失败: 0
+[11:31:14]   进度: 25/39, 成功: 3, 失败: 0
+[11:31:14]   进度: 30/39, 成功: 3, 失败: 0
+[11:31:38]   进度: 35/39, 成功: 4, 失败: 0
+[11:31:41]   ✅ Group B 完成: 成功 4, 失败 0，已保存
+  ✅ ✓ 翻译 4 条
+
+处理素材 [75/310]: Cam 19 Academic Listening Test 2 Part 1... (cam-19-academic-listening-test-2-part-1)
+  ⏭️  [ID: 18bc3f54-6caa-4518-b1d3-a9ab9a4bae95] Already up to date (all 19 语), skipping.
+
+处理素材 [76/310]: B3L3 Dialogue... (b3l3-dialogue)
+  ⏭️  [ID: 070b72db-5580-4659-b276-5d1f72445b1d] Already up to date (all 19 语), skipping.
+
+处理素材 [77/310]: How humanity got hooked on coffee - Jonathan Morris... (how-humanity-got-hooked-on-coffee-jonathan-morris)
+  ⏭️  [ID: 4b1d93fc-4ad0-443f-a386-bbbd1887715d] Already up to date (all 19 语), skipping.
+
+处理素材 [78/310]: Cam 12 Academic Listening Test 1 Part 1... (cam-12-academic-listening-test-1-part-1)
+  ⏭️  [ID: 42aa4424-5b48-4701-842f-567a608a71a6] Already up to date (all 19 语), skipping.
+
+处理素材 [79/310]: My Dad... (my-dad)
+  ⏭️  [ID: 4f25a019-b1d8-4429-8238-c3df60a03c84] Already up to date (all 19 语), skipping.
+
+处理素材 [80/310]: The Pet Store... (the-pet-store)
+  ⏭️  [ID: 06b516a0-4c75-47b2-9358-c8cceddda200] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [80/310] - 25.8%
+================================================================================
+  已处理: 80 | 成功: 16 | 跳过: 64 | 失败: 0
+  成功率: 20.0%
+================================================================================
+
+处理素材 [81/310]: Amy... (amy)
+  ⏭️  [ID: 46e29d7f-cf99-4d34-b074-985a6503e67b] Already up to date (all 19 语), skipping.
+
+处理素材 [82/310]: Cam 14 Academic Listening Test 3 Part 4... (cam-14-academic-listening-test-3-part-4)
+  ⏭️  [ID: 59eaa2a6-fb5d-4348-9a5a-98be87f0ea4e] Already up to date (all 19 语), skipping.
+
+处理素材 [83/310]: What does he look like? Easy English Conversations Episode 1... (what-does-he-look-like-easy-english-conversations-episode-17)
+  ⏭️  [ID: 6745c217-4c0b-4e44-804e-2688ae1b3dfb] Already up to date (all 19 语), skipping.
+
+处理素材 [84/310]: Introductions _ Beginner English _ How to Introduce yourself... (introductions-beginner-english-how-to-introduce-yourself-in-english)
+  ⏭️  [ID: c40739a5-3526-4c5d-b55a-35898118fc94] Already up to date (all 19 语), skipping.
+
+处理素材 [85/310]: A Life Experience... (a-life-experience)
+  ⏭️  [ID: efd1ff93-5da5-4b83-a0f8-06f778e33ad5] Already up to date (all 19 语), skipping.
+
+处理素材 [86/310]: Cam 17 Academic Listening Test 2 Part 3... (cam-17-academic-listening-test-2-part-3)
+  ⏭️  [ID: 5100cb57-ac40-469a-ba22-53db3addd823] Already up to date (all 19 语), skipping.
+
+处理素材 [87/310]: The Lie... (the-lie)
+  ⏭️  [ID: c34a17a0-485c-4552-9ee4-47e880298f31] Already up to date (all 19 语), skipping.
+
+处理素材 [88/310]: Cam 15 Academic Listening Test 3 Part 2... (cam-15-academic-listening-test-3-part-2)
+[11:32:53]   🔄 开始翻译 Group A (8 种语言)...
+[11:32:58]   进度: 5/44, 成功: 2, 失败: 0
+[11:32:58]   进度: 10/44, 成功: 2, 失败: 0
+[11:33:01]   进度: 15/44, 成功: 3, 失败: 0
+[11:33:11]   进度: 20/44, 成功: 4, 失败: 1
+[11:33:11]   进度: 25/44, 成功: 4, 失败: 1
+[11:33:11]   进度: 30/44, 成功: 4, 失败: 1
+[11:33:14]   进度: 35/44, 成功: 6, 失败: 1
+[11:33:22]   进度: 40/44, 成功: 6, 失败: 2
+[11:33:25]   ✅ Group A 完成: 成功 6, 失败 2，已保存
+[11:33:25]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[11:34:20]   🔄 开始翻译 Group B (8 种语言)...
+[11:34:27]   进度: 5/44, 成功: 2, 失败: 0
+[11:34:31]   进度: 10/44, 成功: 3, 失败: 0
+[11:34:31]   进度: 15/44, 成功: 3, 失败: 0
+[11:34:31]   进度: 20/44, 成功: 3, 失败: 0
+[11:34:46]   进度: 25/44, 成功: 4, 失败: 0
+[11:36:14]   进度: 30/44, 成功: 4, 失败: 1
+[11:36:14]   进度: 35/44, 成功: 4, 失败: 1
+[11:36:14]   进度: 40/44, 成功: 4, 失败: 1
+[11:38:13]   ✅ Group B 完成: 成功 5, 失败 2，已保存
+  ✅ ✓ 翻译 11 条，失败 4 条 [TODO_RETRY]
+
+处理素材 [89/310]: Cam 11 Academic Listening Test 2 Part 2... (cam-11-academic-listening-test-2-part-2)
+  ⏭️  [ID: 6098f598-044b-4585-bf28-fc0b04a2f23c] Already up to date (all 19 语), skipping.
+
+处理素材 [90/310]: Time... (time)
+  ⏭️  [ID: 9f8f77a2-2924-44d1-a7f1-d387cb735f8c] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [90/310] - 29.0%
+================================================================================
+  已处理: 90 | 成功: 17 | 跳过: 73 | 失败: 0
+  成功率: 18.9%
+================================================================================
+
+处理素材 [91/310]: Garden... (garden)
+  ⏭️  [ID: 3e928fa6-899c-46a2-978a-3ee2a0c26eb9] Already up to date (all 19 语), skipping.
+
+处理素材 [92/310]: Cam 14 Academic Listening Test 4 Part 1... (cam-14-academic-listening-test-4-part-1)
+  ⏭️  [ID: db224a7c-4bcf-47af-badf-ed4c83676e55] Already up to date (all 19 语), skipping.
+
+处理素材 [93/310]: Snow... (snow)
+  ⏭️  [ID: c9eb4442-7df4-4b16-bd3e-66587a6f67cb] Already up to date (all 19 语), skipping.
+
+处理素材 [94/310]: Unlock the Secrets to School Success_ Develop Good Habits To... (unlock-the-secrets-to-school-success-develop-good-habits-today)
+  ⏭️  [ID: f7e93869-2a3a-41d4-a086-4a307c425b0f] Already up to date (all 19 语), skipping.
+
+处理素材 [95/310]: Moral Stories In English | The Ass In The Lion's Skin | Engl... (moral-stories-in-english-the-ass-in-the-lions-skin-english-animated-short-stories)
+  ⏭️  [ID: 78ea9a71-4710-4c2a-886a-f79ebb0a3d14] Already up to date (all 19 语), skipping.
+
+处理素材 [96/310]: Cam 17 Academic Listening Test 2 Part 2... (cam-17-academic-listening-test-2-part-2)
+[11:39:16]   🔄 开始翻译 Group A (8 种语言)...
+[11:39:23]   进度: 5/36, 成功: 0, 失败: 1
+[11:39:23]   进度: 10/36, 成功: 0, 失败: 1
+[11:39:27]   进度: 15/36, 成功: 1, 失败: 1
+[11:39:27]   进度: 20/36, 成功: 1, 失败: 1
+[11:39:27]   进度: 25/36, 成功: 1, 失败: 1
+[11:39:27]   进度: 30/36, 成功: 1, 失败: 1
+[11:39:27]   进度: 35/36, 成功: 1, 失败: 1
+[11:39:30]   ✅ Group A 完成: 成功 1, 失败 1，已保存
+[11:39:30]   🇻🇳 开始补课越南语（老版 Prompt）...
+[11:41:27]   ✅ 越南语补课完成: 成功 1, 失败 3，已保存
+  ✅ ✓ 翻译 2 条，失败 4 条 [TODO_RETRY]
+
+处理素材 [97/310]: Cam 19 Academic Listening Test 1 Part 4... (cam-19-academic-listening-test-1-part-4)
+[11:41:29]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[11:41:34]   🔄 开始翻译 Group B (8 种语言)...
+[11:43:01]   进度: 5/37, 成功: 2, 失败: 0
+[11:43:57]   进度: 10/37, 成功: 2, 失败: 1
+[11:43:57]   进度: 15/37, 成功: 2, 失败: 1
+[11:44:02]   进度: 20/37, 成功: 3, 失败: 1
+[11:44:02]   进度: 25/37, 成功: 3, 失败: 1
+[11:44:02]   进度: 30/37, 成功: 3, 失败: 1
+[11:44:02]   进度: 35/37, 成功: 3, 失败: 1
+[11:44:10]   ✅ Group B 完成: 成功 3, 失败 1，已保存
+  ✅ ✓ 翻译 3 条，失败 1 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [98/310]: Cam 13 Academic Listening Test 3 Part 4... (cam-13-academic-listening-test-3-part-4)
+  ⏭️  [ID: 19b5136b-fc59-47ae-bd89-a2c3a9202532] Already up to date (all 19 语), skipping.
+
+处理素材 [99/310]: Cam 10 Academic Listening Test 3 Part 2... (cam-10-academic-listening-test-3-part-2)
+[11:44:14]   🔄 开始翻译 Group A (8 种语言)...
+[11:44:19]   进度: 5/44, 成功: 2, 失败: 0
+[11:44:19]   进度: 10/44, 成功: 2, 失败: 0
+[11:44:24]   进度: 15/44, 成功: 4, 失败: 0
+[11:45:23]   进度: 20/44, 成功: 4, 失败: 1
+[11:45:36]   进度: 25/44, 成功: 4, 失败: 2
+[11:45:36]   进度: 30/44, 成功: 4, 失败: 2
+[11:45:36]   进度: 35/44, 成功: 4, 失败: 2
+[11:45:36]   进度: 40/44, 成功: 4, 失败: 2
+[11:45:48]   ✅ Group A 完成: 成功 4, 失败 3，已保存
+  ✅ ✓ 翻译 4 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [100/310]: How smart are crows? - Katharina Brecht... (how-smart-are-crows-katharina-brecht)
+  ⏭️  [ID: a04f74cd-5c8d-4896-9bfc-99c4e39ab137] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [100/310] - 32.3%
+================================================================================
+  已处理: 100 | 成功: 20 | 跳过: 80 | 失败: 0
+  成功率: 20.0%
+================================================================================
+
+处理素材 [101/310]: The 3 best predictors of how well youll age - Juulia Jylhv... (the-3-best-predictors-of-how-well-youll-age-juulia-jylhv)
+[11:45:51]   🔄 开始翻译 Group A (8 种语言)...
+[11:45:59]   进度: 5/38, 成功: 2, 失败: 0
+[11:45:59]   进度: 10/38, 成功: 2, 失败: 0
+[11:45:59]   进度: 15/38, 成功: 2, 失败: 0
+[11:47:30]   进度: 20/38, 成功: 2, 失败: 1
+[11:47:34]   进度: 25/38, 成功: 3, 失败: 1
+[11:47:34]   进度: 30/38, 成功: 3, 失败: 1
+[11:47:35]   进度: 35/38, 成功: 4, 失败: 1
+[11:47:37]   ✅ Group A 完成: 成功 4, 失败 1，已保存
+[11:47:37]   🇻🇳 开始补课越南语（老版 Prompt）...
+[11:48:44]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 4 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [102/310]: Making Friends... (making-friends)
+  ⏭️  [ID: a034877b-3482-4362-af18-cab6b2924c86] Already up to date (all 19 语), skipping.
+
+处理素材 [103/310]: Cam 19 Academic Listening Test 1 Part 3... (cam-19-academic-listening-test-1-part-3)
+  ⏭️  [ID: e285eae1-6ca5-44fb-887c-963af456dfc8] Already up to date (all 19 语), skipping.
+
+处理素材 [104/310]: Cam 14 Academic Listening Test 4 Part 2... (cam-14-academic-listening-test-4-part-2)
+  ⏭️  [ID: cb66e62b-6649-477d-b570-7bb73b74072c] Already up to date (all 19 语), skipping.
+
+处理素材 [105/310]: The Middle Child... (the-middle-child)
+  ⏭️  [ID: d3bb9d80-ffc8-4981-86b7-42f8215c770e] Already up to date (all 19 语), skipping.
+
+处理素材 [106/310]: Places to Live... (places-to-live)
+  ⏭️  [ID: 8e203c29-c1d9-4c3d-9ed3-afff49e36088] Already up to date (all 19 语), skipping.
+
+处理素材 [107/310]: Cam 14 Academic Listening Test 3 Part 3... (cam-14-academic-listening-test-3-part-3)
+  ⏭️  [ID: b31044b0-caed-42e8-b4c1-63240aa35d73] Already up to date (all 19 语), skipping.
+
+处理素材 [108/310]: Mark's Big Game... (marks-big-game)
+  ⏭️  [ID: 6179ea86-18c5-41fd-8b6f-6b83f5716e1b] Already up to date (all 19 语), skipping.
+
+处理素材 [109/310]: Cam 10 Academic Listening Test 4 Part 3... (cam-10-academic-listening-test-4-part-3)
+[11:48:54]   🔄 开始翻译 Group A (8 种语言)...
+[11:49:03]   进度: 5/62, 成功: 5, 失败: 0
+[11:49:21]   进度: 10/62, 成功: 12, 失败: 0
+[11:50:44]   进度: 15/62, 成功: 23, 失败: 0
+[11:50:54]   进度: 20/62, 成功: 30, 失败: 0
+[11:51:11]   进度: 25/62, 成功: 39, 失败: 0
+[11:51:18]   进度: 30/62, 成功: 44, 失败: 0
+[11:52:19]   进度: 35/62, 成功: 49, 失败: 0
+[11:52:27]   进度: 40/62, 成功: 54, 失败: 0
+[11:52:41]   进度: 45/62, 成功: 63, 失败: 0
+[11:53:55]   进度: 50/62, 成功: 72, 失败: 0
+[11:54:15]   进度: 55/62, 成功: 80, 失败: 0
+[11:55:31]   进度: 60/62, 成功: 87, 失败: 1
+[11:55:38]   ✅ Group A 完成: 成功 90, 失败 1，已保存
+[11:55:38]   🇻🇳 开始补课越南语（老版 Prompt）...
+[11:57:38]   ✅ 越南语补课完成: 成功 6, 失败 2，已保存
+  ✅ ✓ 翻译 96 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [110/310]: Cam 17 Academic Listening Test 2 Part 1... (cam-17-academic-listening-test-2-part-1)
+  ⏭️  [ID: 022840cd-4e77-4055-981e-49e81b56d2ef] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [110/310] - 35.5%
+================================================================================
+  已处理: 110 | 成功: 22 | 跳过: 88 | 失败: 0
+  成功率: 20.0%
+================================================================================
+
+处理素材 [111/310]: Cam 12 Academic Listening Test 2 Part 3... (cam-12-academic-listening-test-2-part-3)
+  ⏭️  [ID: f9ef9c10-91db-4104-ae7e-91128887fc2c] Already up to date (all 19 语), skipping.
+
+处理素材 [112/310]: Personal Computers... (personal-computers)
+  ⏭️  [ID: 086c0930-90f9-47a5-ba77-86055afd29f4] Already up to date (all 19 语), skipping.
+
+处理素材 [113/310]: Advice... (advice)
+  ⏭️  [ID: 1ecd73ef-d222-4641-82e7-e95a45ed2994] Already up to date (all 19 语), skipping.
+
+处理素材 [114/310]: Cam 15 Academic Listening Test 2 Part 4... (cam-15-academic-listening-test-2-part-4)
+  ⏭️  [ID: 463a9131-db1c-40fe-a3e8-f2ba456d2313] Already up to date (all 19 语), skipping.
+
+处理素材 [115/310]: Eating Out... (eating-out)
+  ⏭️  [ID: 0cc2b162-bdf5-4d17-8e28-b4f258441d19] Already up to date (all 19 语), skipping.
+
+处理素材 [116/310]: Cam 13 Academic Listening Test 3 Part 3... (cam-13-academic-listening-test-3-part-3)
+  ⏭️  [ID: 314b8391-d7d4-4768-820d-8749303306a4] Already up to date (all 19 语), skipping.
+
+处理素材 [117/310]: A Wedding... (a-wedding)
+  ⏭️  [ID: 2e1e4ec7-3056-4abb-8a5a-4a65e0a07509] Already up to date (all 19 语), skipping.
+
+处理素材 [118/310]: Cam 10 Academic Listening Test 3 Part 1... (cam-10-academic-listening-test-3-part-1)
+  ⏭️  [ID: 10f5c8e4-6fb1-4466-ac47-b2bc3ebe304c] Already up to date (all 19 语), skipping.
+
+处理素材 [119/310]: Who is the tallest? Easy English Conversations  Episode 18... (who-is-the-tallest-easy-english-conversations-episode-18)
+  ⏭️  [ID: 15c1e2eb-3e70-41e2-9bd2-deaa6aebd41b] Already up to date (all 19 语), skipping.
+
+处理素材 [120/310]: Cam 11 Academic Listening Test 2 Part 3... (cam-11-academic-listening-test-2-part-3)
+  ⏭️  [ID: 36181ca5-2470-423c-96c6-78a28a947cc1] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [120/310] - 38.7%
+================================================================================
+  已处理: 120 | 成功: 22 | 跳过: 98 | 失败: 0
+  成功率: 18.3%
+================================================================================
+
+处理素材 [121/310]: Cam 10 Academic Listening Test 4 Part 2... (cam-10-academic-listening-test-4-part-2)
+[11:58:46]   🔄 开始翻译 Group A (8 种语言)...
+[11:58:56]   进度: 5/40, 成功: 6, 失败: 0
+[12:00:24]   进度: 10/40, 成功: 16, 失败: 1
+[12:00:46]   进度: 15/40, 成功: 24, 失败: 1
+[12:01:56]   进度: 20/40, 成功: 31, 失败: 1
+[12:02:16]   进度: 25/40, 成功: 40, 失败: 1
+[12:03:33]   进度: 30/40, 成功: 50, 失败: 1
+[12:03:46]   进度: 35/40, 成功: 57, 失败: 1
+[12:04:56]   进度: 40/40, 成功: 63, 失败: 1
+[12:05:00]   ✅ Group A 完成: 成功 63, 失败 1，已保存
+[12:05:00]   🇻🇳 开始补课越南语（老版 Prompt）...
+[12:06:20]   ✅ 越南语补课完成: 成功 1, 失败 2，已保存
+  ✅ ✓ 翻译 64 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [122/310]: Cam 11 Academic Listening Test 2 Part 4... (cam-11-academic-listening-test-2-part-4)
+[12:06:21]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[12:06:26]   🔄 开始翻译 Group B (8 种语言)...
+[12:06:34]   进度: 5/37, 成功: 2, 失败: 0
+[12:09:55]   进度: 10/37, 成功: 3, 失败: 2
+[12:10:26]   进度: 15/37, 成功: 3, 失败: 4
+[12:11:00]   进度: 20/37, 成功: 4, 失败: 5
+[12:11:04]   进度: 25/37, 成功: 5, 失败: 5
+[12:11:04]   进度: 30/37, 成功: 5, 失败: 5
+[12:11:12]   进度: 35/37, 成功: 5, 失败: 6
+[12:11:15]   ✅ Group B 完成: 成功 5, 失败 6，已保存
+[12:11:15]   🇻🇳 开始补课越南语（老版 Prompt）...
+[12:12:37]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 5 条，失败 8 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [123/310]: Cam 13 Academic Listening Test 3 Part 1... (cam-13-academic-listening-test-3-part-1)
+  ⏭️  [ID: 97778c0c-5530-4593-938f-5789aa1e9479] Already up to date (all 19 语), skipping.
+
+处理素材 [124/310]: Cam 10 Academic Listening Test 2 Part 4... (cam-10-academic-listening-test-2-part-4)
+  ⏭️  [ID: 3e6a3a20-39ca-4051-9161-ae3c722443c7] Already up to date (all 19 语), skipping.
+
+处理素材 [125/310]: Cam 10 Academic Listening Test 2 Part 2... (cam-10-academic-listening-test-2-part-2)
+  ⏭️  [ID: 67bb69f3-ca53-4d83-9a4d-9889507c4fb2] Already up to date (all 19 语), skipping.
+
+处理素材 [126/310]: Cam 10 Academic Listening Test 3 Part 4... (cam-10-academic-listening-test-3-part-4)
+  ⏭️  [ID: 6714f842-4b80-4f1d-8377-f83cd152c8d7] Already up to date (all 19 语), skipping.
+
+处理素材 [127/310]: What lack of sleep does to the teenage brain - Wendy Troxel... (what-lack-of-sleep-does-to-the-teenage-brain-wendy-troxel)
+  ⏭️  [ID: 1a0b9159-ce41-4f70-8b63-88b1962ad455] Already up to date (all 19 语), skipping.
+
+处理素材 [128/310]: Cam 14 Academic Listening Test 2 Part 1... (cam-14-academic-listening-test-2-part-1)
+  ⏭️  [ID: 76520241-aa9d-4beb-967f-1a6c43970907] Already up to date (all 19 语), skipping.
+
+处理素材 [129/310]: The Police... (the-police)
+  ⏭️  [ID: 1e4e1810-ff4f-4c65-8fad-87b3ff82a768] Already up to date (all 19 语), skipping.
+
+处理素材 [130/310]: Cam 12 Academic Listening Test 2 Part 2... (cam-12-academic-listening-test-2-part-2)
+  ⏭️  [ID: aec68ddd-86f1-4b8c-8bc0-2c5d9095f7b4] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [130/310] - 41.9%
+================================================================================
+  已处理: 130 | 成功: 24 | 跳过: 106 | 失败: 0
+  成功率: 18.5%
+================================================================================
+
+处理素材 [131/310]: Cam 12 Academic Listening Test 3 Part 1... (cam-12-academic-listening-test-3-part-1)
+  ⏭️  [ID: 1ca35445-a8e4-4c20-ad8a-be65b25ba00c] Already up to date (all 19 语), skipping.
+
+处理素材 [132/310]: Cam 11 Academic Listening Test 1 Part 1... (cam-11-academic-listening-test-1-part-1)
+  ⏭️  [ID: 90d316aa-b508-4f63-ac0e-69b46ea33750] Already up to date (all 19 语), skipping.
+
+处理素材 [133/310]: Cam 13 Academic Listening Test 3 Part 2... (cam-13-academic-listening-test-3-part-2)
+  ⏭️  [ID: 64a79566-e146-4800-9ec0-b621cdde2a3a] Already up to date (all 19 语), skipping.
+
+处理素材 [134/310]: Cam 13 Academic Listening Test 2 Part 3... (cam-13-academic-listening-test-2-part-3)
+  ⏭️  [ID: cf57ba14-57cf-47e0-ae23-248cb6886427] Already up to date (all 19 语), skipping.
+
+处理素材 [135/310]: Transportation (2)... (transportation-2)
+[12:12:56]   🔄 开始翻译 Group A (8 种语言)...
+[12:13:05]   进度: 5/35, 成功: 6, 失败: 0
+[12:14:43]   进度: 10/35, 成功: 13, 失败: 0
+[12:14:51]   进度: 15/35, 成功: 18, 失败: 0
+[12:15:58]   进度: 20/35, 成功: 25, 失败: 0
+[12:16:06]   进度: 25/35, 成功: 30, 失败: 0
+[12:16:16]   进度: 30/35, 成功: 36, 失败: 0
+[12:16:26]   进度: 35/35, 成功: 41, 失败: 0
+[12:17:11] transportation-2: [Errno 54] Connection reset by peer
+  ❌ transportation-2: [Errno 54] Connection reset by peer
+
+处理素材 [136/310]: Cam 10 Academic Listening Test 1 Part 1... (cam-10-academic-listening-test-1-part-1)
+[12:17:13]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[12:17:18]   🔄 开始翻译 Group B (8 种语言)...
+[12:17:21]   进度: 5/58, 成功: 1, 失败: 0
+[12:17:21]   进度: 10/58, 成功: 1, 失败: 0
+[12:17:21]   进度: 15/58, 成功: 1, 失败: 0
+[12:17:21]   进度: 20/58, 成功: 1, 失败: 0
+[12:17:32]   进度: 25/58, 成功: 2, 失败: 0
+[12:17:32]   进度: 30/58, 成功: 2, 失败: 0
+[12:17:32]   进度: 35/58, 成功: 2, 失败: 0
+[12:17:32]   进度: 40/58, 成功: 2, 失败: 0
+[12:17:32]   进度: 45/58, 成功: 2, 失败: 0
+[12:17:32]   进度: 50/58, 成功: 2, 失败: 0
+[12:17:32]   进度: 55/58, 成功: 2, 失败: 0
+[12:17:35]   ✅ Group B 完成: 成功 2, 失败 0，已保存
+  ✅ ✓ 翻译 2 条
+
+处理素材 [137/310]: Cam 10 Academic Listening Test 1 Part 2... (cam-10-academic-listening-test-1-part-2)
+  ⏭️  [ID: acacaa5e-c297-4917-a7c5-7f8dde55dff7] Already up to date (all 19 语), skipping.
+
+处理素材 [138/310]: Cam 10 Academic Listening Test 1 Part 3... (cam-10-academic-listening-test-1-part-3)
+  ⏭️  [ID: 06e0d1fe-0538-45a8-8420-d9a873bbaa8c] Already up to date (all 19 语), skipping.
+
+处理素材 [139/310]: Cam 10 Academic Listening Test 2 Part 3... (cam-10-academic-listening-test-2-part-3)
+  ⏭️  [ID: ebd343fe-4f5b-40c8-ba89-e9b04eb3b82c] Already up to date (all 19 语), skipping.
+
+处理素材 [140/310]: Cam 10 Academic Listening Test 3 Part 3... (cam-10-academic-listening-test-3-part-3)
+  ⏭️  [ID: 0bac94c7-66d2-4210-8370-c679b8778647] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [140/310] - 45.2%
+================================================================================
+  已处理: 140 | 成功: 25 | 跳过: 114 | 失败: 1
+  成功率: 17.9%
+================================================================================
+
+处理素材 [141/310]: Going Camping... (going-camping)
+  ⏭️  [ID: 2c2b51d8-1edc-4cab-9359-561ae86509ec] Already up to date (all 19 语), skipping.
+
+处理素材 [142/310]: A Rainy Day... (a-rainy-day)
+  ⏭️  [ID: 9cfca4f1-8b66-4a8f-8608-64b269ab7cbc] Already up to date (all 19 语), skipping.
+
+处理素材 [143/310]: Cam 10 Academic Listening Test 4 Part 4... (cam-10-academic-listening-test-4-part-4)
+[12:17:45]   🔄 开始翻译 Group A (8 种语言)...
+[12:18:51]   进度: 5/41, 成功: 1, 失败: 1
+[12:18:59]   进度: 10/41, 成功: 2, 失败: 2
+[12:19:06]   进度: 15/41, 成功: 4, 失败: 2
+[12:19:13]   进度: 20/41, 成功: 4, 失败: 3
+[12:19:18]   进度: 25/41, 成功: 6, 失败: 3
+[12:19:18]   进度: 30/41, 成功: 6, 失败: 3
+[12:19:18]   进度: 35/41, 成功: 6, 失败: 3
+[12:19:18]   进度: 40/41, 成功: 6, 失败: 3
+[12:20:15]   ✅ Group A 完成: 成功 6, 失败 3，已保存
+[12:20:15]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[12:20:20]   🔄 开始翻译 Group B (8 种语言)...
+[12:20:42]   进度: 5/41, 成功: 0, 失败: 2
+[12:21:43]   进度: 10/41, 成功: 0, 失败: 3
+[12:22:09]   进度: 15/41, 成功: 3, 失败: 4
+[12:26:34]   进度: 20/41, 成功: 3, 失败: 8
+[12:26:56]   进度: 25/41, 成功: 4, 失败: 8
+[12:26:56]   进度: 30/41, 成功: 4, 失败: 8
+[12:26:56]   进度: 35/41, 成功: 4, 失败: 8
+[12:27:03]   进度: 40/41, 成功: 5, 失败: 8
+[12:27:06]   ✅ Group B 完成: 成功 5, 失败 8，已保存
+[12:27:06]   🇻🇳 开始补课越南语（老版 Prompt）...
+[12:28:19]   ✅ 越南语补课完成: 成功 0, 失败 3，已保存
+  ✅ ✓ 翻译 11 条，失败 14 条 [TODO_RETRY]
+
+处理素材 [144/310]: The Goose That Laid The Golden Egg | Short Stories | Aesop's... (the-goose-that-laid-the-golden-egg-short-stories-aesops-fables-in-english)
+  ⏭️  [ID: 6c05b63f-a287-4c4a-9108-e1ed130e2fbc] Already up to date (all 19 语), skipping.
+
+处理素材 [145/310]: Cam 13 Academic Listening Test 2 Part 4... (cam-13-academic-listening-test-2-part-4)
+[12:28:22]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[12:28:27]   🔄 开始翻译 Group B (8 种语言)...
+[12:29:38]   进度: 5/43, 成功: 1, 失败: 0
+[12:29:43]   进度: 10/43, 成功: 2, 失败: 0
+[12:30:03]   进度: 15/43, 成功: 3, 失败: 0
+[12:30:04]   进度: 20/43, 成功: 4, 失败: 0
+[12:30:07]   进度: 25/43, 成功: 5, 失败: 0
+[12:31:18]   进度: 30/43, 成功: 7, 失败: 0
+[12:31:18]   进度: 35/43, 成功: 7, 失败: 0
+[12:31:22]   进度: 40/43, 成功: 8, 失败: 0
+[12:31:28]   ✅ Group B 完成: 成功 8, 失败 0，已保存
+[12:31:28]   🇻🇳 开始补课越南语（老版 Prompt）...
+[12:31:40]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 9 条，失败 1 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [146/310]: The Library... (the-library)
+  ⏭️  [ID: f4632efe-d785-4140-8be9-d141b7c9bb6d] Already up to date (all 19 语), skipping.
+
+处理素材 [147/310]: Cam 19 Academic Listening Test 1 Part 2... (cam-19-academic-listening-test-1-part-2)
+[12:31:43]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[12:31:50]   🔄 开始翻译 Group B (8 种语言)...
+[12:32:00]   进度: 5/44, 成功: 4, 失败: 0
+[12:32:29]   进度: 10/44, 成功: 9, 失败: 0
+[12:34:54]   进度: 15/44, 成功: 17, 失败: 0
+[12:35:22]   进度: 20/44, 成功: 22, 失败: 0
+[12:36:39]   进度: 25/44, 成功: 25, 失败: 0
+[12:36:48]   进度: 30/44, 成功: 30, 失败: 0
+[12:36:48]   进度: 35/44, 成功: 30, 失败: 0
+[12:38:21]   进度: 40/44, 成功: 33, 失败: 0
+[12:38:32]   ✅ Group B 完成: 成功 37, 失败 0，已保存
+  ✅ ✓ 翻译 37 条
+
+处理素材 [148/310]: Ordering in a Restaurant _ Beginner English _ Food... (ordering-in-a-restaurant-beginner-english-food)
+  ⏭️  [ID: 1ea59333-6a7f-48f7-a000-680181d67774] Already up to date (all 19 语), skipping.
+
+处理素材 [149/310]: Cam 15 Academic Listening Test 2 Part 1... (cam-15-academic-listening-test-2-part-1)
+[12:38:35]   🔄 开始翻译 Group A (8 种语言)...
+[12:38:38]   进度: 5/61, 成功: 2, 失败: 0
+[12:38:46]   进度: 10/61, 成功: 3, 失败: 0
+[12:38:46]   进度: 15/61, 成功: 3, 失败: 0
+[12:38:46]   进度: 20/61, 成功: 3, 失败: 0
+[12:38:46]   进度: 25/61, 成功: 3, 失败: 0
+[12:38:46]   进度: 30/61, 成功: 3, 失败: 0
+[12:39:03]   进度: 35/61, 成功: 3, 失败: 2
+[12:39:03]   进度: 40/61, 成功: 3, 失败: 2
+[12:39:18]   进度: 45/61, 成功: 3, 失败: 4
+[12:39:18]   进度: 50/61, 成功: 3, 失败: 4
+[12:40:21]   进度: 55/61, 成功: 4, 失败: 5
+[12:40:22]   进度: 60/61, 成功: 5, 失败: 5
+[12:40:25]   ✅ Group A 完成: 成功 5, 失败 5，已保存
+[12:40:25]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[12:40:30]   🔄 开始翻译 Group B (8 种语言)...
+[12:40:37]   进度: 5/61, 成功: 0, 失败: 1
+[12:40:37]   进度: 10/61, 成功: 0, 失败: 1
+[12:40:43]   进度: 15/61, 成功: 0, 失败: 2
+[12:40:46]   进度: 20/61, 成功: 1, 失败: 2
+[12:40:46]   进度: 25/61, 成功: 1, 失败: 2
+[12:40:46]   进度: 30/61, 成功: 1, 失败: 2
+[12:40:48]   进度: 35/61, 成功: 2, 失败: 2
+[12:40:48]   进度: 40/61, 成功: 2, 失败: 2
+[12:40:55]   进度: 45/61, 成功: 2, 失败: 3
+[12:40:55]   进度: 50/61, 成功: 2, 失败: 3
+[12:42:00]   进度: 55/61, 成功: 3, 失败: 4
+[12:42:00]   进度: 60/61, 成功: 3, 失败: 4
+[12:42:03]   ✅ Group B 完成: 成功 3, 失败 4，已保存
+[12:42:03]   🇻🇳 开始补课越南语（老版 Prompt）...
+[12:42:12]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 8 条，失败 10 条 [TODO_RETRY]
+
+处理素材 [150/310]: Cam 17 Academic Listening Test 1 Part 4... (cam-17-academic-listening-test-1-part-4)
+  ⏭️  [ID: ec726acb-e31e-465f-a690-dd694c95fe7f] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [150/310] - 48.4%
+================================================================================
+  已处理: 150 | 成功: 29 | 跳过: 120 | 失败: 1
+  成功率: 19.3%
+================================================================================
+
+处理素材 [151/310]: Cam 15 Academic Listening Test 3 Part 4... (cam-15-academic-listening-test-3-part-4)
+  ⏭️  [ID: 450aad47-b077-462b-a9b0-77ab4348d90a] Already up to date (all 19 语), skipping.
+
+处理素材 [152/310]: Cam 15 Academic Listening Test 1 Part 4... (cam-15-academic-listening-test-1-part-4)
+  ⏭️  [ID: 3875bcc9-689c-46d5-a825-35bfb98912c7] Already up to date (all 19 语), skipping.
+
+处理素材 [153/310]: Cam 17 Academic Listening Test 1 Part 3... (cam-17-academic-listening-test-1-part-3)
+  ⏭️  [ID: 19cfe152-5344-4baf-bc7f-2ef2fafa6827] Already up to date (all 19 语), skipping.
+
+处理素材 [154/310]: Cam 15 Academic Listening Test 2 Part 2... (cam-15-academic-listening-test-2-part-2)
+  ⏭️  [ID: cfa08d4a-f743-496c-aa6b-ab46c999435b] Already up to date (all 19 语), skipping.
+
+处理素材 [155/310]: B4L6 dialogue... (b4l6-dialogue)
+  ⏭️  [ID: 6414b5a5-c228-4176-a95e-128a1da660d1] Already up to date (all 19 语), skipping.
+
+处理素材 [156/310]: Methods of Transportation... (methods-of-transportation)
+  ⏭️  [ID: 1ef92097-cdeb-4d28-a356-a57d16aba596] Already up to date (all 19 语), skipping.
+
+处理素材 [157/310]: Cam 13 Academic Listening Test 2 Part 2... (cam-13-academic-listening-test-2-part-2)
+  ⏭️  [ID: b348f859-d353-4799-912c-f27e2e669798] Already up to date (all 19 语), skipping.
+
+处理素材 [158/310]: Pretending... (pretending)
+  ⏭️  [ID: 5f98b700-0241-48d7-ad20-c094d7030730] Already up to date (all 19 语), skipping.
+
+处理素材 [159/310]: Cam 19 Academic Listening Test 1 Part 1... (cam-19-academic-listening-test-1-part-1)
+  ⏭️  [ID: 2ceac77f-77e3-4fd5-b5bb-bb8edb1ec614] Already up to date (all 19 语), skipping.
+
+处理素材 [160/310]: Real-life Conversations for English Speaking Practice | Talk... (real-life-conversations-for-english-speaking-practice-talking-about-daily-routines-beginners)
+  ⏭️  [ID: 5f7d4543-0209-42c4-bbde-dd18799c727c] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [160/310] - 51.6%
+================================================================================
+  已处理: 160 | 成功: 29 | 跳过: 130 | 失败: 1
+  成功率: 18.1%
+================================================================================
+
+处理素材 [161/310]: Cam 11 Academic Listening Test 1 Part 2... (cam-11-academic-listening-test-1-part-2)
+  ⏭️  [ID: b3381d2e-7553-466c-bc4f-8a9f2b5a3411] Already up to date (all 19 语), skipping.
+
+处理素材 [162/310]: Cam 15 Academic Listening Test 1 Part 3... (cam-15-academic-listening-test-1-part-3)
+  ⏭️  [ID: 85121c18-be8a-4955-b5d7-e3ff3c4c31c2] Already up to date (all 19 语), skipping.
+
+处理素材 [163/310]: Cam 13 Academic Listening Test 2 Part 1... (cam-13-academic-listening-test-2-part-1)
+  ⏭️  [ID: b61ef6ee-d662-43a8-8cc3-1ea83dd9ebd9] Already up to date (all 19 语), skipping.
+
+处理素材 [164/310]: Why Do People Dislike Other People... (why-do-people-dislike-other-people)
+  ⏭️  [ID: fb56665f-9ed6-452d-a36a-7481ec38ea5d] Already up to date (all 19 语), skipping.
+
+处理素材 [165/310]: Who's in your family? Easy English Conversations  Episode 15... (whos-in-your-family-easy-english-conversations-episode-15)
+  ⏭️  [ID: 207fa425-8d8c-4081-8118-7dce104000dc] Already up to date (all 19 语), skipping.
+
+处理素材 [166/310]: Roommate Wanted... (roommate-wanted)
+  ⏭️  [ID: c4f664ae-fc49-46f0-9c9b-413dc30b7a0a] Already up to date (all 19 语), skipping.
+
+处理素材 [167/310]: Cam 17 Academic Listening Test 1 Part 2... (cam-17-academic-listening-test-1-part-2)
+[12:43:34]   🔄 开始翻译 Group A (8 种语言)...
+[12:43:45]   进度: 5/38, 成功: 2, 失败: 1
+[12:43:47]   进度: 10/38, 成功: 3, 失败: 1
+[12:43:55]   进度: 15/38, 成功: 3, 失败: 2
+[12:43:55]   进度: 20/38, 成功: 3, 失败: 2
+[12:44:03]   进度: 25/38, 成功: 3, 失败: 3
+[12:45:39]   进度: 30/38, 成功: 4, 失败: 4
+[12:45:41]   进度: 35/38, 成功: 5, 失败: 4
+[12:45:47]   ✅ Group A 完成: 成功 6, 失败 4，已保存
+[12:45:47]   🇻🇳 开始补课越南语（老版 Prompt）...
+[12:46:35] cam-17-academic-listening-test-1-part-2: [Errno 8] nodename nor servname provided, or not known
+  ❌ cam-17-academic-listening-test-1-part-2: [Errno 8] nodename nor servname provided, or not known
+
+处理素材 [168/310]: Food _ Talking about Food _ Beginner English _ A Conversatio... (food-talking-about-food-beginner-english-a-conversation-about-food)
+  ⏭️  [ID: 5c00e638-9118-466b-9ff0-5495f4fbefe2] Already up to date (all 19 语), skipping.
+
+处理素材 [169/310]: Cam 10 Academic Listening Test 4 Part 1... (cam-10-academic-listening-test-4-part-1)
+  ⏭️  [ID: c306df0c-3360-4aa6-a3b1-df60091127c2] Already up to date (all 19 语), skipping.
+
+处理素材 [170/310]: Sooubway Part 3... (sooubway-part-3)
+  ⏭️  [ID: 21aae2fc-7a51-4a78-98b7-58510217ae6d] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [170/310] - 54.8%
+================================================================================
+  已处理: 170 | 成功: 29 | 跳过: 139 | 失败: 2
+  成功率: 17.1%
+================================================================================
+
+处理素材 [171/310]: Cam 17 Academic Listening Test 1 Part 1... (cam-17-academic-listening-test-1-part-1)
+  ⏭️  [ID: cce5196e-e2ba-4336-b2f5-129034774283] Already up to date (all 19 语), skipping.
+
+处理素材 [172/310]: Cam 13 Academic Listening Test 1 Part 4... (cam-13-academic-listening-test-1-part-4)
+  ⏭️  [ID: d601c66d-0f8e-4a3c-b979-bebaf6b06d6f] Already up to date (all 19 语), skipping.
+
+处理素材 [173/310]: Cam 15 Academic Listening Test 1 Part 2... (cam-15-academic-listening-test-1-part-2)
+  ⏭️  [ID: 9613de40-5f34-4458-a745-318cffbcbf0d] Already up to date (all 19 语), skipping.
+
+处理素材 [174/310]: Cam 18 Academic Listening Test 4 Part 4... (cam-18-academic-listening-test-4-part-4)
+  ⏭️  [ID: 42ddca8e-5153-4b1e-a6b0-4f97dc98bbbd] Already up to date (all 19 语), skipping.
+
+处理素材 [175/310]: The Smart Paperboy... (the-smart-paperboy)
+  ⏭️  [ID: f5deea13-b509-459d-aa84-55c8bc956c21] Already up to date (all 19 语), skipping.
+
+处理素材 [176/310]: Cam 15 Academic Listening Test 1 Part 1... (cam-15-academic-listening-test-1-part-1)
+  ⏭️  [ID: c9c3c62b-ffc0-4b56-b9c0-c86511039af1] Already up to date (all 19 语), skipping.
+
+处理素材 [177/310]: Cam 13 Academic Listening Test 1 Part 3... (cam-13-academic-listening-test-1-part-3)
+  ⏭️  [ID: d76feda0-1475-4931-a91f-b4ce95b961a2] Already up to date (all 19 语), skipping.
+
+处理素材 [178/310]: B3L8 Dialogue... (b3l8-dialogue)
+  ⏭️  [ID: 28480626-62e5-4b61-8c10-f8478603f5ea] Already up to date (all 19 语), skipping.
+
+处理素材 [179/310]: What time is it? Easy English Conversations  Episode 11... (what-time-is-it-easy-english-conversations-episode-11)
+  ⏭️  [ID: a2698104-3ed8-435f-894a-db3d5eb619f6] Already up to date (all 19 语), skipping.
+
+处理素材 [180/310]: Cam 16 Academic Listening Test 4 Part 4... (cam-16-academic-listening-test-4-part-4)
+  ⏭️  [ID: b3d375c2-809f-4b14-ae9a-6f4a1e8edd8f] Already up to date (all 19 语), skipping.
+
+================================================================================
+  进度统计 [180/310] - 58.1%
+================================================================================
+  已处理: 180 | 成功: 29 | 跳过: 149 | 失败: 2
+  成功率: 16.1%
+================================================================================
+
+处理素材 [181/310]: Cam 13 Academic Listening Test 1 Part 2... (cam-13-academic-listening-test-1-part-2)
+[12:46:56]   🔄 开始翻译 Group A (8 种语言)...
+[12:47:12]   进度: 5/36, 成功: 7, 失败: 0
+[12:48:21]   进度: 10/36, 成功: 16, 失败: 0
+[12:48:45]   进度: 15/36, 成功: 22, 失败: 1
+[12:50:22]   进度: 20/36, 成功: 30, 失败: 1
+[12:50:38]   进度: 25/36, 成功: 36, 失败: 2
+[12:52:03]   进度: 30/36, 成功: 42, 失败: 4
+[12:52:13]   进度: 35/36, 成功: 48, 失败: 4
+[12:53:15]   ✅ Group A 完成: 成功 49, 失败 4，已保存
+[12:53:15]   🇻🇳 开始补课越南语（老版 Prompt）...
+[12:53:19]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 50 条，失败 4 条 [TODO_RETRY]
+
+处理素材 [182/310]: Cam 18 Academic Listening Test 4 Part 3... (cam-18-academic-listening-test-4-part-3)
+[12:53:21]   🔄 开始翻译 Group A (8 种语言)...
+[12:53:30]   进度: 5/47, 成功: 5, 失败: 0
+[12:56:24]   进度: 10/47, 成功: 10, 失败: 3
+[12:56:53]   进度: 15/47, 成功: 17, 失败: 5
+[12:57:05]   进度: 20/47, 成功: 22, 失败: 6
+[12:58:07]   进度: 25/47, 成功: 26, 失败: 6
+[12:58:17]   进度: 30/47, 成功: 31, 失败: 6
+[12:58:23]   进度: 35/47, 成功: 36, 失败: 6
+[12:59:24]   进度: 40/47, 成功: 42, 失败: 6
+[12:59:33]   进度: 45/47, 成功: 48, 失败: 6
+[12:59:41]   ✅ Group A 完成: 成功 51, 失败 6，已保存
+[12:59:41]   🇻🇳 开始补课越南语（老版 Prompt）...
+[13:00:56]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 51 条，失败 8 条 [TODO_RETRY]
+
+处理素材 [183/310]: Cam 11 Academic Listening Test 1 Part 4... (cam-11-academic-listening-test-1-part-4)
+[13:00:58]   🔄 开始翻译 Group A (8 种语言)...
+[13:01:15]   进度: 5/44, 成功: 5, 失败: 1
+[13:03:03]   进度: 10/44, 成功: 11, 失败: 2
+[13:04:08]   进度: 15/44, 成功: 17, 失败: 2
+[13:04:28]   进度: 20/44, 成功: 25, 失败: 2
+[13:04:39]   进度: 25/44, 成功: 31, 失败: 2
+[13:05:55]   进度: 30/44, 成功: 40, 失败: 2
+[13:06:09]   进度: 35/44, 成功: 45, 失败: 2
+[13:07:22]   进度: 40/44, 成功: 51, 失败: 3
+[13:07:35]   ✅ Group A 完成: 成功 55, 失败 3，已保存
+[13:07:35]   🇻🇳 开始补课越南语（老版 Prompt）...
+[13:08:59]   ✅ 越南语补课完成: 成功 2, 失败 1，已保存
+  ✅ ✓ 翻译 57 条，失败 4 条 [TODO_RETRY]
+
+处理素材 [184/310]: What I Look For In A Friend... (what-i-look-for-in-a-friend)
+[13:09:01]   🔄 开始翻译 Group A (8 种语言)...
+[13:09:11]   进度: 5/29, 成功: 5, 失败: 0
+[13:10:32]   进度: 10/29, 成功: 10, 失败: 0
+[13:11:39]   进度: 15/29, 成功: 14, 失败: 1
+[13:11:55]   进度: 20/29, 成功: 18, 失败: 2
+[13:12:00]   进度: 25/29, 成功: 23, 失败: 2
+[13:12:09]   ✅ Group A 完成: 成功 27, 失败 2，已保存
+[13:12:09]   🇻🇳 开始补课越南语（老版 Prompt）...
+[13:13:23]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 27 条，失败 4 条 [TODO_RETRY]
+
+处理素材 [185/310]: Cam 16 Academic Listening Test 4 Part 3... (cam-16-academic-listening-test-4-part-3)
+[13:13:25]   🔄 开始翻译 Group A (8 种语言)...
+[13:13:33]   进度: 5/53, 成功: 6, 失败: 0
+[13:13:47]   进度: 10/53, 成功: 10, 失败: 1
+[13:13:52]   进度: 15/53, 成功: 13, 失败: 1
+[13:15:29]   进度: 20/53, 成功: 17, 失败: 2
+[13:16:36]   进度: 25/53, 成功: 21, 失败: 3
+[13:16:44]   进度: 30/53, 成功: 27, 失败: 3
+[13:16:58]   进度: 35/53, 成功: 32, 失败: 4
+[13:17:10]   进度: 40/53, 成功: 38, 失败: 4
+[13:18:40]   进度: 45/53, 成功: 44, 失败: 4
+[13:18:51]   进度: 50/53, 成功: 50, 失败: 4
+[13:24:59] cam-16-academic-listening-test-4-part-3: The read operation timed out
+  ❌ cam-16-academic-listening-test-4-part-3: The read operation timed out
+
+处理素材 [186/310]: Cam 18 Academic Listening Test 4 Part 2... (cam-18-academic-listening-test-4-part-2)
+[13:25:00]   🔄 开始翻译 Group A (8 种语言)...
+[13:26:21]   进度: 5/42, 成功: 7, 失败: 1
+[13:26:37]   进度: 10/42, 成功: 13, 失败: 2
+[13:26:50]   进度: 15/42, 成功: 19, 失败: 2
+[13:26:56]   进度: 20/42, 成功: 24, 失败: 2
+[13:28:04]   进度: 25/42, 成功: 31, 失败: 2
+[13:28:18]   进度: 30/42, 成功: 36, 失败: 3
+[13:28:29]   进度: 35/42, 成功: 43, 失败: 3
+[13:29:43]   进度: 40/42, 成功: 48, 失败: 4
+[13:29:51]   ✅ Group A 完成: 成功 50, 失败 4，已保存
+[13:29:51]   🇻🇳 开始补课越南语（老版 Prompt）...
+[13:30:14]   ✅ 越南语补课完成: 成功 1, 失败 2，已保存
+  ✅ ✓ 翻译 51 条，失败 6 条 [TODO_RETRY]
+
+处理素材 [187/310]: Cam 11 Academic Listening Test 4 Part 4... (cam-11-academic-listening-test-4-part-4)
+[13:30:15]   🔄 开始翻译 Group A (8 种语言)...
+[13:32:50]   进度: 5/40, 成功: 7, 失败: 0
+[13:33:05]   进度: 10/40, 成功: 14, 失败: 0
+[13:33:14]   进度: 15/40, 成功: 18, 失败: 0
+[13:34:28]   进度: 20/40, 成功: 24, 失败: 1
+[13:34:34]   进度: 25/40, 成功: 29, 失败: 1
+[13:34:47]   进度: 30/40, 成功: 36, 失败: 1
+[13:35:55]   进度: 35/40, 成功: 43, 失败: 1
+[13:36:10]   进度: 40/40, 成功: 49, 失败: 1
+[13:36:15]   ✅ Group A 完成: 成功 49, 失败 1，已保存
+[13:36:15]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[13:36:20]   🔄 开始翻译 Group B (8 种语言)...
+[13:37:45]   进度: 5/40, 成功: 4, 失败: 0
+[13:39:05]   进度: 10/40, 成功: 6, 失败: 0
+[13:39:25]   进度: 15/40, 成功: 8, 失败: 0
+[13:40:55]   进度: 20/40, 成功: 11, 失败: 0
+[13:42:32]   进度: 25/40, 成功: 14, 失败: 1
+[13:43:36]   进度: 30/40, 成功: 17, 失败: 1
+[13:43:58]   进度: 35/40, 成功: 20, 失败: 1
+[13:44:02]   进度: 40/40, 成功: 21, 失败: 1
+[13:44:07]   ✅ Group B 完成: 成功 21, 失败 1，已保存
+[13:44:07]   🇻🇳 开始补课越南语（老版 Prompt）...
+[13:45:08]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 71 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [188/310]: Yellowstone National Park... (yellowstone-national-park)
+[13:45:10]   🔄 开始翻译 Group A (8 种语言)...
+[13:45:19]   进度: 5/43, 成功: 6, 失败: 0
+[13:45:26]   进度: 10/43, 成功: 11, 失败: 0
+[13:45:35]   进度: 15/43, 成功: 17, 失败: 0
+[13:46:04]   进度: 20/43, 成功: 22, 失败: 1
+[13:46:23]   进度: 25/43, 成功: 29, 失败: 2
+[13:47:32]   进度: 30/43, 成功: 34, 失败: 2
+[13:47:39]   进度: 35/43, 成功: 39, 失败: 2
+[13:47:47]   进度: 40/43, 成功: 44, 失败: 2
+[13:47:53]   ✅ Group A 完成: 成功 47, 失败 2，已保存
+[13:47:53]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[13:47:58]   🔄 开始翻译 Group B (8 种语言)...
+[13:48:00]   进度: 5/43, 成功: 2, 失败: 0
+[13:48:59]   进度: 10/43, 成功: 4, 失败: 0
+[13:49:00]   进度: 15/43, 成功: 5, 失败: 0
+[13:49:06]   进度: 20/43, 成功: 7, 失败: 0
+[13:49:17]   进度: 25/43, 成功: 12, 失败: 0
+[13:49:27]   进度: 30/43, 成功: 16, 失败: 0
+[13:49:31]   进度: 35/43, 成功: 18, 失败: 0
+[13:49:36]   进度: 40/43, 成功: 20, 失败: 0
+[13:49:41]   ✅ Group B 完成: 成功 21, 失败 0，已保存
+[13:49:41]   🇻🇳 开始补课越南语（老版 Prompt）...
+[13:49:44]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 69 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [189/310]: Cam 13 Academic Listening Test 1 Part 1... (cam-13-academic-listening-test-1-part-1)
+[13:49:45]   🔄 开始翻译 Group A (8 种语言)...
+[13:49:53]   进度: 5/44, 成功: 6, 失败: 0
+[13:50:03]   进度: 10/44, 成功: 14, 失败: 0
+[13:50:34]   进度: 15/44, 成功: 20, 失败: 2
+[13:50:42]   进度: 20/44, 成功: 25, 失败: 2
+[13:50:56]   进度: 25/44, 成功: 33, 失败: 2
+[13:52:31]   进度: 30/44, 成功: 39, 失败: 2
+[13:52:37]   进度: 35/44, 成功: 45, 失败: 2
+[13:54:19]   进度: 40/44, 成功: 51, 失败: 3
+[13:55:33] cam-13-academic-listening-test-1-part-1: <StreamReset stream_id:1, error_code:1, remote_reset:True>
+  ❌ cam-13-academic-listening-test-1-part-1: <StreamReset stream_id:1, error_code:1, remote_reset:True>
+
+处理素材 [190/310]: Cam 14 Academic Listening Test 4 Part 4... (cam-14-academic-listening-test-4-part-4)
+[13:55:34]   🔄 开始翻译 Group A (8 种语言)...
+[13:55:57]   进度: 5/45, 成功: 6, 失败: 1
+[13:57:07]   进度: 10/45, 成功: 12, 失败: 1
+[13:57:18]   进度: 15/45, 成功: 17, 失败: 1
+[13:57:46]   进度: 20/45, 成功: 23, 失败: 1
+[13:57:57]   进度: 25/45, 成功: 29, 失败: 1
+[13:58:07]   进度: 30/45, 成功: 35, 失败: 1
+[13:59:18]   进度: 35/45, 成功: 43, 失败: 1
+[13:59:39]   进度: 40/45, 成功: 52, 失败: 1
+[13:59:47]   进度: 45/45, 成功: 57, 失败: 1
+[14:00:52]   ✅ Group A 完成: 成功 57, 失败 1，已保存
+[14:00:52]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[14:00:57]   🔄 开始翻译 Group B (8 种语言)...
+[14:01:19]   进度: 5/45, 成功: 7, 失败: 0
+[14:02:17]   进度: 10/45, 成功: 9, 失败: 0
+[14:02:37]   进度: 15/45, 成功: 11, 失败: 0
+[14:02:41]   进度: 20/45, 成功: 13, 失败: 0
+[14:02:43]   进度: 25/45, 成功: 14, 失败: 0
+[14:04:19]   进度: 30/45, 成功: 17, 失败: 0
+[14:05:39]   进度: 35/45, 成功: 21, 失败: 0
+[14:05:41]   进度: 40/45, 成功: 22, 失败: 0
+[14:05:45]   进度: 45/45, 成功: 24, 失败: 0
+[14:05:49]   ✅ Group B 完成: 成功 24, 失败 0，已保存
+[14:05:49]   🇻🇳 开始补课越南语（老版 Prompt）...
+[14:05:59]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 82 条，失败 2 条 [TODO_RETRY]
+
+================================================================================
+  进度统计 [190/310] - 61.3%
+================================================================================
+  已处理: 190 | 成功: 37 | 跳过: 149 | 失败: 4
+  成功率: 19.5%
+================================================================================
+
+处理素材 [191/310]: I Want to Dye My Hair Green... (i-want-to-dye-my-hair-green)
+[14:06:01]   🔄 开始翻译 Group A (8 种语言)...
+[14:06:16]   进度: 5/30, 成功: 6, 失败: 0
+[14:06:23]   进度: 10/30, 成功: 11, 失败: 0
+[14:06:28]   进度: 15/30, 成功: 16, 失败: 0
+[14:06:39]   进度: 20/30, 成功: 22, 失败: 0
+[14:07:47]   进度: 25/30, 成功: 27, 失败: 1
+[14:07:59]   进度: 30/30, 成功: 33, 失败: 1
+[14:08:03]   ✅ Group A 完成: 成功 33, 失败 1，已保存
+[14:08:03]   🇻🇳 开始补课越南语（老版 Prompt）...
+[14:08:14]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 34 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [192/310]: Cam 11 Academic Listening Test 1 Part 3... (cam-11-academic-listening-test-1-part-3)
+[14:08:15]   🔄 开始翻译 Group A (8 种语言)...
+[14:08:24]   进度: 5/57, 成功: 5, 失败: 0
+[14:09:59]   进度: 10/57, 成功: 11, 失败: 0
+[14:10:06]   进度: 15/57, 成功: 16, 失败: 0
+[14:11:41]   进度: 20/57, 成功: 22, 失败: 0
+[14:13:07]   进度: 25/57, 成功: 28, 失败: 2
+[14:13:18]   进度: 30/57, 成功: 34, 失败: 2
+[14:13:28]   进度: 35/57, 成功: 39, 失败: 2
+[14:14:38]   进度: 40/57, 成功: 45, 失败: 2
+[14:14:48]   进度: 45/57, 成功: 52, 失败: 2
+[14:15:03]   进度: 50/57, 成功: 56, 失败: 3
+[14:16:05]   进度: 55/57, 成功: 62, 失败: 3
+[14:16:15]   ✅ Group A 完成: 成功 66, 失败 3，已保存
+[14:16:15]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[14:16:20]   🔄 开始翻译 Group B (8 种语言)...
+[14:16:27]   进度: 5/57, 成功: 3, 失败: 0
+[14:17:32]   进度: 10/57, 成功: 6, 失败: 0
+[14:17:36]   进度: 15/57, 成功: 8, 失败: 0
+[14:17:58]   进度: 20/57, 成功: 11, 失败: 0
+[14:22:29]   进度: 25/57, 成功: 15, 失败: 1
+[14:27:33]   进度: 30/57, 成功: 22, 失败: 2
+[14:27:38]   进度: 35/57, 成功: 23, 失败: 2
+[14:28:50]   进度: 40/57, 成功: 24, 失败: 3
+[14:30:27]   进度: 45/57, 成功: 28, 失败: 5
+[14:30:34]   进度: 50/57, 成功: 31, 失败: 5
+[14:30:42]   进度: 55/57, 成功: 35, 失败: 5
+[14:31:39]   ✅ Group B 完成: 成功 37, 失败 5，已保存
+[14:31:39]   🇻🇳 开始补课越南语（老版 Prompt）...
+[14:33:13]   ✅ 越南语补课完成: 成功 6, 失败 2，已保存
+  ✅ ✓ 翻译 109 条，失败 10 条 [TODO_RETRY]
+
+处理素材 [193/310]: Opposites... (opposites)
+[14:33:14]   🔄 开始翻译 Group A (8 种语言)...
+[14:33:20]   进度: 5/31, 成功: 6, 失败: 0
+[14:33:27]   进度: 10/31, 成功: 11, 失败: 0
+[14:33:35]   进度: 15/31, 成功: 17, 失败: 0
+[14:33:41]   进度: 20/31, 成功: 23, 失败: 0
+[14:34:43]   进度: 25/31, 成功: 28, 失败: 0
+[14:35:00]   进度: 30/31, 成功: 34, 失败: 1
+[14:35:04]   ✅ Group A 完成: 成功 35, 失败 1，已保存
+  ✅ ✓ 翻译 35 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [194/310]: Christmas... (christmas)
+  ⏭️  [ID: 62ec8c15-4108-40c1-8eff-6c3129363e1e] Already up to date (all 19 语), skipping.
+
+处理素材 [195/310]: Cam 18 Academic Listening Test 4 Part 1... (cam-18-academic-listening-test-4-part-1)
+  ⏭️  [ID: 270fd28a-b8c3-4e09-a4f6-2c1f391a73dd] Already up to date (all 19 语), skipping.
+
+处理素材 [196/310]: Cam 11 Academic Listening Test 4 Part 3... (cam-11-academic-listening-test-4-part-3)
+[14:35:09]   🔄 开始翻译 Group A (8 种语言)...
+[14:36:21]   进度: 5/51, 成功: 7, 失败: 1
+[14:36:30]   进度: 10/51, 成功: 12, 失败: 1
+[14:36:43]   进度: 15/51, 成功: 19, 失败: 1
+[14:37:54]   进度: 20/51, 成功: 25, 失败: 1
+[14:38:03]   进度: 25/51, 成功: 30, 失败: 1
+[14:38:10]   进度: 30/51, 成功: 35, 失败: 1
+[14:39:12]   进度: 35/51, 成功: 41, 失败: 1
+[14:39:29]   进度: 40/51, 成功: 45, 失败: 2
+[14:39:37]   进度: 45/51, 成功: 50, 失败: 2
+[14:40:40]   进度: 50/51, 成功: 55, 失败: 2
+[14:40:46]   ✅ Group A 完成: 成功 56, 失败 2，已保存
+[14:40:46]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[14:40:51]   🔄 开始翻译 Group B (8 种语言)...
+[14:41:06]   进度: 5/51, 成功: 4, 失败: 0
+[14:42:51]   进度: 10/51, 成功: 10, 失败: 0
+[14:43:08]   进度: 15/51, 成功: 11, 失败: 1
+[14:43:29]   进度: 20/51, 成功: 15, 失败: 1
+[14:44:37]   进度: 25/51, 成功: 20, 失败: 1
+[14:44:42]   进度: 30/51, 成功: 22, 失败: 1
+[14:44:45]   进度: 35/51, 成功: 23, 失败: 1
+[14:45:29]   进度: 40/51, 成功: 26, 失败: 3
+[14:45:29]   进度: 45/51, 成功: 26, 失败: 3
+[14:47:03]   进度: 50/51, 成功: 33, 失败: 4
+[14:47:07]   ✅ Group B 完成: 成功 33, 失败 4，已保存
+[14:47:07]   🇻🇳 开始补课越南语（老版 Prompt）...
+[14:47:17]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 89 条，失败 7 条 [TODO_RETRY]
+
+处理素材 [197/310]: B3L9 Dialogue... (b3l9-dialogue)
+[14:47:19]   🔄 开始翻译 Group A (8 种语言)...
+[14:47:25]   进度: 5/21, 成功: 4, 失败: 0
+[14:47:33]   进度: 10/21, 成功: 9, 失败: 0
+[14:47:43]   进度: 15/21, 成功: 14, 失败: 0
+[14:48:45]   进度: 20/21, 成功: 19, 失败: 0
+[14:48:48]   ✅ Group A 完成: 成功 20, 失败 0，已保存
+  ✅ ✓ 翻译 20 条
+
+处理素材 [198/310]: Cam 16 Academic Listening Test 4 Part 2... (cam-16-academic-listening-test-4-part-2)
+[14:48:49]   🔄 开始翻译 Group A (8 种语言)...
+[14:49:08]   进度: 5/28, 成功: 6, 失败: 1
+[14:50:27]   进度: 10/28, 成功: 12, 失败: 2
+[14:51:57]   进度: 15/28, 成功: 19, 失败: 4
+[14:52:10]   进度: 20/28, 成功: 25, 失败: 4
+[14:52:27]   进度: 25/28, 成功: 33, 失败: 4
+[14:52:47]   ✅ Group A 完成: 成功 37, 失败 4，已保存
+  ✅ ✓ 翻译 37 条，失败 4 条 [TODO_RETRY]
+
+处理素材 [199/310]: Cam 16 Academic Listening Test 4 Part 1... (cam-16-academic-listening-test-4-part-1)
+  ⏭️  [ID: afc5a90a-a565-440b-a16a-0525cea15383] Already up to date (all 19 语), skipping.
+
+处理素材 [200/310]: Cam 14 Academic Listening Test 1 Part 1... (cam-14-academic-listening-test-1-part-1)
+[14:52:50]   🔄 开始翻译 Group A (8 种语言)...
+[14:52:56]   进度: 5/64, 成功: 6, 失败: 0
+[14:53:04]   进度: 10/64, 成功: 10, 失败: 0
+[14:53:15]   进度: 15/64, 成功: 15, 失败: 0
+[14:54:18]   进度: 20/64, 成功: 20, 失败: 0
+[14:54:23]   进度: 25/64, 成功: 24, 失败: 0
+[14:54:30]   进度: 30/64, 成功: 29, 失败: 0
+[14:54:43]   进度: 35/64, 成功: 37, 失败: 0
+[14:54:49]   进度: 40/64, 成功: 42, 失败: 0
+[14:55:52]   进度: 45/64, 成功: 47, 失败: 0
+[14:56:02]   进度: 50/64, 成功: 53, 失败: 0
+[14:56:14]   进度: 55/64, 成功: 60, 失败: 0
+[14:56:20]   进度: 60/64, 成功: 65, 失败: 0
+[14:57:28]   ✅ Group A 完成: 成功 72, 失败 0，已保存
+[14:57:28]   🇻🇳 开始补课越南语（老版 Prompt）...
+[14:57:40]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 72 条，失败 1 条 [TODO_RETRY]
+
+================================================================================
+  进度统计 [200/310] - 64.5%
+================================================================================
+  已处理: 200 | 成功: 44 | 跳过: 152 | 失败: 4
+  成功率: 22.0%
+================================================================================
+
+处理素材 [201/310]: Cam 11 Academic Listening Test 4 Part 2... (cam-11-academic-listening-test-4-part-2)
+[14:57:41]   🔄 开始翻译 Group A (8 种语言)...
+[14:58:58]   进度: 5/35, 成功: 6, 失败: 1
+[14:59:06]   进度: 10/35, 成功: 11, 失败: 1
+[15:00:32]   进度: 15/35, 成功: 18, 失败: 2
+[15:00:40]   进度: 20/35, 成功: 23, 失败: 2
+[15:00:56]   进度: 25/35, 成功: 30, 失败: 2
+[15:02:02]   进度: 30/35, 成功: 37, 失败: 2
+[15:02:20]   进度: 35/35, 成功: 42, 失败: 3
+[15:02:22]   ✅ Group A 完成: 成功 42, 失败 3，已保存
+[15:02:22]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:02:31]   ✅ 越南语补课完成: 成功 3, 失败 0，已保存
+  ✅ ✓ 翻译 45 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [202/310]: Favorite Colours... (favorite-colours)
+[15:02:32]   🔄 开始翻译 Group A (8 种语言)...
+[15:03:39]   进度: 5/35, 成功: 5, 失败: 1
+[15:03:47]   进度: 10/35, 成功: 10, 失败: 1
+[15:03:54]   进度: 15/35, 成功: 15, 失败: 1
+[15:04:05]   进度: 20/35, 成功: 22, 失败: 1
+[15:04:59]   进度: 25/35, 成功: 27, 失败: 1
+[15:05:08]   进度: 30/35, 成功: 32, 失败: 1
+[15:05:16]   进度: 35/35, 成功: 38, 失败: 1
+[15:05:18]   ✅ Group A 完成: 成功 38, 失败 1，已保存
+  ✅ ✓ 翻译 38 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [203/310]: My Friends... (my-friends)
+[15:05:19]   🔄 开始翻译 Group A (8 种语言)...
+[15:05:29]   进度: 5/29, 成功: 5, 失败: 0
+[15:06:37]   进度: 10/29, 成功: 11, 失败: 0
+[15:06:46]   进度: 15/29, 成功: 16, 失败: 0
+[15:06:57]   进度: 20/29, 成功: 22, 失败: 0
+[15:08:03]   进度: 25/29, 成功: 28, 失败: 0
+[15:08:12]   ✅ Group A 完成: 成功 34, 失败 0，已保存
+[15:08:12]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:08:14]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 35 条
+
+处理素材 [204/310]: A Small Town... (a-small-town)
+[15:08:16]   🔄 开始翻译 Group A (8 种语言)...
+[15:08:24]   进度: 5/27, 成功: 6, 失败: 0
+[15:08:34]   进度: 10/27, 成功: 12, 失败: 0
+[15:08:54]   进度: 15/27, 成功: 17, 失败: 1
+[15:09:02]   进度: 20/27, 成功: 22, 失败: 1
+[15:09:09]   进度: 25/27, 成功: 27, 失败: 1
+[15:09:14]   ✅ Group A 完成: 成功 29, 失败 1，已保存
+[15:09:14]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[15:09:19]   🔄 开始翻译 Group B (8 种语言)...
+[15:09:25]   进度: 5/27, 成功: 4, 失败: 0
+[15:09:25]   进度: 10/27, 成功: 4, 失败: 0
+[15:10:13]   进度: 15/27, 成功: 6, 失败: 0
+[15:10:15]   进度: 20/27, 成功: 7, 失败: 0
+[15:10:23]   进度: 25/27, 成功: 9, 失败: 0
+[15:10:30]   ✅ Group B 完成: 成功 13, 失败 0，已保存
+  ✅ ✓ 翻译 42 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [205/310]: Cam 18 Academic Listening Test 3 Part 4... (cam-18-academic-listening-test-3-part-4)
+[15:10:31]   🔄 开始翻译 Group A (8 种语言)...
+[15:10:50]   进度: 5/36, 成功: 8, 失败: 0
+[15:12:31]   进度: 10/36, 成功: 16, 失败: 0
+[15:13:45]   进度: 15/36, 成功: 23, 失败: 0
+[15:14:04]   进度: 20/36, 成功: 31, 失败: 0
+[15:14:21]   进度: 25/36, 成功: 37, 失败: 0
+[15:14:35]   进度: 30/36, 成功: 45, 失败: 0
+[15:15:45]   进度: 35/36, 成功: 52, 失败: 1
+[15:15:47]   ✅ Group A 完成: 成功 52, 失败 1，已保存
+[15:15:47]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:16:17]   ✅ 越南语补课完成: 成功 3, 失败 2，已保存
+  ✅ ✓ 翻译 55 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [206/310]: Summer Jobs... (summer-jobs)
+  ⏭️  [ID: 48004a43-d599-4cc3-a17e-cbf83ea33356] Already up to date (all 19 语), skipping.
+
+处理素材 [207/310]: Cam 14 Academic Listening Test 1 Part 2... (cam-14-academic-listening-test-1-part-2)
+[15:16:19]   🔄 开始翻译 Group A (8 种语言)...
+[15:17:24]   进度: 5/41, 成功: 5, 失败: 0
+[15:17:36]   进度: 10/41, 成功: 11, 失败: 0
+[15:17:49]   进度: 15/41, 成功: 18, 失败: 0
+[15:18:38]   进度: 20/41, 成功: 24, 失败: 3
+[15:19:38]   进度: 25/41, 成功: 29, 失败: 3
+[15:19:48]   进度: 30/41, 成功: 34, 失败: 3
+[15:19:55]   进度: 35/41, 成功: 39, 失败: 3
+[15:20:37]   进度: 40/41, 成功: 47, 失败: 5
+[15:20:40]   ✅ Group A 完成: 成功 48, 失败 5，已保存
+[15:20:40]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:21:09]   ✅ 越南语补课完成: 成功 2, 失败 2，已保存
+  ✅ ✓ 翻译 50 条，失败 7 条 [TODO_RETRY]
+
+处理素材 [208/310]: Cam 12 Academic Listening Test 2 Part 4... (cam-12-academic-listening-test-2-part-4)
+[15:21:11]   🔄 开始翻译 Group A (8 种语言)...
+[15:21:38]   进度: 5/32, 成功: 7, 失败: 1
+[15:23:25]   进度: 10/32, 成功: 13, 失败: 2
+[15:24:33]   进度: 15/32, 成功: 20, 失败: 2
+[15:26:36]   进度: 20/32, 成功: 30, 失败: 2
+[15:28:25]   进度: 25/32, 成功: 38, 失败: 2
+[15:29:41]   进度: 30/32, 成功: 47, 失败: 2
+[15:29:52]   ✅ Group A 完成: 成功 50, 失败 2，已保存
+[15:29:52]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[15:29:57]   🔄 开始翻译 Group B (8 种语言)...
+[15:33:58]   进度: 5/32, 成功: 2, 失败: 1
+[15:35:58]   进度: 10/32, 成功: 6, 失败: 1
+[15:37:39]   进度: 15/32, 成功: 10, 失败: 1
+[15:37:59]   进度: 20/32, 成功: 13, 失败: 1
+[15:38:01]   进度: 25/32, 成功: 14, 失败: 1
+[15:38:08]   进度: 30/32, 成功: 17, 失败: 1
+[15:38:14]   ✅ Group B 完成: 成功 18, 失败 1，已保存
+[15:38:14]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:39:38]   ✅ 越南语补课完成: 成功 1, 失败 4，已保存
+  ✅ ✓ 翻译 69 条，失败 7 条 [TODO_RETRY]
+
+处理素材 [209/310]: Cam 12 Academic Listening Test 1 Part 2... (cam-12-academic-listening-test-1-part-2)
+[15:39:39]   🔄 开始翻译 Group A (8 种语言)...
+[15:39:54]   进度: 5/37, 成功: 6, 失败: 0
+[15:40:03]   进度: 10/37, 成功: 11, 失败: 0
+[15:40:21]   进度: 15/37, 成功: 19, 失败: 0
+[15:40:40]   进度: 20/37, 成功: 27, 失败: 0
+[15:40:49]   进度: 25/37, 成功: 32, 失败: 0
+[15:41:02]   进度: 30/37, 成功: 38, 失败: 0
+[15:41:19]   进度: 35/37, 成功: 42, 失败: 1
+[15:41:25]   ✅ Group A 完成: 成功 44, 失败 1，已保存
+[15:41:25]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:42:54]   ✅ 越南语补课完成: 成功 3, 失败 2，已保存
+  ✅ ✓ 翻译 47 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [210/310]: B3L4 Dialogue... (b3l4-dialogue)
+[15:42:55]   🔄 开始翻译 Group A (8 种语言)...
+[15:43:01]   进度: 5/19, 成功: 5, 失败: 0
+[15:43:05]   进度: 10/19, 成功: 9, 失败: 0
+[15:43:09]   进度: 15/19, 成功: 12, 失败: 0
+[15:44:09]   ✅ Group A 完成: 成功 15, 失败 0，已保存
+[15:44:09]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:44:11]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 16 条
+
+================================================================================
+  进度统计 [210/310] - 67.7%
+================================================================================
+  已处理: 210 | 成功: 53 | 跳过: 153 | 失败: 4
+  成功率: 25.2%
+================================================================================
+
+处理素材 [211/310]: Idioms in English Conversation | Bite the Bullet... (idioms-in-english-conversation-bite-the-bullet)
+[15:44:12]   🔄 开始翻译 Group A (8 种语言)...
+[15:44:21]   进度: 5/34, 成功: 6, 失败: 0
+[15:44:32]   进度: 10/34, 成功: 12, 失败: 0
+[15:44:36]   进度: 15/34, 成功: 15, 失败: 0
+[15:44:50]   进度: 20/34, 成功: 20, 失败: 0
+[15:44:58]   进度: 25/34, 成功: 26, 失败: 0
+[15:45:14]   进度: 30/34, 成功: 32, 失败: 0
+[15:45:20]   ✅ Group A 完成: 成功 35, 失败 0，已保存
+[15:45:20]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:45:31]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 36 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [212/310]: If I Could Fly... (if-i-could-fly)
+[15:45:32]   🔄 开始翻译 Group A (8 种语言)...
+[15:46:37]   进度: 5/20, 成功: 8, 失败: 0
+[15:46:47]   进度: 10/20, 成功: 14, 失败: 0
+[15:46:56]   进度: 15/20, 成功: 20, 失败: 0
+[15:48:03]   进度: 20/20, 成功: 25, 失败: 1
+[15:48:05]   ✅ Group A 完成: 成功 25, 失败 1，已保存
+  ✅ ✓ 翻译 25 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [213/310]: Cam 12 Academic Listening Test 2 Part 1... (cam-12-academic-listening-test-2-part-1)
+[15:48:06]   🔄 开始翻译 Group A (8 种语言)...
+[15:48:14]   进度: 5/55, 成功: 5, 失败: 0
+[15:48:22]   进度: 10/55, 成功: 10, 失败: 0
+[15:48:34]   进度: 15/55, 成功: 16, 失败: 0
+[15:49:35]   进度: 20/55, 成功: 20, 失败: 0
+[15:49:44]   进度: 25/55, 成功: 25, 失败: 0
+[15:49:53]   进度: 30/55, 成功: 30, 失败: 0
+[15:50:03]   进度: 35/55, 成功: 35, 失败: 0
+[15:50:11]   进度: 40/55, 成功: 41, 失败: 0
+[15:50:19]   进度: 45/55, 成功: 46, 失败: 0
+[15:50:25]   进度: 50/55, 成功: 51, 失败: 0
+[15:50:30]   进度: 55/55, 成功: 54, 失败: 0
+[15:50:33]   ✅ Group A 完成: 成功 54, 失败 0，已保存
+[15:50:33]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:50:50]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 55 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [214/310]: Cam 18 Academic Listening Test 3 Part 3... (cam-18-academic-listening-test-3-part-3)
+[15:50:51]   🔄 开始翻译 Group A (8 种语言)...
+[15:51:01]   进度: 5/42, 成功: 6, 失败: 0
+[15:51:10]   进度: 10/42, 成功: 11, 失败: 0
+[15:51:19]   进度: 15/42, 成功: 17, 失败: 0
+[15:52:26]   进度: 20/42, 成功: 23, 失败: 0
+[15:52:35]   进度: 25/42, 成功: 28, 失败: 0
+[15:52:45]   进度: 30/42, 成功: 33, 失败: 0
+[15:52:56]   进度: 35/42, 成功: 39, 失败: 0
+[15:54:09]   进度: 40/42, 成功: 46, 失败: 0
+[15:54:19]   ✅ Group A 完成: 成功 49, 失败 0，已保存
+[15:54:19]   🇻🇳 开始补课越南语（老版 Prompt）...
+[15:54:27]   ✅ 越南语补课完成: 成功 2, 失败 0，已保存
+  ✅ ✓ 翻译 51 条
+
+处理素材 [215/310]: Cam 16 Academic Listening Test 3 Part 4... (cam-16-academic-listening-test-3-part-4)
+[15:54:28]   🔄 开始翻译 Group A (8 种语言)...
+[15:55:45]   进度: 5/30, 成功: 6, 失败: 1
+[15:55:59]   进度: 10/30, 成功: 12, 失败: 1
+[15:58:35]   进度: 15/30, 成功: 17, 失败: 2
+[15:59:02]   进度: 20/30, 成功: 24, 失败: 3
+[15:59:27]   进度: 25/30, 成功: 31, 失败: 3
+[15:59:43]   进度: 30/30, 成功: 38, 失败: 3
+[15:59:47]   ✅ Group A 完成: 成功 38, 失败 3，已保存
+[15:59:47]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[15:59:52]   🔄 开始翻译 Group B (8 种语言)...
+[16:01:32]   进度: 5/30, 成功: 5, 失败: 2
+[16:04:45]   进度: 10/30, 成功: 14, 失败: 2
+[16:06:23]   进度: 15/30, 成功: 19, 失败: 4
+[16:06:33]   进度: 20/30, 成功: 23, 失败: 4
+[16:11:01]   进度: 25/30, 成功: 32, 失败: 5
+[16:14:31]   进度: 30/30, 成功: 42, 失败: 5
+[16:14:35]   ✅ Group B 完成: 成功 42, 失败 5，已保存
+[16:14:35]   🇻🇳 开始补课越南语（老版 Prompt）...
+[16:15:56]   ✅ 越南语补课完成: 成功 0, 失败 3，已保存
+  ✅ ✓ 翻译 80 条，失败 11 条 [TODO_RETRY]
+
+处理素材 [216/310]: Cam 14 Academic Listening Test 1 Part 3... (cam-14-academic-listening-test-1-part-3)
+[16:15:58]   🔄 开始翻译 Group A (8 种语言)...
+[16:17:03]   进度: 5/55, 成功: 6, 失败: 0
+[16:17:21]   进度: 10/55, 成功: 11, 失败: 1
+[16:17:32]   进度: 15/55, 成功: 16, 失败: 1
+[16:17:48]   进度: 20/55, 成功: 23, 失败: 1
+[16:18:01]   进度: 25/55, 成功: 30, 失败: 1
+[16:18:15]   进度: 30/55, 成功: 36, 失败: 1
+[16:18:23]   进度: 35/55, 成功: 42, 失败: 1
+[16:19:29]   进度: 40/55, 成功: 50, 失败: 1
+[16:19:38]   进度: 45/55, 成功: 55, 失败: 1
+[16:19:46]   进度: 50/55, 成功: 61, 失败: 1
+[16:21:17]   进度: 55/55, 成功: 67, 失败: 1
+[16:21:21]   ✅ Group A 完成: 成功 67, 失败 1，已保存
+[16:21:21]   🇻🇳 开始补课越南语（老版 Prompt）...
+[16:21:39]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 67 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [217/310]: The Little Red Hen (US English accent) - TheFableCottage.com... (the-little-red-hen-us-english-accent-thefablecottagecom)
+[16:21:41]   🔄 开始翻译 Group A (8 种语言)...
+[16:21:53]   进度: 5/92, 成功: 8, 失败: 0
+[16:22:00]   进度: 10/92, 成功: 13, 失败: 0
+[16:22:08]   进度: 15/92, 成功: 18, 失败: 0
+[16:22:13]   进度: 20/92, 成功: 22, 失败: 0
+[16:23:44]   进度: 25/92, 成功: 28, 失败: 0
+[16:23:51]   进度: 30/92, 成功: 32, 失败: 0
+[16:23:56]   进度: 35/92, 成功: 37, 失败: 0
+[16:24:50]   进度: 40/92, 成功: 40, 失败: 0
+[16:24:54]   进度: 45/92, 成功: 43, 失败: 0
+[16:24:59]   进度: 50/92, 成功: 48, 失败: 0
+[16:25:03]   进度: 55/92, 成功: 51, 失败: 0
+[16:25:09]   进度: 60/92, 成功: 55, 失败: 0
+[16:25:16]   进度: 65/92, 成功: 60, 失败: 0
+[16:25:20]   进度: 70/92, 成功: 63, 失败: 0
+[16:25:29]   进度: 75/92, 成功: 67, 失败: 0
+[16:26:47]   进度: 80/92, 成功: 72, 失败: 2
+[16:26:56]   进度: 85/92, 成功: 77, 失败: 2
+[16:27:01]   进度: 90/92, 成功: 81, 失败: 2
+[16:31:33] the-little-red-hen-us-english-accent-thefablecottagecom: The read operation timed out
+  ❌ the-little-red-hen-us-english-accent-thefablecottagecom: The read operation timed out
+
+处理素材 [218/310]: The Birthday Gift... (the-birthday-gift)
+[16:31:34]   🔄 开始翻译 Group A (8 种语言)...
+[16:31:42]   进度: 5/28, 成功: 6, 失败: 0
+[16:31:50]   进度: 10/28, 成功: 12, 失败: 0
+[16:33:25]   进度: 15/28, 成功: 17, 失败: 0
+[16:33:36]   进度: 20/28, 成功: 23, 失败: 0
+[16:34:40]   进度: 25/28, 成功: 29, 失败: 0
+[16:34:47]   ✅ Group A 完成: 成功 32, 失败 0，已保存
+[16:34:47]   🇻🇳 开始补课越南语（老版 Prompt）...
+[16:34:59]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 33 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [219/310]: What did you do at the weekend? Easy English Conversations  ... (what-did-you-do-at-the-weekend-easy-english-conversations-episode-13)
+[16:35:01]   🔄 开始翻译 Group A (8 种语言)...
+[16:35:04]   进度: 5/81, 成功: 3, 失败: 0
+[16:36:37]   进度: 10/81, 成功: 8, 失败: 0
+[16:36:45]   进度: 15/81, 成功: 13, 失败: 0
+[16:36:51]   进度: 20/81, 成功: 19, 失败: 0
+[16:37:51]   进度: 25/81, 成功: 24, 失败: 0
+[16:37:58]   进度: 30/81, 成功: 28, 失败: 0
+[16:38:04]   进度: 35/81, 成功: 34, 失败: 0
+[16:38:09]   进度: 40/81, 成功: 38, 失败: 0
+[16:38:15]   进度: 45/81, 成功: 42, 失败: 0
+[16:38:22]   进度: 50/81, 成功: 47, 失败: 0
+[16:39:21]   进度: 55/81, 成功: 52, 失败: 0
+[16:39:27]   进度: 60/81, 成功: 57, 失败: 0
+[16:39:35]   进度: 65/81, 成功: 63, 失败: 0
+[16:39:42]   进度: 70/81, 成功: 68, 失败: 0
+[16:39:48]   进度: 75/81, 成功: 73, 失败: 0
+[16:41:23]   进度: 80/81, 成功: 79, 失败: 0
+[16:41:25]   ✅ Group A 完成: 成功 79, 失败 0，已保存
+[16:41:25]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[16:41:30]   🔄 开始翻译 Group B (8 种语言)...
+[16:41:33]   进度: 5/81, 成功: 3, 失败: 0
+[16:41:33]   进度: 10/81, 成功: 3, 失败: 0
+[16:43:01]   进度: 15/81, 成功: 6, 失败: 0
+[16:43:01]   进度: 20/81, 成功: 6, 失败: 0
+[16:43:04]   进度: 25/81, 成功: 7, 失败: 0
+[16:43:04]   进度: 30/81, 成功: 7, 失败: 0
+[16:43:06]   进度: 35/81, 成功: 9, 失败: 0
+[16:43:56]   进度: 40/81, 成功: 11, 失败: 1
+[16:43:56]   进度: 45/81, 成功: 11, 失败: 1
+[16:44:03]   进度: 50/81, 成功: 11, 失败: 2
+[16:44:03]   进度: 55/81, 成功: 11, 失败: 2
+[16:44:07]   进度: 60/81, 成功: 13, 失败: 2
+[16:44:07]   进度: 65/81, 成功: 13, 失败: 2
+[16:44:07]   进度: 70/81, 成功: 13, 失败: 2
+[16:44:09]   进度: 75/81, 成功: 14, 失败: 2
+[16:44:09]   进度: 80/81, 成功: 14, 失败: 2
+[16:44:12]   ✅ Group B 完成: 成功 14, 失败 2，已保存
+  ✅ ✓ 翻译 93 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [220/310]: Cam 18 Academic Listening Test 3 Part 2... (cam-18-academic-listening-test-3-part-2)
+[16:44:14]   🔄 开始翻译 Group A (8 种语言)...
+[16:44:26]   进度: 5/38, 成功: 7, 失败: 0
+[16:46:05]   进度: 10/38, 成功: 12, 失败: 1
+[16:46:13]   进度: 15/38, 成功: 17, 失败: 1
+[16:47:18]   进度: 20/38, 成功: 22, 失败: 1
+[16:47:48]   进度: 25/38, 成功: 28, 失败: 3
+[16:49:26]   进度: 30/38, 成功: 34, 失败: 3
+[16:49:38]   进度: 35/38, 成功: 40, 失败: 3
+[16:49:48]   ✅ Group A 完成: 成功 43, 失败 3，已保存
+[16:49:48]   🇻🇳 开始补课越南语（老版 Prompt）...
+[16:50:05]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 43 条，失败 5 条 [TODO_RETRY]
+
+================================================================================
+  进度统计 [220/310] - 71.0%
+================================================================================
+  已处理: 220 | 成功: 62 | 跳过: 153 | 失败: 5
+  成功率: 28.2%
+================================================================================
+
+处理素材 [221/310]: Cam 16 Academic Listening Test 3 Part 3... (cam-16-academic-listening-test-3-part-3)
+[16:50:06]   🔄 开始翻译 Group A (8 种语言)...
+[16:50:18]   进度: 5/47, 成功: 6, 失败: 0
+[16:50:31]   进度: 10/47, 成功: 13, 失败: 0
+[16:50:41]   进度: 15/47, 成功: 20, 失败: 0
+[16:50:50]   进度: 20/47, 成功: 25, 失败: 0
+[16:52:28]   进度: 25/47, 成功: 31, 失败: 0
+[16:54:03]   进度: 30/47, 成功: 37, 失败: 0
+[16:54:13]   进度: 35/47, 成功: 43, 失败: 0
+[16:55:27]   进度: 40/47, 成功: 49, 失败: 1
+[16:55:39]   进度: 45/47, 成功: 57, 失败: 1
+[16:55:55]   ✅ Group A 完成: 成功 60, 失败 1，已保存
+[16:55:55]   🇻🇳 开始补课越南语（老版 Prompt）...
+[16:56:09]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 60 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [222/310]: Cam 12 Academic Listening Test 3 Part 4... (cam-12-academic-listening-test-3-part-4)
+[16:56:11]   🔄 开始翻译 Group A (8 种语言)...
+[16:56:21]   进度: 5/39, 成功: 6, 失败: 0
+[16:57:32]   进度: 10/39, 成功: 12, 失败: 0
+[16:57:56]   进度: 15/39, 成功: 19, 失败: 1
+[17:00:27]   进度: 20/39, 成功: 28, 失败: 3
+[17:00:42]   进度: 25/39, 成功: 33, 失败: 4
+[17:02:23]   进度: 30/39, 成功: 40, 失败: 4
+[17:03:41]   进度: 35/39, 成功: 47, 失败: 5
+[17:03:50]   ✅ Group A 完成: 成功 51, 失败 5，已保存
+[17:03:50]   🇻🇳 开始补课越南语（老版 Prompt）...
+[17:04:00]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 52 条，失败 6 条 [TODO_RETRY]
+
+处理素材 [223/310]: A Surprise... (a-surprise)
+[17:04:02]   🔄 开始翻译 Group A (8 种语言)...
+[17:04:10]   进度: 5/32, 成功: 5, 失败: 0
+[17:05:11]   进度: 10/32, 成功: 10, 失败: 0
+[17:05:19]   进度: 15/32, 成功: 15, 失败: 0
+[17:05:29]   进度: 20/32, 成功: 21, 失败: 0
+[17:05:39]   进度: 25/32, 成功: 28, 失败: 0
+[17:05:48]   进度: 30/32, 成功: 33, 失败: 0
+[17:06:47]   ✅ Group A 完成: 成功 35, 失败 0，已保存
+[17:06:47]   🇻🇳 开始补课越南语（老版 Prompt）...
+[17:06:49]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 36 条
+
+处理素材 [224/310]: Rhyming Words... (rhyming-words)
+[17:06:50]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[17:06:55]   🔄 开始翻译 Group B (8 种语言)...
+[17:06:56]   进度: 5/25, 成功: 1, 失败: 0
+[17:08:23]   进度: 10/25, 成功: 5, 失败: 0
+[17:08:28]   进度: 15/25, 成功: 8, 失败: 0
+[17:08:47]   进度: 20/25, 成功: 10, 失败: 0
+[17:10:00]   进度: 25/25, 成功: 13, 失败: 1
+[17:10:03]   ✅ Group B 完成: 成功 13, 失败 1，已保存
+[17:10:03]   🇻🇳 开始补课越南语（老版 Prompt）...
+[17:10:05]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 14 条，失败 1 条 [TODO_RETRY] [TODO_RETRY_GROUP_B]
+
+处理素材 [225/310]: Cam 14 Academic Listening Test 1 Part 4... (cam-14-academic-listening-test-1-part-4)
+[17:10:07]   🔄 开始翻译 Group A (8 种语言)...
+[17:11:56]   进度: 5/39, 成功: 9, 失败: 0
+[17:12:03]   进度: 10/39, 成功: 14, 失败: 0
+[17:13:39]   进度: 15/39, 成功: 20, 失败: 0
+[17:15:05]   进度: 20/39, 成功: 27, 失败: 0
+[17:16:11]   进度: 25/39, 成功: 33, 失败: 0
+[17:16:21]   进度: 30/39, 成功: 38, 失败: 0
+[17:16:32]   进度: 35/39, 成功: 44, 失败: 0
+[17:16:45]   ✅ Group A 完成: 成功 49, 失败 0，已保存
+[17:16:45]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[17:17:32]   🔄 开始翻译 Group B (8 种语言)...
+[17:17:55]   进度: 5/39, 成功: 6, 失败: 0
+[17:18:04]   进度: 10/39, 成功: 9, 失败: 0
+[17:18:11]   进度: 15/39, 成功: 11, 失败: 0
+[17:19:10]   进度: 20/39, 成功: 13, 失败: 0
+[17:19:10]   进度: 25/39, 成功: 13, 失败: 0
+[17:19:35]   进度: 30/39, 成功: 16, 失败: 0
+[17:21:14]   进度: 35/39, 成功: 18, 失败: 1
+[17:22:39]   ✅ Group B 完成: 成功 21, 失败 1，已保存
+  ✅ ✓ 翻译 70 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [226/310]: The Story of the Three Little Pigs... (the-story-of-the-three-little-pigs)
+[17:22:40]   🔄 开始翻译 Group A (8 种语言)...
+[17:22:49]   进度: 5/43, 成功: 5, 失败: 0
+[17:22:58]   进度: 10/43, 成功: 11, 失败: 0
+[17:23:13]   进度: 15/43, 成功: 17, 失败: 0
+[17:23:21]   进度: 20/43, 成功: 22, 失败: 0
+[17:23:36]   进度: 25/43, 成功: 27, 失败: 1
+[17:23:43]   进度: 30/43, 成功: 33, 失败: 1
+[17:23:50]   进度: 35/43, 成功: 38, 失败: 1
+[17:24:02]   进度: 40/43, 成功: 44, 失败: 1
+[17:25:05]   ✅ Group A 完成: 成功 47, 失败 1，已保存
+[17:25:05]   🇻🇳 开始补课越南语（老版 Prompt）...
+[17:25:09]   ✅ 越南语补课完成: 成功 2, 失败 0，已保存
+  ✅ ✓ 翻译 49 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [227/310]: B5L1 dialogue... (b5l1-dialogue)
+  ⏭️  [ID: 5f365990-100a-4587-b751-0eb204c662ab] Already up to date (all 19 语), skipping.
+
+处理素材 [228/310]: If I Live To Be... (if-i-live-to-be)
+  ⏭️  [ID: f81bcb27-c28e-41f1-8c33-8ca2572a2578] Already up to date (all 19 语), skipping.
+
+处理素材 [229/310]: Cam 18 Academic Listening Test 3 Part 1... (cam-18-academic-listening-test-3-part-1)
+[17:25:14]   🔄 开始翻译 Group A (8 种语言)...
+[17:25:29]   进度: 5/61, 成功: 5, 失败: 1
+[17:25:41]   进度: 10/61, 成功: 8, 失败: 1
+[17:25:48]   进度: 15/61, 成功: 13, 失败: 1
+[17:26:04]   进度: 20/61, 成功: 18, 失败: 2
+[17:27:17]   进度: 25/61, 成功: 27, 失败: 4
+[17:27:32]   进度: 30/61, 成功: 34, 失败: 4
+[17:27:40]   进度: 35/61, 成功: 40, 失败: 4
+[17:28:49]   进度: 40/61, 成功: 48, 失败: 4
+[17:29:02]   进度: 45/61, 成功: 56, 失败: 4
+[17:30:50]   进度: 50/61, 成功: 62, 失败: 9
+[17:32:07]   进度: 55/61, 成功: 69, 失败: 11
+[17:32:29]   进度: 60/61, 成功: 75, 失败: 12
+[17:32:35]   ✅ Group A 完成: 成功 76, 失败 12，已保存
+[17:32:35]   🇻🇳 开始补课越南语（老版 Prompt）...
+[17:33:53]   ✅ 越南语补课完成: 成功 1, 失败 2，已保存
+  ✅ ✓ 翻译 77 条，失败 14 条 [TODO_RETRY]
+
+处理素材 [230/310]: B5L5 dialogue... (b5l5-dialogue)
+[17:33:55]   🔄 开始翻译 Group A (8 种语言)...
+[17:34:01]   进度: 5/19, 成功: 5, 失败: 0
+[17:34:11]   进度: 10/19, 成功: 12, 失败: 0
+[17:34:17]   进度: 15/19, 成功: 16, 失败: 0
+[17:35:53]   ✅ Group A 完成: 成功 20, 失败 1，已保存
+  ✅ ✓ 翻译 20 条，失败 1 条 [TODO_RETRY]
+
+================================================================================
+  进度统计 [230/310] - 74.2%
+================================================================================
+  已处理: 230 | 成功: 70 | 跳过: 155 | 失败: 5
+  成功率: 30.4%
+================================================================================
+
+处理素材 [231/310]: Thanksgiving Story for Kids - The First Thanksgiving Cartoon... (thanksgiving-story-for-kids-the-first-thanksgiving-cartoon-for-children-kids-academy)
+[17:35:55]   🔄 开始翻译 Group A (8 种语言)...
+[17:36:58]   进度: 5/19, 成功: 3, 失败: 1
+[17:37:05]   进度: 10/19, 成功: 8, 失败: 1
+[17:37:15]   进度: 15/19, 成功: 14, 失败: 1
+[17:37:25]   ✅ Group A 完成: 成功 18, 失败 1，已保存
+[17:37:25]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[17:37:30]   🔄 开始翻译 Group B (8 种语言)...
+[17:38:53]   进度: 5/19, 成功: 2, 失败: 1
+[17:38:57]   进度: 10/19, 成功: 4, 失败: 1
+[17:38:59]   进度: 15/19, 成功: 5, 失败: 1
+[17:39:03]   ✅ Group B 完成: 成功 6, 失败 1，已保存
+[17:39:03]   🇻🇳 开始补课越南语（老版 Prompt）...
+[17:40:08]   ✅ 越南语补课完成: 成功 0, 失败 1，已保存
+  ✅ ✓ 翻译 24 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [232/310]: Cam 16 Academic Listening Test 3 Part 2... (cam-16-academic-listening-test-3-part-2)
+[17:40:09]   🔄 开始翻译 Group A (8 种语言)...
+[17:40:30]   进度: 5/35, 成功: 5, 失败: 1
+[17:43:20]   进度: 10/35, 成功: 11, 失败: 3
+[17:43:41]   进度: 15/35, 成功: 16, 失败: 4
+[17:45:17]   进度: 20/35, 成功: 22, 失败: 4
+[17:45:28]   进度: 25/35, 成功: 28, 失败: 4
+[17:46:33]   进度: 30/35, 成功: 34, 失败: 4
+[17:46:51]   进度: 35/35, 成功: 41, 失败: 4
+[17:46:54]   ✅ Group A 完成: 成功 41, 失败 4，已保存
+[17:46:54]   🇻🇳 开始补课越南语（老版 Prompt）...
+[17:48:14]   ✅ 越南语补课完成: 成功 1, 失败 2，已保存
+  ✅ ✓ 翻译 42 条，失败 6 条 [TODO_RETRY]
+
+处理素材 [233/310]: Cam 18 Academic Listening Test 2 Part 4... (cam-18-academic-listening-test-2-part-4)
+[17:48:15]   🔄 开始翻译 Group A (8 种语言)...
+[17:48:30]   进度: 5/32, 成功: 7, 失败: 0
+[17:49:30]   进度: 10/32, 成功: 12, 失败: 0
+[17:49:44]   进度: 15/32, 成功: 19, 失败: 0
+[17:50:02]   进度: 20/32, 成功: 26, 失败: 0
+[17:51:14]   进度: 25/32, 成功: 31, 失败: 1
+[17:51:28]   进度: 30/32, 成功: 37, 失败: 1
+[17:51:34]   ✅ Group A 完成: 成功 39, 失败 1，已保存
+[17:51:34]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[17:51:39]   🔄 开始翻译 Group B (8 种语言)...
+[17:51:43]   进度: 5/32, 成功: 1, 失败: 0
+[17:51:49]   进度: 10/32, 成功: 4, 失败: 0
+[17:53:21]   进度: 15/32, 成功: 7, 失败: 0
+[17:54:10]   进度: 20/32, 成功: 14, 失败: 0
+[17:55:46]   进度: 25/32, 成功: 17, 失败: 0
+[17:56:56]   进度: 30/32, 成功: 18, 失败: 0
+[17:57:02]   ✅ Group B 完成: 成功 19, 失败 0，已保存
+[17:57:02]   🇻🇳 开始补课越南语（老版 Prompt）...
+[17:57:18]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 59 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [234/310]: Cam 11 Academic Listening Test 4 Part 1... (cam-11-academic-listening-test-4-part-1)
+[17:57:19]   🔄 开始翻译 Group A (8 种语言)...
+[17:57:26]   进度: 5/57, 成功: 4, 失败: 0
+[17:57:34]   进度: 10/57, 成功: 10, 失败: 0
+[17:59:11]   进度: 15/57, 成功: 17, 失败: 0
+[18:01:42]   进度: 20/57, 成功: 26, 失败: 1
+[18:01:48]   进度: 25/57, 成功: 31, 失败: 1
+[18:01:56]   进度: 30/57, 成功: 36, 失败: 1
+[18:02:01]   进度: 35/57, 成功: 40, 失败: 1
+[18:02:12]   进度: 40/57, 成功: 46, 失败: 1
+[18:03:47]   进度: 45/57, 成功: 50, 失败: 2
+[18:03:57]   进度: 50/57, 成功: 56, 失败: 2
+[18:05:07]   进度: 55/57, 成功: 62, 失败: 2
+[18:05:12]   ✅ Group A 完成: 成功 63, 失败 2，已保存
+[18:05:12]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[18:05:17]   🔄 开始翻译 Group B (8 种语言)...
+[18:05:22]   进度: 5/57, 成功: 2, 失败: 0
+[18:05:25]   进度: 10/57, 成功: 3, 失败: 0
+[18:05:31]   进度: 15/57, 成功: 6, 失败: 0
+[18:05:39]   进度: 20/57, 成功: 9, 失败: 0
+[18:05:42]   进度: 25/57, 成功: 11, 失败: 0
+[18:06:41]   进度: 30/57, 成功: 13, 失败: 0
+[18:06:51]   进度: 35/57, 成功: 14, 失败: 1
+[18:07:06]   进度: 40/57, 成功: 18, 失败: 1
+[18:07:09]   进度: 45/57, 成功: 19, 失败: 1
+[18:08:06]   进度: 50/57, 成功: 21, 失败: 1
+[18:08:13]   进度: 55/57, 成功: 25, 失败: 1
+[18:08:15]   ✅ Group B 完成: 成功 25, 失败 1，已保存
+  ✅ ✓ 翻译 88 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [235/310]: Whats the best way to lift people out of poverty?... (whats-the-best-way-to-lift-people-out-of-poverty)
+[18:08:16]   🔄 开始翻译 Group A (8 种语言)...
+[18:08:27]   进度: 5/39, 成功: 5, 失败: 0
+[18:09:45]   进度: 10/39, 成功: 10, 失败: 1
+[18:09:53]   进度: 15/39, 成功: 15, 失败: 1
+[18:10:01]   进度: 20/39, 成功: 20, 失败: 1
+[18:11:51]   进度: 25/39, 成功: 26, 失败: 5
+[18:13:02]   进度: 30/39, 成功: 34, 失败: 5
+[18:13:20]   进度: 35/39, 成功: 38, 失败: 6
+[18:14:33]   ✅ Group A 完成: 成功 44, 失败 6，已保存
+[18:14:33]   🇻🇳 开始补课越南语（老版 Prompt）...
+[18:14:46]   ✅ 越南语补课完成: 成功 1, 失败 1，已保存
+  ✅ ✓ 翻译 45 条，失败 7 条 [TODO_RETRY]
+
+处理素材 [236/310]: The Museum... (the-museum)
+[18:14:47]   🔄 开始翻译 Group A (8 种语言)...
+[18:14:52]   进度: 5/26, 成功: 5, 失败: 0
+[18:14:59]   进度: 10/26, 成功: 10, 失败: 0
+[18:16:02]   进度: 15/26, 成功: 16, 失败: 0
+[18:16:10]   进度: 20/26, 成功: 22, 失败: 0
+[18:16:17]   进度: 25/26, 成功: 27, 失败: 0
+[18:16:19]   ✅ Group A 完成: 成功 28, 失败 0，已保存
+  ✅ ✓ 翻译 28 条
+
+处理素材 [237/310]: Cam 18 Academic Listening Test 2 Part 3... (cam-18-academic-listening-test-2-part-3)
+[18:16:21]   🔄 开始翻译 Group A (8 种语言)...
+[18:16:28]   进度: 5/49, 成功: 5, 失败: 0
+[18:17:50]   进度: 10/49, 成功: 9, 失败: 2
+[18:17:57]   进度: 15/49, 成功: 14, 失败: 2
+[18:19:00]   进度: 20/49, 成功: 19, 失败: 2
+[18:19:10]   进度: 25/49, 成功: 25, 失败: 2
+[18:19:32]   进度: 30/49, 成功: 30, 失败: 3
+[18:20:40]   进度: 35/49, 成功: 38, 失败: 3
+[18:20:51]   进度: 40/49, 成功: 44, 失败: 3
+[18:21:03]   进度: 45/49, 成功: 51, 失败: 3
+[18:22:34]   ✅ Group A 完成: 成功 55, 失败 3，已保存
+[18:22:34]   🇻🇳 开始补课越南语（老版 Prompt）...
+[18:22:45]   ✅ 越南语补课完成: 成功 2, 失败 0，已保存
+  ✅ ✓ 翻译 57 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [238/310]: The Fox and the Crow (UK English  TheFableCottage.com)... (the-fox-and-the-crow-uk-english-thefablecottagecom)
+[18:22:47]   🔄 开始翻译 Group A (8 种语言)...
+[18:23:56]   进度: 5/36, 成功: 8, 失败: 0
+[18:24:07]   进度: 10/36, 成功: 14, 失败: 0
+[18:24:18]   进度: 15/36, 成功: 20, 失败: 0
+[18:25:20]   进度: 20/36, 成功: 26, 失败: 0
+[18:25:29]   进度: 25/36, 成功: 33, 失败: 0
+[18:25:40]   进度: 30/36, 成功: 39, 失败: 0
+[18:25:46]   进度: 35/36, 成功: 43, 失败: 0
+[18:26:48]   ✅ Group A 完成: 成功 46, 失败 0，已保存
+[18:26:48]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[18:26:53]   🔄 开始翻译 Group B (8 种语言)...
+[18:27:19]   进度: 5/36, 成功: 9, 失败: 0
+[18:27:19]   进度: 10/36, 成功: 9, 失败: 0
+[18:27:24]   进度: 15/36, 成功: 11, 失败: 0
+[18:27:25]   进度: 20/36, 成功: 12, 失败: 0
+[18:28:23]   进度: 25/36, 成功: 13, 失败: 0
+[18:28:28]   进度: 30/36, 成功: 14, 失败: 0
+[18:28:29]   进度: 35/36, 成功: 15, 失败: 0
+[18:28:32]   ✅ Group B 完成: 成功 15, 失败 0，已保存
+[18:28:32]   🇻🇳 开始补课越南语（老版 Prompt）...
+[18:28:48]   ✅ 越南语补课完成: 成功 9, 失败 0，已保存
+  ✅ ✓ 翻译 70 条
+
+处理素材 [239/310]: The Bear and the Bee - US English accent (TheFableCottage.co... (the-bear-and-the-bee-us-english-accent-thefablecottagecom)
+[18:28:49]   🔄 开始翻译 Group A (8 种语言)...
+[18:29:52]   进度: 5/58, 成功: 5, 失败: 0
+[18:30:00]   进度: 10/58, 成功: 11, 失败: 0
+[18:30:03]   进度: 15/58, 成功: 14, 失败: 0
+[18:30:14]   进度: 20/58, 成功: 21, 失败: 0
+[18:30:25]   进度: 25/58, 成功: 26, 失败: 0
+[18:31:35]   进度: 30/58, 成功: 31, 失败: 0
+[18:31:39]   进度: 35/58, 成功: 35, 失败: 0
+[18:31:50]   进度: 40/58, 成功: 40, 失败: 0
+[18:31:57]   进度: 45/58, 成功: 45, 失败: 0
+[18:32:03]   进度: 50/58, 成功: 50, 失败: 0
+[18:33:02]   进度: 55/58, 成功: 55, 失败: 0
+[18:33:08]   ✅ Group A 完成: 成功 58, 失败 0，已保存
+[18:33:08]   🇻🇳 开始补课越南语（老版 Prompt）...
+[18:33:11]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 59 条
+
+处理素材 [240/310]: Sports & Activities _ A Conversation about Interests... (sports-activities-a-conversation-about-interests)
+[18:33:12]   🔄 开始翻译 Group A (8 种语言)...
+[18:33:19]   进度: 5/21, 成功: 6, 失败: 0
+[18:33:27]   进度: 10/21, 成功: 11, 失败: 0
+[18:33:32]   进度: 15/21, 成功: 14, 失败: 0
+[18:33:36]   进度: 20/21, 成功: 18, 失败: 0
+[18:38:09] sports-activities-a-conversation-about-interests: The read operation timed out
+  ❌ sports-activities-a-conversation-about-interests: The read operation timed out
+
+================================================================================
+  进度统计 [240/310] - 77.4%
+================================================================================
+  已处理: 240 | 成功: 79 | 跳过: 155 | 失败: 6
+  成功率: 32.9%
+================================================================================
+
+处理素材 [241/310]: Cam 16 Academic Listening Test 3 Part 1... (cam-16-academic-listening-test-3-part-1)
+  ⏭️  [ID: 127d3dbd-f203-40d2-988f-8036e373dafb] Already up to date (all 19 语), skipping.
+
+处理素材 [242/310]: Cam 11 Academic Listening Test 3 Part 4... (cam-11-academic-listening-test-3-part-4)
+[18:38:12]   🔄 开始翻译 Group A (8 种语言)...
+[18:39:26]   进度: 5/47, 成功: 9, 失败: 0
+[18:39:49]   进度: 10/47, 成功: 16, 失败: 1
+[18:40:01]   进度: 15/47, 成功: 21, 失败: 1
+[18:41:06]   进度: 20/47, 成功: 28, 失败: 1
+[18:41:35]   进度: 25/47, 成功: 35, 失败: 2
+[18:43:12]   进度: 30/47, 成功: 41, 失败: 3
+[18:46:08]   进度: 35/47, 成功: 48, 失败: 7
+[18:47:42]   进度: 40/47, 成功: 53, 失败: 10
+[18:49:15]   进度: 45/47, 成功: 58, 失败: 13
+[18:50:32]   ✅ Group A 完成: 成功 61, 失败 15，已保存
+[18:50:32]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[18:50:37]   🔄 开始翻译 Group B (8 种语言)...
+[18:51:09]   进度: 5/47, 成功: 5, 失败: 0
+[18:51:18]   进度: 10/47, 成功: 8, 失败: 0
+[18:52:23]   进度: 15/47, 成功: 9, 失败: 0
+[18:52:45]   进度: 20/47, 成功: 15, 失败: 0
+[18:54:22]   进度: 25/47, 成功: 20, 失败: 0
+[18:54:25]   进度: 30/47, 成功: 22, 失败: 0
+[18:57:02]   进度: 35/47, 成功: 27, 失败: 1
+[18:57:09]   进度: 40/47, 成功: 29, 失败: 1
+[18:58:58]   进度: 45/47, 成功: 31, 失败: 3
+[18:59:12]   ✅ Group B 完成: 成功 33, 失败 3，已保存
+[18:59:12]   🇻🇳 开始补课越南语（老版 Prompt）...
+[19:00:27]   ✅ 越南语补课完成: 成功 2, 失败 2，已保存
+  ✅ ✓ 翻译 96 条，失败 20 条 [TODO_RETRY]
+
+处理素材 [243/310]: Cam 18 Academic Listening Test 2 Part 2... (cam-18-academic-listening-test-2-part-2)
+[19:00:29]   🔄 开始翻译 Group A (8 种语言)...
+[19:04:54]   进度: 5/34, 成功: 39, 失败: 1
+[19:09:42]   进度: 10/34, 成功: 79, 失败: 1
+[19:13:06]   进度: 15/34, 成功: 119, 失败: 1
+[19:19:07]   进度: 20/34, 成功: 159, 失败: 1
+[19:22:04]   进度: 25/34, 成功: 199, 失败: 1
+[19:24:05]   进度: 30/34, 成功: 239, 失败: 1
+[19:26:57]   ✅ Group A 完成: 成功 270, 失败 2，已保存
+[19:26:57]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[19:27:02]   🔄 开始翻译 Group B (8 种语言)...
+[19:33:27]   进度: 5/34, 成功: 40, 失败: 0
+[19:44:09]   进度: 10/34, 成功: 79, 失败: 1
+[19:50:33]   进度: 15/34, 成功: 119, 失败: 1
+[19:54:01]   进度: 20/34, 成功: 159, 失败: 1
+[19:58:47]   进度: 25/34, 成功: 199, 失败: 1
+[20:04:42]   进度: 30/34, 成功: 239, 失败: 1
+[20:09:20]   ✅ Group B 完成: 成功 271, 失败 1，已保存
+[20:09:20]   🇻🇳 开始补课越南语（老版 Prompt）...
+[20:09:48]   ✅ 越南语补课完成: 成功 2, 失败 1，已保存
+  ✅ ✓ 翻译 543 条，失败 4 条 [TODO_RETRY]
+
+处理素材 [244/310]: The Zoo... (the-zoo)
+[20:09:49]   🔄 开始翻译 Group A (8 种语言)...
+[20:13:19]   进度: 5/36, 成功: 40, 失败: 0
+[20:15:16]   进度: 10/36, 成功: 80, 失败: 0
+[20:19:50]   进度: 15/36, 成功: 120, 失败: 0
+[20:21:41]   进度: 20/36, 成功: 160, 失败: 0
+[20:24:23]   进度: 25/36, 成功: 200, 失败: 0
+[20:27:51]   进度: 30/36, 成功: 240, 失败: 0
+[20:29:56]   进度: 35/36, 成功: 280, 失败: 0
+[20:30:09]   ✅ Group A 完成: 成功 288, 失败 0，已保存
+[20:30:09]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[20:30:14]   🔄 开始翻译 Group B (8 种语言)...
+[20:32:22]   进度: 5/36, 成功: 40, 失败: 0
+[20:35:25]   进度: 10/36, 成功: 80, 失败: 0
+[20:37:51]   进度: 15/36, 成功: 120, 失败: 0
+[20:39:10]   进度: 20/36, 成功: 160, 失败: 0
+[20:40:11]   进度: 25/36, 成功: 200, 失败: 0
+[20:42:58]   进度: 30/36, 成功: 239, 失败: 1
+[20:45:36]   进度: 35/36, 成功: 279, 失败: 1
+[20:45:52]   ✅ Group B 完成: 成功 287, 失败 1，已保存
+[20:45:52]   🇻🇳 开始补课越南语（老版 Prompt）...
+[20:45:56]   ✅ 越南语补课完成: 成功 2, 失败 0，已保存
+  ✅ ✓ 翻译 577 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [245/310]: Cam 11 Academic Listening Test 3 Part 3... (cam-11-academic-listening-test-3-part-3)
+[20:45:57]   🔄 开始翻译 Group A (8 种语言)...
+[20:48:07]   进度: 5/61, 成功: 40, 失败: 0
+[20:49:55]   进度: 10/61, 成功: 80, 失败: 0
+[20:51:43]   进度: 15/61, 成功: 120, 失败: 0
+[20:54:33]   进度: 20/61, 成功: 160, 失败: 0
+[20:57:18]   进度: 25/61, 成功: 200, 失败: 0
+[20:59:15]   进度: 30/61, 成功: 240, 失败: 0
+[21:01:42]   进度: 35/61, 成功: 280, 失败: 0
+[21:03:57]   进度: 40/61, 成功: 320, 失败: 0
+[21:08:27]   进度: 45/61, 成功: 359, 失败: 1
+[21:09:42]   进度: 50/61, 成功: 399, 失败: 1
+[21:11:43]   进度: 55/61, 成功: 439, 失败: 1
+[21:14:54]   进度: 60/61, 成功: 478, 失败: 2
+[21:15:08]   ✅ Group A 完成: 成功 486, 失败 2，已保存
+[21:15:08]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[21:15:55]   🔄 开始翻译 Group B (8 种语言)...
+[21:18:40]   进度: 5/61, 成功: 39, 失败: 1
+[21:23:06]   进度: 10/61, 成功: 79, 失败: 1
+[21:25:05]   进度: 15/61, 成功: 119, 失败: 1
+[21:27:20]   进度: 20/61, 成功: 159, 失败: 1
+[21:33:22]   进度: 25/61, 成功: 199, 失败: 1
+[21:35:46]   进度: 30/61, 成功: 239, 失败: 1
+[21:39:02]   进度: 35/61, 成功: 279, 失败: 1
+[21:43:31]   进度: 40/61, 成功: 319, 失败: 1
+[21:48:33]   进度: 45/61, 成功: 357, 失败: 3
+[21:51:58]   进度: 50/61, 成功: 397, 失败: 3
+[21:55:13]   进度: 55/61, 成功: 437, 失败: 3
+[22:01:58]   进度: 60/61, 成功: 477, 失败: 3
+[22:02:13]   ✅ Group B 完成: 成功 485, 失败 3，已保存
+[22:02:13]   🇻🇳 开始补课越南语（老版 Prompt）...
+[22:02:30]   ✅ 越南语补课完成: 成功 1, 失败 2，已保存
+  ✅ ✓ 翻译 972 条，失败 7 条 [TODO_RETRY]
+
+处理素材 [246/310]: Cam 16 Academic Listening Test 2 Part 4... (cam-16-academic-listening-test-2-part-4)
+[22:02:32]   🔄 开始翻译 Group A (8 种语言)...
+[22:06:46]   进度: 5/38, 成功: 40, 失败: 0
+[22:11:13]   进度: 10/38, 成功: 80, 失败: 0
+[22:15:54]   进度: 15/38, 成功: 119, 失败: 1
+[22:19:44]   进度: 20/38, 成功: 158, 失败: 2
+[22:21:28]   进度: 25/38, 成功: 197, 失败: 3
+[22:27:52]   进度: 30/38, 成功: 235, 失败: 5
+[22:29:52]   进度: 35/38, 成功: 274, 失败: 6
+[22:35:02]   ✅ Group A 完成: 成功 295, 失败 9，已保存
+[22:35:02]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[22:35:07]   🔄 开始翻译 Group B (8 种语言)...
+[22:41:32]   进度: 5/38, 成功: 40, 失败: 0
+[22:49:49]   进度: 10/38, 成功: 77, 失败: 3
+[22:52:14]   进度: 15/38, 成功: 117, 失败: 3
+[22:56:41]   进度: 20/38, 成功: 156, 失败: 4
+[23:02:58]   进度: 25/38, 成功: 193, 失败: 7
+[23:12:04]   进度: 30/38, 成功: 233, 失败: 7
+[23:18:59]   进度: 35/38, 成功: 273, 失败: 7
+[23:23:38]   ✅ Group B 完成: 成功 295, 失败 9，已保存
+[23:23:38]   🇻🇳 开始补课越南语（老版 Prompt）...
+[23:24:56]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 590 条，失败 20 条 [TODO_RETRY]
+
+处理素材 [247/310]: Hobbies... (hobbies)
+[23:24:57]   🔄 开始翻译 Group A (8 种语言)...
+[23:29:58]   进度: 5/28, 成功: 40, 失败: 0
+[23:32:44]   进度: 10/28, 成功: 80, 失败: 0
+[23:34:47]   进度: 15/28, 成功: 120, 失败: 0
+[23:39:21]   进度: 20/28, 成功: 160, 失败: 0
+[23:43:31]   进度: 25/28, 成功: 200, 失败: 0
+[23:45:09]   ✅ Group A 完成: 成功 224, 失败 0，已保存
+[23:45:09]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[23:45:14]   🔄 开始翻译 Group B (8 种语言)...
+[23:48:38]   进度: 5/28, 成功: 40, 失败: 0
+[23:51:49]   进度: 10/28, 成功: 79, 失败: 1
+[23:56:29]   进度: 15/28, 成功: 119, 失败: 1
+[00:02:47]   进度: 20/28, 成功: 159, 失败: 1
+[00:06:10]   进度: 25/28, 成功: 199, 失败: 1
+[00:12:00]   ✅ Group B 完成: 成功 223, 失败 1，已保存
+[00:12:00]   🇻🇳 开始补课越南语（老版 Prompt）...
+[00:12:03]   ✅ 越南语补课完成: 成功 2, 失败 0，已保存
+  ✅ ✓ 翻译 449 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [248/310]: Air Plane Rid... (air-plane-rid)
+[00:12:05]   🔄 开始翻译 Group A (8 种语言)...
+[00:14:57]   进度: 5/41, 成功: 40, 失败: 0
+[00:18:29]   进度: 10/41, 成功: 80, 失败: 0
+[00:21:26]   进度: 15/41, 成功: 120, 失败: 0
+[00:24:53]   进度: 20/41, 成功: 159, 失败: 1
+[00:28:01]   进度: 25/41, 成功: 199, 失败: 1
+[00:32:49]   进度: 30/41, 成功: 239, 失败: 1
+[00:36:02]   进度: 35/41, 成功: 279, 失败: 1
+[00:38:58]   进度: 40/41, 成功: 318, 失败: 2
+[00:39:16]   ✅ Group A 完成: 成功 326, 失败 2，已保存
+[00:39:16]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[00:39:21]   🔄 开始翻译 Group B (8 种语言)...
+[00:45:27]   进度: 5/41, 成功: 40, 失败: 0
+[00:50:08]   进度: 10/41, 成功: 80, 失败: 0
+[00:53:44]   进度: 15/41, 成功: 120, 失败: 0
+[00:59:38]   进度: 20/41, 成功: 160, 失败: 0
+[01:04:38]   进度: 25/41, 成功: 200, 失败: 0
+[01:10:45]   进度: 30/41, 成功: 240, 失败: 0
+[01:16:06]   进度: 35/41, 成功: 280, 失败: 0
+[01:19:06]   进度: 40/41, 成功: 320, 失败: 0
+[01:20:33]   ✅ Group B 完成: 成功 328, 失败 0，已保存
+[01:20:33]   🇻🇳 开始补课越南语（老版 Prompt）...
+[01:20:38]   ✅ 越南语补课完成: 成功 3, 失败 0，已保存
+  ✅ ✓ 翻译 657 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [249/310]: Cam 18 Academic Listening Test 2 Part 1... (cam-18-academic-listening-test-2-part-1)
+[01:20:40]   🔄 开始翻译 Group A (8 种语言)...
+[01:22:31]   进度: 5/62, 成功: 40, 失败: 0
+[01:25:15]   进度: 10/62, 成功: 79, 失败: 1
+[01:28:39]   进度: 15/62, 成功: 119, 失败: 1
+[01:33:02]   进度: 20/62, 成功: 158, 失败: 2
+[01:36:30]   进度: 25/62, 成功: 197, 失败: 3
+[01:39:22]   进度: 30/62, 成功: 236, 失败: 4
+[01:41:11]   进度: 35/62, 成功: 276, 失败: 4
+[01:44:23]   进度: 40/62, 成功: 316, 失败: 4
+[01:47:21]   进度: 45/62, 成功: 356, 失败: 4
+[01:50:41]   进度: 50/62, 成功: 396, 失败: 4
+[01:53:43]   进度: 55/62, 成功: 435, 失败: 5
+[01:57:04]   进度: 60/62, 成功: 474, 失败: 6
+[01:57:29]   ✅ Group A 完成: 成功 490, 失败 6，已保存
+[01:57:29]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[01:58:17]   🔄 开始翻译 Group B (8 种语言)...
+[02:03:39]   进度: 5/62, 成功: 39, 失败: 1
+[02:06:44]   进度: 10/62, 成功: 78, 失败: 2
+[02:12:48]   进度: 15/62, 成功: 118, 失败: 2
+[02:17:47]   进度: 20/62, 成功: 158, 失败: 2
+[02:22:20]   进度: 25/62, 成功: 196, 失败: 4
+[02:26:49]   进度: 30/62, 成功: 235, 失败: 5
+[02:31:32]   进度: 35/62, 成功: 274, 失败: 6
+[02:34:31]   进度: 40/62, 成功: 314, 失败: 6
+[02:39:56]   进度: 45/62, 成功: 354, 失败: 6
+[02:44:45]   进度: 50/62, 成功: 394, 失败: 6
+[02:49:11]   进度: 55/62, 成功: 434, 失败: 6
+[02:52:34]   进度: 60/62, 成功: 474, 失败: 6
+[02:54:00]   ✅ Group B 完成: 成功 490, 失败 6，已保存
+[02:54:00]   🇻🇳 开始补课越南语（老版 Prompt）...
+[02:54:16]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 980 条，失败 14 条 [TODO_RETRY]
+
+处理素材 [250/310]: Princess Kaguya Japanese Fairy Tales in English... (princess-kaguya-japanese-fairy-tales-in-english)
+[02:54:17]   🔄 开始翻译 Group A (8 种语言)...
+[02:57:41]   进度: 5/28, 成功: 40, 失败: 0
+[03:00:35]   进度: 10/28, 成功: 80, 失败: 0
+[03:02:21]   进度: 15/28, 成功: 120, 失败: 0
+[03:05:20]   进度: 20/28, 成功: 160, 失败: 0
+[03:10:08]   进度: 25/28, 成功: 200, 失败: 0
+[03:13:06]   ✅ Group A 完成: 成功 224, 失败 0，已保存
+[03:13:06]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[03:13:11]   🔄 开始翻译 Group B (8 种语言)...
+[03:17:49]   进度: 5/28, 成功: 40, 失败: 0
+[03:22:50]   进度: 10/28, 成功: 80, 失败: 0
+[03:26:05]   进度: 15/28, 成功: 120, 失败: 0
+[03:32:11]   进度: 20/28, 成功: 160, 失败: 0
+[03:38:16]   进度: 25/28, 成功: 200, 失败: 0
+[03:44:36] princess-kaguya-japanese-fairy-tales-in-english: The read operation timed out
+  ❌ princess-kaguya-japanese-fairy-tales-in-english: The read operation timed out
+
+================================================================================
+  进度统计 [250/310] - 80.6%
+================================================================================
+  已处理: 250 | 成功: 87 | 跳过: 156 | 失败: 7
+  成功率: 34.8%
+================================================================================
+
+处理素材 [251/310]: A Big TurnipJapanese Fairy Tales in English... (a-big-turnipjapanese-fairy-tales-in-english)
+[03:44:38]   🔄 开始翻译 Group A (8 种语言)...
+[03:47:30]   进度: 5/36, 成功: 40, 失败: 0
+[03:49:52]   进度: 10/36, 成功: 80, 失败: 0
+[03:51:43]   进度: 15/36, 成功: 119, 失败: 1
+[03:53:26]   进度: 20/36, 成功: 158, 失败: 2
+[03:56:11]   进度: 25/36, 成功: 196, 失败: 4
+[03:58:02]   进度: 30/36, 成功: 236, 失败: 4
+[03:59:42]   进度: 35/36, 成功: 276, 失败: 4
+[04:03:42]   ✅ Group A 完成: 成功 284, 失败 4，已保存
+[04:03:42]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[04:03:47]   🔄 开始翻译 Group B (8 种语言)...
+[04:07:11]   进度: 5/36, 成功: 40, 失败: 0
+[04:10:12]   进度: 10/36, 成功: 79, 失败: 1
+[04:13:33]   进度: 15/36, 成功: 119, 失败: 1
+[04:16:33]   进度: 20/36, 成功: 158, 失败: 2
+[04:20:46]   进度: 25/36, 成功: 198, 失败: 2
+[04:25:18]   进度: 30/36, 成功: 238, 失败: 2
+[04:28:25]   进度: 35/36, 成功: 278, 失败: 2
+[04:28:39]   ✅ Group B 完成: 成功 286, 失败 2，已保存
+[04:28:39]   🇻🇳 开始补课越南语（老版 Prompt）...
+[04:28:41]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 571 条，失败 6 条 [TODO_RETRY]
+
+处理素材 [252/310]: B5L8 dialogue... (b5l8-dialogue)
+[04:28:42]   🔄 开始翻译 Group A (8 种语言)...
+[04:30:29]   进度: 5/19, 成功: 40, 失败: 0
+[04:33:42]   进度: 10/19, 成功: 80, 失败: 0
+[04:36:26]   进度: 15/19, 成功: 120, 失败: 0
+[04:38:18]   ✅ Group A 完成: 成功 151, 失败 1，已保存
+[04:38:18]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[04:38:23]   🔄 开始翻译 Group B (8 种语言)...
+[04:41:34]   进度: 5/19, 成功: 40, 失败: 0
+[04:46:42]   进度: 10/19, 成功: 80, 失败: 0
+[04:50:04]   进度: 15/19, 成功: 120, 失败: 0
+[04:55:03]   ✅ Group B 完成: 成功 152, 失败 0，已保存
+  ✅ ✓ 翻译 303 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [253/310]: Food... (food)
+[04:55:04]   🔄 开始翻译 Group A (8 种语言)...
+[04:56:50]   进度: 5/28, 成功: 39, 失败: 1
+[04:59:42]   进度: 10/28, 成功: 79, 失败: 1
+[05:02:56]   进度: 15/28, 成功: 119, 失败: 1
+[05:06:02]   进度: 20/28, 成功: 159, 失败: 1
+[05:07:57]   进度: 25/28, 成功: 199, 失败: 1
+[05:09:21]   ✅ Group A 完成: 成功 223, 失败 1，已保存
+[05:09:21]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[05:09:26]   🔄 开始翻译 Group B (8 种语言)...
+[05:12:30]   进度: 5/28, 成功: 40, 失败: 0
+[05:15:22]   进度: 10/28, 成功: 80, 失败: 0
+[05:18:10]   进度: 15/28, 成功: 120, 失败: 0
+[05:20:14]   进度: 20/28, 成功: 160, 失败: 0
+[05:26:06]   进度: 25/28, 成功: 200, 失败: 0
+[05:29:33]   ✅ Group B 完成: 成功 224, 失败 0，已保存
+  ✅ ✓ 翻译 447 条，失败 1 条 [TODO_RETRY]
+
+处理素材 [254/310]: My Country... (my-country)
+[05:29:35]   🔄 开始翻译 Group A (8 种语言)...
+[05:32:44]   进度: 5/30, 成功: 40, 失败: 0
+[05:35:28]   进度: 10/30, 成功: 80, 失败: 0
+[05:38:39]   进度: 15/30, 成功: 120, 失败: 0
+[05:41:53]   进度: 20/30, 成功: 159, 失败: 1
+[05:44:50]   进度: 25/30, 成功: 199, 失败: 1
+[05:46:40]   进度: 30/30, 成功: 239, 失败: 1
+[05:46:43]   ✅ Group A 完成: 成功 239, 失败 1，已保存
+[05:46:43]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[05:46:48]   🔄 开始翻译 Group B (8 种语言)...
+[05:49:50]   进度: 5/30, 成功: 40, 失败: 0
+[05:52:50]   进度: 10/30, 成功: 80, 失败: 0
+[05:56:05]   进度: 15/30, 成功: 120, 失败: 0
+[05:58:59]   进度: 20/30, 成功: 160, 失败: 0
+[06:02:22]   进度: 25/30, 成功: 198, 失败: 2
+[06:06:58]   进度: 30/30, 成功: 238, 失败: 2
+[06:07:01]   ✅ Group B 完成: 成功 238, 失败 2，已保存
+[06:07:01]   🇻🇳 开始补课越南语（老版 Prompt）...
+[06:07:06]   ✅ 越南语补课完成: 成功 4, 失败 0，已保存
+  ✅ ✓ 翻译 481 条，失败 3 条 [TODO_RETRY]
+
+处理素材 [255/310]: Cam 16 Academic Listening Test 2 Part 3... (cam-16-academic-listening-test-2-part-3)
+[06:07:07]   🔄 开始翻译 Group A (8 种语言)...
+[06:10:13]   进度: 5/51, 成功: 39, 失败: 1
+[06:14:28]   进度: 10/51, 成功: 79, 失败: 1
+[06:17:19]   进度: 15/51, 成功: 118, 失败: 2
+[06:20:31]   进度: 20/51, 成功: 158, 失败: 2
+[06:23:54]   进度: 25/51, 成功: 198, 失败: 2
+[06:27:00]   进度: 30/51, 成功: 238, 失败: 2
+[06:30:12]   进度: 35/51, 成功: 278, 失败: 2
+[06:33:27]   进度: 40/51, 成功: 318, 失败: 2
+[06:36:15]   进度: 45/51, 成功: 358, 失败: 2
+[06:40:37]   进度: 50/51, 成功: 397, 失败: 3
+[06:40:50]   ✅ Group A 完成: 成功 405, 失败 3，已保存
+[06:40:50]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[06:40:55]   🔄 开始翻译 Group B (8 种语言)...
+[06:49:48]   进度: 5/51, 成功: 38, 失败: 2
+[06:53:53]   进度: 10/51, 成功: 78, 失败: 2
+[06:58:33]   进度: 15/51, 成功: 117, 失败: 3
+[07:03:15]   进度: 20/51, 成功: 157, 失败: 3
+[07:06:38]   进度: 25/51, 成功: 197, 失败: 3
+[07:09:29]   进度: 30/51, 成功: 237, 失败: 3
+[07:12:29]   进度: 35/51, 成功: 277, 失败: 3
+[07:17:04]   进度: 40/51, 成功: 317, 失败: 3
+[07:23:10]   进度: 45/51, 成功: 356, 失败: 4
+[07:26:43]   进度: 50/51, 成功: 396, 失败: 4
+[07:27:49]   ✅ Group B 完成: 成功 404, 失败 4，已保存
+[07:27:49]   🇻🇳 开始补课越南语（老版 Prompt）...
+[07:27:51]   ✅ 越南语补课完成: 成功 1, 失败 0，已保存
+  ✅ ✓ 翻译 810 条，失败 7 条 [TODO_RETRY]
+
+处理素材 [256/310]: Cam 18 Academic Listening Test 1 Part 4... (cam-18-academic-listening-test-1-part-4)
+[07:27:53]   🔄 开始翻译 Group A (8 种语言)...
+[07:32:23]   进度: 5/41, 成功: 39, 失败: 1
+[07:34:13]   进度: 10/41, 成功: 79, 失败: 1
+[07:39:12]   进度: 15/41, 成功: 119, 失败: 1
+[07:44:08]   进度: 20/41, 成功: 158, 失败: 2
+[07:48:42]   进度: 25/41, 成功: 198, 失败: 2
+[07:53:15]   进度: 30/41, 成功: 236, 失败: 4
+[07:56:32]   进度: 35/41, 成功: 276, 失败: 4
+[07:59:52]   进度: 40/41, 成功: 316, 失败: 4
+[08:00:04]   ✅ Group A 完成: 成功 324, 失败 4，已保存
+[08:00:04]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[08:00:09]   🔄 开始翻译 Group B (8 种语言)...
+[08:06:13]   进度: 5/41, 成功: 39, 失败: 1
+[08:11:07]   进度: 10/41, 成功: 79, 失败: 1
+[08:18:53]   进度: 15/41, 成功: 119, 失败: 1
+[08:26:31]   进度: 20/41, 成功: 157, 失败: 3
+[08:34:51]   进度: 25/41, 成功: 196, 失败: 4
+[08:42:34]   进度: 30/41, 成功: 234, 失败: 6
+[08:49:10]   进度: 35/41, 成功: 274, 失败: 6
+[08:55:57]   进度: 40/41, 成功: 313, 失败: 7
+[08:57:37]   ✅ Group B 完成: 成功 321, 失败 7，已保存
+[08:57:37]   🇻🇳 开始补课越南语（老版 Prompt）...
+[08:58:49]   ✅ 越南语补课完成: 成功 1, 失败 2，已保存
+  ✅ ✓ 翻译 646 条，失败 13 条 [TODO_RETRY]
+
+处理素材 [257/310]: Do you really need to take 10,000 steps a day? - Shannon Ode... (do-you-really-need-to-take-10000-steps-a-day-shannon-odell)
+[08:58:51]   🔄 开始翻译 Group A (8 种语言)...
+[09:02:06]   进度: 5/45, 成功: 39, 失败: 1
+[09:06:25]   进度: 10/45, 成功: 79, 失败: 1
+[09:09:46]   进度: 15/45, 成功: 117, 失败: 3
+[09:14:26]   进度: 20/45, 成功: 155, 失败: 5
+[09:18:54]   进度: 25/45, 成功: 194, 失败: 6
+[09:20:28]   进度: 30/45, 成功: 234, 失败: 6
+[09:22:01]   进度: 35/45, 成功: 274, 失败: 6
+[09:23:40]   进度: 40/45, 成功: 313, 失败: 7
+[09:24:59]   进度: 45/45, 成功: 352, 失败: 8
+[09:25:02]   ✅ Group A 完成: 成功 352, 失败 8，已保存
+[09:25:02]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[09:25:07]   🔄 开始翻译 Group B (8 种语言)...
+[09:28:04]   进度: 5/45, 成功: 40, 失败: 0
+[09:32:02]   进度: 10/45, 成功: 79, 失败: 1
+[09:34:43]   进度: 15/45, 成功: 118, 失败: 2
+[09:37:57]   进度: 20/45, 成功: 157, 失败: 3
+[09:41:15]   进度: 25/45, 成功: 197, 失败: 3
+[09:43:52]   进度: 30/45, 成功: 237, 失败: 3
+[09:46:24]   进度: 35/45, 成功: 276, 失败: 4
+[09:48:44]   进度: 40/45, 成功: 316, 失败: 4
+[09:50:26]   进度: 45/45, 成功: 356, 失败: 4
+[09:50:28]   ✅ Group B 完成: 成功 356, 失败 4，已保存
+[09:50:28]   🇻🇳 开始补课越南语（老版 Prompt）...
+[09:50:45]   ✅ 越南语补课完成: 成功 0, 失败 2，已保存
+  ✅ ✓ 翻译 708 条，失败 14 条 [TODO_RETRY]
+
+处理素材 [258/310]: The Wind and the Sun  UK English accent (TheFableCottage.com... (the-wind-and-the-sun-uk-english-accent-thefablecottagecom)
+[09:50:47]   🔄 开始翻译 Group A (8 种语言)...
+[09:51:52]   进度: 5/28, 成功: 40, 失败: 0
+[09:53:11]   进度: 10/28, 成功: 80, 失败: 0
+[09:54:26]   进度: 15/28, 成功: 119, 失败: 1
+[09:55:42]   进度: 20/28, 成功: 159, 失败: 1
+[09:56:38]   进度: 25/28, 成功: 199, 失败: 1
+[09:57:24]   ✅ Group A 完成: 成功 223, 失败 1，已保存
+[09:57:24]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[09:57:29]   🔄 开始翻译 Group B (8 种语言)...
+[09:59:08]   进度: 5/28, 成功: 39, 失败: 1
+[10:01:01]   进度: 10/28, 成功: 79, 失败: 1
+[10:02:52]   进度: 15/28, 成功: 119, 失败: 1
+[10:05:12]   进度: 20/28, 成功: 159, 失败: 1
+[10:07:07]   进度: 25/28, 成功: 199, 失败: 1
+[10:08:01]   ✅ Group B 完成: 成功 223, 失败 1，已保存
+  ✅ ✓ 翻译 446 条，失败 2 条 [TODO_RETRY]
+
+处理素材 [259/310]: What do you do every day? Easy English Conversations  Episod... (what-do-you-do-every-day-easy-english-conversations-episode-4)
+[10:08:02]   🔄 开始翻译 Group A (8 种语言)...
+[10:08:43]   进度: 5/80, 成功: 40, 失败: 0
+[10:09:25]   进度: 10/80, 成功: 80, 失败: 0
+[10:10:17]   进度: 15/80, 成功: 120, 失败: 0
+[10:11:01]   进度: 20/80, 成功: 160, 失败: 0
+[10:11:41]   进度: 25/80, 成功: 200, 失败: 0
+[10:12:23]   进度: 30/80, 成功: 240, 失败: 0
+[10:13:31]   进度: 35/80, 成功: 277, 失败: 3
+[10:14:12]   进度: 40/80, 成功: 317, 失败: 3
+[10:14:53]   进度: 45/80, 成功: 357, 失败: 3
+[10:15:36]   进度: 50/80, 成功: 397, 失败: 3
+[10:16:21]   进度: 55/80, 成功: 437, 失败: 3
+[10:17:08]   进度: 60/80, 成功: 477, 失败: 3
+[10:17:51]   进度: 65/80, 成功: 517, 失败: 3
+[10:18:38]   进度: 70/80, 成功: 557, 失败: 3
+[10:19:24]   进度: 75/80, 成功: 597, 失败: 3
+[10:20:08]   进度: 80/80, 成功: 637, 失败: 3
+[10:20:09]   ✅ Group A 完成: 成功 637, 失败 3，已保存
+[10:20:09]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[10:20:14]   🔄 开始翻译 Group B (8 种语言)...
+[10:21:00]   进度: 5/80, 成功: 40, 失败: 0
+[10:21:50]   进度: 10/80, 成功: 80, 失败: 0
+[10:22:40]   进度: 15/80, 成功: 120, 失败: 0
+[10:23:36]   进度: 20/80, 成功: 160, 失败: 0
+[10:24:29]   进度: 25/80, 成功: 200, 失败: 0
+[10:25:20]   进度: 30/80, 成功: 240, 失败: 0
+[10:26:22]   进度: 35/80, 成功: 279, 失败: 1
+[10:27:06]   进度: 40/80, 成功: 319, 失败: 1
+[10:27:54]   进度: 45/80, 成功: 359, 失败: 1
+[10:28:55]   进度: 50/80, 成功: 399, 失败: 1
+[10:29:52]   进度: 55/80, 成功: 439, 失败: 1
+[10:30:49]   进度: 60/80, 成功: 479, 失败: 1

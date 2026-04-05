@@ -77,7 +77,7 @@ export async function GET(
         const sentenceText = sentence.text || ''
 
         // 生成带挖空的句子
-        const words = sentenceText.split(' ')
+        const words = (sentenceText || '').split(' ')
         if (blankPosition >= 0 && blankPosition < words.length) {
           words[blankPosition] = `[${blankWord}]`  // 用 [word] 格式标记挖空
           const sentenceWithBlank = words.join(' ')

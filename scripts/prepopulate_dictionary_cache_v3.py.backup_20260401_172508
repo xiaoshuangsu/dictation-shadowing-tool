@@ -1,0 +1,587 @@
+#!/usr/bin/env python3
+"""
+词典缓存预生成脚本 - V3.0
+完整版：Oxford 3000 + 19 国翻译 + Edge TTS + R2 存储
+
+功能：
+1. Oxford 3000 数据源（新增）
+2. Materials 表数据源（原有）
+3. 19 国语言翻译
+4. Edge TTS 音频生成
+5. R2 持久化存储
+
+使用方法：
+  # 测试模式（20 个单词）
+  python scripts/prepopulate_dictionary_cache_v3.py --test --oxford
+
+  # 全量运行（Materials 表）
+  python scripts/prepopulate_dictionary_cache_v3.py --all
+"""
+
+import os
+import sys
+import json
+import time
+import re
+import asyncio
+import logging
+from pathlib import Path
+from typing import Set, List, Dict, Optional, Tuple
+from collections import Counter
+from datetime import datetime
+from supabase import create_client
+import requests
+import edge_tts
+import boto3
+from botocore.client import Config
+from bs4 import BeautifulSoup
+
+# 配置日志
+log_dir = Path(__file__).parent.parent / 'logs'
+log_dir.mkdir(exist_ok=True)
+log_file = log_dir / f'prepopulate_v3_{datetime.now().strftime("%Y%m%d_%H%M%S")}.log'
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+# 加载 .env.local
+env_local_path = Path(__file__).parent.parent / '.env.local'
+with open(env_local_path, 'r') as f:
+    for line in f:
+        line = line.strip()
+        if line and not line.startswith('#') and '=' in line:
+            key, value = line.split('=', 1)
+            os.environ[key.strip()] = value.strip()
+
+# API 配置
+GLM_API_KEY = os.environ.get("GLM_API_KEY")
+GLM_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"
+
+# Supabase 配置
+SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+
+# R2 配置
+R2_ACCOUNT_ID = os.environ.get("NEXT_PUBLIC_R2_ACCOUNT_ID")
+R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID")
+R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY")
+R2_BUCKET = os.environ.get("R2_BUCKET_NAME", "shadowhub")
+R2_ENDPOINT = f"https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+# 创建 Supabase 客户端
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 配置：19 国语言
+# ══════════════════════════════════════════════════════════════════════════════
+
+# 原有的 3 种语言
+EXISTING_LANGUAGES = ['zh', 'zh_hant', 'vi']
+
+# 新增的 16 种语言（分两组）
+GROUP_A = ['ar', 'de', 'es', 'ja', 'ms', 'ru', 'tr', 'el']
+GROUP_B = ['id', 'ko', 'pt', 'th', 'uk', 'bn', 'mn', 'hi']
+
+ALL_LANGUAGES = EXISTING_LANGUAGES + GROUP_A + GROUP_B
+
+LANGUAGE_NAMES = {
+    'zh': {'name': '简体中文'},
+    'zh_hant': {'name': '繁體中文'},
+    'vi': {'name': 'Tiếng Việt'},
+    'ar': {'name': 'العربية'},
+    'de': {'name': 'Deutsch'},
+    'es': {'name': 'Español'},
+    'ja': {'name': '日本語'},
+    'ms': {'name': 'Bahasa Melayu'},
+    'ru': {'name': 'Русский'},
+    'tr': {'name': 'Türçe'},
+    'el': {'name': 'Ελληνικά'},
+    'id': {'name': 'Bahasa Indonesia'},
+    'ko': {'name': '한국어'},
+    'pt': {'name': 'Português'},
+    'th': {'name': 'ภาษาไทย'},
+    'uk': {'name': 'Українська'},
+    'bn': {'name': 'বাংলা'},
+    'mn': {'name': 'Монгол'},
+    'hi': {'name': 'हिन्दी'},
+    'en': {'name': 'English'},
+}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 模块 1：Oxford 3000 数据抓取
+# ════════════════════════════════════════════════════════════════════════════
+
+def fetch_oxford_learn_links(limit: int = 10) -> List[str]:
+    """获取 Oxford 3000 Learn 页面链接"""
+    print(f"📖 正在获取 Oxford 3000 Learn 页面...")
+
+    category_url = "https://engnovate.com/flashcards/?category=oxford-3000"
+
+    try:
+        response = requests.get(category_url, timeout=30)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # 查找所有 Learn 链接
+        learn_links = []
+        all_links = soup.find_all('a')
+
+        for link in all_links:
+            if link.text.strip() == 'Learn':
+                href = link.get('href')
+                if href and '/flashcards/' in href:
+                    learn_links.append(href)
+                    if len(learn_links) >= limit:
+                        break
+
+        print(f"✅ 找到 {len(learn_links)} 个 Learn 页面")
+        return learn_links
+
+    except Exception as e:
+        logger.error(f"获取 Oxford 3000 链接失败: {e}")
+        return []
+
+
+def extract_oxford_words_from_page(url: str, max_words: int = 10) -> List[Dict]:
+    """从 Oxford Learn 页面提取单词"""
+    try:
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+        text = soup.get_text(separator='\n')
+
+        words = []
+        lines = text.split('\n')
+        i = 0
+
+        while i < len(lines) and len(words) < max_words:
+            line = lines[i].strip()
+
+            # 跳过空行和无关内容
+            if not line or len(line) > 50:
+                i += 1
+                continue
+
+            # 检查是否为单词
+            if line.islower() and line.isalpha() and 3 <= len(line) <= 12:
+                word = line
+
+                # 检查下一行是否包含词性和音标
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+
+                    if next_line.startswith('(') and ')' in next_line:
+                        # 提取词性
+                        pos_match = re.search(r'\((v|n|adj|adv)\)', next_line)
+                        part_of_speech = pos_match.group(1) if pos_match else ''
+
+                        # 提取音标
+                        ipa_match = re.search(r'/[^/]+/', next_line)
+                        phonetic = ipa_match.group(0) if ipa_match else ''
+
+                        # 查找释义和例句
+                        definition = ''
+                        example = ''
+
+                        j = i + 2
+                        while j < len(lines) and j < i + 15:
+                            def_line = lines[j].strip()
+
+                            if not def_line:
+                                j += 1
+                                continue
+
+                            if def_line.islower() and def_line.isalpha() and len(def_line) <= 12:
+                                break
+
+                            if def_line in ['---', 'Flip', 'Type', 'Terms']:
+                                break
+
+                            if def_line.startswith('Example:'):
+                                example = def_line.replace('Example:', '').strip()
+                            elif not def_line.startswith('('):
+                                if any(keyword in def_line.lower() for keyword in ['menu', 'comment', 'reply']):
+                                    j += 1
+                                    continue
+
+                                if definition:
+                                    definition += ' ' + def_line
+                                else:
+                                    definition = def_line
+
+                            j += 1
+
+                        if definition and 10 < len(definition) < 200:
+                            words.append({
+                                'word': word,
+                                'part_of_speech': part_of_speech,
+                                'phonetic': phonetic,
+                                'definition': definition.strip(),
+                                'example': example,
+                                'source': 'oxford3000'
+                            })
+
+                        i = j
+                        continue
+
+            i += 1
+
+        logger.info(f"从 {url} 提取了 {len(words)} 个单词")
+        return words
+
+    except Exception as e:
+        logger.error(f"提取 Oxford 单词失败 {url}: {e}")
+        return []
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 模块 2：19 国语言翻译
+# ══════════════════════════════════════════════════════════════════════════════
+
+def translate_to_19_languages(word: str, en_definition: str) -> Dict[str, str]:
+    """翻译为 19 国语言"""
+    translations = {}
+
+    # 先获取英文释义（作为翻译源）
+    if not en_definition:
+        en_definition = f"{word} - 单词释义"
+
+    # 基础翻译（原有 3 种 + en）
+    print(f"  🌍 翻译 19 国语言: {word}")
+
+    # 使用 GLM API 批量翻译
+    try:
+        # 一次性请求 19 国语言
+        response = requests.post(
+            f"{GLM_BASE_URL}/chat/completions",
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {GLM_API_KEY}'
+            },
+            json={
+                'model': 'glm-4-flash',
+                'messages': [
+                    {
+                        'role': 'system',
+                        'content': f"""你是一个专业的多语言词典助手。请将以下英文释义翻译为 19 种语言。
+
+单词：{word}
+英文释义：{en_definition}
+
+请严格按照以下 JSON 格式返回结果（不要有任何额外文字）：
+{{
+  "zh": "简体中文",
+  "zh_hant": "繁體中文",
+  "vi": "越南语",
+  "ar": "阿拉伯语",
+  "de": "德语",
+  "es": "西班牙语",
+  "ja": "日语",
+  "ms": "马来语",
+  "ru": "俄语",
+  "tr": "土耳其语",
+  "el": "希腊语",
+  "id": "印尼语",
+  "ko": "韩语",
+  "pt": "葡萄牙语",
+  "th": "泰语",
+  "uk": "乌克兰语",
+  "bn": "孟加拉语",
+  "mn": "蒙古语",
+  "hi": "印地语"
+}}
+
+注意：
+1. 简体和繁体中文要区分
+2. 每种语言提供 1-3 个常用释义，用分号分隔
+3. 只返回 JSON，不要有任何额外文字"""
+                    },
+                    {
+                        'role': 'user',
+                        'content': f"请翻译：{word}\n\n释义：{en_definition}"
+                    }
+                ],
+                'temperature': 0.3,
+                'max_tokens': 1000,
+                'top_p': 0.7
+            },
+            timeout=30
+        )
+
+        if response.status_code != 200:
+            logger.error(f"GLM API 错误 ({response.status_code}): {word}")
+            return {}
+
+        data = response.json()
+        content = data.get('choices', [{}])[0].get('message', {}).get('content')
+
+        if not content:
+            logger.error(f"GLM API 返回空内容: {word}")
+            return {}
+
+        # 解析 JSON
+        try:
+            result = json.loads(content)
+            translations = result
+            logger.info(f"  ✅ 翻译完成: {len(translations)} 种语言")
+            return translations
+        except json.JSONDecodeError:
+            # 尝试提取 JSON 部分
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(0))
+                    translations = result
+                    logger.info(f"  ✅ 翻译完成: {len(translations)} 种语言")
+                    return translations
+                except json.JSONDecodeError:
+                    pass
+
+            logger.error(f"无法解析 GLM 响应: {word}")
+            return {}
+
+    except Exception as e:
+        logger.error(f"翻译失败 {word}: {e}")
+        return {}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 模块 3：Edge TTS 音频生成
+# ════════════════════════════════════════════════════════════════════════════
+
+async def generate_audio_with_edge_tts(word: str, output_dir: Path) -> Optional[str]:
+    """使用 Edge TTS 生成音频"""
+    audio_file = output_dir / f"{word}.mp3"
+
+    try:
+        communicate = edge_tts.Communicate(text=word, voice="en-US-GuyNeural")
+        await communicate.save(str(audio_file))
+
+        if audio_file.exists():
+            file_size = audio_file.stat().st_size
+            logger.info(f"    ✅ 音频生成成功: {audio_file.name} ({file_size} bytes)")
+            return str(audio_file)
+        else:
+            logger.warning(f"    ⚠️  音频文件未生成: {audio_file}")
+            return None
+
+    except Exception as e:
+        logger.error(f"    ❌ Edge TTS 失败: {e}")
+        return None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 模块 4：R2 上传
+# ══════════════════════════════════════════════════════════════════════════════
+
+def upload_audio_to_r2(local_path: str, word: str) -> Optional[str]:
+    """上传音频到 R2"""
+    r2_key = f"audio/dictionary/{word}.mp3"
+
+    try:
+        s3 = boto3.client(
+            's3',
+            endpoint_url=R2_ENDPOINT,
+            aws_access_key_id=R2_ACCESS_KEY_ID,
+            aws_secret_access_key=R2_SECRET_ACCESS_KEY,
+            config=Config(signature_version='s3v4'),
+            region_name='auto'
+        )
+
+        s3.upload_file(
+            local_path,
+            R2_BUCKET,
+            r2_key,
+            ExtraArgs={'ContentType': 'audio/mpeg'}
+        )
+
+        # 返回 Worker 代理 URL
+        worker_url = f"https://media.shadowhub.app/{r2_key}"
+        logger.info(f"    ✅ R2 上传成功: {worker_url}")
+        return worker_url
+
+    except Exception as e:
+        logger.error(f"    ❌ R2 上传失败: {e}")
+        return None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 模块 5：数据保存（新结构）
+# ══════════════════════════════════════════════════════════════════════════════
+
+def save_word_to_cache_v3(
+    word: str,
+    phonetic: str,
+    translations: Dict[str, str],
+    example: str,
+    audio_r2_url: Optional[str] = None
+) -> bool:
+    """保存单词到缓存表（新结构：translations JSONB + audio_r2_url）"""
+    try:
+        # 准备数据
+        cache_data = {
+            'word': word,
+            'phonetic': phonetic,
+            'translations': translations,  # 新字段：19 国语言
+            'example': example,
+            'audio_r2_url': audio_r2_url,  # 新字段：R2 URL
+            'hit_count': 0
+        }
+
+        supabase.table('dictionary_cache').upsert(
+            cache_data,
+            on_conflict='word'
+        ).execute()
+
+        return True
+
+    except Exception as e:
+        logger.error(f"保存到缓存失败: {word} - {e}")
+        return False
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 主函数
+# ══════════════════════════════════════════════════════════════════════════════
+
+def main():
+    # 解析命令行参数
+    import argparse
+    parser = argparse.ArgumentParser(description='词典缓存预生成脚本 V3.0')
+    parser.add_argument('--test', action='store_true', help='测试模式（20 个单词）')
+    parser.add_argument('--oxford', action='store_true', help='使用 Oxford 3000 数据源')
+    parser.add_argument('--all', action='store_true', help='处理所有 Materials 表单词')
+    parser.add_argument('--limit', type=int, default=10, help='单词数量限制')
+    args = parser.parse_args()
+
+    # 确定数据源
+    if args.oxford:
+        print("📚 数据源: Oxford 3000")
+        data_source = 'oxford'
+    else:
+        print("📚 数据源: Materials 表（原有）")
+        data_source = 'materials'
+
+    print("=" * 70)
+    print("词典缓存预生成脚本 V3.0")
+    print("=" * 70)
+    print()
+
+    # 测试模式
+    if args.test:
+        print("🧪 测试模式：20 个单词")
+        print("   - Oxford 3000: 10 个单词")
+        print("   - Materials 表: 10 个单词")
+        print()
+        run_test_mode(args.limit)
+        return
+
+    # 全量运行
+    if args.all:
+        print("🚀 全量运行模式")
+        run_full_mode()
+        return
+
+    # 默认：测试模式
+    print("⚠️  未指定模式，运行测试模式")
+    run_test_mode(args.limit)
+
+
+def run_test_mode(limit_per_source: int = 10):
+    """测试模式：混合数据源"""
+    print()
+
+    # 创建临时音频目录
+    temp_audio_dir = Path('/Users/a/dictation/tmp/word_audio_test')
+    temp_audio_dir.mkdir(exist_ok=True, parents=True)
+
+    all_words = []
+
+    # 数据源 1：Oxford 3000
+    print("=" * 70)
+    print("数据源 1: Oxford 3000")
+    print("=" * 70)
+
+    oxford_links = fetch_oxford_learn_links(limit=2)  # 只取 2 个页面
+    total_oxford = 0
+
+    for url in oxford_links:
+        print(f"\n📄 处理: {url}")
+        words = extract_oxford_words_from_page(url, max_words=5)
+
+        for word_data in words:
+            word = word_data['word']
+            print(f"\n  [{total_oxford + 1}/{limit_per_source}] {word}")
+
+            # 1. 翻译为 19 国语言
+            translations = translate_to_19_languages(word, word_data['definition'])
+
+            if not translations:
+                print(f"    ⚠️  翻译失败，跳过")
+                continue
+
+            # 2. 生成音频
+            print(f"  🔊 生成音频...")
+            audio_file = asyncio.run(generate_audio_with_edge_tts(word, temp_audio_dir))
+
+            # 3. 上传到 R2
+            audio_r2_url = None
+            if audio_file:
+                audio_r2_url = upload_audio_to_r2(audio_file, word)
+
+            # 4. 保存到数据库
+            success = save_word_to_cache_v3(
+                word=word,
+                phonetic=word_data['phonetic'],
+                translations=translations,
+                example=word_data['example'],
+                audio_r2_url=audio_r2_url
+            )
+
+            if success:
+                print(f"  ✅ 入库成功")
+                all_words.append(word)
+                total_oxford += 1
+
+                if total_oxford >= limit_per_source:
+                    break
+
+        if total_oxford >= limit_per_source:
+            break
+
+    # 数据源 2：Materials 表
+    print()
+    print("=" * 70)
+    print("数据源 2: Materials 表（原有）")
+    print("=" * 70)
+    print("（暂未实现，使用 Oxford 3000 数据）")
+
+    # 总结
+    print()
+    print("=" * 70)
+    print("📊 测试完成")
+    print("=" * 70)
+    print(f"✅ 总计处理: {len(all_words)} 个单词")
+    print(f"📁 音频文件: {temp_audio_dir}")
+    print(f"📄 请在 Supabase 查看数据验证")
+
+
+def run_full_mode():
+    """全量运行模式（暂未实现）"""
+    print()
+    print("⚠️  全量运行模式暂未实现")
+    print("   请使用 --test 测试模式")
+
+
+if __name__ == '__main__':
+    main()

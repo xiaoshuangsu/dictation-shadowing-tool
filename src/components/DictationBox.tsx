@@ -57,8 +57,19 @@ export default function DictationBox({
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Word-level state - 使用正则匹配，支持连字符单词（如 self-esteem）和缩写词（如 what's）
-  const words = sentence.text.match(/[a-zA-Z0-9-']+/g)
+  const words = (sentence.text || '').match(/[a-zA-Z0-9-']+/g)
   const sentenceWords = words || []
+
+  // 调试日志
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[DictationBox] Sentence data:', {
+      hasText: !!sentence.text,
+      textLength: sentence.text?.length || 0,
+      textPreview: sentence.text?.substring(0, 50) || 'EMPTY',
+      hasTranslation: !!sentence.translation,
+      translationType: typeof sentence.translation
+    })
+  }
   const [wordStatuses, setWordStatuses] = useState<Map<number, WordStatus>>(new Map())
   const [peekedWords, setPeekedWords] = useState<Set<number>>(new Set()) // Track peeked words
 

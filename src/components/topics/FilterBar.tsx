@@ -38,6 +38,8 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
     'BBC Learning English': 'BBC Learning English',
     'VOA Learning English': 'VOA Learning English',
     '动画片': 'Cartoons',
+    'BBC Earth': 'BBC Earth',
+    'Science and Facts': 'Science and Facts',
   }
 
   // 构建话题选项（动态，使用映射）

@@ -1,0 +1,421 @@
+#!/usr/bin/env python3
+"""
+全语种清理脚本 - 扫描所有 19 国语言（除中文）
+1. 包含中文字符 → 重置为 [TODO_RETRY]
+2. 异常重复 → 重置为 [TODO_RETRY]
+3. Prompt 指令关键词污染 → 重置为 [TODO_RETRY]（新增）
+"""
+import os
+import re
+from pathlib import Path
+from supabase import create_client
+from dotenv import load_dotenv
+from collections import Counter
+
+load_dotenv(Path(__file__).parent.parent / '.env.local')
+
+client = create_client(
+    os.environ.get('NEXT_PUBLIC_SUPABASE_URL'),
+    os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+)
+
+# 中文语种（排除）
+CHINESE_LANGUAGES = ['zh', 'zh_hant']
+
+# 所有 19 国语言
+ALL_LANGUAGES = ['zh', 'zh_hant', 'vi', 'ar', 'de', 'es', 'ja', 'ms', 'ru', 'tr', 'el',
+                 'id', 'ko', 'pt', 'th', 'uk', 'bn', 'mn', 'hi']
+
+def contains_chinese_pollution(text: str) -> bool:
+    """检测是否包含中文字符"""
+    chinese_pattern = re.compile(r'[\u4e00-\u9fff]')
+    return bool(chinese_pattern.search(text))
+
+def has_excessive_repetition(text: str) -> tuple:
+    """
+    检测异常重复
+    Returns: (has_repetition, reason)
+    """
+    # 检查字符连续重复（如 "aaaaa..."）
+    if len(text) > 20:
+        # 检查是否有 5 个以上相同字符连续
+        char_repeat_pattern = re.compile(r'(.)\1{5,}')
+        if char_repeat_pattern.search(text):
+            return True, "字符连续重复"
+
+    # 检查词重复
+    words = text.split()
+    if len(words) >= 10:
+        word_counts = Counter(words)
+        for word, count in word_counts.items():
+            if len(word) > 2 and count > 5:
+                return True, f"词重复: '{word}'×{count}"
+
+    return False, None
+
+# ==================== Prompt 指令关键词检测（多语言指令泄露）====================
+
+# 常见的 Prompt 指令关键词（多语言 - 包括被翻译到目标语言的指令）
+PROMPT_POLLUTION_KEYWORDS_COMMON = {
+    # ========== 英文指令关键词 ==========
+    'CRITICAL',
+    'STRICT',
+    'PROHIBITION',
+    'PLACEHOLDER',
+    'FORBIDDEN',
+    'SELF-CHECK',
+    'CONSTRAINTS',
+    'PROHIBIT',
+    'meta-talk',
+    'explanations',
+    'Translate the following',
+    'Output ONLY',
+    'Do not include',
+
+    # ========== 模板标签（必须检测）==========
+    'Text:',
+    'Translation:',
+    'Original:',
+    'Source:',
+
+    # ========== 其他常见的指令残留 ==========
+    '[TODO]',
+}
+
+# 各语言特定的指令关键词（按语言分组）
+PROMPT_POLLUTION_KEYWORDS_BY_LANG = {
+    'el': {  # 希腊语（Ελληνικά）
+        'Κρίσιμο', 'ΚΡΙΣΙΜΟ', 'ΚΡΙΣΙΜΗ',  # CRITICAL
+        'Αυστηρά', 'ΑΥΣΤΗΡΑ',  # STRICT
+        'Απαγόρευση', 'ΑΠΑΓΟΡΕΥΣΗ',  # PROHIBITION
+        'Περιορισμοί', 'ΠΕΡΙΟΡΙΣΜΟΙ',  # CONSTRAINTS
+        'Απαγορευμένο', 'ΑΠΑΓΟΡΕΥΜΕΝΟ',  # FORBIDDEN
+        'Οδηγίες', 'ΟΔΗΓΙΕΣ',  # INSTRUCTIONS
+        'Μετάφραση', 'ΜΕΤΑΦΡΑΣΗ',  # TRANSLATION
+        'ΚΑΙΝΟΤΟΜΙΚΟ', 'Καινοτομικό',  # 创新
+        'ΑΠΟΤΕΛΕΣΜΑΤΟΣ', 'Αποτελέσματος',  # 结果
+    },
+    'mn': {  # 蒙古语（Монгол）
+        'Текст', 'ТЕКСТ',  # Text/文本
+        'Төрөл', 'ТӨРӨЛ',  # Type/类型
+        'Толгойлолт', 'ТОЛГОЙЛОЛТ',  # Head/开头
+        'Шуурган', 'ШУУРГАН',  # CRITICAL
+        'Хатуу', 'ХАТУУ',  # STRICT
+        'Хориг', 'ХОРИГ',  # PROHIBITION
+        'Хориглоно', 'ХОРИГЛОНО',  # FORBIDDEN
+        'Зааварч', 'ЗААВАРЧ',  # INSTRUCTIONS
+        'Орчуулга', 'ОРЧУУЛГА',  # TRANSLATION
+    },
+    'uk': {  # 乌克兰语（Українська）
+        'Критично', 'КРИТИЧНО',  # CRITICAL
+        'Критичне', 'КРИТИЧНЕ',  # CRITICAL（变体）
+        'Строго', 'СТРОГО',  # STRICT
+        'Заборона', 'ЗАБОРОНА',  # PROHIBITION
+        'Заборонено', 'ЗАБОРОНЕНО',  # FORBIDDEN
+        'Інструкції', 'ІНСТРУКЦІЇ',  # INSTRUCTIONS
+        'Вибачте', 'ВІБАЧТЕ',  # 抱歉（常见废话开头）
+        'Переклад', 'ПЕРЕКЛАД',  # TRANSLATION
+    },
+    'ru': {  # 俄语（Русский）
+        'Критически', 'КРИТИЧЕСКИ',
+        'Строго', 'СТРОГО',
+        'Запрет', 'ЗАПРЕТ',
+        'Запрещено', 'ЗАПРЕЩЕНО',
+        'Инструкции', 'ИНСТРУКЦИИ',
+        'Перевод', 'ПЕРЕВОД',
+    },
+    'ar': {  # 阿拉伯语（العربية）
+        'حاسم', 'حرج',
+        'صارم',
+        'حظر', 'منع',
+        'قيود',
+        'ممنوع',
+        'تعليمات',
+        'ترجمة',
+    },
+    'de': {  # 德语
+        'Kritisch', 'KRITISCH',
+        'Streng', 'STRENG',
+        'Verbot', 'VERBOT',
+        'Verboten', 'VERBOTEN',
+        'Anweisungen', 'ANWEISUNGEN',
+    },
+    'es': {  # 西班牙语
+        'Crítico', 'CRÍTICO',
+        'Estricto', 'ESTRICTO',
+        'Prohibición', 'PROHIBICIÓN',
+        'Prohibido', 'PROHIBIDO',
+        'Instrucciones', 'INSTRUCCIONES',
+    },
+    'ja': {  # 日语
+        '重要', '厳守',
+        '厳格',
+        '禁止',
+        '指示', '命令',
+        '翻訳',
+    },
+    'ko': {  # 韩语
+        '중요',
+        '엄격',
+        '금지',
+        '지침', '명령',
+        '번역',
+    },
+    'th': {  # 泰语
+        'วิกฤต', 'สำคัญ',
+        'เข้มงวด',
+        'การห้าม',
+        'ห้าม',
+        'คำแนะนำ', 'คำสั่ง',
+        'การแปล',
+    },
+    'vi': {  # 越南语
+        'Quan trọng', 'QUAN TRỌNG',
+        'Nghiêm ngặt', 'NGHIÊM NGẶT',
+        'Cấm đoán', 'CẮM ĐOÁN',
+        'Bị cấm', 'BỊ CẤM',
+        'Hướng dẫn', 'HƯỚNG DẪN',
+        'Bản dịch', 'BẢN DỊCH',
+    },
+    'id': {  # 印尼语
+        'Kritis', 'KRITIS',
+        'Ketat', 'KETAT',
+        'Larangan', 'LARANGAN',
+        'Dilarang', 'DILARANG',
+        'Arahan', 'ARAHAN',
+    },
+    'ms': {  # 马来语
+        'Kritis', 'KRITIS',
+        'Ketat', 'KETAT',
+        'Larangan', 'LARANGAN',
+        'Dilarang', 'DILARANG',
+        'Arahan', 'ARAHAN',
+    },
+    'pt': {  # 葡萄牙语
+        'Crítico', 'CRÍTICO',
+        'Estrito', 'ESTRITO',
+        'Proibição', 'PROIBIÇÃO',
+        'Proibido', 'PROIBIDO',
+        'Instruções', 'INSTRUÇÕES',
+    },
+    'tr': {  # 土耳其语
+        'Kritik', 'KRİTİK',
+        'Katı', 'KATI',
+        'Yasak', 'YASAK',
+        'Yasaklandı', 'YASAKLANDI',
+        'Talimatlar', 'TALİMATLAR',
+    },
+    'hi': {  # 印地语
+        'महत्वपूर्ण',
+        'कड़ाई',
+        'प्रतिबंध',
+        'प्रतिबंधित',
+        'निर्देश',
+        'अनुवाद',
+    },
+    'bn': {  # 孟加拉语
+        'সমালোচনামূলক',
+        'কঠোর',
+        'নিষেধাজ্ঞা',
+        'নিষিদ্ধ',
+        'নির্দেশাবলী',
+    },
+}
+
+# 合并所有关键词（用于通用检测）
+PROMPT_POLLUTION_KEYWORDS = PROMPT_POLLUTION_KEYWORDS_COMMON.copy()
+for lang_keywords in PROMPT_POLLUTION_KEYWORDS_BY_LANG.values():
+    PROMPT_POLLUTION_KEYWORDS.update(lang_keywords)
+
+def contains_prompt_pollution(text: str) -> tuple:
+    """
+    检测是否包含 Prompt 指令关键词污染
+    Returns: (has_pollution, reason)
+    """
+    if not text or len(text) < 5:
+        return False, None
+
+    text_upper = text.upper()
+
+    # 检查是否包含任何污染关键词
+    for keyword in PROMPT_POLLUTION_KEYWORDS:
+        if keyword.upper() in text_upper:
+            return True, f"指令关键词: '{keyword}'"
+
+    # 检查是否有明显的格式模式（如重复的指令结构）
+    # 例如：连续出现多个大写单词或特定模式
+    if re.search(r'(CRITICAL\s+CONSTRAINTS|STRICT\s+PROHIBITION)', text_upper):
+        return True, "指令结构模式"
+
+    # 检查是否有常见的 Prompt 格式残留
+    if re.search(r'\d+\.\s+Output\s+ONLY', text_upper):
+        return True, "编号指令格式"
+
+    return False, None
+
+def clean_all_languages(dry_run=True):
+    """
+    清理所有语种的错误翻译
+
+    Args:
+        dry_run: True=仅打印，False=真实修改
+    """
+    # 目标语种：所有语言除中文
+    target_langs = [lang for lang in ALL_LANGUAGES if lang not in CHINESE_LANGUAGES]
+
+    print(f"{'='*80}")
+    print(f"模式: {'DRY RUN (空跑)' if dry_run else 'REAL RUN (真实修改)'}")
+    print(f"扫描语种: {len(target_langs)} 种（除中文）")
+    print(f"语种列表: {', '.join(target_langs)}")
+    print(f"{'='*80}\n")
+
+    print("正在获取所有素材...")
+    result = client.table('materials').select('id, title, transcript').execute()
+
+    # 统计数据
+    stats = {
+        'total_materials': 0,
+        'checked_materials': 0,
+        'total_errors': 0,
+        'errors_by_lang': {},
+        'errors_by_type': {'中文污染': 0, '异常重复': 0, 'Prompt 指令污染': 0},
+        'error_details': []
+    }
+
+    print(f"开始扫描 {len(result.data)} 个素材...\n")
+
+    for material_idx, material in enumerate(result.data, 1):
+        if material_idx % 50 == 0:
+            print(f"进度: {material_idx}/{len(result.data)}")
+
+        transcript = material.get('transcript')
+        if not transcript:
+            continue
+
+        stats['total_materials'] += 1
+        material_modified = False
+
+        for sentence_idx, sentence in enumerate(transcript):
+            translation = sentence.get('translation')
+            if not translation or not isinstance(translation, dict):
+                continue
+
+            for lang in target_langs:
+                if lang not in translation:
+                    continue
+
+                trans_text = translation[lang]
+
+                # 跳过已经是 TODO_RETRY 的
+                if trans_text == '[TODO_RETRY]':
+                    continue
+
+                # 检测中文污染
+                if contains_chinese_pollution(trans_text):
+                    error_info = {
+                        'material_title': material['title'][:50],
+                        'lang': lang,
+                        'type': '中文污染',
+                        'text_preview': trans_text[:60]
+                    }
+                    stats['error_details'].append(error_info)
+                    stats['errors_by_type']['中文污染'] += 1
+                    stats['errors_by_lang'][lang] = stats['errors_by_lang'].get(lang, 0) + 1
+                    stats['total_errors'] += 1
+                    material_modified = True
+
+                    if not dry_run:
+                        sentence['translation'][lang] = '[TODO_RETRY]'
+
+                # 检测 Prompt 指令污染（新增）
+                else:
+                    has_pollution, pollution_reason = contains_prompt_pollution(trans_text)
+                    if has_pollution:
+                        error_info = {
+                            'material_title': material['title'][:50],
+                            'lang': lang,
+                            'type': f'Prompt 指令污染 ({pollution_reason})',
+                            'text_preview': trans_text[:80]
+                        }
+                        stats['error_details'].append(error_info)
+                        stats['errors_by_type']['Prompt 指令污染'] += 1
+                        stats['errors_by_lang'][lang] = stats['errors_by_lang'].get(lang, 0) + 1
+                        stats['total_errors'] += 1
+                        material_modified = True
+
+                        if not dry_run:
+                            sentence['translation'][lang] = '[TODO_RETRY]'
+
+                # 检测异常重复
+                    has_rep, reason = has_excessive_repetition(trans_text)
+                    if has_rep:
+                        error_info = {
+                            'material_title': material['title'][:50],
+                            'lang': lang,
+                            'type': f'异常重复({reason})',
+                            'text_preview': trans_text[:60]
+                        }
+                        stats['error_details'].append(error_info)
+                        stats['errors_by_type']['异常重复'] += 1
+                        stats['errors_by_lang'][lang] = stats['errors_by_lang'].get(lang, 0) + 1
+                        stats['total_errors'] += 1
+                        material_modified = True
+
+                        if not dry_run:
+                            sentence['translation'][lang] = '[TODO_RETRY]'
+
+        # 修改后的素材更新数据库
+        if material_modified and not dry_run:
+            stats['checked_materials'] += 1
+            client.table('materials').update({
+                'transcript': transcript
+            }).eq('id', material['id']).execute()
+
+    # 打印结果
+    print(f"\n{'='*80}")
+    print(f"{'✅ DRY RUN 完成' if dry_run else '✅ 清理完成'}")
+    print(f"{'='*80}")
+    print(f"检查素材总数: {stats['total_materials']}")
+    print(f"发现错误的素材: {stats['checked_materials'] if not dry_run else '-'}")
+    print(f"总错误条目: {stats['total_errors']}")
+    print(f"\n错误类型统计:")
+    for error_type, count in stats['errors_by_type'].items():
+        print(f"  {error_type}: {count} 条")
+
+    print(f"\n按语种统计 (从多到少):")
+    sorted_langs = sorted(stats['errors_by_lang'].items(), key=lambda x: x[1], reverse=True)
+    for lang, count in sorted_langs:
+        lang_name = {
+            'vi': '越南语', 'ar': '阿拉伯语', 'de': '德语', 'es': '西班牙语',
+            'ja': '日语', 'ms': '马来语', 'ru': '俄语', 'tr': '土耳其语',
+            'el': '希腊语', 'id': '印尼语', 'ko': '韩语', 'pt': '葡萄牙语',
+            'th': '泰语', 'uk': '乌克兰语', 'bn': '孟加拉语', 'mn': '蒙古语', 'hi': '印地语'
+        }.get(lang, lang)
+        print(f"  {lang} ({lang_name}): {count} 条")
+
+    # 显示错误详情（前 30 条）
+    if stats['error_details']:
+        print(f"\n错误详情 (前 30 条):")
+        print(f"{'-'*80}")
+        for i, error in enumerate(stats['error_details'][:30], 1):
+            print(f"{i}. [{error['lang']}] {error['type']}")
+            print(f"   素材: {error['material_title']}...")
+            print(f"   预览: {error['text_preview']}...")
+            print()
+
+        if len(stats['error_details']) > 30:
+            print(f"... 还有 {len(stats['error_details']) - 30} 个错误")
+
+    if dry_run:
+        print(f"\n{'='*80}")
+        print(f"⚠️  这是 DRY RUN 模式，数据库未被修改")
+        print(f"如需真实修改，请运行: python3 scripts/clean_translation_pollution.py --real")
+        print(f"{'='*80}")
+
+    return stats
+
+if __name__ == '__main__':
+    import sys
+
+    dry_run = '--real' not in sys.argv
+    clean_all_languages(dry_run=dry_run)

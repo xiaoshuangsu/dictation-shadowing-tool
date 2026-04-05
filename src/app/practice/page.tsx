@@ -642,7 +642,7 @@ function HomeContent() {
     }
 
     const progress = (currentTime - sentence.startTime) / (sentence.endTime - sentence.startTime)
-    const words = sentence.text.split(' ')
+    const words = (sentence.text || '').split(' ')
     const highlightedIndex = Math.floor(progress * words.length)
     return Math.min(highlightedIndex, words.length - 1)
   }
@@ -988,7 +988,7 @@ function HomeContent() {
                               : "text-gray-800"
                             : "text-gray-800"
                         }`}>
-                          {sentence.text.split(' ').map((word, wordIndex) => {
+                          {(sentence.text || '').split(' ').map((word, wordIndex) => {
                             const highlightedWordIndex = index === currentSentenceIndex ? getHighlightedWordIndex(sentence) : -1
                             const isHighlighted = wordIndex <= highlightedWordIndex
                             const isCurrentWord = wordIndex === highlightedWordIndex

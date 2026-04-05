@@ -1,0 +1,52 @@
+[
+  {
+    "word": "act",
+    "part_of_speech": "v",
+    "phonetic": "/ækt/",
+    "definition": "to do something for a particular purpose or to solve a problem",
+    "example": "We need to act quickly.",
+    "audio_file": "/Users/a/dictation/tmp/word_audio/act.mp3",
+    "r2_url": "https://media.shadowhub.app/audio/oxford3000/act.mp3",
+    "r2_key": "audio/oxford3000/act.mp3"
+  },
+  {
+    "word": "add",
+    "part_of_speech": "v",
+    "phonetic": "/æd/",
+    "definition": "to put two or more numbers or amounts together to get a total",
+    "example": "I will add two and three.",
+    "audio_file": "/Users/a/dictation/tmp/word_audio/add.mp3",
+    "r2_url": "https://media.shadowhub.app/audio/oxford3000/add.mp3",
+    "r2_key": "audio/oxford3000/add.mp3"
+  },
+  {
+    "word": "aid",
+    "part_of_speech": "n",
+    "phonetic": "/eɪd/",
+    "definition": "help or support, or something that provides it",
+    "example": "The teacher gives aid to the students.",
+    "audio_file": "/Users/a/dictation/tmp/word_audio/aid.mp3",
+    "r2_url": "https://media.shadowhub.app/audio/oxford3000/aid.mp3",
+    "r2_key": "audio/oxford3000/aid.mp3"
+  },
+  {
+    "word": "aim",
+    "part_of_speech": "v",
+    "phonetic": "/eɪm/",
+    "definition": "to plan for a specific purpose; intend",
+    "example": "I aim to finish my homework today.",
+    "audio_file": "/Users/a/dictation/tmp/word_audio/aim.mp3",
+    "r2_url": "https://media.shadowhub.app/audio/oxford3000/aim.mp3",
+    "r2_key": "audio/oxford3000/aim.mp3"
+  },
+  {
+    "word": "air",
+    "part_of_speech": "n",
+    "phonetic": "/ɛr/",
+    "definition": "the mixture of gases that surrounds the earth and that we breathe",
+    "example": "The air is fresh in the mountains.",
+    "audio_file": "/Users/a/dictation/tmp/word_audio/air.mp3",
+    "r2_url": "https://media.shadowhub.app/audio/oxford3000/air.mp3",
+    "r2_key": "audio/oxford3000/air.mp3"
+  }
+]

@@ -50,7 +50,7 @@ interface LinkingPair {
  * 只返回最重要的连读组合（t/d + 元音）
  */
 const detectLinkingPairs = (sentence: string): LinkingPair[] => {
-  const words = sentence.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 0)
+  const words = (sentence.text || '').toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 0)
   const pairs: LinkingPair[] = []
 
   // 只检测最明显的连读：t/d/ed + 元音
@@ -532,7 +532,7 @@ export default function ShadowingPanel({
    * 从句子中提取专有名词列表
    */
   const extractProperNouns = (sentence: string): Set<string> => {
-    const words = sentence.split(/\s+/)
+    const words = (sentence || '').split(/\s+/)
     const properNouns = new Set<string>()
 
     for (const word of words) {

@@ -55,12 +55,23 @@ export default function WordMode({
 
   // 🔥 v6.1 修复：改用空格分词，与挖空脚本保持一致
   // 挖空脚本使用 sentence.text.split(' ') 分词，index 基于空格分割
-  const spaceTokens = sentence.text.split(' ')
+  const spaceTokens = (sentence.text || '').split(' ')
 
   // 🔥 v6.1 修复：改进分词逻辑，保留标点符号（用于渲染）
   // 同时保留单词、标点符号和空格，确保渲染时完整显示原文
   // 🔥 v6.1.1 修复：支持弯撇号 U+2019（智能引号），解决 "It's" 被拆分的问题
-  const renderTokens = sentence.text.match(/([a-zA-Z0-9'\u2019-]+|[.,!?;:]+|\s+)/g) || []
+  const renderTokens = (sentence.text || '').match(/([a-zA-Z0-9'\u2019-]+|[.,!?;:]+|\s+)/g) || []
+
+  // 调试日志
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[WordMode] Sentence data:', {
+      hasText: !!sentence.text,
+      textLength: sentence.text?.length || 0,
+      textPreview: sentence.text?.substring(0, 50) || 'EMPTY',
+      hasTranslation: !!sentence.translation,
+      translationType: typeof sentence.translation
+    })
+  }
 
   // Select word to hide:优先使用 sentence.blanks，否则使用随机算法
   const { targetTokenIndex, hiddenWord } = useMemo(() => {

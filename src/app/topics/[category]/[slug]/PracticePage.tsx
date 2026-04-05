@@ -218,15 +218,40 @@ export default function PracticePage({ category, slug }: { category: string; slu
         }
 
         if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
-          const transcript = transcriptData.map((s: any, index: number) => ({
-            ...s,
-            id: s.id ?? index,
-            startTime: s.startTime,
-            endTime: s.endTime,
-            translation: typeof s.translation === 'object' && s.translation !== null
-              ? s.translation
-              : s.translation
-          }))
+          const transcript = transcriptData.map((s: any, index: number) => {
+            // 安全处理 translation 字段
+            let safeTranslation = undefined
+
+            if (s.translation) {
+              if (typeof s.translation === 'object' && s.translation !== null) {
+                safeTranslation = s.translation
+              } else if (typeof s.translation === 'string') {
+                // 如果是字符串，记录警告并设置为 undefined
+                console.warn(`[PracticePage] Sentence ${index} translation is string, expected object:`, s.translation)
+                safeTranslation = undefined
+              }
+            }
+
+            const sentenceData = {
+              ...s,
+              id: s.id ?? index,
+              startTime: s.startTime,
+              endTime: s.endTime,
+              translation: safeTranslation
+            }
+
+            // 调试日志：记录每个句子的数据结构
+            if (process.env.NODE_ENV === 'development' && index < 3) {
+              console.log(`[PracticePage] Sentence ${index} data structure:`, {
+                hasTranslation: !!s.translation,
+                translationType: typeof s.translation,
+                translationKeys: s.translation && typeof s.translation === 'object' ? Object.keys(s.translation) : 'N/A',
+                finalTranslation: safeTranslation
+              })
+            }
+
+            return sentenceData
+          })
           setSampleSentences(transcript)
         }
       } catch (err) {
