@@ -30363,3 +30363,297 @@ Beyin duygusal işleme katılan bölge olan sen bir megdala, çılgına döndü.
 [2026-04-05 10:55:58] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
 [2026-04-05 10:56:24] [INFO]   进度: 20/57, 成功: 159, 失败: 1
 [2026-04-05 10:58:09] [INFO]   进度: 25/57, 成功: 199, 失败: 1
+[2026-04-05 10:59:30] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 10:59:30] [WARN] 关键词检测: mn 触发重试 (指令关键词: 'Төрөл', 尝试 1/3)
+[2026-04-05 10:59:30] [DEBUG]   原文: Studies have found that people who have been awake for 19 hours have similar coordination and reacti...
+[2026-04-05 10:59:30] [DEBUG]   模型返回: <translation_result>
+Төрөлдсөн хүүний 19 цаг үүргэж байсан хүүний харилцан ойлголт болон хариулагч хугацаа үүргэж байсан хүүнийг төсөлд түгээмэл байна.
+[2026-04-05 10:59:34] [WARN] 关键词检测: mn 触发重试 (指令关键词: 'Төрөл', 尝试 2/3)
+[2026-04-05 10:59:34] [DEBUG]   原文: Studies have found that people who have been awake for 19 hours have similar coordination and reacti...
+[2026-04-05 10:59:34] [DEBUG]   模型返回: Төрөлдсөн хүүмнүүдийн 19 цаг үүсэн хүүмний хамтлаг болон хариулалтын хугацаа үед харагдсан хүүмнийг үүсэн хүүмнийг төсөх боломжтой.
+[2026-04-05 10:59:53] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 10:59:53] [WARN] 关键词检测: mn 触发重试 (指令关键词: 'Төрөл', 尝试 3/3)
+[2026-04-05 10:59:53] [DEBUG]   原文: Studies have found that people who have been awake for 19 hours have similar coordination and reacti...
+[2026-04-05 10:59:53] [DEBUG]   模型返回: <translation_result>Төрөлдсөн хүүний 19 цаг үүдсэн хүүний хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгий
+[2026-04-05 10:59:53] [ERROR] ❌ 翻译失败: mn 已达最大重试次数（关键词污染）
+[2026-04-05 10:59:53] [ERROR] 原文: Studies have found that people who have been awake for 19 hours have similar coordination and reaction times as those who have been drinking.
+[2026-04-05 10:59:53] [ERROR] 模型原始返回:
+<translation_result>Төрөлдсөн хүүний 19 цаг үүдсэн хүүний хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгийн хамгий
+[2026-04-05 10:59:53] [WARN] 翻译失败: mn → [TODO_RETRY] (句子29)
+[2026-04-05 11:00:17] [INFO]   进度: 30/57, 成功: 238, 失败: 2
+[2026-04-05 11:00:21] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 11:01:36] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:01:51] [INFO]   进度: 35/57, 成功: 278, 失败: 2
+[2026-04-05 11:03:56] [WARN] 标签检测失败: ko 未找到 <translation_result> 标签
+[2026-04-05 11:03:57] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 11:04:06] [INFO]   进度: 40/57, 成功: 318, 失败: 2
+[2026-04-05 11:04:24] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:05:01] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:05:10] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 11:05:57] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:06:27] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:06:27] [WARN] 长度检测: mn 触发重试 (原文 22 字符 → 译文 752 字符, 尝试 1/3)
+[2026-04-05 11:06:27] [DEBUG]   原文: How much sleep we get.
+[2026-04-05 11:06:27] [DEBUG]   模型返回: <translation_result>Хөлөгтэй хүний хүртэх хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хүний хү
+[2026-04-05 11:06:31] [INFO]   进度: 45/57, 成功: 358, 失败: 2
+[2026-04-05 11:07:28] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:07:33] [WARN] 标签检测失败: id 未找到 <translation_result> 标签
+[2026-04-05 11:07:36] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 11:08:46] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:08:51] [INFO]   进度: 50/57, 成功: 398, 失败: 2
+[2026-04-05 11:08:57] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 11:09:24] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:09:55] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:09:55] [WARN] 长度检测: mn 触发重试 (原文 31 字符 → 译文 763 字符, 尝试 1/3)
+[2026-04-05 11:09:55] [DEBUG]   原文: Or, for that matter, one night.
+[2026-04-05 11:09:55] [DEBUG]   模型返回: <translation_result>Эсвэл, тусах нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь нь
+[2026-04-05 11:10:24] [WARN] 标签检测失败: pt 未找到 <translation_result> 标签
+[2026-04-05 11:10:56] [INFO]   进度: 55/57, 成功: 438, 失败: 2
+[2026-04-05 11:11:26] [INFO]   ✅ Group B 完成: 成功 454, 失败 2，已保存
+[2026-04-05 11:11:26] [INFO]   🇻🇳 开始补课越南语（老版 Prompt）...
+[2026-04-05 11:11:38] [INFO]   ✅ 越南语补课完成: 成功 6, 失败 0，已保存
+[2026-04-05 11:11:40] [INFO]   🔄 开始翻译 Group A (8 种语言)...
+[2026-04-05 11:12:00] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 1/3)
+[2026-04-05 11:12:00] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:12:00] [DEBUG]   模型返回: 伝統的には、イースターはキリスト教の中で最も重要な祝日の一つです。
+[2026-04-05 11:12:02] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 2/3)
+[2026-04-05 11:12:02] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:12:02] [DEBUG]   模型返回: 伝統的には、イースターはキリスト教の最も重要な祝日の一つです。
+[2026-04-05 11:12:06] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 3/3)
+[2026-04-05 11:12:06] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:12:06] [DEBUG]   模型返回: 伝統的には、イースターはキリスト教の最も重要な祝日の一つです。
+[2026-04-05 11:12:06] [ERROR] ❌ 翻译失败: ja 已达最大重试次数（关键词污染）
+[2026-04-05 11:12:06] [ERROR] 原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:12:06] [ERROR] 模型原始返回:
+<translation_result>伝統的には、イースターはキリスト教の最も重要な祝日の一つです。</translation_result>
+[2026-04-05 11:12:06] [WARN] 翻译失败: ja → [TODO_RETRY] (句子2)
+[2026-04-05 11:12:56] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 1/3)
+[2026-04-05 11:12:56] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se...
+[2026-04-05 11:12:56] [DEBUG]   模型返回: 春の季節に発生するイースター休暇を構成する非常に重要な二日間があります。
+[2026-04-05 11:12:58] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 2/3)
+[2026-04-05 11:12:58] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se...
+[2026-04-05 11:12:58] [DEBUG]   模型返回: 春の季節に発生するイースター休暇を構成する非常に重要な二日間があります。
+[2026-04-05 11:13:02] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 3/3)
+[2026-04-05 11:13:02] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se...
+[2026-04-05 11:13:02] [DEBUG]   模型返回: 春の季節に発生するイースター休暇を構成する非常に重要な二日間があります。
+[2026-04-05 11:13:02] [ERROR] ❌ 翻译失败: ja 已达最大重试次数（关键词污染）
+[2026-04-05 11:13:02] [ERROR] 原文: There are two very important days that make up the Easter holiday, which occurs during the spring season.
+[2026-04-05 11:13:02] [ERROR] 模型原始返回:
+<translation_result>春の季節に発生するイースター休暇を構成する非常に重要な二日間があります。</translation_result>
+[2026-04-05 11:13:02] [WARN] 翻译失败: ja → [TODO_RETRY] (句子5)
+[2026-04-05 11:13:03] [WARN] 标签检测失败: ms 未找到 <translation_result> 标签
+[2026-04-05 11:13:13] [INFO]   进度: 5/22, 成功: 38, 失败: 2
+[2026-04-05 11:14:17] [INFO]   进度: 10/22, 成功: 78, 失败: 2
+[2026-04-05 11:14:34] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 11:14:42] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 1/3)
+[2026-04-05 11:14:42] [DEBUG]   原文: Many people attend church services on Good Friday and on Easter Sunday.
+[2026-04-05 11:14:42] [DEBUG]   模型返回: Bir çok kişi Paskalya Cuma ve Paskalya Pazar günü kilise hizmetlerine katılır.
+[2026-04-05 11:14:44] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 2/3)
+[2026-04-05 11:14:44] [DEBUG]   原文: Many people attend church services on Good Friday and on Easter Sunday.
+[2026-04-05 11:14:44] [DEBUG]   模型返回: Bir çok kişi Paskalya Cuma ve Paskalya Pazar günü kilise hizmetlerine katılır.
+[2026-04-05 11:14:48] [WARN] 关键词检测: tr 触发重试 (指令关键词: 'Katı', 尝试 3/3)
+[2026-04-05 11:14:48] [DEBUG]   原文: Many people attend church services on Good Friday and on Easter Sunday.
+[2026-04-05 11:14:48] [DEBUG]   模型返回: Bir çok kişi Paskalya Cuma ve Paskalya Pazar gününde kilise hizmetlerine katılır.
+[2026-04-05 11:14:48] [ERROR] ❌ 翻译失败: tr 已达最大重试次数（关键词污染）
+[2026-04-05 11:14:48] [ERROR] 原文: Many people attend church services on Good Friday and on Easter Sunday.
+[2026-04-05 11:14:48] [ERROR] 模型原始返回:
+<translation_result>
+Bir çok kişi Paskalya Cuma ve Paskalya Pazar gününde kilise hizmetlerine katılır.
+</translation_result>
+[2026-04-05 11:14:48] [WARN] 翻译失败: tr → [TODO_RETRY] (句子12)
+[2026-04-05 11:15:28] [INFO]   进度: 15/22, 成功: 117, 失败: 3
+[2026-04-05 11:16:02] [WARN] 标签检测失败: ms 未找到 <translation_result> 标签
+[2026-04-05 11:16:38] [INFO]   进度: 20/22, 成功: 157, 失败: 3
+[2026-04-05 11:17:01] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 1/3)
+[2026-04-05 11:17:01] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:17:01] [DEBUG]   模型返回: イースター休暇は、宗教の祝日としても、春の祝としても重要な時期です。
+[2026-04-05 11:17:04] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 2/3)
+[2026-04-05 11:17:04] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:17:04] [DEBUG]   模型返回: イースター休暇は、宗教の祭りとしても、春の祝祭としても重要な時期です。
+[2026-04-05 11:17:08] [WARN] 关键词检测: ja 触发重试 (指令关键词: '重要', 尝试 3/3)
+[2026-04-05 11:17:08] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:17:08] [DEBUG]   模型返回: イースター休暇は、宗教の祭りとしても、春の祝祭としても重要な時期です。
+[2026-04-05 11:17:08] [ERROR] ❌ 翻译失败: ja 已达最大重试次数（关键词污染）
+[2026-04-05 11:17:08] [ERROR] 原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springtime.
+[2026-04-05 11:17:08] [ERROR] 模型原始返回:
+<translation_result>イースター休暇は、宗教の祭りとしても、春の祝祭としても重要な時期です。</translation_result>
+[2026-04-05 11:17:08] [WARN] 翻译失败: ja → [TODO_RETRY] (句子22)
+[2026-04-05 11:17:18] [INFO]   ✅ Group A 完成: 成功 172, 失败 4，已保存
+[2026-04-05 11:17:18] [INFO]   ⏸️ 冷却 5 秒（缓解 API Rate Limit）...
+[2026-04-05 11:17:23] [INFO]   🔄 开始翻译 Group B (8 种语言)...
+[2026-04-05 11:17:34] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 1/3)
+[2026-04-05 11:17:34] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:17:34] [DEBUG]   模型返回: 통통히, 부활절은 기독교의 가장 중요한 축제 중 하나로 알려져 있습니다.
+[2026-04-05 11:17:37] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 2/3)
+[2026-04-05 11:17:37] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:17:37] [DEBUG]   模型返回: 통통히, 부활절은 기독교의 가장 중요한 축제 중 하나로 되어 왔습니다.
+[2026-04-05 11:17:40] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 3/3)
+[2026-04-05 11:17:40] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:17:40] [DEBUG]   模型返回: 통통히, 부활절은 기독교의 가장 중요한 축제 중 하나로 되어 있습니다.
+[2026-04-05 11:17:40] [ERROR] ❌ 翻译失败: ko 已达最大重试次数（关键词污染）
+[2026-04-05 11:17:40] [ERROR] 原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:17:40] [ERROR] 模型原始返回:
+<translation_result>통통히, 부활절은 기독교의 가장 중요한 축제 중 하나로 되어 있습니다.</translation_result>
+[2026-04-05 11:17:40] [WARN] 翻译失败: ko → [TODO_RETRY] (句子2)
+[2026-04-05 11:17:57] [WARN] 关键词检测: hi 触发重试 (指令关键词: 'महत्वपूर्ण', 尝试 1/3)
+[2026-04-05 11:17:57] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:17:57] [DEBUG]   模型返回: पारंपरिक रूप से, ईस्टर ईसाई धर्म के सबसे महत्वपूर्ण त्यौहारों में से एक रहा है।
+[2026-04-05 11:18:00] [WARN] 关键词检测: hi 触发重试 (指令关键词: 'महत्वपूर्ण', 尝试 2/3)
+[2026-04-05 11:18:00] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:18:00] [DEBUG]   模型返回: पारंपरिक रूप से, ईस्टर ईसाई धर्म के सबसे महत्वपूर्ण त्यौहारों में से एक रहा है।
+[2026-04-05 11:18:05] [WARN] 关键词检测: hi 触发重试 (指令关键词: 'महत्वपूर्ण', 尝试 3/3)
+[2026-04-05 11:18:05] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:18:05] [DEBUG]   模型返回: पारंपरिक रूप से, ईस्टर ईसाई धर्म के सबसे महत्वपूर्ण त्यौहारों में से एक रहा है।
+[2026-04-05 11:18:05] [ERROR] ❌ 翻译失败: hi 已达最大重试次数（关键词污染）
+[2026-04-05 11:18:05] [ERROR] 原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:18:05] [ERROR] 模型原始返回:
+<translation_result>पारंपरिक रूप से, ईस्टर ईसाई धर्म के सबसे महत्वपूर्ण त्यौहारों में से एक रहा है।</translation_result>
+[2026-04-05 11:18:05] [WARN] 翻译失败: hi → [TODO_RETRY] (句子2)
+[2026-04-05 11:18:46] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:18:46] [WARN] 关键词检测: mn 触发重试 (指令关键词: 'Төрөл', 尝试 1/3)
+[2026-04-05 11:18:46] [DEBUG]   原文: For Christians, the Easter holiday celebrates the death of Jesus Christ, who died for the benefit of...
+[2026-04-05 11:18:46] [DEBUG]   模型返回: <translation_result>Христиаандуудын төрөлд харагдаж байгаа Уртун үүргийн үүрэгт Иисус Хristийн өвдөрөөс хүн төрөгт ихэвчлэн ихэвчлэн өвдөрөөс хүн төрөгт ихэвчлэн өвдөрөөс хүн төрөгт ихэвчлэн өвдөрөөс 
+[2026-04-05 11:19:20] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 1/3)
+[2026-04-05 11:19:20] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se...
+[2026-04-05 11:19:20] [DEBUG]   模型返回: 봄 시즌에 있는 패스타일 휴일을 구성하는 두 가지 매우 중요한 날이 있습니다.
+[2026-04-05 11:19:22] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 2/3)
+[2026-04-05 11:19:22] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se...
+[2026-04-05 11:19:22] [DEBUG]   模型返回: 봄 계절에 있는 패스타일 휴일을 구성하는 두 가지 매우 중요한 날이 있습니다.
+[2026-04-05 11:19:26] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 3/3)
+[2026-04-05 11:19:26] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se...
+[2026-04-05 11:19:26] [DEBUG]   模型返回: 봄 계절에 있는 양빛 명절을 구성하는 두 가지 매우 중요한 날이 있습니다.
+[2026-04-05 11:19:26] [ERROR] ❌ 翻译失败: ko 已达最大重试次数（关键词污染）
+[2026-04-05 11:19:26] [ERROR] 原文: There are two very important days that make up the Easter holiday, which occurs during the spring season.
+[2026-04-05 11:19:26] [ERROR] 模型原始返回:
+<translation_result>
+봄 계절에 있는 양빛 명절을 구성하는 두 가지 매우 중요한 날이 있습니다.
+</translation_result>
+[2026-04-05 11:19:26] [WARN] 翻译失败: ko → [TODO_RETRY] (句子5)
+[2026-04-05 11:19:41] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:19:44] [INFO]   进度: 5/22, 成功: 37, 失败: 3
+[2026-04-05 11:20:24] [WARN] 标签检测失败: id 未找到 <translation_result> 标签
+[2026-04-05 11:21:15] [INFO]   进度: 10/22, 成功: 77, 失败: 3
+[2026-04-05 11:22:08] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:22:57] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:23:17] [INFO]   进度: 15/22, 成功: 117, 失败: 3
+[2026-04-05 11:24:39] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:25:06] [WARN] 标签检测失败: th 未找到 <translation_result> 标签
+[2026-04-05 11:25:24] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:25:28] [INFO]   进度: 20/22, 成功: 157, 失败: 3
+[2026-04-05 11:25:57] [WARN] 标签检测失败: mn 未找到 <translation_result> 标签
+[2026-04-05 11:26:07] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 1/3)
+[2026-04-05 11:26:07] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:26:07] [DEBUG]   模型返回: 빨리나절은 종교적인 기념일로서도, 봄시절을 축제로서도 중요한 시기입니다.
+[2026-04-05 11:26:12] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 2/3)
+[2026-04-05 11:26:12] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:26:12] [DEBUG]   模型返回: 빨리절은 종교적인 기념일이자 봄 시절을 축제로 맞이하는 중요한 시기입니다.
+[2026-04-05 11:26:15] [WARN] 关键词检测: ko 触发重试 (指令关键词: '중요', 尝试 3/3)
+[2026-04-05 11:26:15] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:26:15] [DEBUG]   模型返回: 빨리부라는 휴가는 종교적인 기념일이며 봄 시절을 축제로 즐기는 중요한 시기입니다.
+[2026-04-05 11:26:15] [ERROR] ❌ 翻译失败: ko 已达最大重试次数（关键词污染）
+[2026-04-05 11:26:15] [ERROR] 原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springtime.
+[2026-04-05 11:26:15] [ERROR] 模型原始返回:
+<translation_result>빨리부라는 휴가는 종교적인 기념일이며 봄 시절을 축제로 즐기는 중요한 시기입니다.</translation_result>
+[2026-04-05 11:26:15] [WARN] 翻译失败: ko → [TODO_RETRY] (句子22)
+[2026-04-05 11:26:39] [WARN] 关键词检测: hi 触发重试 (指令关键词: 'महत्वपूर्ण', 尝试 1/3)
+[2026-04-05 11:26:39] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:26:39] [DEBUG]   模型返回: ईस्टर का अवसर एक महत्वपूर्ण समय है, बदशाही के रूप में और वसंत के समय के उत्सव के रूप में दोनों ही।
+[2026-04-05 11:26:46] [WARN] 关键词检测: hi 触发重试 (指令关键词: 'महत्वपूर्ण', 尝试 2/3)
+[2026-04-05 11:26:46] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:26:46] [DEBUG]   模型返回: ईस्टर का अवसर एक महत्वपूर्ण समय है, न केवल धार्मिक त्यौहार के रूप में बल्कि वसंत के समय का उत्सव के रूप में भी।
+[2026-04-05 11:26:52] [WARN] 关键词检测: hi 触发重试 (指令关键词: 'महत्वपूर्ण', 尝试 3/3)
+[2026-04-05 11:26:52] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt...
+[2026-04-05 11:26:52] [DEBUG]   模型返回: ईस्टर का अवसर एक महत्वपूर्ण समय है, न केवल धार्मिक त्यौहार के रूप में बल्कि वसंत के समय के उत्सव के रूप में भी।
+[2026-04-05 11:26:52] [ERROR] ❌ 翻译失败: hi 已达最大重试次数（关键词污染）
+[2026-04-05 11:26:52] [ERROR] 原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springtime.
+[2026-04-05 11:26:52] [ERROR] 模型原始返回:
+<translation_result>ईस्टर का अवसर एक महत्वपूर्ण समय है, न केवल धार्मिक त्यौहार के रूप में बल्कि वसंत के समय के उत्सव के रूप में भी।</translation_result>
+[2026-04-05 11:26:52] [WARN] 翻译失败: hi → [TODO_RETRY] (句子22)
+[2026-04-05 11:26:55] [INFO]   ✅ Group B 完成: 成功 171, 失败 5，已保存
+[2026-04-05 11:26:55] [INFO]   🇻🇳 开始补课越南语（老版 Prompt）...
+[2026-04-05 11:26:57] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 1/3)
+[2026-04-05 11:26:57] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:26:57] [DEBUG]   模型返回: Truyền thống, Ngày Lễ Phục Sinh là một trong những ngày lễ quan trọng nhất của đạo Công giáo.
+[2026-04-05 11:27:00] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 2/3)
+[2026-04-05 11:27:00] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:27:00] [DEBUG]   模型返回: Truyền thống, Ngày Lễ Phục Sinh là một trong những ngày lễ quan trọng nhất của tôn giáo Kitô giáo.
+[2026-04-05 11:27:03] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 3/3)
+[2026-04-05 11:27:03] [DEBUG]   原文: Traditionally, Easter has been one of the most important holidays of the Christian religion.
+[2026-04-05 11:27:03] [DEBUG]   模型返回: Truyền thống, Ngày Lễ Phục Sinh là một trong những ngày lễ quan trọng nhất của đạo Công giáo.
+[2026-04-05 11:27:03] [ERROR] ❌ 翻译失败: vi 已达最大重试次数（关键词污染）
+[2026-04-05 11:27:03] [WARN] 越南语翻译失败: [TODO_RETRY] (句子2)
+[2026-04-05 11:27:05] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 1/3)
+[2026-04-05 11:27:05] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se
+[2026-04-05 11:27:05] [DEBUG]   模型返回: Có hai ngày rất quan trọng tạo nên kỳ nghỉ Lễ Phục Sinh, diễn ra trong mùa xuân.
+[2026-04-05 11:27:07] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 2/3)
+[2026-04-05 11:27:07] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se
+[2026-04-05 11:27:07] [DEBUG]   模型返回: Có hai ngày rất quan trọng tạo nên kỳ nghỉ Lễ Phục Sinh, diễn ra trong mùa xuân.
+[2026-04-05 11:27:10] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 3/3)
+[2026-04-05 11:27:10] [DEBUG]   原文: There are two very important days that make up the Easter holiday, which occurs during the spring se
+[2026-04-05 11:27:10] [DEBUG]   模型返回: Có hai ngày rất quan trọng tạo nên kỳ nghỉ Lễ Phục Sinh, diễn ra trong mùa xuân.
+[2026-04-05 11:27:10] [ERROR] ❌ 翻译失败: vi 已达最大重试次数（关键词污染）
+[2026-04-05 11:27:10] [WARN] 越南语翻译失败: [TODO_RETRY] (句子5)
+[2026-04-05 11:27:15] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 1/3)
+[2026-04-05 11:27:15] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt
+[2026-04-05 11:27:15] [DEBUG]   模型返回: Ngày lễ Phục Sinh là thời gian quan trọng, cả như một ngày lễ tôn giáo và như một lễ hội chào đón mùa xuân.
+[2026-04-05 11:27:18] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 2/3)
+[2026-04-05 11:27:18] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt
+[2026-04-05 11:27:18] [DEBUG]   模型返回: Ngày lễ Phục Sinh là thời điểm quan trọng, cả như một ngày lễ tôn giáo và như một lễ hội chào đón mùa xuân.
+[2026-04-05 11:27:21] [WARN] 关键词检测: vi 触发重试 (指令关键词: 'Quan trọng', 尝试 3/3)
+[2026-04-05 11:27:21] [DEBUG]   原文: The Easter holiday is an important time, both as a religious holiday and as a celebration of springt
+[2026-04-05 11:27:21] [DEBUG]   模型返回: Ngày lễ Phục Sinh là thời gian quan trọng, cả như một ngày lễ tôn giáo và như một lễ hội chào đón mùa xuân.
+[2026-04-05 11:27:21] [ERROR] ❌ 翻译失败: vi 已达最大重试次数（关键词污染）
+[2026-04-05 11:27:21] [WARN] 越南语翻译失败: [TODO_RETRY] (句子22)
+[2026-04-05 11:27:22] [INFO]   ✅ 越南语补课完成: 成功 2, 失败 3，已保存
+[2026-04-05 11:27:23] [INFO]   🔄 开始翻译 Group A (8 种语言)...
+[2026-04-05 11:27:41] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 11:28:03] [WARN] 中文污染检测: ru 触发重试 (尝试 1/3)
+[2026-04-05 11:28:03] [DEBUG]   原文: As you know, the school buildings date from various times: some from the 1970s, some from the last f...
+[2026-04-05 11:28:03] [DEBUG]   模型返回: Как вы знаете, здания школы датируются различными時代： одни из 1970-х годов, другие из последних пяти лет, и, конечно, Дартфилд-хаус старше века.
+[2026-04-05 11:28:07] [WARN] 中文污染检测: ru 触发重试 (尝试 2/3)
+[2026-04-05 11:28:07] [DEBUG]   原文: As you know, the school buildings date from various times: some from the 1970s, some from the last f...
+[2026-04-05 11:28:07] [DEBUG]   模型返回: Как вы знаете, здания школы датируются различными時代： некоторые из 1970-х годов, некоторые из последних пяти лет, и, конечно, Дартфилд-хаус старше века.
+[2026-04-05 11:28:13] [WARN] 中文污染检测: ru 触发重试 (尝试 3/3)
+[2026-04-05 11:28:13] [DEBUG]   原文: As you know, the school buildings date from various times: some from the 1970s, some from the last f...
+[2026-04-05 11:28:13] [DEBUG]   模型返回: Как вы знаете, здания школы датируются различными時代： одни из 1970-х годов, другие из последних пяти лет, и, конечно, Дартфилд-хаус старше века.
+[2026-04-05 11:28:13] [ERROR] ❌ 翻译失败: ru 已达最大重试次数
+[2026-04-05 11:28:13] [ERROR] 原文: As you know, the school buildings date from various times: some from the 1970s, some from the last five years, and of course Dartfield House is over a century old.
+[2026-04-05 11:28:13] [ERROR] 模型原始返回:
+Как вы знаете, здания школы датируются различными時代： одни из 1970-х годов, другие из последних пяти лет, и, конечно, Дартфилд-хаус старше века.
+[2026-04-05 11:28:13] [WARN] 翻译失败: ru → [TODO_RETRY] (句子3)
+[2026-04-05 11:28:49] [INFO]   进度: 5/43, 成功: 39, 失败: 1
+[2026-04-05 11:30:07] [INFO]   进度: 10/43, 成功: 79, 失败: 1
+[2026-04-05 11:30:27] [WARN] 标签检测失败: es 未找到 <translation_result> 标签
+[2026-04-05 11:31:14] [INFO]   进度: 15/43, 成功: 119, 失败: 1
+[2026-04-05 11:31:41] [WARN] 中文污染检测: ru 触发重试 (尝试 1/3)
+[2026-04-05 11:31:41] [DEBUG]   原文: This is obviously unsatisfactory, as they may have hardly finished their lunch before afternoon less...
+[2026-04-05 11:31:41] [DEBUG]   模型返回: Это显然是不令人满意的，因为他们可能在上下午课程开始之前几乎没有吃完午餐。
+[2026-04-05 11:31:44] [WARN] 中文污染检测: ru 触发重试 (尝试 2/3)
+[2026-04-05 11:31:44] [DEBUG]   原文: This is obviously unsatisfactory, as they may have hardly finished their lunch before afternoon less...
+[2026-04-05 11:31:44] [DEBUG]   模型返回: Это显然是不令人满意的，因为他们可能在上下午课程开始之前几乎还没吃完午餐。
+[2026-04-05 11:31:48] [WARN] 中文污染检测: ru 触发重试 (尝试 3/3)
+[2026-04-05 11:31:48] [DEBUG]   原文: This is obviously unsatisfactory, as they may have hardly finished their lunch before afternoon less...
+[2026-04-05 11:31:48] [DEBUG]   模型返回: Это显然是不令人满意的，因为他们可能在上下午课程开始之前几乎还没吃完午餐。
+[2026-04-05 11:31:48] [ERROR] ❌ 翻译失败: ru 已达最大重试次数
+[2026-04-05 11:31:48] [ERROR] 原文: This is obviously unsatisfactory, as they may have hardly finished their lunch before afternoon lessons start.
+[2026-04-05 11:31:48] [ERROR] 模型原始返回:
+Это显然是不令人满意的，因为他们可能在上下午课程开始之前几乎还没吃完午餐。
+[2026-04-05 11:31:48] [WARN] 翻译失败: ru → [TODO_RETRY] (句子17)
+[2026-04-05 11:31:52] [WARN] 中文污染检测: el 触发重试 (尝试 1/3)
+[2026-04-05 11:31:52] [DEBUG]   原文: This is obviously unsatisfactory, as they may have hardly finished their lunch before afternoon less...
+[2026-04-05 11:31:52] [DEBUG]   模型返回: Αυτό είναι显然是不令人满意的，因为他们可能在上下午课程开始之前几乎还没吃完午餐。
+[2026-04-05 11:31:54] [WARN] 中文污染检测: el 触发重试 (尝试 2/3)
+[2026-04-05 11:31:54] [DEBUG]   原文: This is obviously unsatisfactory, as they may have hardly finished their lunch before afternoon less...
+[2026-04-05 11:31:54] [DEBUG]   模型返回: Αυτό είναι显然是不令人满意的，因为他们可能在上下午课程开始之前几乎还没吃完午餐。
+[2026-04-05 11:31:57] [WARN] 中文污染检测: el 触发重试 (尝试 3/3)
+[2026-04-05 11:31:57] [DEBUG]   原文: This is obviously unsatisfactory, as they may have hardly finished their lunch before afternoon less...
+[2026-04-05 11:31:57] [DEBUG]   模型返回: Αυτό είναι显然不令人满意，因为他们可能在上下午课程开始之前几乎还没吃完午餐。
+[2026-04-05 11:31:57] [ERROR] ❌ 翻译失败: el 已达最大重试次数
+[2026-04-05 11:31:57] [ERROR] 原文: This is obviously unsatisfactory, as they may have hardly finished their lunch before afternoon lessons start.
+[2026-04-05 11:31:57] [ERROR] 模型原始返回:
+Αυτό είναι显然不令人满意，因为他们可能在上下午课程开始之前几乎还没吃完午餐。
+[2026-04-05 11:31:57] [WARN] 翻译失败: el → [TODO_RETRY] (句子17)
+[2026-04-05 11:32:39] [WARN] 中文污染检测: ru 触发重试 (尝试 1/3)
+[2026-04-05 11:32:39] [DEBUG]   原文: But one thing we ask you to do, to help in the smooth running of the food hall, is to discuss with y...
+[2026-04-05 11:32:39] [DEBUG]   模型返回: Но одно мы просим вас сделать, чтобы помочь вsmooth running food hall, это обсудить с детьми каждый день,哪种类型的食物他们想当天吃，这样他们可以直接去相关的服务点。
+[2026-04-05 11:32:50] [INFO]   进度: 20/43, 成功: 157, 失败: 3

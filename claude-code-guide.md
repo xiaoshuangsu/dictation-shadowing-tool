@@ -356,7 +356,7 @@ cat CONTEXT_RESTORE.md
 ```
 
 ### 方式二：一句话恢复
-> "请先阅读 `claude-code-guide.md`，当前版本是 V29.7.9（2026-04-05），主要实现了：
+> "请先阅读 `claude-code-guide.md`，当前版本是 V29.7.12（2026-04-05），主要实现了：
 > - **YouTube 脚本 v2.2**：完整自动化流程（LLM 标点恢复 → yt-dlp 字幕抓取 → 智能断句 → 时间轴优化 → 智能挖空 v6.2 → 19国翻译 → 入库）
 > - **翻译语言扩展**：支持 19 种语言（原有 3 种 + 新增 16 种：Arabic, Deutsch, Español, 日本語, Bahasa Melayu, Russian, Türkçe, Greek, Indonesian, 한국어, Português, ภาษาไทย, Українська, বাংলা, Монгол, हिन্দी）
 > - **v6.2 挖空逻辑**：语言习得导向，权重系统，索引转换，自动修正
@@ -373,7 +373,7 @@ cat CONTEXT_RESTORE.md
 
 ---
 
-**版本**：V29.7.9
+**版本**：V29.7.12
 **更新日期**：2026-04-05
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app（Vercel）
