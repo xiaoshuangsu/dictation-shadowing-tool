@@ -999,6 +999,8 @@ def main():
     parser.add_argument('--test', action='store_true', help='测试模式（3 个单词）')
     parser.add_argument('--oxford', action='store_true', help='使用 Oxford 3000 数据源')
     parser.add_argument('--limit', type=int, default=3, help='单词数量限制')
+    parser.add_argument('--only-audio', action='store_true', help='仅补录音频（跳过已存在 R2 链接的条目）')
+    parser.add_argument('--delay', type=float, default=0.5, help='TTS 请求间隔秒数（避免限流）')
     args = parser.parse_args()
 
     print("=" * 70)
@@ -1010,6 +1012,91 @@ def main():
     temp_audio_dir = Path('/tmp/dictation_word_audio')
     temp_audio_dir.mkdir(exist_ok=True, parents=True)
 
+    # 仅音频补录模式
+    if args.only_audio:
+        logger.info("🎵 仅音频补录模式（跳过已存在 R2 链接的条目）")
+        logger.info(f"⏱️  TTS 请求间隔: {args.delay} 秒")
+        logger.info("-" * 70)
+
+        # 查询缺失音频的单词
+        response = supabase.table('dictionary_cache').select('word', 'phonetic', 'example').is_('audio_r2_url', 'null').execute()
+
+        words_to_process = response.data
+        logger.info(f"📊 缺失音频的单词数: {len(words_to_process)}")
+
+        if not words_to_process:
+            logger.info("✅ 所有单词都有音频，无需处理")
+            return
+
+        # 处理单词
+        success_count = 0
+        failed_words = []
+
+        for idx, word_entry in enumerate(words_to_process, 1):
+            word = word_entry['word']
+            phonetic = word_entry.get('phonetic', '')
+            example = word_entry.get('dictionary_example', '')
+
+            logger.info(f"\n[{idx}/{len(words_to_process)}] 补录音频: {word}")
+
+            # 跳过 "for" 单词（Bug 数据）
+            if word == 'for' and not phonetic:
+                logger.warning(f"⚠️  跳过无效 'for' 条目（无音标）")
+                failed_words.append(word)
+                continue
+
+            try:
+                # 1. 生成音频
+                audio_file = asyncio.run(generate_audio(word, temp_audio_dir))
+
+                if not audio_file:
+                    logger.error(f"❌ 音频生成失败: {word}")
+                    failed_words.append(word)
+                    time.sleep(args.delay)
+                    continue
+
+                # 2. 上传到 R2
+                audio_r2_url = upload_to_r2(audio_file, word)
+
+                if not audio_r2_url:
+                    logger.error(f"❌ R2 上传失败: {word}")
+                    failed_words.append(word)
+                    time.sleep(args.delay)
+                    continue
+
+                # 3. 更新数据库（只更新 audio_r2_url）
+                update_response = supabase.table('dictionary_cache').update({
+                    'audio_r2_url': audio_r2_url
+                }).eq('word', word).execute()
+
+                if update_response.data:
+                    logger.info(f"✅ 音频补录成功: {word}")
+                    success_count += 1
+                else:
+                    logger.error(f"❌ 数据库更新失败: {word}")
+                    failed_words.append(word)
+
+            except Exception as e:
+                logger.error(f"❌ 处理失败: {word} - {str(e)}")
+                failed_words.append(word)
+
+            # 延迟，避免 TTS 限流
+            time.sleep(args.delay)
+
+        # 总结
+        logger.info("\n" + "=" * 70)
+        logger.info("📊 音频补录完成")
+        logger.info("=" * 70)
+        logger.info(f"✅ 成功: {success_count}/{len(words_to_process)}")
+
+        if failed_words:
+            logger.warning(f"⚠️  失败: {len(failed_words)} 个单词")
+            logger.warning(f"失败列表: {', '.join(failed_words[:10])}{'...' if len(failed_words) > 10 else ''}")
+
+        logger.info(f"📁 音频目录: {temp_audio_dir}")
+        return
+
+    # 正常模式（翻译 + 音频）
     # 创建 Oxford 抓取器
     scraper = OxfordScraper(max_words=args.limit)
 
