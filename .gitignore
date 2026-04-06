@@ -103,3 +103,8 @@ cache
 Trigger deployment
 logs/
 backups/
+
+# Log files and archive
+*.log
+scripts/logs_archive/
+scripts/*.log
