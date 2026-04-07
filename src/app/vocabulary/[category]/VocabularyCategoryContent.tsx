@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { ArrowLeft, Volume2, Search, ExternalLink } from 'lucide-react'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 import { categoryToSlug } from '@/lib/utils/category'
+import ReviewOverlay from '@/components/ReviewOverlay'
 
 // 单词数据接口
 interface WordEntry {
@@ -165,9 +166,10 @@ interface WordCardProps {
   currentLanguage: string
   category: string
   onPlayAudio: (word: WordEntry, accent: 'us' | 'uk') => void
+  onClick: (word: WordEntry) => void
 }
 
-function WordCard({ word, currentLanguage, category, onPlayAudio }: WordCardProps) {
+function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: WordCardProps) {
   // 解析翻译（双层释义）
   const englishDefinition = getEnglishDefinition(word.definition)
   const targetTranslation = getCurrentTranslation(word.definition, currentLanguage)
@@ -198,7 +200,10 @@ function WordCard({ word, currentLanguage, category, onPlayAudio }: WordCardProp
   const hasUkR2Audio = isR2AudioUrl(word.audio_url_uk || word.dictionary_cache?.audio_url_uk)
 
   return (
-    <div className="p-4 border border-gray-200 bg-white hover:shadow-md transition-all hover:border-blue-300">
+    <div
+      className="p-4 border border-gray-200 bg-white hover:shadow-md transition-all hover:border-blue-300 cursor-pointer"
+      onClick={() => onClick(word)}
+    >
       {/* 顶部：单词 + 音标 + 双发音按钮 */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
@@ -302,6 +307,7 @@ function WordCard({ word, currentLanguage, category, onPlayAudio }: WordCardProp
         <Link
           href={practiceUrl}
           className="block border-l-2 border-blue-500 bg-blue-50/50 rounded-r-lg px-3 py-2.5 mb-2 hover:bg-blue-100 transition-all cursor-pointer group"
+          onClick={(e) => e.stopPropagation()}  // 阻止冒泡，避免触发卡片点击
         >
           <p
             className="text-sm text-blue-700 italic line-clamp-2 leading-relaxed group-hover:underline"
@@ -345,6 +351,10 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentLanguage, setCurrentLanguage] = useState('zh')
+
+  // 闪卡状态
+  const [flashcardWord, setFlashcardWord] = useState<WordEntry | null>(null)
+  const [showFlashcard, setShowFlashcard] = useState(false)
 
   const config = CATEGORY_CONFIG[category]
 
@@ -396,6 +406,18 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
       console.warn(`[TTS] 浏览器不支持 Web Speech API`)
       throw new Error('浏览器不支持语音合成')
     }
+  }
+
+  // 打开闪卡
+  const handleOpenFlashcard = (word: WordEntry) => {
+    setFlashcardWord(word)
+    setShowFlashcard(true)
+  }
+
+  // 关闭闪卡
+  const handleCloseFlashcard = () => {
+    setShowFlashcard(false)
+    setFlashcardWord(null)
   }
 
   // 监听语言变化
@@ -628,6 +650,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
                 currentLanguage={currentLanguage}
                 category={category}
                 onPlayAudio={handlePlayAudio}
+                onClick={handleOpenFlashcard}
               />
             ))}
           </div>
@@ -639,6 +662,27 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
           </div>
         )}
       </div>
+
+      {/* 闪卡模态框 */}
+      {showFlashcard && flashcardWord && user && (
+        <ReviewOverlay
+          words={[{
+            id: flashcardWord.id || '',
+            word: flashcardWord.word,
+            phonetic: flashcardWord.phonetic || '',
+            definition: flashcardWord.definition,
+            context_sentence: flashcardWord.context_sentence || flashcardWord.dictionary_cache?.example || '',
+            audio_url_us: flashcardWord.audio_url_us || flashcardWord.dictionary_cache?.audio_url_us || '',
+            audio_url_uk: flashcardWord.audio_url_uk || flashcardWord.dictionary_cache?.audio_url_uk || '',
+            dictionary_cache: flashcardWord.dictionary_cache,
+            material_info: flashcardWord.material_info,
+            audio_timestamp: flashcardWord.audio_timestamp,
+            material_title: flashcardWord.material_title
+          }]}
+          user={user}
+          onClose={handleCloseFlashcard}
+        />
+      )}
     </div>
   )
 }

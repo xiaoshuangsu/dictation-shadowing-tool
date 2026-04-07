@@ -1,44 +1,50 @@
 /**
  * ReviewOverlay - 闪卡拼写训练遮罩层组件
  *
+ * V2.0 - 同步最新单词卡片逻辑
+ * - 双层释义：英文释义 + 目标语翻译
+ * - 双例句：词典标准例句 + 素材实战原句
+ * - 智能音频路由：R2 优先 + Web Speech API 兜底
+ * - 素材跳转：使用修复后的英文 Slug 路径
+ *
  * 功能：
  * - 全屏遮罩层，用于闪卡训练
  * - 显示单词释义和填空句
  * - 实时校验拼写
  * - 3D 翻转动画展示答案
  * - 查看答案功能（点击或按回车）
- * - 自评功能（Still Learning/Mastered）
- *
- * 训练模式逻辑（挖空拼写）：
- * - 正面：隐藏单词标题，显示填空句（目标词替换为____）
- * - 正面：音标 + US/UK 喇叭辅助拼写
- * - 正面：自动聚焦输入框，用户拼写
- * - 正面：查看答案按钮（输入框为空时按回车）
- * - 背面：显示单词标题，完整原句（高亮目标词）
- * - 背面：自评按钮（Still Learning/Mastered）
- *
- * 修复（V29.7.1）：
- * - 移除内部的 useAuth Hook 调用
- * - 改为通过 props 传递 user
- * - 避免条件渲染导致的 Hook 顺序问题
+ * - 自评功能（Still Learning/Kinda Know/Too Easy）
  */
 
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Volume2, X } from 'lucide-react'
+import { Volume2, X, ExternalLink } from 'lucide-react'
 import { AuthUser } from '@/lib/hooks/useAuth'
+import { categoryToSlug } from '@/lib/utils/category'
 import logger from '@/lib/utils/logger'
 
 interface ReviewWord {
   id: string
   word: string
   phonetic: string
-  pos?: string
   definition: string
-  context_sentence: string
+  context_sentence?: string
   audio_url_us?: string
   audio_url_uk?: string
+  // 新增字段
+  dictionary_cache?: {
+    example?: string
+    audio_url_us?: string | null
+    audio_url_uk?: string | null
+  }
+  material_info?: {
+    category: string
+    slug: string
+    transcript?: any[] | null
+  }
+  audio_timestamp?: number | null
+  material_title?: string
 }
 
 interface ReviewOverlayProps {
@@ -47,17 +53,51 @@ interface ReviewOverlayProps {
   onClose: () => void
 }
 
+// 翻译解析
 const parseDefinition = (definitionStr: string) => {
   try {
-    return JSON.parse(definitionStr)
+    const parsed = JSON.parse(definitionStr)
+    if (parsed.zh || parsed.en || parsed.vi) {
+      return parsed
+    }
+    if (parsed['zh-CN'] || parsed['zh-Hant']) {
+      return {
+        zh: parsed['zh-CN'] || '',
+        en: parsed.en || '',
+        vi: parsed.vi || ''
+      }
+    }
+    return { zh: definitionStr }
   } catch {
-    return {
-      'zh-CN': definitionStr || '',
-      'zh-Hant': '',
-      'vi': '',
-      'en': definitionStr || ''
+    return { zh: definitionStr }
+  }
+}
+
+// 获取英文释义
+const getEnglishDefinition = (definitionStr: string) => {
+  const parsed = parseDefinition(definitionStr)
+  return parsed.en || ''
+}
+
+// 判断是否为 R2 音频
+const isR2AudioUrl = (url?: string | null) => {
+  if (!url || url.trim() === '' || url === 'null') return false
+  if (url.includes('translate.google.com') || url.includes('translate_tts')) return false
+  return url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') ||
+         url.includes('audio/') || url.includes('media.') || url.includes('r2.')
+}
+
+// 获取原句（通过 timestamp 查找）
+const getOriginalSentence = (transcript: any[] | null, timestamp: number | null) => {
+  if (!transcript || timestamp === null || timestamp === undefined) return null
+  const index = Math.floor(timestamp)
+  if (index >= 0 && index < transcript.length) {
+    const sentence = transcript[index]
+    if (sentence && sentence.text) {
+      return { sentence: sentence.text, index }
     }
   }
+  return null
 }
 
 export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayProps) {
@@ -72,9 +112,23 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
   const currentWord = words[currentIndex]
   const isLastCard = currentIndex === words.length - 1
 
+  // 解析翻译（双层释义）
   const definition = parseDefinition(currentWord.definition)
-  const chineseDefinition = definition['zh-CN'] || ''
-  const englishDefinition = definition['en'] || ''
+  const englishDefinition = getEnglishDefinition(currentWord.definition)
+  const targetTranslation = definition.zh || definition.en || ''
+
+  // 双例句
+  const standardExample = currentWord.dictionary_cache?.example || currentWord.context_sentence
+  const originalSentence = currentWord.material_info && currentWord.audio_timestamp !== null
+    ? getOriginalSentence(currentWord.material_info.transcript, currentWord.audio_timestamp)
+    : null
+  const practiceUrl = originalSentence && currentWord.material_info
+    ? `/topics/${categoryToSlug(currentWord.material_info.category)}/${currentWord.material_info.slug}?t=${currentWord.audio_timestamp}`
+    : null
+
+  // 双发音（智能路由）
+  const hasUsR2Audio = isR2AudioUrl(currentWord.audio_url_us || currentWord.dictionary_cache?.audio_url_us)
+  const hasUkR2Audio = isR2AudioUrl(currentWord.audio_url_uk || currentWord.dictionary_cache?.audio_url_uk)
 
   useEffect(() => {
     if (!flipped && inputRef.current) {
@@ -120,6 +174,33 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
   const handleShowAnswer = () => {
     setShowedAnswer(true)
     setFlipped(true)
+  }
+
+  // 智能音频播放
+  const playAudio = async (variant: 'us' | 'uk') => {
+    const r2Url = variant === 'us'
+      ? (currentWord.dictionary_cache?.audio_url_us || currentWord.audio_url_us)
+      : (currentWord.dictionary_cache?.audio_url_uk || currentWord.audio_url_uk)
+
+    // 优先使用 R2 音频
+    if (r2Url && isR2AudioUrl(r2Url)) {
+      try {
+        const audio = new Audio(r2Url)
+        await audio.play()
+        return
+      } catch (err) {
+        console.warn('[ReviewOverlay] R2 音频播放失败:', err)
+      }
+    }
+
+    // 兜底：Web Speech API
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+      const utterance = new SpeechSynthesisUtterance(currentWord.word)
+      utterance.lang = variant === 'us' ? 'en-US' : 'en-GB'
+      utterance.rate = 0.9
+      window.speechSynthesis.speak(utterance)
+    }
   }
 
   const handleNext = async (masteryStatus?: 'learning' | 'familiar' | 'mastered') => {
@@ -197,24 +278,16 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
     return processed
   }
 
-  const playAudio = (variant: 'us' | 'uk') => {
-    const audioUrl = variant === 'us' ? currentWord.audio_url_us : currentWord.audio_url_uk
-    if (audioUrl) {
-      const audio = new Audio(audioUrl)
-      audio.play().catch(err => console.error('播放失败:', err))
-    }
-  }
-
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
+        className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors z-10"
       >
         <X className="w-8 h-8" />
       </button>
 
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-3xl h-auto">
         <div className="text-center text-white mb-4">
           <span className="text-lg font-semibold">
             {currentIndex + 1} / {words.length}
@@ -222,92 +295,96 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
         </div>
 
         <div
-          className={`relative w-full h-[520px] perspective-1000 ${
+          className={`relative w-full h-auto perspective-1000 ${
             flipped ? 'flipped' : ''
           }`}
           style={{ perspective: '1000px' }}
         >
           <div
-            className="relative w-full h-full transition-transform duration-700 transform-style-3d"
+            className="relative w-full h-auto transition-transform duration-700 transform-style-3d"
             style={{
               transformStyle: 'preserve-3d',
               transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
             }}
           >
+            {/* 正面：拼写练习 */}
             <div
-              className={`absolute w-full h-full bg-white rounded-2xl p-6 flex flex-col justify-between transition-shadow duration-300 ${
+              className={`absolute w-full h-auto bg-white rounded-2xl p-8 flex flex-col justify-between transition-shadow duration-300 ${
                 isCorrect ? 'shadow-[0_0_30px_rgba(34,197,94,0.5)]' : 'shadow-2xl'
               }`}
               style={{ backfaceVisibility: 'hidden' }}
             >
               <div>
-                {currentWord.pos && (
-                  <div className="text-center mb-3">
-                    <span className="text-xs text-gray-400 uppercase tracking-wide">
-                      {currentWord.pos}
-                    </span>
-                  </div>
-                )}
-
-                <div className="text-center">
-                  {chineseDefinition && (
-                    <p className="text-[22px] font-bold text-gray-900 text-center mb-2">
-                      {chineseDefinition}
-                    </p>
-                  )}
+                {/* 双层释义 */}
+                <div className="mb-6 space-y-2">
                   {englishDefinition && (
-                    <p className="text-base text-gray-400 text-center">
+                    <p className="text-base text-slate-500 text-center leading-relaxed">
                       {englishDefinition}
                     </p>
                   )}
+                  {targetTranslation && (
+                    <p className="text-xl font-bold text-gray-900 text-center leading-relaxed">
+                      {targetTranslation}
+                    </p>
+                  )}
                 </div>
+
+                {/* 填空句 */}
+                {(standardExample || originalSentence) && (
+                  <div className="bg-blue-50/50 rounded-xl p-6 border border-blue-100/50">
+                    <p
+                      className="text-base text-gray-700 leading-relaxed text-center"
+                      dangerouslySetInnerHTML={{
+                        __html: createBlankSentence(standardExample || '', currentWord.word)
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
-              <div className="bg-blue-50/50 rounded-xl p-6 border border-blue-100/50 my-4">
-                <p
-                  className="text-base text-gray-700 leading-relaxed text-center"
-                  dangerouslySetInnerHTML={{
-                    __html: createBlankSentence(currentWord.context_sentence, currentWord.word)
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center justify-center gap-3 mb-4">
+              {/* 双发音按钮 */}
+              <div className="flex items-center justify-center gap-3 mb-6">
                 {currentWord.phonetic && (
                   <p className="text-base text-gray-600 font-medium">
                     {currentWord.phonetic}
                   </p>
                 )}
 
-                {currentWord.phonetic && (currentWord.audio_url_us || currentWord.audio_url_uk) && (
+                {currentWord.phonetic && (hasUsR2Audio || hasUkR2Audio) && (
                   <div className="w-px h-5 bg-gray-200"></div>
                 )}
 
-                {currentWord.audio_url_us && (
-                  <button
-                    onClick={() => playAudio('us')}
-                    className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 transition-colors text-sm font-medium"
-                    title="US pronunciation"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    <span>US</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => playAudio('us')}
+                  className={`flex items-center gap-1.5 transition-colors text-sm font-medium ${
+                    hasUsR2Audio
+                      ? 'text-blue-600 hover:text-blue-700'
+                      : 'text-gray-400 hover:text-gray-500'
+                  }`}
+                  title={hasUsR2Audio ? "美式发音 (R2)" : "美式发音 (生成)"}
+                  disabled={!hasUsR2Audio && !hasUkR2Audio}
+                >
+                  <Volume2 className="w-4 h-4" />
+                  <span>US</span>
+                </button>
 
-                {currentWord.audio_url_us && currentWord.audio_url_uk && (
+                {(hasUsR2Audio || hasUkR2Audio) && (
                   <div className="w-px h-5 bg-gray-200"></div>
                 )}
 
-                {currentWord.audio_url_uk && (
-                  <button
-                    onClick={() => playAudio('uk')}
-                    className="flex items-center gap-1.5 text-purple-600 hover:text-purple-700 transition-colors text-sm font-medium"
-                    title="UK pronunciation"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                    <span>UK</span>
-                  </button>
-                )}
+                <button
+                  onClick={() => playAudio('uk')}
+                  className={`flex items-center gap-1.5 transition-colors text-sm font-medium ${
+                    hasUkR2Audio
+                      ? 'text-purple-600 hover:text-purple-700'
+                      : 'text-gray-400 hover:text-gray-500'
+                  }`}
+                  title={hasUkR2Audio ? "英式发音 (R2)" : "英式发音 (生成)"}
+                  disabled={!hasUsR2Audio && !hasUsR2Audio}
+                >
+                  <Volume2 className="w-4 h-4" />
+                  <span>UK</span>
+                </button>
               </div>
 
               <div className="space-y-3">
@@ -352,8 +429,9 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
               </div>
             </div>
 
+            {/* 背面：答案 + 自评 */}
             <div
-              className="absolute w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-8 flex flex-col text-white"
+              className="absolute w-full h-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-8 flex flex-col text-white"
               style={{
                 backfaceVisibility: 'hidden',
                 transform: 'rotateY(180deg)'
@@ -366,36 +444,77 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 )}
               </div>
 
-              {currentWord.context_sentence && (
-                <div className="bg-white/10 rounded-lg p-4 mb-8 backdrop-blur-sm">
-                  <p
-                    className="text-base text-white/90 text-center leading-relaxed"
-                    dangerouslySetInnerHTML={{
-                      __html: createHighlightSentence(currentWord.context_sentence, currentWord.word)
-                    }}
-                  />
-                </div>
-              )}
+              {/* 双例句完整显示 */}
+              <div className="space-y-4 mb-8">
+                {/* 词典例句 */}
+                {standardExample && (
+                  <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+                    <p className="text-xs text-white/60 mb-2 font-medium">Dictionary Example</p>
+                    <p className="text-sm text-white/90 leading-relaxed">
+                      "{standardExample}"
+                    </p>
+                  </div>
+                )}
 
+                {/* 素材原句 */}
+                {originalSentence && practiceUrl && (
+                  <a
+                    href={practiceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-white/20 rounded-lg p-4 backdrop-blur-sm hover:bg-white/30 transition-colors group"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-white/60 font-medium">Material Context</p>
+                      <div className="flex items-center gap-1 text-white/60 group-hover:text-white">
+                        <ExternalLink className="w-3 h-3" />
+                        <span className="text-xs">Practice</span>
+                      </div>
+                    </div>
+                    <p
+                      className="text-sm text-white/90 leading-relaxed"
+                      dangerouslySetInnerHTML={{
+                        __html: createHighlightSentence(originalSentence.sentence, currentWord.word)
+                      }}
+                    />
+                    {currentWord.material_title && (
+                      <p className="text-xs text-white/50 mt-2 truncate">
+                        {currentWord.material_title}
+                      </p>
+                    )}
+                  </a>
+                )}
+              </div>
+
+              {/* 双发音按钮（背面） */}
               <div className="flex items-center justify-center gap-6 mb-8">
                 <button
                   onClick={() => playAudio('us')}
-                  className="flex items-center gap-2 px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                  disabled={!currentWord.audio_url_us}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+                    hasUsR2Audio
+                      ? 'bg-white/20 hover:bg-white/30'
+                      : 'bg-white/10 text-white/50'
+                  }`}
+                  disabled={!hasUsR2Audio && !hasUkR2Audio}
                 >
                   <Volume2 className="w-5 h-5" />
                   <span className="font-semibold">US</span>
                 </button>
                 <button
                   onClick={() => playAudio('uk')}
-                  className="flex items-center gap-2 px-6 py-3 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                  disabled={!currentWord.audio_url_uk}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors ${
+                    hasUkR2Audio
+                      ? 'bg-white/20 hover:bg-white/30'
+                      : 'bg-white/10 text-white/50'
+                  }`}
+                  disabled={!hasUsR2Audio && !hasUkR2Audio}
                 >
                   <Volume2 className="w-5 h-5" />
                   <span className="font-semibold">UK</span>
                 </button>
               </div>
 
+              {/* 自评按钮 */}
               {isCorrect || showedAnswer ? (
                 <div className="space-y-3 md:space-y-4">
                   <p className="text-center text-sm md:text-base text-white/90 font-medium">
