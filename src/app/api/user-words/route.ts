@@ -212,6 +212,8 @@ export async function GET(request: Request) {
         category: string
         slug: string
         transcript: any[] | null
+        matched_sentence?: string
+        matched_index?: number
       }> = {}
 
       if (materialIds.length > 0) {
@@ -222,10 +224,76 @@ export async function GET(request: Request) {
 
         if (materials) {
           materials.forEach(material => {
+            const transcript = material.transcript || []
+            let matchedSentence: string | null = null
+            let matchedIndex: number | null = null
+
+            // 为每个单词查找精确匹配的句子
+            const wordWithMaterial = words.find(w => w.material_id === material.id)
+            if (wordWithMaterial?.audio_timestamp !== null && wordWithMaterial?.audio_timestamp !== undefined) {
+              const timestamp = wordWithMaterial.audio_timestamp
+              const targetWord = wordWithMaterial.word.toLowerCase()
+
+              console.log(`[API] 🔍 匹配单词: ${targetWord} | TS: ${timestamp}`)
+
+              // 精确匹配：找到 timestamp 落在 start_time 和 end_time 之间的句子
+              for (let i = 0; i < transcript.length; i++) {
+                const sentence = transcript[i]
+                if (!sentence || !sentence.text) continue
+
+                const start = sentence.start_time || sentence.startTime || 0
+                const end = sentence.end_time || sentence.endTime || start
+
+                // 检查 timestamp 是否在句子时间范围内
+                if (timestamp >= start && timestamp <= end) {
+                  const sentenceText = sentence.text.toLowerCase()
+
+                  // 二次校验：检查句子是否包含目标单词
+                  if (sentenceText.includes(targetWord)) {
+                    matchedSentence = sentence.text
+                    matchedIndex = i
+                    console.log(`[API] ✅ Word: ${targetWord} | TS: ${timestamp} | Match: "${matchedSentence.substring(0, 10)}..."`)
+                    break
+                  } else {
+                    // 句子时间匹配但内容不包含单词，尝试相邻句子
+                    console.log(`[API] ⚠️  Time matched but word not found in sentence ${i}`)
+
+                    // 向上搜索
+                    for (let j = i - 1; j >= 0 && j >= Math.max(0, i - 5); j--) {
+                      const prevSentence = transcript[j]
+                      if (prevSentence?.text?.toLowerCase().includes(targetWord)) {
+                        matchedSentence = prevSentence.text
+                        matchedIndex = j
+                        console.log(`[API] ✅ Found in previous sentence ${j}: "${prevSentence.text.substring(0, 10)}..."`)
+                        break
+                      }
+                    }
+
+                    // 向下搜索
+                    if (!matchedSentence) {
+                      for (let j = i + 1; j < Math.min(transcript.length, i + 6); j++) {
+                        const nextSentence = transcript[j]
+                        if (nextSentence?.text?.toLowerCase().includes(targetWord)) {
+                          matchedSentence = nextSentence.text
+                          matchedIndex = j
+                          console.log(`[API] ✅ Found in next sentence ${j}: "${nextSentence.text.substring(0, 10)}..."`)
+                          break
+                        }
+                      }
+                    }
+
+                    if (matchedSentence) break
+                  }
+                }
+              }
+            }
+
             materialsMap[material.id] = {
               category: material.category,
               slug: material.slug,
-              transcript: material.transcript
+              transcript: transcript,
+              matched_sentence: matchedSentence,
+              matched_index: matchedIndex
             }
           })
         }
@@ -249,7 +317,10 @@ export async function GET(request: Request) {
             example: cache.example,
             definitions: cache.definitions
           },
-          material_info: material
+          material_info: material ? {
+            ...material,
+            transcript: material.transcript // 保留完整 transcript 供前端使用
+          } : null
         }
       })
 

@@ -177,10 +177,19 @@ function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: Wor
   // 标准例句（来自 dictionary_cache）
   const standardExample = word.dictionary_cache?.example || word.example
 
-  // 素材原句（仅 My Words）- 多重兜底逻辑
-  const originalSentence = word.material_info && word.audio_timestamp !== null
-    ? getOriginalSentence(word.material_info.transcript, word.audio_timestamp)
-    : null
+  // 素材原句（仅 My Words）- 优先使用后端匹配好的句子
+  let originalSentence = null
+
+  if (word.material_info?.matched_sentence) {
+    // 后端已精确匹配的句子（使用 audio_timestamp + start_time/end_time + 二次校验）
+    originalSentence = {
+      sentence: word.material_info.matched_sentence,
+      index: word.material_info.matched_index
+    }
+  } else if (word.material_info?.transcript && word.audio_timestamp !== null) {
+    // 兜底逻辑：使用 getOriginalSentence 函数（前端匹配）
+    originalSentence = getOriginalSentence(word.material_info.transcript, word.audio_timestamp)
+  }
 
   // 判断是否有有效的素材信息（用于生成跳转链接）
   const hasValidMaterialInfo = word.material_id && word.material_info && word.audio_timestamp !== null
