@@ -4,76 +4,31 @@
  * 支持的操作：
  * - GET: 根据分类获取单词列表
  *
- * 工作流程：
- * 1. 从 JSON 文件读取单词列表（oxford-3000.json / ielts.json）
- * 2. 使用 Supabase IN 查询从 dictionary_cache 表获取完整数据
- * 3. 支持分页（limit/offset）
+ * V2 - 紧急修复版本：
+ * - 使用 TypeScript 常量代替 JSON 文件（消除 fs 路径风险）
+ * - 分批查询 Supabase（每批 50 个单词）
+ * - 暴露底层错误信息（便于调试）
  */
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import { OXFORD_3000_WORDS } from '@/data/oxford-3000'
+import { IELTS_WORDS } from '@/data/ielts'
 
 // 强制声明动态渲染
 export const dynamic = 'force-dynamic'
 
 /**
- * 读取单词列表 JSON 文件
+ * 获取单词列表
  */
-function getWordList(category: string): { words: string[]; error?: string } {
-  try {
-    let fileName = ''
-
-    if (category === 'oxford-3000') {
-      fileName = 'oxford-3000.json'
-    } else if (category === 'ielts') {
-      fileName = 'ielts.json'
-    } else {
-      return { words: [], error: `Invalid category: ${category}` }
-    }
-
-    const filePath = path.join(process.cwd(), 'src', 'data', fileName)
-
-    // 🔍 调试日志：打印文件路径
-    console.log(`[API] 📂 Reading file: ${filePath}`)
-
-    // 检查文件是否存在
-    if (!fs.existsSync(filePath)) {
-      return { words: [], error: `File not found: ${filePath}` }
-    }
-
-    const fileContent = fs.readFileSync(filePath, 'utf-8')
-
-    // 🔍 调试日志：打印文件内容前 100 字符
-    console.log(`[API] 📄 File content preview: ${fileContent.substring(0, 100)}...`)
-
-    let wordList: string[]
-
-    // 尝试解析 JSON
-    try {
-      wordList = JSON.parse(fileContent)
-    } catch (parseError) {
-      return { words: [], error: `JSON parse error: ${(parseError as Error).message}` }
-    }
-
-    // 验证是数组
-    if (!Array.isArray(wordList)) {
-      return { words: [], error: 'Invalid format: word list must be an array' }
-    }
-
-    // 验证元素都是字符串
-    const invalidWords = wordList.filter((w: any) => typeof w !== 'string')
-    if (invalidWords.length > 0) {
-      return { words: [], error: `Invalid words: ${invalidWords.slice(0, 5).join(', ')}...` }
-    }
-
-    console.log(`[API] ✅ Loaded ${wordList.length} words from ${fileName}`)
-    return { words: wordList }
-  } catch (error) {
-    const errorMsg = (error as Error).message
-    console.error(`[API] ❌ Failed to load word list for category '${category}':`, errorMsg)
-    return { words: [], error: errorMsg }
+function getWordList(category: string): string[] {
+  switch (category) {
+    case 'oxford-3000':
+      return OXFORD_3000_WORDS
+    case 'ielts':
+      return IELTS_WORDS
+    default:
+      return []
   }
 }
 
@@ -84,17 +39,59 @@ const getSupabaseClient = () => {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
 
   if (!serviceKey) {
-    console.warn('[API] ⚠️  SUPABASE_SERVICE_ROLE_KEY not set')
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY not set')
   }
 
   return createClient(
     'https://cuxotlijjnxbsirpdkgr.supabase.co',
-    serviceKey || ''
+    serviceKey
   )
 }
 
 /**
- * 根据分类获取单词列表
+ * 分批查询 Supabase
+ * @param words - 要查询的单词列表
+ * @param chunkSize - 每批大小（默认 50）
+ */
+async function fetchWordsInChunks(
+  supabase: any,
+  words: string[],
+  chunkSize: number = 50
+): Promise<any[]> {
+  const results: any[] = []
+
+  // 分批处理
+  for (let i = 0; i < words.length; i += chunkSize) {
+    const chunk = words.slice(i, i + chunkSize)
+
+    console.log(`[API] 📦 Fetching chunk ${Math.floor(i / chunkSize) + 1}/${Math.ceil(words.length / chunkSize)} (${chunk.length} words)`)
+
+    try {
+      const { data, error } = await supabase
+        .from('dictionary_cache')
+        .select('word, phonetic, definitions, example, audio_r2_url, audio_url_us, audio_url_uk')
+        .in('word', chunk)
+        .order('word', { ascending: true })
+
+      if (error) {
+        console.error(`[API] ❌ Chunk ${Math.floor(i / chunkSize) + 1} error:`, error)
+        throw new Error(`Supabase query error for chunk ${Math.floor(i / chunkSize) + 1}: ${error.message}`)
+      }
+
+      if (data) {
+        results.push(...data)
+      }
+    } catch (err) {
+      console.error(`[API] ❌ Chunk ${Math.floor(i / chunkSize) + 1} failed:`, err)
+      throw err
+    }
+  }
+
+  return results
+}
+
+/**
+ * GET /api/vocabulary-words
  *
  * Query params:
  * - category: 分类名称（oxford-3000, ielts）
@@ -108,92 +105,85 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '100')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    console.log('[API] Fetching vocabulary words:', { category, limit, offset })
+    console.log('[API] 🚀 Fetching vocabulary words:', { category, limit, offset })
 
-    // 🔍 第一步：从 JSON 文件读取完整单词列表
-    const { words: wordList, error: wordListError } = getWordList(category)
+    // 第一步：获取单词列表
+    const wordList = getWordList(category)
 
-    if (wordListError || wordList.length === 0) {
-      console.error('[API] ❌ Word list error:', wordListError)
+    if (wordList.length === 0) {
       return NextResponse.json(
         {
-          error: wordListError || 'Word list not found or empty',
-          category,
-          hint: 'Make sure JSON files exist in src/data/ directory'
+          error: 'Invalid category',
+          message: `Category '${category}' not found. Supported: oxford-3000, ielts`,
+          category
         },
         { status: 400 }
       )
     }
 
-    // 🔍 第二步：分页切片（只查询当前页需要的单词）
+    console.log(`[API] ✅ Total words in list: ${wordList.length}`)
+
+    // 第二步：分页切片
     const paginatedWords = wordList.slice(offset, offset + limit)
+    console.log(`[API] 📄 Page slice: ${paginatedWords.length} words (offset ${offset})`)
 
-    console.log(`[API] 📄 Page ${offset}-${offset + limit}/${wordList.length} words`)
-
-    // 🔍 第三步：使用 Supabase IN 查询从 dictionary_cache 获取数据
-    const supabase = getSupabaseClient()
-
-    let words: any[] | null = null
-    let supabaseError: any = null
-
+    // 第三步：初始化 Supabase 客户端
+    let supabase: any
     try {
-      const result = await supabase
-        .from('dictionary_cache')
-        .select('word, phonetic, definition_json, example, audio_r2_url, audio_url_us, audio_url_uk')
-        .in('word', paginatedWords)
-        .order('word', { ascending: true })
-
-      words = result.data
-      supabaseError = result.error
-    } catch (dbError) {
-      console.error('[API] ❌ Database query error:', dbError)
-      supabaseError = dbError
-    }
-
-    if (supabaseError) {
-      console.error('[API] ❌ Supabase error:', supabaseError)
+      supabase = getSupabaseClient()
+      console.log('[API] ✅ Supabase client initialized')
+    } catch (err) {
       return NextResponse.json(
         {
-          error: 'Failed to fetch vocabulary words from database',
-          details: supabaseError.message || String(supabaseError),
-          words_requested: paginatedWords.length
+          error: 'Supabase initialization failed',
+          message: (err as Error).message,
+          hint: 'Check SUPABASE_SERVICE_ROLE_KEY environment variable'
         },
         { status: 500 }
       )
     }
 
-    // 转换数据格式以匹配前端期望的结构
-    const formattedWords = (words || []).map((w: any) => {
-      try {
-        return {
-          word: w.word,
-          phonetic: w.phonetic || '',
-          // 将 definition_json 转换回 definition 字符串格式（前端兼容）
-          definition: w.definition_json ? JSON.stringify(w.definition_json) : '{}',
-          example: w.example || '',
-          audio_url: w.audio_r2_url || w.audio_url_us || '',
-          audio_url_us: w.audio_url_us || '',
-          audio_url_uk: w.audio_url_uk || '',
-          // 这些分类没有素材关联
-          context_sentence: null,
-          material_id: null,
-          material_title: null,
-          audio_timestamp: null,
-          material_info: null,
-          dictionary_cache: {
-            example: w.example,
-            definitions: w.definition_json ? JSON.stringify(w.definition_json) : '{}',
-            audio_url_us: w.audio_url_us,
-            audio_url_uk: w.audio_url_uk
-          }
-        }
-      } catch (formatError) {
-        console.error(`[API] ❌ Format error for word '${w.word}':`, formatError)
-        return null
-      }
-    }).filter((w: any) => w !== null) // 过滤掉格式化失败的单词
+    // 第四步：分批查询数据库
+    let words: any[]
+    try {
+      words = await fetchWordsInChunks(supabase, paginatedWords, 50)
+      console.log(`[API] ✅ Fetched ${words.length} words from database`)
+    } catch (err) {
+      return NextResponse.json(
+        {
+          error: 'Database query failed',
+          message: (err as Error).message,
+          words_requested: paginatedWords.length,
+          hint: 'Check Supabase connection and dictionary_cache table'
+        },
+        { status: 500 }
+      )
+    }
 
-    console.log('[API] ✅ Fetched vocabulary words:', {
+    // 第五步：格式化数据
+    const formattedWords = words.map((w: any) => ({
+      word: w.word,
+      phonetic: w.phonetic || '',
+      definition: w.definitions ? JSON.stringify(w.definitions) : '{}',
+      example: w.example || '',
+      audio_url: w.audio_r2_url || w.audio_url_us || '',
+      audio_url_us: w.audio_url_us || '',
+      audio_url_uk: w.audio_url_uk || '',
+      // 无素材关联
+      context_sentence: null,
+      material_id: null,
+      material_title: null,
+      audio_timestamp: null,
+      material_info: null,
+      dictionary_cache: {
+        example: w.example,
+        definitions: w.definitions ? JSON.stringify(w.definitions) : '{}',
+        audio_url_us: w.audio_url_us,
+        audio_url_uk: w.audio_url_uk
+      }
+    }))
+
+    console.log('[API] ✅ Returning response:', {
       returned: formattedWords.length,
       total: wordList.length,
       limit,
@@ -207,12 +197,17 @@ export async function GET(request: Request) {
       limit,
       offset
     })
+
   } catch (error: any) {
+    // 暴露所有错误信息（调试用）
     console.error('[API] ❌ Unexpected error:', error)
+
     return NextResponse.json(
       {
-        error: error.message || 'Internal server error',
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        error: 'Unexpected server error',
+        message: error.message || 'Unknown error',
+        stack: error.stack, // 暴露堆栈信息
+        hint: 'Check server logs for details'
       },
       { status: 500 }
     )
