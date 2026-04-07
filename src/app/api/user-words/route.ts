@@ -237,89 +237,43 @@ export async function GET(request: Request) {
             let matchedIndex: number | null = null
 
             // 🔧 三步走强制校验逻辑：修复原句偏移 Bug
-            const wordWithMaterial = words.find(w => w.material_id === material.id)
+            // 🔴 容错保护：用 try-catch 包裹匹配逻辑，防止单词匹配失败导致整个 API 崩溃
+            try {
+              const wordWithMaterial = words.find(w => w.material_id === material.id)
 
-            // 🔍 调试：检查是否找到了单词
-            if (wordWithMaterial?.word?.toLowerCase() === 'hurtle') {
-              console.log(`[API] 🐛 HURTLE FOUND: material_id=${wordWithMaterial.material_id} | TS=${wordWithMaterial.audio_timestamp} | context_sentence="${wordWithMaterial.context_sentence?.substring(0, 50)}..."`)
-            }
-
-            if (wordWithMaterial?.audio_timestamp !== null && wordWithMaterial?.audio_timestamp !== undefined) {
-              const timestamp = wordWithMaterial.audio_timestamp
-              const targetWord = wordWithMaterial.word.toLowerCase()
-
-              // 🔥 优先使用数据库中已存储的正确 context_sentence（如果包含单词）
-              const storedSentence = wordWithMaterial.context_sentence
-              const storedContainsWord = storedSentence && storedSentence.toLowerCase().includes(targetWord)
-
-              // 🔍 调试：检查 hurtle 的存储句子
-              if (targetWord === 'hurtle') {
-                console.log(`[API] 🐛 HURTLE CHECK: storedSentence=${storedSentence ? `"${storedSentence.substring(0, 30)}..."` : 'null'} | containsWord=${storedContainsWord}`)
+              // 🔍 调试：检查是否找到了单词
+              if (wordWithMaterial?.word?.toLowerCase() === 'hurtle') {
+                console.log(`[API] 🐛 HURTLE FOUND: material_id=${wordWithMaterial.material_id} | TS=${wordWithMaterial.audio_timestamp} | context_sentence="${wordWithMaterial.context_sentence?.substring(0, 50)}..."`)
               }
 
-              // 🔍 调试日志：hurtle 特殊处理
-              if (targetWord === 'hurtle') {
-                console.log(`[API] 🐛 HURTLE DEBUG: storedSentence="${storedSentence?.substring(0, 50)}..." | containsWord=${storedContainsWord}`)
-              }
+              if (wordWithMaterial?.audio_timestamp !== null && wordWithMaterial?.audio_timestamp !== undefined) {
+                const timestamp = wordWithMaterial.audio_timestamp
+                const targetWord = wordWithMaterial.word.toLowerCase()
 
-              if (storedContainsWord) {
-                matchedSentence = storedSentence
-                console.log(`[API] ✅ USING STORED: '${targetWord}' | TS: ${timestamp} | Sentence: "${storedSentence.substring(0, 50)}..."`)
-              } else {
-                // 数据库中没有或句子不包含单词，触发重新匹配
-                console.log(`[API] 🔍 Checking candidates for '${targetWord}' at [${timestamp}s]...`)
+                // 🔥 优先使用数据库中已存储的正确 context_sentence（如果包含单词）
+                const storedSentence = wordWithMaterial.context_sentence
+                const storedContainsWord = storedSentence && storedSentence.toLowerCase().includes(targetWord)
 
-                // 🔍 第一步：范围查询与初步匹配（1秒范围）
-                const searchRange = 1.0 // 1秒范围
-                const candidates: Array<{ index: number; sentence: any; start: number; end: number; distance: number }> = []
-
-                for (let i = 0; i < transcript.length; i++) {
-                  const sentence = transcript[i]
-                  if (!sentence || !sentence.text) continue
-
-                  const start = sentence.start_time || sentence.startTime || 0
-                  const end = sentence.end_time || sentence.endTime || start
-
-                  // 检查 timestamp 是否在句子时间范围附近（前后1秒）
-                  if (timestamp >= start - searchRange && timestamp <= end + searchRange) {
-                    candidates.push({
-                      index: i,
-                      sentence,
-                      start,
-                      end,
-                      distance: Math.abs((start + end) / 2 - timestamp) // 距离中心点的距离
-                    })
-                  }
+                // 🔍 调试：检查 hurtle 的存储句子
+                if (targetWord === 'hurtle') {
+                  console.log(`[API] 🐛 HURTLE CHECK: storedSentence=${storedSentence ? `"${storedSentence.substring(0, 30)}..."` : 'null'} | containsWord=${storedContainsWord}`)
                 }
 
-                // 🔍 第二步：内容确定性校验（Key Fix）
-                // 遍历候选句子，找到真正包含单词的句子
-                let correctMatch: { index: number; sentence: any } | null = null
-
-                // 按距离排序，优先匹配时间最接近的句子
-                candidates.sort((a, b) => a.distance - b.distance)
-
-                console.log(`[API] 📊 Found ${candidates.length} candidates in 1s range`)
-
-                for (const candidate of candidates) {
-                  const sentenceText = candidate.sentence.text.toLowerCase()
-                  const containsWord = sentenceText.includes(targetWord)
-                  const preview = candidate.sentence.text.substring(0, 50)
-
-                  console.log(`[API] 🔎 Candidate Found: "${preview}..." | Match: ${containsWord ? '✅ True' : '❌ False'}`)
-
-                  if (containsWord) {
-                    correctMatch = { index: candidate.index, sentence: candidate.sentence }
-                    console.log(`[API] ✅ MATCHED: '${targetWord}' found in candidate at index ${candidate.index}`)
-                    break
-                  }
+                // 🔍 调试日志：hurtle 特殊处理
+                if (targetWord === 'hurtle') {
+                  console.log(`[API] 🐛 HURTLE DEBUG: storedSentence="${storedSentence?.substring(0, 50)}..." | containsWord=${storedContainsWord}`)
                 }
 
-                // 🔍 第三步：兜底与扩大搜索（3秒范围）
-                if (!correctMatch) {
-                  console.log(`[API] ⚠️  No match in 1s range, expanding to 3s...`)
+                if (storedContainsWord) {
+                  matchedSentence = storedSentence
+                  console.log(`[API] ✅ USING STORED: '${targetWord}' | TS: ${timestamp} | Sentence: "${storedSentence.substring(0, 50)}..."`)
+                } else {
+                  // 数据库中没有或句子不包含单词，触发重新匹配
+                  console.log(`[API] 🔍 Checking candidates for '${targetWord}' at [${timestamp}s]...`)
 
-                  const expandedCandidates: Array<{ index: number; sentence: any; start: number; end: number; distance: number }> = []
+                  // 🔍 第一步：范围查询与初步匹配（1秒范围）
+                  const searchRange = 1.0 // 1秒范围
+                  const candidates: Array<{ index: number; sentence: any; start: number; end: number; distance: number }> = []
 
                   for (let i = 0; i < transcript.length; i++) {
                     const sentence = transcript[i]
@@ -328,43 +282,99 @@ export async function GET(request: Request) {
                     const start = sentence.start_time || sentence.startTime || 0
                     const end = sentence.end_time || sentence.endTime || start
 
-                    // 扩大到前后3秒
-                    if (timestamp >= start - 3.0 && timestamp <= end + 3.0) {
-                      expandedCandidates.push({
+                    // 检查 timestamp 是否在句子时间范围附近（前后1秒）
+                    if (timestamp >= start - searchRange && timestamp <= end + searchRange) {
+                      candidates.push({
                         index: i,
                         sentence,
                         start,
                         end,
-                        distance: Math.abs((start + end) / 2 - timestamp)
+                        distance: Math.abs((start + end) / 2 - timestamp) // 距离中心点的距离
                       })
                     }
                   }
 
-                  expandedCandidates.sort((a, b) => a.distance - b.distance)
+                  // 🔍 第二步：内容确定性校验（Key Fix）
+                  // 遍历候选句子，找到真正包含单词的句子
+                  let correctMatch: { index: number; sentence: any } | null = null
 
-                  for (const candidate of expandedCandidates) {
+                  // 按距离排序，优先匹配时间最接近的句子
+                  candidates.sort((a, b) => a.distance - b.distance)
+
+                  console.log(`[API] 📊 Found ${candidates.length} candidates in 1s range`)
+
+                  for (const candidate of candidates) {
                     const sentenceText = candidate.sentence.text.toLowerCase()
                     const containsWord = sentenceText.includes(targetWord)
                     const preview = candidate.sentence.text.substring(0, 50)
 
-                    console.log(`[API] 🔎 (3s) Candidate: "${preview}..." | Match: ${containsWord ? '✅ True' : '❌ False'}`)
+                    console.log(`[API] 🔎 Candidate Found: "${preview}..." | Match: ${containsWord ? '✅ True' : '❌ False'}`)
 
                     if (containsWord) {
                       correctMatch = { index: candidate.index, sentence: candidate.sentence }
-                      console.log(`[API] ✅ MATCHED (3s): '${targetWord}' found at index ${candidate.index}`)
+                      console.log(`[API] ✅ MATCHED: '${targetWord}' found in candidate at index ${candidate.index}`)
                       break
                     }
                   }
-                }
 
-                // 🔍 第四步：兜底返回原始 context_sentence
-                if (!correctMatch) {
-                  console.log(`[API] ⚠️  No match found, using stored context_sentence as fallback`)
-                } else {
-                  matchedSentence = correctMatch.sentence.text
-                  matchedIndex = correctMatch.index
+                  // 🔍 第三步：兜底与扩大搜索（3秒范围）
+                  if (!correctMatch) {
+                    console.log(`[API] ⚠️  No match in 1s range, expanding to 3s...`)
+
+                    const expandedCandidates: Array<{ index: number; sentence: any; start: number; end: number; distance: number }> = []
+
+                    for (let i = 0; i < transcript.length; i++) {
+                      const sentence = transcript[i]
+                      if (!sentence || !sentence.text) continue
+
+                      const start = sentence.start_time || sentence.startTime || 0
+                      const end = sentence.end_time || sentence.endTime || start
+
+                      // 扩大到前后3秒
+                      if (timestamp >= start - 3.0 && timestamp <= end + 3.0) {
+                        expandedCandidates.push({
+                          index: i,
+                          sentence,
+                          start,
+                          end,
+                          distance: Math.abs((start + end) / 2 - timestamp)
+                        })
+                      }
+                    }
+
+                    expandedCandidates.sort((a, b) => a.distance - b.distance)
+
+                    for (const candidate of expandedCandidates) {
+                      const sentenceText = candidate.sentence.text.toLowerCase()
+                      const containsWord = sentenceText.includes(targetWord)
+                      const preview = candidate.sentence.text.substring(0, 50)
+
+                      console.log(`[API] 🔎 (3s) Candidate: "${preview}..." | Match: ${containsWord ? '✅ True' : '❌ False'}`)
+
+                      if (containsWord) {
+                        correctMatch = { index: candidate.index, sentence: candidate.sentence }
+                        console.log(`[API] ✅ MATCHED (3s): '${targetWord}' found at index ${candidate.index}`)
+                        break
+                      }
+                    }
+                  }
+
+                  // 🔍 第四步：兜底返回原始 context_sentence
+                  if (!correctMatch) {
+                    console.log(`[API] ⚠️  No match found, using stored context_sentence as fallback`)
+                  } else {
+                    matchedSentence = correctMatch.sentence.text
+                    matchedIndex = correctMatch.index
+                  }
                 }
               }
+            } catch (matchingError) {
+              // 🔴 容错处理：如果匹配失败，使用数据库中已存储的 context_sentence
+              const wordWithMaterial = words.find(w => w.material_id === material.id)
+              const fallbackSentence = wordWithMaterial?.context_sentence || null
+              console.error(`[API] ❌ Matching error for material ${material.id}:`, (matchingError as Error).message)
+              console.log(`[API] 🔄 Using fallback: stored context_sentence = "${fallbackSentence?.substring(0, 50)}..."`)
+              matchedSentence = fallbackSentence
             }
 
             materialsMap[material.id] = {
@@ -405,62 +415,10 @@ export async function GET(request: Request) {
 
       console.log('[API] Fetched words:', { count: wordsWithAudioAndMaterials.length, total: count })
 
-      // 🔍 第四步：自动校对与数据库修复（清理旧数据）
-      // 检查现有数据的 context_sentence，如果发现不包含单词，强制更新数据库
-      const autoFixPromises: Promise<void>[] = []
-
-      for (const word of wordsWithAudioAndMaterials) {
-        const targetWord = word.word.toLowerCase()
-        const storedSentence = word.context_sentence
-        const materialInfo = word.material_info
-        const matchedSentence = materialInfo?.matched_sentence
-        const timestamp = word.audio_timestamp
-
-        // 如果数据库中有存储的 context_sentence，且有新匹配的结果
-        if (storedSentence && matchedSentence && word.material_id) {
-          const storedContainsWord = storedSentence.toLowerCase().includes(targetWord)
-          const matchedContainsWord = matchedSentence.toLowerCase().includes(targetWord)
-
-          // 🔧 增强日志：显示完整的匹配过程（特别是 hurtle）
-          if (targetWord === 'hurtle' || !storedContainsWord) {
-            console.log(`[API] 🐛 DEBUG: Word: ${targetWord} | TS: ${timestamp} | Found in DB: "${storedSentence}" | Re-matched to: "${matchedSentence}" | Match: ${matchedContainsWord ? '✅' : '❌'}`)
-          }
-
-          // 如果存储的句子不包含单词，但新匹配的句子包含
-          if (!storedContainsWord && matchedContainsWord) {
-            console.log(`[API] 🔧 AUTO-FIX: '${targetWord}' | TS: ${timestamp} | Old: "${storedSentence.substring(0, 50)}..." | New: "${matchedSentence.substring(0, 50)}..."`)
-
-            // 异步更新数据库（不阻塞响应）
-            const fixPromise = (async () => {
-              try {
-                const { error } = await supabase
-                  .from('user_words')
-                  .update({ context_sentence: matchedSentence })
-                  .eq('id', word.id)
-
-                if (error) {
-                  console.error(`[API] ❌ AUTO-FIX FAILED for '${targetWord}':`, error.message)
-                } else {
-                  console.log(`[API] ✅ AUTO-FIX SUCCESS: '${targetWord}' (TS: ${timestamp}) updated in database`)
-                }
-              } catch (err) {
-                console.error(`[API] ❌ AUTO-FIX ERROR for '${targetWord}':`, (err as Error).message)
-              }
-            })()
-
-            autoFixPromises.push(fixPromise)
-          }
-        }
-      }
-
-      // 等待所有自动修复完成（使用 Promise.allSettled 避免单个失败影响整体）
-      if (autoFixPromises.length > 0) {
-        console.log(`[API] 🔧 Running ${autoFixPromises.length} auto-fix operations...`)
-        Promise.allSettled(autoFixPromises).then(results => {
-          const successCount = results.filter(r => r.status === 'fulfilled').length
-          console.log(`[API] 🏁 Auto-fix complete: ${successCount}/${autoFixPromises.length} succeeded`)
-        })
-      }
+      // 🔴 紧急修复：移除 GET 请求内的数据库写入逻辑
+      // 原因：在 GET 循环内进行数据库 update 会导致线上超时/死锁，引发 500 错误
+      // 数据库持久化应交给专门的 PATCH 接口或异步任务处理
+      // 此接口现在仅负责"根据包含性检索并返回正确结果"
 
       return NextResponse.json({
         success: true,
