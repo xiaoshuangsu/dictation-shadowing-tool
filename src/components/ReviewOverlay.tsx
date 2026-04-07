@@ -287,33 +287,20 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
         <X className="w-8 h-8" />
       </button>
 
-      <div className="w-full max-w-3xl h-auto">
+      <div className="w-full max-w-2xl mx-auto">
         <div className="text-center text-white mb-4">
           <span className="text-lg font-semibold">
             {currentIndex + 1} / {words.length}
           </span>
         </div>
 
-        <div
-          className={`relative w-full h-auto perspective-1000 ${
-            flipped ? 'flipped' : ''
-          }`}
-          style={{ perspective: '1000px' }}
-        >
+        <div className="relative">
+          {/* 正面：拼写练习 */}
           <div
-            className="relative w-full h-auto transition-transform duration-700 transform-style-3d"
-            style={{
-              transformStyle: 'preserve-3d',
-              transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
-            }}
+            className={`w-full bg-white rounded-2xl p-8 flex flex-col justify-between transition-all duration-500 ${
+              flipped ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            } ${isCorrect ? 'shadow-[0_0_30px_rgba(34,197,94,0.5)]' : 'shadow-2xl'}`}
           >
-            {/* 正面：拼写练习 */}
-            <div
-              className={`absolute w-full h-auto bg-white rounded-2xl p-8 flex flex-col justify-between transition-shadow duration-300 ${
-                isCorrect ? 'shadow-[0_0_30px_rgba(34,197,94,0.5)]' : 'shadow-2xl'
-              }`}
-              style={{ backfaceVisibility: 'hidden' }}
-            >
               <div>
                 {/* 双层释义 */}
                 <div className="mb-6 space-y-2">
@@ -431,11 +418,9 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
 
             {/* 背面：答案 + 自评 */}
             <div
-              className="absolute w-full h-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-8 flex flex-col text-white"
-              style={{
-                backfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)'
-              }}
+              className={`absolute w-full top-0 left-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-8 flex flex-col text-white transition-all duration-500 ${
+                flipped ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+              }`}
             >
               <div className="flex-1 flex flex-col items-center justify-center mb-6">
                 <h2 className="text-5xl font-bold mb-4">{currentWord.word}</h2>
@@ -568,7 +553,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 </button>
               )}
             </div>
-          </div>
         </div>
       </div>
     </div>
