@@ -14,6 +14,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import useSWR from 'swr'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -21,6 +22,20 @@ import { ArrowLeft, Volume2, Search, ExternalLink } from 'lucide-react'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 import { categoryToSlug } from '@/lib/utils/category'
 import ReviewOverlay from '@/components/ReviewOverlay'
+
+// 🔧 前端缓存优化：使用 SWR 避免切换标签页时重复请求
+// fetcher 函数
+const fetcher = async (url: string, userId: string) => {
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${userId}` }
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch user words')
+  }
+
+  return response.json()
+}
 
 // 单词数据接口
 interface WordEntry {
@@ -468,78 +483,75 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     }
   }, [])
 
-  // 加载数据
+  // 🔧 使用 SWR 进行数据缓存和请求管理（防止切换标签页时重复请求）
+  const shouldFetch = category === 'my-words' && user
+  const { data: userWordsData, error: userWordsError, isLoading: userWordsLoading } = useSWR(
+    shouldFetch ? ['/api/user-words', user.id] : null,
+    ([url, userId]) => fetcher(url, userId as string),
+    {
+      revalidateOnFocus: false,        // 🔥 核心：切换标签页时不重新请求
+      revalidateOnReconnect: false,    // 重新连接网络时不重新请求
+      dedupingInterval: 60000,         // 60秒内相同请求去重
+      shouldRetryOnError: false        // 错误时不自动重试（避免频繁请求）
+    }
+  )
+
+  // 处理 SWR 数据
   useEffect(() => {
     if (!config) {
       router.push('/vocabulary')
       return
     }
 
-    const loadWords = async () => {
-      setLoading(true)
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      try {
-        if (category === 'my-words' && user) {
-          const response = await fetch('/api/user-words', {
-            headers: { 'Authorization': `Bearer ${user.id}` }
-          })
-
-          if (response.ok) {
-            const data = await response.json()
-            const userWords: WordEntry[] = (data.words || []).map((w: any) => ({
-              word: w.word,
-              phonetic: w.phonetic || '',
-              definition: w.definition,
-              example: w.context_sentence || '',
-              audio_url: w.audio_url || '',
-              audio_url_us: w.dictionary_cache?.audio_url_us || '',
-              audio_url_uk: w.dictionary_cache?.audio_url_uk || '',
-              context_sentence: w.context_sentence,
-              material_id: w.material_id,
-              material_title: w.material_title,
-              audio_timestamp: w.audio_timestamp,
-              material_info: w.material_info,
-              dictionary_cache: w.dictionary_cache
-            }))
-            setWords(userWords)
-          } else {
-            setWords([])
-          }
-        } else {
-          // 其他分类使用 Mock 数据（暂时）
-          const mockCount = category === 'ielts' ? 50 : category === 'oxford-3000' ? 30 : 0
-
-          // 生成 Mock 数据
-          const mockWords: WordEntry[] = Array.from({ length: mockCount }, (_, i) => {
-            const mockWord = `mockword${i + 1}`
-            return {
-              word: mockWord,
-              phonetic: `/${mockWord}/`,
-              definition: JSON.stringify({
-                zh: `${mockWord}的中文释义`,
-                en: `${mockWord} English definition`,
-                vi: `${mockWord} Vietnamese`
-              }),
-              example: `This is an example sentence for ${mockWord}.`,
-              audio_url: '',
-              audio_url_us: '',
-              audio_url_uk: ''
-            }
-          })
-
-          setWords(mockWords)
-        }
-      } catch (error) {
-        console.error('Failed to load words:', error)
+    if (category === 'my-words') {
+      if (userWordsData?.words) {
+        const mappedWords: WordEntry[] = userWordsData.words.map((w: any) => ({
+          word: w.word,
+          phonetic: w.phonetic || '',
+          definition: w.definition,
+          example: w.context_sentence || '',
+          audio_url: w.audio_url || '',
+          audio_url_us: w.dictionary_cache?.audio_url_us || '',
+          audio_url_uk: w.dictionary_cache?.audio_url_uk || '',
+          context_sentence: w.context_sentence,
+          material_id: w.material_id,
+          material_title: w.material_title,
+          audio_timestamp: w.audio_timestamp,
+          material_info: w.material_info,
+          dictionary_cache: w.dictionary_cache
+        }))
+        setWords(mappedWords)
+        setLoading(false)
+      } else if (userWordsError) {
+        console.error('Failed to load user words:', userWordsError)
         setWords([])
-      } finally {
         setLoading(false)
       }
-    }
+    } else {
+      // 其他分类使用 Mock 数据（暂时）
+      const mockCount = category === 'ielts' ? 50 : category === 'oxford-3000' ? 30 : 0
 
-    loadWords()
-  }, [category, user, config, router])
+      const mockWords: WordEntry[] = Array.from({ length: mockCount }, (_, i) => {
+        const mockWord = `mockword${i + 1}`
+        return {
+          word: mockWord,
+          phonetic: `/${mockWord}/`,
+          definition: JSON.stringify({
+            zh: `${mockWord}的中文释义`,
+            en: `${mockWord} English definition`,
+            vi: `${mockWord} Vietnamese`
+          }),
+          example: `This is an example sentence for ${mockWord}.`,
+          audio_url: '',
+          audio_url_us: '',
+          audio_url_uk: ''
+        }
+      })
+
+      setWords(mockWords)
+      setLoading(false)
+    }
+  }, [category, user, config, router, userWordsData, userWordsError])
 
   // 过滤后的单词
   const filteredWords = searchQuery
