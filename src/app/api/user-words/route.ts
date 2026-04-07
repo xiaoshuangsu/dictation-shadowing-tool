@@ -177,38 +177,87 @@ export async function GET(request: Request) {
       )
     }
 
-    // 第二步：批量查询 dictionary_cache 获取音频 URL
+    // 第二步：批量查询 dictionary_cache 获取音频 URL 和标准例句
     if (words && words.length > 0) {
       const wordList = words.map(w => w.word)
       const { data: cacheData } = await supabase
         .from('dictionary_cache')
-        .select('word, audio_url_us, audio_url_uk')
+        .select('word, audio_url_us, audio_url_uk, example, definitions')
         .in('word', wordList)
 
-      // 创建音频 URL 映射
-      const audioMap: Record<string, { audio_url_us: string | null; audio_url_uk: string | null }> = {}
+      // 创建字典缓存映射
+      const cacheMap: Record<string, {
+        audio_url_us: string | null
+        audio_url_uk: string | null
+        example: string | null
+        definitions: string | null
+      }> = {}
       if (cacheData) {
         cacheData.forEach(item => {
-          audioMap[item.word] = {
+          cacheMap[item.word] = {
             audio_url_us: item.audio_url_us,
-            audio_url_uk: item.audio_url_uk
+            audio_url_uk: item.audio_url_uk,
+            example: item.example,
+            definitions: item.definitions
           }
         })
       }
 
-      // 合并数据
-      const wordsWithAudio = words.map(word => ({
-        ...word,
-        dictionary_cache: audioMap[word.word] || { audio_url_us: null, audio_url_uk: null }
-      }))
+      // 第三步：查询 materials 表获取素材信息（用于原句跳转）
+      const materialIds = words
+        .map(w => w.material_id)
+        .filter((id): id is string => id != null)
 
-      // 🔴 调试：打印第一个单词的数据
-      console.log('[API] First word with audio:', JSON.stringify(wordsWithAudio[0], null, 2))
-      console.log('[API] Fetched words:', { count: wordsWithAudio.length, total: count })
+      const materialsMap: Record<string, {
+        category: string
+        slug: string
+        transcript: any[] | null
+      }> = {}
+
+      if (materialIds.length > 0) {
+        const { data: materials } = await supabase
+          .from('materials')
+          .select('id, category, slug, transcript')
+          .in('id', materialIds)
+
+        if (materials) {
+          materials.forEach(material => {
+            materialsMap[material.id] = {
+              category: material.category,
+              slug: material.slug,
+              transcript: material.transcript
+            }
+          })
+        }
+      }
+
+      // 合并数据
+      const wordsWithAudioAndMaterials = words.map(word => {
+        const cache = cacheMap[word.word] || {
+          audio_url_us: null,
+          audio_url_uk: null,
+          example: null,
+          definitions: null
+        }
+        const material = word.material_id ? materialsMap[word.material_id] : null
+
+        return {
+          ...word,
+          dictionary_cache: {
+            audio_url_us: cache.audio_url_us,
+            audio_url_uk: cache.audio_url_uk,
+            example: cache.example,
+            definitions: cache.definitions
+          },
+          material_info: material
+        }
+      })
+
+      console.log('[API] Fetched words:', { count: wordsWithAudioAndMaterials.length, total: count })
 
       return NextResponse.json({
         success: true,
-        words: wordsWithAudio,
+        words: wordsWithAudioAndMaterials,
         total: count || 0,
         limit,
         offset
