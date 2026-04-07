@@ -1,13 +1,14 @@
 /**
  * Vocabulary Category Content - 分类列表内容组件
  *
- * V2.4 - 双层释义显示 + 智能音频路由
+ * V2.5 - 真正的"语境笔记"卡片
  * - 双层释义结构：英文释义 + 目标语翻译
- * - 双例句显示（标准例句 + 素材原句）
- * - 翻译语言联动
- * - 固定高度卡片
- * - 跳转回原素材
- * - 浏览器原生 TTS（无需 API Key，支持所有主流浏览器）
+ * - 双例句展示：词典标准例句 + 素材实战原句
+ * - 例句最多显示 2 行（line-clamp-2），超出省略
+ * - 视觉区分：词典例句用灰底，素材例句用蓝色左边框
+ * - 一键跳转回原素材练习页面
+ * - 智能音频路由（R2 优先 + Web Speech API 兜底）
+ * - 固定高度卡片，响应式布局
  */
 
 'use client'
@@ -18,6 +19,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Volume2, Search, ExternalLink } from 'lucide-react'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
+import { categoryToSlug } from '@/lib/utils/category'
 
 // 单词数据接口
 interface WordEntry {
@@ -128,10 +130,12 @@ function getOriginalSentence(
   transcript: any[] | null,
   timestamp: number | null
 ): { sentence: string; index: number } | null {
-  if (!transcript || !timestamp) return null
+  // 修复：timestamp 可能为 0（有效值），不能使用 !timestamp 判断
+  if (!transcript || timestamp === null || timestamp === undefined) return null
 
   // 查找对应 timestamp 的句子
   const index = Math.floor(timestamp)
+
   if (index >= 0 && index < transcript.length) {
     const sentence = transcript[index]
     if (sentence && sentence.text) {
@@ -171,14 +175,22 @@ function WordCard({ word, currentLanguage, category, onPlayAudio }: WordCardProp
   // 标准例句（来自 dictionary_cache）
   const standardExample = word.dictionary_cache?.example || word.example
 
-  // 素材原句（仅 My Words）
+  // 素材原句（仅 My Words）- 多重兜底逻辑
   const originalSentence = word.material_info && word.audio_timestamp !== null
     ? getOriginalSentence(word.material_info.transcript, word.audio_timestamp)
     : null
 
-  // 生成跳转链接
-  const practiceUrl = originalSentence && word.material_info
-    ? `/topics/${word.material_info.category}/${word.material_info.slug}?t=${word.audio_timestamp}`
+  // 判断是否有有效的素材信息（用于生成跳转链接）
+  const hasValidMaterialInfo = word.material_id && word.material_info && word.audio_timestamp !== null
+
+  // 如果没有 transcript 原句，尝试使用 context_sentence
+  const fallbackSentence = !originalSentence && word.context_sentence
+    ? word.context_sentence
+    : null
+
+  // 生成跳转链接（优先使用 transcript，否则使用 material_id）
+  const practiceUrl = hasValidMaterialInfo && word.material_info
+    ? `/topics/${categoryToSlug(word.material_info.category)}/${word.material_info.slug}?t=${word.audio_timestamp}`
     : null
 
   // 判断是否有 R2 音频
@@ -272,36 +284,55 @@ function WordCard({ word, currentLanguage, category, onPlayAudio }: WordCardProp
         )}
       </div>
 
-      {/* 例句区 A：标准例句 */}
+      {/* 例句区 A：词典标准例句（Dictionary Example） */}
       {standardExample && (
-        <div className="bg-slate-50 rounded px-2.5 py-2 mb-2">
-          <p className="text-xs text-slate-600 italic line-clamp-1" title={standardExample}>
+        <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-2">
+          <p
+            className="text-xs text-slate-600 italic line-clamp-2 leading-relaxed"
+            title={standardExample}
+          >
             "{standardExample}"
           </p>
         </div>
       )}
 
-      {/* 例句区 B：素材原句（仅 My Words） */}
-      {originalSentence && practiceUrl && (
+      {/* 例句区 B：素材实战原句（Material Context） */}
+      {(originalSentence || fallbackSentence) && practiceUrl ? (
+        // 完整版：有素材信息和跳转链接（整体可点击）
         <Link
           href={practiceUrl}
-          className="block bg-blue-50 rounded px-2.5 py-2 mb-2 hover:bg-blue-100 transition-colors group"
-          title="点击跳转到原素材"
+          className="block border-l-2 border-blue-500 bg-blue-50/50 rounded-r-lg px-3 py-2.5 mb-2 hover:bg-blue-100 transition-all cursor-pointer group"
         >
-          <p className="text-xs text-blue-700 italic line-clamp-1" title={originalSentence.sentence}>
-            "{originalSentence.sentence}"
+          <p
+            className="text-sm text-blue-700 italic line-clamp-2 leading-relaxed group-hover:underline"
+            title={originalSentence ? originalSentence.sentence : (fallbackSentence || '')}
+          >
+            "{originalSentence ? originalSentence.sentence : (fallbackSentence || '')}"
           </p>
-          <div className="flex items-center gap-1 mt-1 text-xs text-blue-600">
-            <ExternalLink className="w-3 h-3" />
-            <span>跳转练习</span>
-            {word.material_title && (
-              <span className="text-blue-400 truncate ml-1" title={word.material_title}>
-                · {word.material_title}
-              </span>
-            )}
-          </div>
+          {/* 极简来源标题 */}
+          {word.material_title && (
+            <p className="mt-1.5 text-[10px] text-slate-400 truncate" title={word.material_title}>
+              {word.material_title}
+            </p>
+          )}
         </Link>
-      )}
+      ) : (originalSentence || fallbackSentence) ? (
+        // 兜底版：没有跳转链接（静态显示）
+        <div className="border-l-2 border-blue-400 bg-blue-50/30 rounded-r-lg px-3 py-2.5 mb-2">
+          <p
+            className="text-sm text-blue-600 italic line-clamp-2 leading-relaxed"
+            title={originalSentence ? originalSentence.sentence : (fallbackSentence || '')}
+          >
+            "{originalSentence ? originalSentence.sentence : (fallbackSentence || '')}"
+          </p>
+          {/* 也显示来源标题（如果有的话） */}
+          {word.material_title && (
+            <p className="mt-1.5 text-[10px] text-slate-400 truncate" title={word.material_title}>
+              {word.material_title}
+            </p>
+          )}
+        </div>
+      ) : null}
     </div>
   )
 }
