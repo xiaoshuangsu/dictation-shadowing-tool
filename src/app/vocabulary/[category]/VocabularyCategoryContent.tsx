@@ -1,19 +1,22 @@
 /**
  * Vocabulary Category Content - 分类列表内容组件
  *
- * 功能：
- * - 单词卡片展示
- * - 音频播放
- * - Mock 数据填充
+ * V2.3 - 智能音频路由（R2 优先 + Web Speech API 兜底）
+ * - 双例句显示（标准例句 + 素材原句）
+ * - 翻译语言联动
+ * - 固定高度卡片
+ * - 跳转回原素材
+ * - 浏览器原生 TTS（无需 API Key，支持所有主流浏览器）
  */
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Volume2, Search } from 'lucide-react'
+import { ArrowLeft, Volume2, Search, ExternalLink } from 'lucide-react'
+import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 
 // 单词数据接口
 interface WordEntry {
@@ -25,6 +28,22 @@ interface WordEntry {
   audio_url_us?: string
   audio_url_uk?: string
   translations?: Record<string, string>
+  // My Words 专属字段
+  context_sentence?: string
+  material_id?: string | null
+  material_title?: string | null
+  audio_timestamp?: number | null
+  material_info?: {
+    category: string
+    slug: string
+    transcript: any[] | null
+  }
+  dictionary_cache?: {
+    example?: string
+    definitions?: string
+    audio_url_us?: string | null
+    audio_url_uk?: string | null
+  }
 }
 
 // 分类配置
@@ -56,83 +75,201 @@ const CATEGORY_CONFIG: Record<string, { title: string; description: string; plac
   }
 }
 
-// Mock 数据生成器
-function generateMockWords(count: number): WordEntry[] {
-  const words: WordEntry[] = []
-  const prefixes = ['anti', 'auto', 'bi', 'co', 'de', 'dis', 'en', 'ex', 'fore', 'hyper']
-  const roots = ['act', 'form', 'port', 'scribe', 'tract', 'vert', 'vis', 'struct', 'ject', 'press']
-  const suffixes = ['tion', 'sion', 'ment', 'ness', 'ity', 'ance', 'ence', 'ship', 'hood', 'dom']
+// 翻译解析
+function parseDefinition(definitionStr: string): Record<string, string> {
+  try {
+    const parsed = JSON.parse(definitionStr)
 
-  for (let i = 0; i < count; i++) {
-    const prefix = prefixes[i % prefixes.length]
-    const root = roots[i % roots.length]
-    const suffix = suffixes[i % suffixes.length]
-    const word = prefix + root + suffix + (i + 1)
+    // 新格式：直接是 translations 对象
+    if (parsed.zh || parsed.en || parsed.vi) {
+      return parsed
+    }
 
-    words.push({
-      word: word,
-      phonetic: `/${word}/`,
-      definition: `A word formed by combining ${prefix}, ${root}, and ${suffix}`,
-      example: `The ${word} effect was clearly visible in the results.`,
-      audio_url: '',
-      translations: {
-        'zh': `${word}的中文释义`,
-        'vi': `${word}的越南语释义`,
-        'es': `${word}的西班牙语释义`
+    // 向后兼容：旧格式（zh-CN, zh-Hant）
+    if (parsed['zh-CN'] || parsed['zh-Hant']) {
+      return {
+        zh: parsed['zh-CN'] || '',
+        en: parsed.en || '',
+        vi: parsed.vi || ''
       }
-    })
-  }
+    }
 
-  return words
+    return { zh: definitionStr }
+  } catch {
+    return { zh: definitionStr }
+  }
 }
 
-// 单词卡片组件
-function WordCard({ word, onPlayAudio }: { word: WordEntry; onPlayAudio: (word: WordEntry) => void }) {
+// 获取当前语言的释义
+function getCurrentTranslation(definition: string, currentLanguage: string): string {
+  const parsed = parseDefinition(definition)
+
+  // 语言映射
+  const langMap: Record<string, string> = {
+    'zh': 'zh',
+    'zh_hant': 'zh_hant',
+    'vi': 'vi',
+    'hide': 'zh'
+  }
+
+  const key = langMap[currentLanguage] || 'zh'
+  return parsed[key] || parsed['zh'] || parsed['en'] || definition
+}
+
+// 获取原句（通过 timestamp 查找）
+function getOriginalSentence(
+  transcript: any[] | null,
+  timestamp: number | null
+): { sentence: string; index: number } | null {
+  if (!transcript || !timestamp) return null
+
+  // 查找对应 timestamp 的句子
+  const index = Math.floor(timestamp)
+  if (index >= 0 && index < transcript.length) {
+    const sentence = transcript[index]
+    if (sentence && sentence.text) {
+      return {
+        sentence: sentence.text,
+        index: index
+      }
+    }
+  }
+
+  return null
+}
+
+// 判断是否为 R2 音频文件
+function isR2AudioUrl(url?: string | null): boolean {
+  if (!url || url.trim() === '' || url === 'null') return false
+  // 排除 Google TTS 链接
+  if (url.includes('translate.google.com') || url.includes('translate_tts')) return false
+  // 判断是否为真实音频文件
+  return url.includes('.mp3') || url.includes('.wav') || url.includes('.m4a') ||
+         url.includes('audio/') || url.includes('media.') || url.includes('r2.')
+}
+
+// 单词卡片组件（固定高度 220px）
+interface WordCardProps {
+  word: WordEntry
+  currentLanguage: string
+  category: string
+  onPlayAudio: (word: WordEntry, accent: 'us' | 'uk') => void
+}
+
+function WordCard({ word, currentLanguage, category, onPlayAudio }: WordCardProps) {
+  // 解析翻译
+  const translation = getCurrentTranslation(word.definition, currentLanguage)
+
+  // 标准例句（来自 dictionary_cache）
+  const standardExample = word.dictionary_cache?.example || word.example
+
+  // 素材原句（仅 My Words）
+  const originalSentence = word.material_info && word.audio_timestamp !== null
+    ? getOriginalSentence(word.material_info.transcript, word.audio_timestamp)
+    : null
+
+  // 生成跳转链接
+  const practiceUrl = originalSentence && word.material_info
+    ? `/topics/${word.material_info.category}/${word.material_info.slug}?t=${word.audio_timestamp}`
+    : null
+
+  // 判断是否有 R2 音频
+  const hasUsR2Audio = isR2AudioUrl(word.audio_url_us || word.dictionary_cache?.audio_url_us)
+  const hasUkR2Audio = isR2AudioUrl(word.audio_url_uk || word.dictionary_cache?.audio_url_uk)
+
   return (
-    <div className="bg-white rounded-lg shadow-sm p-5 border border-gray-200 hover:shadow-md transition-all hover:border-blue-300">
-      {/* 单词和音标 */}
+    <div className="p-4 border border-gray-200 bg-white hover:shadow-md transition-all hover:border-blue-300">
+      {/* 顶部：单词 + 音标 + 双发音按钮 */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="text-xl font-bold text-gray-900 mb-1">{word.word}</h3>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-bold text-gray-900 truncate">{word.word}</h3>
           {word.phonetic && (
-            <p className="text-sm text-gray-500">{word.phonetic}</p>
+            <p className="text-xs text-gray-500 truncate">{word.phonetic}</p>
           )}
         </div>
 
-        {/* 音频播放按钮 */}
-        <button
-          onClick={() => onPlayAudio(word)}
-          className="flex-shrink-0 ml-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-          title="播放发音"
-        >
-          <Volume2 className="w-5 h-5" />
-        </button>
+        {/* US/UK 双发音按钮（始终显示，智能路由） */}
+        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+          {/* US 发音按钮 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onPlayAudio(word, 'us')
+            }}
+            className={`p-1.5 rounded-lg transition-colors group relative ${
+              hasUsR2Audio
+                ? 'text-blue-600 hover:bg-blue-50'  // R2 音频：蓝色
+                : 'text-gray-400 hover:bg-gray-100' // TTS 兜底：灰色
+            }`}
+            title={hasUsR2Audio ? "美式发音 (R2)" : "美式发音 (生成)"}
+          >
+            <Volume2 className="w-4 h-4" />
+            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+              style={{ color: hasUsR2Audio ? '#2563eb' : '#6b7280' }}
+            >
+              US
+            </span>
+          </button>
+
+          {/* UK 发音按钮 */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onPlayAudio(word, 'uk')
+            }}
+            className={`p-1.5 rounded-lg transition-colors group relative ${
+              hasUkR2Audio
+                ? 'text-purple-600 hover:bg-purple-50'  // R2 音频：紫色
+                : 'text-gray-400 hover:bg-gray-100' // TTS 兜底：灰色
+            }`}
+            title={hasUkR2Audio ? "英式发音 (R2)" : "英式发音 (生成)"}
+          >
+            <Volume2 className="w-4 h-4" />
+            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+              style={{ color: hasUkR2Audio ? '#9333ea' : '#6b7280' }}
+            >
+              UK
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* 释义 */}
+      {/* 释义区：目标语言翻译 */}
       <div className="mb-3">
-        <p className="text-sm text-gray-700">{word.definition}</p>
+        <p className="text-sm text-gray-700 line-clamp-2" title={translation}>
+          {translation}
+        </p>
       </div>
 
-      {/* 例句 */}
-      {word.example && (
-        <div className="bg-gray-50 rounded p-3 mb-3">
-          <p className="text-xs text-gray-600 italic">"{word.example}"</p>
+      {/* 例句区 A：标准例句 */}
+      {standardExample && (
+        <div className="bg-slate-50 rounded px-2.5 py-2 mb-2">
+          <p className="text-xs text-slate-600 italic line-clamp-1" title={standardExample}>
+            "{standardExample}"
+          </p>
         </div>
       )}
 
-      {/* 多语言翻译 */}
-      {word.translations && (
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(word.translations).slice(0, 3).map(([lang, translation]) => (
-            <span
-              key={lang}
-              className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded"
-            >
-              {lang}: {translation}
-            </span>
-          ))}
-        </div>
+      {/* 例句区 B：素材原句（仅 My Words） */}
+      {originalSentence && practiceUrl && (
+        <Link
+          href={practiceUrl}
+          className="block bg-blue-50 rounded px-2.5 py-2 mb-2 hover:bg-blue-100 transition-colors group"
+          title="点击跳转到原素材"
+        >
+          <p className="text-xs text-blue-700 italic line-clamp-1" title={originalSentence.sentence}>
+            "{originalSentence.sentence}"
+          </p>
+          <div className="flex items-center gap-1 mt-1 text-xs text-blue-600">
+            <ExternalLink className="w-3 h-3" />
+            <span>跳转练习</span>
+            {word.material_title && (
+              <span className="text-blue-400 truncate ml-1" title={word.material_title}>
+                · {word.material_title}
+              </span>
+            )}
+          </div>
+        </Link>
       )}
     </div>
   )
@@ -145,12 +282,86 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   const [words, setWords] = useState<WordEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentLanguage, setCurrentLanguage] = useState('zh')
 
   const config = CATEGORY_CONFIG[category]
 
+  // 播放音频（智能路由：R2 优先，Web Speech API 兜底）
+  const handlePlayAudio = async (
+    wordEntry: WordEntry,
+    accent: 'us' | 'uk'
+  ): Promise<void> => {
+    const word = wordEntry.word
+
+    // 优先使用 R2 音频
+    const r2Url = accent === 'us'
+      ? (wordEntry.dictionary_cache?.audio_url_us || wordEntry.audio_url_us)
+      : (wordEntry.dictionary_cache?.audio_url_uk || wordEntry.audio_url_uk)
+
+    // 如果有 R2 音频文件，直接播放
+    if (r2Url && isR2AudioUrl(r2Url)) {
+      try {
+        const audio = new Audio(r2Url)
+        await audio.play()
+        console.log(`[音频] R2 音频播放成功 (${word} ${accent.toUpperCase()})`)
+        return // 成功播放，直接返回
+      } catch (err) {
+        console.warn(`[音频] R2 音频播放失败 (${word} ${accent.toUpperCase()}):`, err)
+        // 继续尝试 TTS
+      }
+    }
+
+    // 兜底方案：使用 Web Speech API (浏览器原生 TTS)
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        // 取消当前正在播放的语音
+        window.speechSynthesis.cancel()
+
+        const utterance = new SpeechSynthesisUtterance(word)
+        // 设置口音：美式英语或英式英语
+        utterance.lang = accent === 'us' ? 'en-US' : 'en-GB'
+        utterance.rate = 0.9 // 稍微放慢语速
+        utterance.pitch = 1.0
+
+        window.speechSynthesis.speak(utterance)
+        console.log(`[TTS] Web Speech API 播放成功 (${word} ${accent.toUpperCase()})`)
+        return
+      } catch (err) {
+        console.error(`[TTS] Web Speech API 播放失败 (${word} ${accent.toUpperCase()}):`, err)
+        throw err
+      }
+    } else {
+      console.warn(`[TTS] 浏览器不支持 Web Speech API`)
+      throw new Error('浏览器不支持语音合成')
+    }
+  }
+
+  // 监听语言变化
+  useEffect(() => {
+    const updateLanguage = () => {
+      const lang = getStoredLanguage()
+      setCurrentLanguage(lang === 'hide' ? 'zh' : lang)
+    }
+
+    updateLanguage()
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'translation-language-preference') {
+        updateLanguage()
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('translation-language-change', updateLanguage)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('translation-language-change', updateLanguage)
+    }
+  }, [])
+
   // 加载数据
   useEffect(() => {
-    // 检查分类是否有效
     if (!config) {
       router.push('/vocabulary')
       return
@@ -158,12 +369,9 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
     const loadWords = async () => {
       setLoading(true)
-
-      // 延迟执行，避免阻塞首次渲染
       await new Promise(resolve => setTimeout(resolve, 100))
 
       try {
-        // 如果是 my-words，从 API 加载
         if (category === 'my-words' && user) {
           const response = await fetch('/api/user-words', {
             headers: { 'Authorization': `Bearer ${user.id}` }
@@ -178,16 +386,41 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
               example: w.context_sentence || '',
               audio_url: w.audio_url || '',
               audio_url_us: w.dictionary_cache?.audio_url_us || '',
-              audio_url_uk: w.dictionary_cache?.audio_url_uk || ''
+              audio_url_uk: w.dictionary_cache?.audio_url_uk || '',
+              context_sentence: w.context_sentence,
+              material_id: w.material_id,
+              material_title: w.material_title,
+              audio_timestamp: w.audio_timestamp,
+              material_info: w.material_info,
+              dictionary_cache: w.dictionary_cache
             }))
             setWords(userWords)
           } else {
             setWords([])
           }
         } else {
-          // 其他分类使用 Mock 数据
+          // 其他分类使用 Mock 数据（暂时）
           const mockCount = category === 'ielts' ? 50 : category === 'oxford-3000' ? 30 : 0
-          setWords(generateMockWords(mockCount))
+
+          // 生成 Mock 数据
+          const mockWords: WordEntry[] = Array.from({ length: mockCount }, (_, i) => {
+            const mockWord = `mockword${i + 1}`
+            return {
+              word: mockWord,
+              phonetic: `/${mockWord}/`,
+              definition: JSON.stringify({
+                zh: `${mockWord}的中文释义`,
+                en: `${mockWord} English definition`,
+                vi: `${mockWord} Vietnamese`
+              }),
+              example: `This is an example sentence for ${mockWord}.`,
+              audio_url: '',
+              audio_url_us: '',
+              audio_url_uk: ''
+            }
+          })
+
+          setWords(mockWords)
         }
       } catch (error) {
         console.error('Failed to load words:', error)
@@ -200,16 +433,10 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     loadWords()
   }, [category, user, config, router])
 
-  // 播放音频
-  const handlePlayAudio = (word: WordEntry) => {
-    const audioUrl = word.audio_url || word.audio_url_us || word.audio_url_uk
-    if (audioUrl) {
-      const audio = new Audio(audioUrl)
-      audio.play().catch(error => {
-        console.error('播放音频失败:', error)
-      })
-    }
-  }
+  // 过滤后的单词
+  const filteredWords = searchQuery
+    ? words.filter(w => w.word.toLowerCase().includes(searchQuery.toLowerCase()))
+    : words
 
   // 认证加载中
   if (authLoading) {
@@ -295,11 +522,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     )
   }
 
-  // 过滤后的单词
-  const filteredWords = searchQuery
-    ? words.filter(w => w.word.toLowerCase().includes(searchQuery.toLowerCase()))
-    : words
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -341,6 +563,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
               <WordCard
                 key={`${word.word}-${index}`}
                 word={word}
+                currentLanguage={currentLanguage}
+                category={category}
                 onPlayAudio={handlePlayAudio}
               />
             ))}
