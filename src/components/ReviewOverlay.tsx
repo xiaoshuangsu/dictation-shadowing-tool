@@ -119,9 +119,34 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
 
   // 双例句
   const standardExample = currentWord.dictionary_cache?.example || currentWord.context_sentence
-  const originalSentence = currentWord.material_info && currentWord.audio_timestamp !== null
-    ? getOriginalSentence(currentWord.material_info.transcript, currentWord.audio_timestamp)
-    : null
+
+  // 🔧 修复：优先使用后端精确匹配的 matched_sentence（带内容校验）
+  let originalSentence = null
+  if (currentWord.material_info?.matched_sentence) {
+    // 🔧 添加单词校验兜底：检查后端匹配的句子是否真的包含单词
+    const targetWord = currentWord.word.toLowerCase()
+    const matchedText = currentWord.material_info.matched_sentence.toLowerCase()
+
+    if (matchedText.includes(targetWord)) {
+      // 后端匹配正确，使用它
+      originalSentence = {
+        sentence: currentWord.material_info.matched_sentence,
+        index: currentWord.material_info.matched_index
+      }
+    } else {
+      // 后端匹配不正确，使用 context_sentence 作为兜底
+      console.log(`[Flashcard] ⚠️ Backend matched sentence doesn't contain word for '${currentWord.word}', using context_sentence`)
+      if (currentWord.context_sentence) {
+        originalSentence = {
+          sentence: currentWord.context_sentence,
+          index: null
+        }
+      }
+    }
+  } else if (currentWord.material_info?.transcript && currentWord.audio_timestamp !== null) {
+    // 兜底逻辑：使用前端匹配（仅当后端没有匹配结果时）
+    originalSentence = getOriginalSentence(currentWord.material_info.transcript, currentWord.audio_timestamp)
+  }
   const practiceUrl = originalSentence && currentWord.material_info
     ? `/topics/${categoryToSlug(currentWord.material_info.category)}/${currentWord.material_info.slug}?t=${currentWord.audio_timestamp}`
     : null

@@ -177,14 +177,29 @@ function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: Wor
   // 标准例句（来自 dictionary_cache）
   const standardExample = word.dictionary_cache?.example || word.example
 
-  // 素材原句（仅 My Words）- 优先使用后端匹配好的句子
+  // 素材原句（仅 My Words）- 优先使用后端匹配好的句子，包含单词校验兜底
   let originalSentence = null
 
   if (word.material_info?.matched_sentence) {
-    // 后端已精确匹配的句子（使用 audio_timestamp + start_time/end_time + 二次校验）
-    originalSentence = {
-      sentence: word.material_info.matched_sentence,
-      index: word.material_info.matched_index
+    // 🔧 修复：检查后端匹配的句子是否真的包含单词
+    const targetWord = word.word.toLowerCase()
+    const matchedText = word.material_info.matched_sentence.toLowerCase()
+
+    if (matchedText.includes(targetWord)) {
+      // 后端匹配正确，使用它
+      originalSentence = {
+        sentence: word.material_info.matched_sentence,
+        index: word.material_info.matched_index
+      }
+    } else {
+      // 后端匹配不正确，使用 context_sentence 作为兜底
+      console.log(`[Frontend] ⚠️ Backend matched sentence doesn't contain word for '${word.word}', using context_sentence`)
+      if (word.context_sentence) {
+        originalSentence = {
+          sentence: word.context_sentence,
+          index: null
+        }
+      }
     }
   } else if (word.material_info?.transcript && word.audio_timestamp !== null) {
     // 兜底逻辑：使用 getOriginalSentence 函数（前端匹配）
