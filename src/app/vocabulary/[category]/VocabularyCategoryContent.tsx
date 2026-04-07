@@ -24,14 +24,26 @@ import { categoryToSlug } from '@/lib/utils/category'
 import ReviewOverlay from '@/components/ReviewOverlay'
 
 // 🔧 前端缓存优化：使用 SWR 避免切换标签页时重复请求
-// fetcher 函数
-const fetcher = async (url: string, userId: string) => {
+
+// fetcher 函数 - 用于 user-words API（需要认证）
+const fetcherWithAuth = async (url: string, userId: string) => {
   const response = await fetch(url, {
     headers: { 'Authorization': `Bearer ${userId}` }
   })
 
   if (!response.ok) {
     throw new Error('Failed to fetch user words')
+  }
+
+  return response.json()
+}
+
+// fetcher 函数 - 用于 vocabulary-words API（公开 API，无需认证）
+const fetcherPublic = async (url: string) => {
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch vocabulary words')
   }
 
   return response.json()
@@ -221,7 +233,7 @@ function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: Wor
     originalSentence = getOriginalSentence(word.material_info.transcript, word.audio_timestamp)
   }
 
-  // 判断是否有有效的素材信息（用于生成跳转链接）
+  // 🔧 判断是否有有效的素材信息（用于生成跳转链接）
   const hasValidMaterialInfo = word.material_id && word.material_info && word.audio_timestamp !== null
 
   // 如果没有 transcript 原句，尝试使用 context_sentence
@@ -233,6 +245,9 @@ function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: Wor
   const practiceUrl = hasValidMaterialInfo && word.material_info
     ? `/topics/${categoryToSlug(word.material_info.category)}/${word.material_info.slug}?t=${word.audio_timestamp}`
     : null
+
+  // 🔧 对于没有素材关联的单词（Oxford 3000, IELTS），显示词典例句
+  const showDictionaryExample = !hasValidMaterialInfo && standardExample
 
   // 判断是否有 R2 音频
   const hasUsR2Audio = isR2AudioUrl(word.audio_url_us || word.dictionary_cache?.audio_url_us)
@@ -341,6 +356,7 @@ function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: Wor
       )}
 
       {/* 例句区 B：素材实战原句（Material Context） */}
+      {/* 🔧 仅当有有效素材信息时显示（Oxford 3000 / IELTS 不会显示此版块） */}
       {(originalSentence || fallbackSentence) && practiceUrl ? (
         // 完整版：有素材信息和跳转链接（整体可点击）
         <Link
@@ -484,15 +500,33 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   }, [])
 
   // 🔧 使用 SWR 进行数据缓存和请求管理（防止切换标签页时重复请求）
-  const shouldFetch = category === 'my-words' && user
-  const { data: userWordsData, error: userWordsError, isLoading: userWordsLoading } = useSWR(
-    shouldFetch ? ['/api/user-words', user.id] : null,
-    ([url, userId]) => fetcher(url, userId as string),
+
+  // My Words：使用需要认证的 API
+  const shouldFetchUserWords = category === 'my-words' && user
+  const { data: userWordsData, error: userWordsError } = useSWR(
+    shouldFetchUserWords ? ['/api/user-words', user.id] : null,
+    ([url, userId]) => fetcherWithAuth(url, userId as string),
     {
-      revalidateOnFocus: false,        // 🔥 核心：切换标签页时不重新请求
-      revalidateOnReconnect: false,    // 重新连接网络时不重新请求
-      dedupingInterval: 60000,         // 60秒内相同请求去重
-      shouldRetryOnError: false        // 错误时不自动重试（避免频繁请求）
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 60000,
+      shouldRetryOnError: false
+    }
+  )
+
+  // Oxford 3000 / IELTS：使用公开 API
+  const shouldFetchVocabularyWords = (category === 'oxford-3000' || category === 'ielts')
+  const vocabularyApiUrl = shouldFetchVocabularyWords
+    ? `/api/vocabulary-words?category=${category}&limit=200`
+    : null
+  const { data: vocabularyWordsData, error: vocabularyWordsError } = useSWR(
+    vocabularyApiUrl,
+    fetcherPublic,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 600,
+      shouldRetryOnError: false
     }
   )
 
@@ -504,6 +538,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     }
 
     if (category === 'my-words') {
+      // 处理 My Words 数据
       if (userWordsData?.words) {
         const mappedWords: WordEntry[] = userWordsData.words.map((w: any) => ({
           word: w.word,
@@ -527,31 +562,38 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         setWords([])
         setLoading(false)
       }
+    } else if (category === 'oxford-3000' || category === 'ielts') {
+      // 处理 Oxford 3000 / IELTS 数据（真实数据）
+      if (vocabularyWordsData?.words) {
+        const mappedWords: WordEntry[] = vocabularyWordsData.words.map((w: any) => ({
+          word: w.word,
+          phonetic: w.phonetic || '',
+          definition: w.definition,
+          example: w.example || '',
+          audio_url: w.audio_url || '',
+          audio_url_us: w.audio_url_us || w.dictionary_cache?.audio_url_us || '',
+          audio_url_uk: w.audio_url_uk || w.dictionary_cache?.audio_url_uk || '',
+          // 这些分类没有素材关联
+          context_sentence: null,
+          material_id: null,
+          material_title: null,
+          audio_timestamp: null,
+          material_info: null,
+          dictionary_cache: w.dictionary_cache
+        }))
+        setWords(mappedWords)
+        setLoading(false)
+      } else if (vocabularyWordsError) {
+        console.error('Failed to load vocabulary words:', vocabularyWordsError)
+        setWords([])
+        setLoading(false)
+      }
     } else {
-      // 其他分类使用 Mock 数据（暂时）
-      const mockCount = category === 'ielts' ? 50 : category === 'oxford-3000' ? 30 : 0
-
-      const mockWords: WordEntry[] = Array.from({ length: mockCount }, (_, i) => {
-        const mockWord = `mockword${i + 1}`
-        return {
-          word: mockWord,
-          phonetic: `/${mockWord}/`,
-          definition: JSON.stringify({
-            zh: `${mockWord}的中文释义`,
-            en: `${mockWord} English definition`,
-            vi: `${mockWord} Vietnamese`
-          }),
-          example: `This is an example sentence for ${mockWord}.`,
-          audio_url: '',
-          audio_url_us: '',
-          audio_url_uk: ''
-        }
-      })
-
-      setWords(mockWords)
+      // 其他分类（占位符）
+      setWords([])
       setLoading(false)
     }
-  }, [category, user, config, router, userWordsData, userWordsError])
+  }, [category, user, config, router, userWordsData, userWordsError, vocabularyWordsData, vocabularyWordsError])
 
   // 过滤后的单词
   const filteredWords = searchQuery
