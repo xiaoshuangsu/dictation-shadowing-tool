@@ -1,7 +1,8 @@
 /**
  * Vocabulary Category Content - 分类列表内容组件
  *
- * V2.3 - 智能音频路由（R2 优先 + Web Speech API 兜底）
+ * V2.4 - 双层释义显示 + 智能音频路由
+ * - 双层释义结构：英文释义 + 目标语翻译
  * - 双例句显示（标准例句 + 素材原句）
  * - 翻译语言联动
  * - 固定高度卡片
@@ -116,6 +117,12 @@ function getCurrentTranslation(definition: string, currentLanguage: string): str
   return parsed[key] || parsed['zh'] || parsed['en'] || definition
 }
 
+// 获取英文释义（用于双层显示）
+function getEnglishDefinition(definition: string): string {
+  const parsed = parseDefinition(definition)
+  return parsed['en'] || ''
+}
+
 // 获取原句（通过 timestamp 查找）
 function getOriginalSentence(
   transcript: any[] | null,
@@ -157,8 +164,9 @@ interface WordCardProps {
 }
 
 function WordCard({ word, currentLanguage, category, onPlayAudio }: WordCardProps) {
-  // 解析翻译
-  const translation = getCurrentTranslation(word.definition, currentLanguage)
+  // 解析翻译（双层释义）
+  const englishDefinition = getEnglishDefinition(word.definition)
+  const targetTranslation = getCurrentTranslation(word.definition, currentLanguage)
 
   // 标准例句（来自 dictionary_cache）
   const standardExample = word.dictionary_cache?.example || word.example
@@ -234,11 +242,34 @@ function WordCard({ word, currentLanguage, category, onPlayAudio }: WordCardProp
         </div>
       </div>
 
-      {/* 释义区：目标语言翻译 */}
-      <div className="mb-3">
-        <p className="text-sm text-gray-700 line-clamp-2" title={translation}>
-          {translation}
-        </p>
+      {/* 释义区：双层释义结构 */}
+      <div className="mb-2.5 space-y-1">
+        {/* 第一行：英文释义 */}
+        {englishDefinition && (
+          <p
+            className="text-xs text-slate-500 truncate"
+            title={englishDefinition}
+          >
+            {englishDefinition}
+          </p>
+        )}
+
+        {/* 第二行：目标语翻译 */}
+        {targetTranslation && targetTranslation !== englishDefinition ? (
+          <p
+            className="text-sm text-slate-700 truncate"
+            title={targetTranslation}
+          >
+            {targetTranslation}
+          </p>
+        ) : null}
+
+        {/* 容错：都无释义时显示占位符 */}
+        {!englishDefinition && !targetTranslation && (
+          <p className="text-sm text-slate-400 italic">
+            Definition in flashcard
+          </p>
+        )}
       </div>
 
       {/* 例句区 A：标准例句 */}
