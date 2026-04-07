@@ -298,7 +298,7 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
           {/* 正面：拼写练习 */}
           <div
             className={`w-full bg-white rounded-2xl p-8 flex flex-col justify-between transition-all duration-500 ${
-              flipped ? 'opacity-0 pointer-events-none' : 'opacity-100'
+              flipped ? 'hidden' : 'block'
             } ${isCorrect ? 'shadow-[0_0_30px_rgba(34,197,94,0.5)]' : 'shadow-2xl'}`}
           >
               <div>
@@ -418,8 +418,8 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
 
             {/* 背面：答案 + 自评 */}
             <div
-              className={`absolute w-full top-0 left-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-8 flex flex-col text-white transition-all duration-500 ${
-                flipped ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+              className={`w-full bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-8 flex flex-col text-white transition-all duration-500 ${
+                flipped ? 'block' : 'hidden'
               }`}
             >
               <div className="flex-1 flex flex-col items-center justify-center mb-6">
