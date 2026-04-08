@@ -23,6 +23,7 @@ import { Volume2, X, ExternalLink } from 'lucide-react'
 import { AuthUser } from '@/lib/hooks/useAuth'
 import { categoryToSlug } from '@/lib/utils/category'
 import logger from '@/lib/utils/logger'
+import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 
 interface ReviewWord {
   id: string
@@ -32,11 +33,13 @@ interface ReviewWord {
   context_sentence?: string
   audio_url_us?: string
   audio_url_uk?: string
+  translations?: string
   // 新增字段
   dictionary_cache?: {
     example?: string
     audio_url_us?: string | null
     audio_url_uk?: string | null
+    translations?: string
   }
   material_info?: {
     category: string
@@ -64,6 +67,7 @@ const parseDefinition = (definitionStr: string) => {
       return {
         zh: parsed['zh-CN'] || '',
         en: parsed.en || '',
+        zh_hant: parsed['zh-Hant'] || '',
         vi: parsed.vi || ''
       }
     }
@@ -77,6 +81,93 @@ const parseDefinition = (definitionStr: string) => {
 const getEnglishDefinition = (definitionStr: string) => {
   const parsed = parseDefinition(definitionStr)
   return parsed.en || ''
+}
+
+/**
+ * 获取当前语言的释义（与 VocabularyCategoryContent 保持一致）
+ *
+ * 🌍 支持的语言映射（与数据库 translations 字段的键名对应）
+ * 优先使用 translations 字段（19 国语言），回退到 definitions 字段（4 种语言）
+ * 回退逻辑：目标语言 → 英文 → 简体中文 → 原始定义
+ */
+const getCurrentTranslation = (
+  definitionStr: string,
+  currentLanguage: string,
+  translationsStr?: string
+): string => {
+  // 🔧 优先使用 translations 字段（19 国语言）
+  if (translationsStr) {
+    try {
+      const parsedTranslations = JSON.parse(translationsStr);
+      if (Object.keys(parsedTranslations).length > 4) {
+        // 这是完整的 19 国语言翻译
+        const langMap: Record<string, string> = {
+          'zh': 'zh',
+          'zh_hant': 'zh_hant',
+          'vi': 'vi',
+          'ja': 'ja',
+          'de': 'de',
+          'es': 'es',
+          'fr': 'fr',
+          'ko': 'ko',
+          'pt': 'pt',
+          'ru': 'ru',
+          'ar': 'ar',
+          'th': 'th',
+          'id': 'id',
+          'ms': 'ms',
+          'tr': 'tr',
+          'el': 'el',
+          'uk': 'uk',
+          'bn': 'bn',
+          'mn': 'mn',
+          'hi': 'hi',
+          'hide': 'zh'
+        };
+
+        const key = langMap[currentLanguage] || 'zh';
+        const translation = parsedTranslations[key] || parsedTranslations['en'] || parsedTranslations['zh'];
+        if (translation) {
+          return translation;
+        }
+      }
+    } catch (e) {
+      console.warn('[getCurrentTranslation] 解析 translations 失败:', e);
+    }
+  }
+
+  // 回退到 definitions 字段（4 种语言）
+  const parsed = parseDefinition(definitionStr)
+
+  // 🔧 语言映射 - 支持 19 种语言
+  const langMap: Record<string, string> = {
+    'zh': 'zh',
+    'zh_hant': 'zh_hant',
+    'vi': 'vi',
+    'ja': 'ja',
+    'de': 'de',
+    'es': 'es',
+    'fr': 'fr',
+    'ko': 'ko',
+    'pt': 'pt',
+    'ru': 'ru',
+    'ar': 'ar',
+    'th': 'th',
+    'id': 'id',
+    'ms': 'ms',
+    'tr': 'tr',
+    'el': 'el',
+    'uk': 'uk',
+    'bn': 'bn',
+    'mn': 'mn',
+    'hi': 'hi',
+    'hide': 'zh'
+  }
+
+  const key = langMap[currentLanguage] || 'zh'
+
+  // 按优先级查找：目标语言 → 英文 → 简体中文 → 原始定义
+  return parsed[key] || parsed['en'] || parsed['zh'] || definitionStr
 }
 
 // 判断是否为 R2 音频
@@ -107,15 +198,36 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
   const [isCorrect, setIsCorrect] = useState(false | null)
   const [showedAnswer, setShowedAnswer] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
+  const [currentLanguage, setCurrentLanguage] = useState<string>('zh')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentWord = words[currentIndex]
   const isLastCard = currentIndex === words.length - 1
 
+  // 🔄 同步用户选择的语言偏好
+  useEffect(() => {
+    const updateLanguage = () => {
+      const storedLang = getStoredLanguage()
+      setCurrentLanguage(storedLang)
+    }
+
+    updateLanguage()
+
+    window.addEventListener('translation-language-change', updateLanguage)
+
+    return () => {
+      window.removeEventListener('translation-language-change', updateLanguage)
+    }
+  }, [])
+
   // 解析翻译（双层释义）
   const definition = parseDefinition(currentWord.definition)
   const englishDefinition = getEnglishDefinition(currentWord.definition)
-  const targetTranslation = definition.zh || definition.en || ''
+  const targetTranslation = getCurrentTranslation(
+    currentWord.definition,
+    currentLanguage,
+    currentWord.translations || currentWord.dictionary_cache?.translations
+  )
 
   // 双例句
   const standardExample = currentWord.dictionary_cache?.example || currentWord.context_sentence

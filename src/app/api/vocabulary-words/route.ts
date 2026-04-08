@@ -49,45 +49,52 @@ const getSupabaseClient = () => {
 }
 
 /**
- * 分批查询 Supabase
+ * 分批并行查询 Supabase（性能优化版）
  * @param words - 要查询的单词列表
- * @param chunkSize - 每批大小（默认 50）
+ * @param chunkSize - 每批大小（默认 20，降低并发压力）
  */
 async function fetchWordsInChunks(
   supabase: any,
   words: string[],
-  chunkSize: number = 50
+  chunkSize: number = 20
 ): Promise<any[]> {
-  const results: any[] = []
-
-  // 分批处理
+  // 🔥 性能优化：并行查询所有批次
+  const chunks: string[][] = []
   for (let i = 0; i < words.length; i += chunkSize) {
-    const chunk = words.slice(i, i + chunkSize)
+    chunks.push(words.slice(i, i + chunkSize))
+  }
 
-    console.log(`[API] 📦 Fetching chunk ${Math.floor(i / chunkSize) + 1}/${Math.ceil(words.length / chunkSize)} (${chunk.length} words)`)
+  console.log(`[API] 🚀 Parallel fetching ${chunks.length} chunks (${words.length} words total)`)
+
+  // 并行查询所有批次
+  const chunkPromises = chunks.map(async (chunk, index) => {
+    console.log(`[API] 📦 Starting chunk ${index + 1}/${chunks.length} (${chunk.length} words)`)
 
     try {
       const { data, error } = await supabase
         .from('dictionary_cache')
-        .select('word, phonetic, definitions, example, audio_r2_url, audio_url_us, audio_url_uk')
+        .select('word, phonetic, definitions, example, audio_r2_url, audio_url_us, audio_url_uk, translations')
         .in('word', chunk)
         .order('word', { ascending: true })
 
       if (error) {
-        console.error(`[API] ❌ Chunk ${Math.floor(i / chunkSize) + 1} error:`, error)
-        throw new Error(`Supabase query error for chunk ${Math.floor(i / chunkSize) + 1}: ${error.message}`)
+        console.error(`[API] ❌ Chunk ${index + 1} error:`, error)
+        throw new Error(`Supabase query error for chunk ${index + 1}: ${error.message}`)
       }
 
-      if (data) {
-        results.push(...data)
-      }
+      console.log(`[API] ✅ Chunk ${index + 1}/${chunks.length} completed (${data?.length || 0} words)`)
+      return data || []
     } catch (err) {
-      console.error(`[API] ❌ Chunk ${Math.floor(i / chunkSize) + 1} failed:`, err)
+      console.error(`[API] ❌ Chunk ${index + 1} failed:`, err)
       throw err
     }
-  }
+  })
 
-  return results
+  // 等待所有查询完成
+  const results = await Promise.all(chunkPromises)
+
+  // 合并结果（保持顺序）
+  return results.flat()
 }
 
 /**
@@ -146,7 +153,7 @@ export async function GET(request: Request) {
     // 第四步：分批查询数据库
     let words: any[]
     try {
-      words = await fetchWordsInChunks(supabase, paginatedWords, 50)
+      words = await fetchWordsInChunks(supabase, paginatedWords, 20)
       console.log(`[API] ✅ Fetched ${words.length} words from database`)
     } catch (err) {
       return NextResponse.json(
@@ -169,6 +176,8 @@ export async function GET(request: Request) {
       audio_url: w.audio_r2_url || w.audio_url_us || '',
       audio_url_us: w.audio_url_us || '',
       audio_url_uk: w.audio_url_uk || '',
+      // 新增：返回 translations 字段（19 国语言）
+      translations: w.translations ? JSON.stringify(w.translations) : '{}',
       // 无素材关联
       context_sentence: null,
       material_id: null,
@@ -178,6 +187,7 @@ export async function GET(request: Request) {
       dictionary_cache: {
         example: w.example,
         definitions: w.definitions ? JSON.stringify(w.definitions) : '{}',
+        translations: w.translations ? JSON.stringify(w.translations) : '{}',
         audio_url_us: w.audio_url_us,
         audio_url_uk: w.audio_url_uk
       }

@@ -128,6 +128,11 @@ export function TranslationLanguageSelector({ onLanguageChange }: TranslationLan
     if (onLanguageChange) {
       onLanguageChange(newLanguage, newShowTranslation)
     }
+
+    // 🔄 发送全局事件，通知其他页面/组件语言已更改
+    window.dispatchEvent(new CustomEvent('translation-language-change', {
+      detail: { language: newLanguage, showTranslation: newShowTranslation }
+    }))
   }
 
   // 获取当前显示的标签

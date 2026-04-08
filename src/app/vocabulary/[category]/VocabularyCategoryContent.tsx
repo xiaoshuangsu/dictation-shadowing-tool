@@ -19,6 +19,7 @@ import { ArrowLeft, Volume2, Search } from 'lucide-react'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
 import { categoryToSlug } from '@/lib/utils/category'
 import ReviewOverlay from '@/components/ReviewOverlay'
+import { WordCardErrorBoundary } from '@/components/WordCardErrorBoundary'
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 数据获取配置
@@ -143,22 +144,98 @@ function parseDefinition(definitionStr: string): Record<string, string> {
 
 /**
  * 获取当前语言的释义
+ *
+ * 🌍 支持的语言映射（与数据库 translations 字段的键名对应）
+ * 优先使用 translations 字段（19 国语言），回退到 definitions 字段（4 种语言）
+ * 回退逻辑：目标语言 → 英文 → 简体中文 → 原始定义
  */
-function getCurrentTranslation(definition: string, currentLanguage: string): string {
-  const parsed = parseDefinition(definition)
+function getCurrentTranslation(
+  definition: string,
+  currentLanguage: string,
+  translations?: string
+): string {
+  // 🔧 优先使用 translations 字段（19 国语言）
+  if (translations) {
+    try {
+      const parsedTranslations = JSON.parse(translations);
+      const transKeys = Object.keys(parsedTranslations);
 
-  // 🔧 语言映射 - 直接映射
+      if (transKeys.length > 0) {
+        // 语言映射
+        const langMap: Record<string, string> = {
+          'zh': 'zh',
+          'zh_hant': 'zh_hant',
+          'vi': 'vi',
+          'ja': 'ja',
+          'de': 'de',
+          'es': 'es',
+          'fr': 'fr',
+          'ko': 'ko',
+          'pt': 'pt',
+          'ru': 'ru',
+          'ar': 'ar',
+          'th': 'th',
+          'id': 'id',
+          'ms': 'ms',
+          'tr': 'tr',
+          'el': 'el',
+          'uk': 'uk',
+          'bn': 'bn',
+          'mn': 'mn',
+          'hi': 'hi',
+          'hide': 'zh'
+        };
+
+        const key = langMap[currentLanguage] || 'zh';
+
+        // 按优先级查找：目标语言 → 英文 → 简体中文
+        if (parsedTranslations[key]) {
+          return parsedTranslations[key];
+        }
+        if (parsedTranslations['en']) {
+          return parsedTranslations['en'];
+        }
+        if (parsedTranslations['zh']) {
+          return parsedTranslations['zh'];
+        }
+      }
+    } catch (e) {
+      console.warn('[getCurrentTranslation] 解析 translations 失败，回退到 definitions:', e);
+    }
+  }
+
+  // 回退到 definitions 字段（4 种语言）
+  const parsed = parseDefinition(definition);
+
+  // 🔧 语言映射 - 支持 19 种语言
   const langMap: Record<string, string> = {
     'zh': 'zh',
     'zh_hant': 'zh_hant',
     'vi': 'vi',
+    'ja': 'ja',
+    'de': 'de',
+    'es': 'es',
+    'fr': 'fr',
+    'ko': 'ko',
+    'pt': 'pt',
+    'ru': 'ru',
+    'ar': 'ar',
+    'th': 'th',
+    'id': 'id',
+    'ms': 'ms',
+    'tr': 'tr',
+    'el': 'el',
+    'uk': 'uk',
+    'bn': 'bn',
+    'mn': 'mn',
+    'hi': 'hi',
     'hide': 'zh'
   }
 
-  const key = langMap[currentLanguage] || 'zh'
+  const key = langMap[currentLanguage] || 'zh';
 
-  // 按优先级查找：目标语言 → 简体中文 → 英文
-  return parsed[key] || parsed['zh'] || parsed['en'] || definition
+  // 按优先级查找：目标语言 → 英文 → 简体中文 → 原始定义
+  return parsed[key] || parsed['en'] || parsed['zh'] || definition
 }
 
 /**
@@ -192,9 +269,35 @@ interface WordCardProps {
 }
 
 function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: WordCardProps) {
-  // 🔧 解析翻译
-  const englishDefinition = getEnglishDefinition(word.definition)
-  const targetTranslation = getCurrentTranslation(word.definition, currentLanguage)
+  // 🔧 空值检查
+  if (!word) {
+    return null
+  }
+
+  // 🔧 解析翻译（优先使用 translations 字段）
+  let englishDefinition = ''
+  let targetTranslation = ''
+
+  try {
+    englishDefinition = getEnglishDefinition(word.definition || '')
+    targetTranslation = getCurrentTranslation(
+      word.definition || '',
+      currentLanguage,
+      word.translations || word.dictionary_cache?.translations
+    )
+  } catch (e) {
+    console.warn(`[WordCard] ${word.word} 翻译解析失败:`, e)
+    englishDefinition = 'Definition in flashcard'
+    targetTranslation = ''
+  }
+
+  // 🔍 详细调试日志（仅前 3 个单词）
+  if (['abandon', 'abandonment', 'abc'].includes(word.word)) {
+    console.log(`[WordCard] 📝 ${word.word} - 语言: ${currentLanguage}`, {
+      englishDefinition: englishDefinition.substring(0, 40),
+      targetTranslation: targetTranslation?.substring(0, 40)
+    })
+  }
 
   // 标准例句
   const standardExample = word.dictionary_cache?.example || word.example
@@ -295,18 +398,11 @@ function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: Wor
           </p>
         )}
 
-        {/* 🔍 目标语翻译 + 调试占位符 */}
-        {targetTranslation && targetTranslation !== englishDefinition ? (
+        {/* 🔍 目标语翻译 */}
+        {targetTranslation && targetTranslation !== englishDefinition && (
           <p className="text-sm text-slate-700 truncate" title={targetTranslation}>
             {targetTranslation}
           </p>
-        ) : (
-          // 🔧 调试模式：显示原始数据（临时）
-          debugMode && (
-            <p className="text-xs text-red-400 italic truncate" title={word.definition}>
-              [DEBUG] No translation for '{currentLanguage}'. Raw: {word.definition.substring(0, 50)}...
-            </p>
-          )
         )}
 
         {/* 容错：都无释义时显示占位符 */}
@@ -466,6 +562,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
           word: w.word,
           phonetic: w.phonetic || '',
           definition: w.definition,
+          translations: w.translations,
           example: w.example || '',
           audio_url: w.audio_url || '',
           audio_url_us: w.audio_url_us || w.dictionary_cache?.audio_url_us || '',
@@ -497,7 +594,17 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
       setWords([])
       setLoading(false)
     }
-  }, [category, user, config, router, userWordsData, userWordsError, vocabularyWordsData, vocabularyWordsError, currentPage, shouldFetchVocabularyWords])
+
+    // 🔥 添加超时保护，防止 loading 状态卡住
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.warn('[VocabularyCategory] Loading 超时，强制重置')
+        setLoading(false)
+      }
+    }, 10000) // 10 秒超时
+
+    return () => clearTimeout(timeoutId)
+  }, [category, user, config, router, userWordsData, userWordsError, vocabularyWordsData, vocabularyWordsError, currentPage, shouldFetchVocabularyWords, loading])
 
   // ══════════════════════════════════════════════════════════════════════════════
   // 无限滚动逻辑
@@ -513,13 +620,15 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     // 只对 Oxford 3000 / IELTS 启用无限滚动
     if (!shouldFetchVocabularyWords || !loadMoreRef.current) return
 
+    // 🔥 性能优化：提前 300px 触发预加载，实现无缝滚动
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loading) {
+          console.log('[Infinite Scroll] Triggered! Loading next page...')
           loadMore()
         }
       },
-      { rootMargin: '200px', threshold: 0.1 }
+      { rootMargin: '300px', threshold: 0.1 }
     )
 
     observer.observe(loadMoreRef.current!)
@@ -539,23 +648,37 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   useEffect(() => {
     const updateLanguage = () => {
       const lang = getStoredLanguage()
-      setCurrentLanguage(lang === 'hide' ? 'zh' : lang)
+      const finalLang = lang === 'hide' ? 'zh' : lang
+      console.log('[VocabularyCategory] 🔄 语言更新:', {
+        stored: lang,
+        final: finalLang,
+        timestamp: new Date().toISOString()
+      })
+      setCurrentLanguage(finalLang)
     }
 
+    // 初始化时立即更新
     updateLanguage()
 
     const handleStorageChange = (e: StorageEvent) => {
+      console.log('[VocabularyCategory] 📦 storage 事件:', e.key, e.newValue)
       if (e.key === 'translation-language-preference') {
         updateLanguage()
       }
     }
 
+    const handleLanguageChange = (e: Event) => {
+      const customEvent = e as CustomEvent
+      console.log('[VocabularyCategory] 📡 收到语言变化事件:', customEvent.detail)
+      updateLanguage()
+    }
+
     window.addEventListener('storage', handleStorageChange)
-    window.addEventListener('translation-language-change', updateLanguage)
+    window.addEventListener('translation-language-change', handleLanguageChange)
 
     return () => {
       window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('translation-language-change', updateLanguage)
+      window.removeEventListener('translation-language-change', handleLanguageChange)
     }
   }, [])
 
@@ -745,15 +868,16 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         {filteredWords.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredWords.map((word, index) => (
-                <WordCard
-                  key={`${word.word}-${index}`}
-                  word={word}
-                  currentLanguage={currentLanguage}
-                  category={category}
-                  onPlayAudio={handlePlayAudio}
-                  onClick={handleOpenFlashcard}
-                />
+              {filteredWords.map((word) => (
+                <WordCardErrorBoundary key={`${word.word}-${currentLanguage}`}>
+                  <WordCard
+                    word={word}
+                    currentLanguage={currentLanguage}
+                    category={category}
+                    onPlayAudio={handlePlayAudio}
+                    onClick={handleOpenFlashcard}
+                  />
+                </WordCardErrorBoundary>
               ))}
             </div>
 
@@ -788,6 +912,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
             word: flashcardWord.word,
             phonetic: flashcardWord.phonetic || '',
             definition: flashcardWord.definition,
+            translations: flashcardWord.translations,
             context_sentence: flashcardWord.context_sentence || flashcardWord.dictionary_cache?.example || '',
             audio_url_us: flashcardWord.audio_url_us || flashcardWord.dictionary_cache?.audio_url_us || '',
             audio_url_uk: flashcardWord.audio_url_uk || flashcardWord.dictionary_cache?.audio_url_uk || '',
