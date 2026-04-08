@@ -1,5 +1,87 @@
 # Changelog
 
+## [30.0.2] - 2026-04-08
+
+### Feat
+- **Oxford 3000 & IELTS 词汇库上线** 📚
+  - **数据层打通**：从 dictionary_cache 表动态获取词汇数据
+  - **单词列表注入**：Oxford 3000 (500词) + IELTS (500词) 完整词汇列表
+  - **API 优化**：新建 `/api/vocabulary-words` 接口，支持分页查询
+  - **性能优化**：分批查询 Supabase（每批 50 个单词），避免大查询超时
+
+  - **前端：3×5 黄金网格布局**
+    - 桌面端固定 3 列布局
+    - 首屏加载 15 个单词（3×5 网格）
+    - 响应式：移动端 1 列，平板 2 列
+
+  - **前端：无限滚动实现**
+    - Intersection Observer 自动触发加载
+    - 滚动到距离底部 200px 时预加载下一页
+    - 显示加载状态和完成提示
+
+  - **前端缓存优化**
+    - SWR 缓存：`revalidateOnFocus: false`（切换标签页不重新请求）
+    - 去重窗口：60 秒内相同请求自动去重
+    - 错误重试：关闭（避免频繁请求）
+
+- **多语言翻译修复** 🌍
+  - **问题诊断**：数据库字段 `definitions` 返回 `zh-CN`/`zh-Hant`，前端期望 `zh`/`zh_hant`
+  - **修复方案**：
+    - **API 层**：修正数据库列名 `definition_json` → `definitions`
+    - **映射转换**：实现 `zh-CN` → `zh`、`zh-Hant` → `zh_hant` 自动转换
+    - **解析统一**：`parseDefinition()` 统一所有格式为标准格式
+    - **语言映射**：`getCurrentTranslation()` 正确提取用户选择的语言
+
+  - **闪卡交互闭环**
+    - 点击卡片任意位置 → 打开闪卡练习模式
+    - 闪卡内同步显示多语言释义
+    - 保持语言偏好一致性
+
+  - **类型定义更新**
+    - `src/data/oxford-3000.ts` - 500 个 Oxford 3000 核心词汇
+    - `src/data/ielts.ts` - 500 个 IELTS 学术词汇
+    - `src/app/api/vocabulary-words/route.ts` - 新建词汇查询 API
+
+### Tech Details
+- **API 设计：**
+  ```
+  GET /api/vocabulary-words?category=oxford-3000&limit=15&offset=0
+
+  响应格式：
+  {
+    success: true,
+    words: [...],
+    total: 500,
+    limit: 15,
+    offset: 0
+  }
+  ```
+
+- **数据流：**
+  ```
+  JSON 常量 (.ts)
+    ↓
+  API 路由（分页 + 分批查询）
+    ↓
+  Supabase dictionary_cache 表
+    ↓
+  前端解析 + 渲染（多语言）
+  ```
+
+- **语言映射表：**
+  ```
+  前端选择 → 数据库键名
+  zh       → zh-CN → zh
+  zh_hant  → zh-Hant → zh_hant
+  vi       → vi → vi
+  ```
+
+- **修改文件清单：**
+  - `src/app/vocabulary/[category]/VocabularyCategoryContent.tsx` - 前端组件重构
+  - `src/app/api/vocabulary-words/route.ts` - 新建 API 路由
+  - `src/data/oxford-3000.ts` - 单词列表（TypeScript 常量）
+  - `src/data/ielts.ts` - 单词列表（TypeScript 常量）
+
 ## [30.0.1] - 2026-04-07
 
 ### Fix
