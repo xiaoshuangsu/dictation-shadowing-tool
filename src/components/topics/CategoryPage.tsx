@@ -63,11 +63,6 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
 
   // 🔴 新增：打开训练模式选择弹窗
   const handleOpenModal = (material: Material, e?: React.MouseEvent) => {
-    console.log('🔍 [DEBUG] handleOpenModal 被调用:', {
-      title: material.title,
-      hasEvent: !!e,
-      isModalOpen: isModalOpen
-    })
     if (e) {
       e.preventDefault()
       e.stopPropagation()

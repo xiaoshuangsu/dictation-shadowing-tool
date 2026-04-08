@@ -106,5 +106,6 @@ backups/
 
 # Log files and archive
 *.log
+monitoring_log.txt
 scripts/logs_archive/
 scripts/*.log

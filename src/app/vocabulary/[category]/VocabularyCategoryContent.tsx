@@ -560,14 +560,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     } else if (shouldFetchVocabularyWords) {
       // Oxford 3000 / IELTS 数据处理（支持无限滚动）
       if (vocabularyWordsData?.words) {
-        console.log('📥 [DEBUG] 收到 API 数据', {
-          wordsCount: vocabularyWordsData.words.length,
-          total: vocabularyWordsData.total,
-          currentPage,
-          offsetReturned: vocabularyWordsData.offset,
-          limitReturned: vocabularyWordsData.limit
-        })
-
         const mappedWords: WordEntry[] = vocabularyWordsData.words.map((w: any) => ({
           word: w.word,
           phonetic: w.phonetic || '',
@@ -587,11 +579,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
         // 追加新数据（无限滚动）
         if (currentPage === 0) {
-          console.log('📄 [DEBUG] 设置第一页数据，单词数:', mappedWords.length)
           setWords(mappedWords)
         } else {
-          console.log('📄 [DEBUG] 追加第', currentPage, '页数据，单词数:', mappedWords.length)
-
           // 🔧 前端去重防护：防止数据库重合词导致的 Key 重复报错
           setWords(prev => {
             const combined = [...prev, ...mappedWords]
@@ -600,7 +589,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
             return combined.filter(word => {
               // 使用 word 作为唯一标识（数据库中 word 字段是唯一的）
               if (seen.has(word.word)) {
-                console.log(`🔍 [去重] 跳过重复单词: ${word.word}`)
                 return false
               }
               seen.add(word.word)
@@ -613,21 +601,12 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         const loadedSoFar = (currentPage + 1) * PAGE_SIZE
         const newHasMore = loadedSoFar < newTotal
 
-        console.log('📊 [DEBUG] 计算 hasMore', {
-          currentPage,
-          PAGE_SIZE,
-          loadedSoFar,
-          newTotal,
-          newHasMore
-        })
-
         setTotalWords(newTotal)
         setHasMore(newHasMore)
         setLoading(false)
 
         // 🔧 数据加载完成后重置 isLoadingMore
         if (isLoadingMore) {
-          console.log('🔄 [DEBUG] 数据加载完成，重置 isLoadingMore')
           setIsLoadingMore(false)
         }
       } else if (vocabularyWordsError) {
@@ -649,20 +628,11 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
   const loadMore = useCallback(() => {
     const nextPage = currentPage + 1
-    console.log('🔄 [DEBUG] 触发加载下一页', {
-      nextPage,
-      hasMore,
-      loading,
-      isLoadingMore,
-      currentPage
-    })
 
     if (!hasMore || loading || isLoadingMore) {
-      console.log('⚠️  [DEBUG] 加载被阻止', { hasMore, loading, isLoadingMore })
       return
     }
 
-    console.log('✅ [DEBUG] 开始加载第', nextPage, '页')
     setIsLoadingMore(true)
     setCurrentPage(nextPage)
 
@@ -683,59 +653,38 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
    * 🔧 注意：使用 ref 存储 loadMore，避免依赖循环
    */
   const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
-    console.log('🔄 [Callback Ref] 触发', {
-      hasNode: !!node,
-      shouldFetchVocabularyWords,
-      hasMore,
-      loading,
-      isLoadingMore
-    })
-
     // 只对 Oxford 3000 / IELTS 启用无限滚动
     if (!shouldFetchVocabularyWords) {
-      console.log('⏭️  [Callback Ref] 跳过（非词库分类）')
       return
     }
 
     // 清理旧的 observer
     if (observerRef.current) {
-      console.log('🧹 [Callback Ref] 清理旧 observer')
       observerRef.current.disconnect()
       observerRef.current = null
     }
 
     // node 为 null 时（卸载），直接返回
     if (!node) {
-      console.log('⏭️  [Callback Ref] node 为 null，跳过')
       return
     }
 
     // hasMore = false 时，不创建 observer
     if (!hasMore) {
-      console.log('⏭️  [Callback Ref] hasMore = false，不创建 observer')
       return
     }
 
     // 正在加载时，不创建 observer（避免重复触发）
     if (loading || isLoadingMore) {
-      console.log('⏭️  [Callback Ref] 正在加载，不创建 observer')
       return
     }
 
     // 创建并绑定 observer
-    console.log('✅ [Callback Ref] 创建 IntersectionObserver')
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0]
-        console.log('👀 [Callback Ref] Observer 触发', {
-          isIntersecting: entry.isIntersecting,
-          hasMore,
-          loading,
-          isLoadingMore
-        })
 
         if (entry.isIntersecting && hasMore && !loading && !isLoadingMore) {
-          console.log('🚀 [Callback Ref] 检测到触底，触发 loadMore')
           // 使用 ref 获取最新的 loadMore 函数
           loadMoreRefFn.current?.()
         }
@@ -745,7 +694,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
     observer.observe(node)
     observerRef.current = observer
-    console.log('🎯 [Callback Ref] observer 绑定完成')
   }, [shouldFetchVocabularyWords, hasMore, loading, isLoadingMore])
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -756,11 +704,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     const updateLanguage = () => {
       const lang = getStoredLanguage()
       const finalLang = lang === 'hide' ? 'zh' : lang
-      console.log('[VocabularyCategory] 🔄 语言更新:', {
-        stored: lang,
-        final: finalLang,
-        timestamp: new Date().toISOString()
-      })
       setCurrentLanguage(finalLang)
     }
 
@@ -768,7 +711,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     updateLanguage()
 
     const handleStorageChange = (e: StorageEvent) => {
-      console.log('[VocabularyCategory] 📦 storage 事件:', e.key, e.newValue)
       if (e.key === 'translation-language-preference') {
         updateLanguage()
       }
@@ -776,7 +718,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
     const handleLanguageChange = (e: Event) => {
       const customEvent = e as CustomEvent
-      console.log('[VocabularyCategory] 📡 收到语言变化事件:', customEvent.detail)
       updateLanguage()
     }
 

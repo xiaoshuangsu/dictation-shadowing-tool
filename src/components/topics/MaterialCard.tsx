@@ -188,15 +188,6 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
                   transition: 'opacity 0.3s ease-in'
                 }}
                 onLoad={() => {
-                  // 🔴 调试：打印第一张图片的URL
-                  if (isFirstImage) {
-                    console.log('🔍 [DEBUG] 第一张图片加载成功:', {
-                      title: material.title,
-                      url: thumbnailUrl,
-                      isProxy: thumbnailUrl?.includes('/api/proxy-media'),
-                      isHttps: thumbnailUrl?.startsWith('https://')
-                    })
-                  }
                   setImageLoaded(true)
                 }}
               />
