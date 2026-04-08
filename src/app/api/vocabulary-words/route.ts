@@ -1,36 +1,20 @@
 /**
- * Vocabulary Words API - 获取词汇库单词（Oxford 3000, IELTS 等）
+ * Vocabulary Words API - 从数据库动态查询词汇（V4）
  *
  * 支持的操作：
- * - GET: 根据分类获取单词列表
+ * - GET: 根据 category 参数从数据库查询单词列表
  *
- * V2 - 紧急修复版本：
- * - 使用 TypeScript 常量代替 JSON 文件（消除 fs 路径风险）
- * - 分批查询 Supabase（每批 50 个单词）
- * - 暴露底层错误信息（便于调试）
+ * V4 - 数据库动态查询版本
+ * - 根据传入的 category 参数查询数据库
+ * - 支持 oxford-3000 和 ielts 分类
+ * - 使用分页和并行查询优化
  */
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-import { OXFORD_3000_WORDS } from '@/data/oxford-3000'
-import { IELTS_WORDS } from '@/data/ielts'
 
 // 强制声明动态渲染
 export const dynamic = 'force-dynamic'
-
-/**
- * 获取单词列表
- */
-function getWordList(category: string): string[] {
-  switch (category) {
-    case 'oxford-3000':
-      return OXFORD_3000_WORDS
-    case 'ielts':
-      return IELTS_WORDS
-    default:
-      return []
-  }
-}
 
 /**
  * 获取 Supabase 客户端
@@ -73,7 +57,7 @@ async function fetchWordsInChunks(
     try {
       const { data, error } = await supabase
         .from('dictionary_cache')
-        .select('word, phonetic, definitions, example, audio_r2_url, audio_url_us, audio_url_uk, translations')
+        .select('word, phonetic, definitions, translations, example, audio_r2_url, audio_url_us, audio_url_uk')
         .in('word', chunk)
         .order('word', { ascending: true })
 
@@ -104,6 +88,8 @@ async function fetchWordsInChunks(
  * - category: 分类名称（oxford-3000, ielts）
  * - limit: 返回数量限制（默认 100）
  * - offset: 分页偏移量
+ *
+ * V4 - 数据库动态查询版本
  */
 export async function GET(request: Request) {
   try {
@@ -112,12 +98,17 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '100')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    console.log('[API] 🚀 Fetching vocabulary words:', { category, limit, offset })
+    console.log('[API] 🚀 Fetching vocabulary words from database:', { category, limit, offset })
 
-    // 第一步：获取单词列表
-    const wordList = getWordList(category)
+    // 第一步：验证 category 参数
+    const categoryMap: Record<string, string> = {
+      'oxford-3000': 'oxford',
+      'ielts': 'ielts'
+    }
 
-    if (wordList.length === 0) {
+    const dbCategory = categoryMap[category]
+
+    if (!dbCategory) {
       return NextResponse.json(
         {
           error: 'Invalid category',
@@ -128,13 +119,7 @@ export async function GET(request: Request) {
       )
     }
 
-    console.log(`[API] ✅ Total words in list: ${wordList.length}`)
-
-    // 第二步：分页切片
-    const paginatedWords = wordList.slice(offset, offset + limit)
-    console.log(`[API] 📄 Page slice: ${paginatedWords.length} words (offset ${offset})`)
-
-    // 第三步：初始化 Supabase 客户端
+    // 第二步：查询数据库获取单词总数
     let supabase: any
     try {
       supabase = getSupabaseClient()
@@ -150,34 +135,58 @@ export async function GET(request: Request) {
       )
     }
 
-    // 第四步：分批查询数据库
-    let words: any[]
-    try {
-      words = await fetchWordsInChunks(supabase, paginatedWords, 20)
-      console.log(`[API] ✅ Fetched ${words.length} words from database`)
-    } catch (err) {
-      return NextResponse.json(
-        {
-          error: 'Database query failed',
-          message: (err as Error).message,
-          words_requested: paginatedWords.length,
-          hint: 'Check Supabase connection and dictionary_cache table'
-        },
-        { status: 500 }
-      )
+    // 查询总数 - 使用 IN 查询（性能优于 LIKE）
+    const { count: totalCount, error: countError } = await supabase
+      .from('dictionary_cache')
+      .select('word', { count: 'exact', head: true })
+      .in('category', [dbCategory, `${dbCategory},ielts`, `ielts,${dbCategory}`])
+
+    if (countError) {
+      console.error('[API] ❌ 查询总数失败:', countError)
+      throw countError
     }
 
-    // 第五步：格式化数据
+    const totalWords = totalCount || 0
+    console.log(`[API] ✅ Total words in database (category IN [${dbCategory}]): ${totalWords}`)
+
+    // 检查 offset 是否超出范围
+    if (offset >= totalWords) {
+      console.log(`[API] ⚠️  Offset ${offset} exceeds total words ${totalWords}, returning empty list`)
+      return NextResponse.json({
+        success: true,
+        words: [],
+        total: totalWords,
+        limit,
+        offset
+      })
+    }
+
+    // 第三步：查询分页数据 - 使用 IN 查询（性能优于 LIKE）
+    const { data: wordsData, error: wordsError } = await supabase
+      .from('dictionary_cache')
+      .select('word, phonetic, definitions, translations, example, audio_r2_url, audio_url_us, audio_url_uk')
+      .in('category', [dbCategory, `${dbCategory},ielts`, `ielts,${dbCategory}`])
+      .order('word', { ascending: true })
+      .range(offset, offset + limit)
+
+    if (wordsError) {
+      console.error('[API] ❌ 查询单词失败:', wordsError)
+      throw wordsError
+    }
+
+    const words = wordsData || []
+    console.log(`[API] ✅ Fetched ${words.length} words from database (offset ${offset}, limit ${limit})`)
+
+    // 第四步：格式化数据
     const formattedWords = words.map((w: any) => ({
       word: w.word,
       phonetic: w.phonetic || '',
       definition: w.definitions ? JSON.stringify(w.definitions) : '{}',
+      translations: w.translations ? JSON.stringify(w.translations) : '{}',
       example: w.example || '',
       audio_url: w.audio_r2_url || w.audio_url_us || '',
       audio_url_us: w.audio_url_us || '',
       audio_url_uk: w.audio_url_uk || '',
-      // 新增：返回 translations 字段（19 国语言）
-      translations: w.translations ? JSON.stringify(w.translations) : '{}',
       // 无素材关联
       context_sentence: null,
       material_id: null,
@@ -195,7 +204,7 @@ export async function GET(request: Request) {
 
     console.log('[API] ✅ Returning response:', {
       returned: formattedWords.length,
-      total: wordList.length,
+      total: totalWords,
       limit,
       offset
     })
@@ -203,7 +212,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       words: formattedWords,
-      total: wordList.length,
+      total: totalWords,
       limit,
       offset
     })

@@ -25,7 +25,7 @@ import { WordCardErrorBoundary } from '@/components/WordCardErrorBoundary'
 // 数据获取配置
 // ══════════════════════════════════════════════════════════════════════════════
 
-const PAGE_SIZE = 15 // 3×5 网格，每页 15 个单词
+const PAGE_SIZE = 30 // 每页 30 个单词（增加页面大小，减少滚动请求）
 
 // fetcher 函数 - 用于 user-words API（需要认证）
 const fetcherWithAuth = async (url: string, userId: string) => {
@@ -474,6 +474,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   const [currentPage, setCurrentPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [totalWords, setTotalWords] = useState(0)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
 
   // 闪卡状态
   const [flashcardWord, setFlashcardWord] = useState<WordEntry | null>(null)
@@ -507,6 +508,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   const vocabularyApiUrl = shouldFetchVocabularyWords
     ? `/api/vocabulary-words?category=${category}&limit=${PAGE_SIZE}&offset=${currentPage * PAGE_SIZE}`
     : null
+
   const { data: vocabularyWordsData, error: vocabularyWordsError } = useSWR(
     vocabularyApiUrl,
     fetcherPublic,
@@ -558,6 +560,14 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     } else if (shouldFetchVocabularyWords) {
       // Oxford 3000 / IELTS 数据处理（支持无限滚动）
       if (vocabularyWordsData?.words) {
+        console.log('📥 [DEBUG] 收到 API 数据', {
+          wordsCount: vocabularyWordsData.words.length,
+          total: vocabularyWordsData.total,
+          currentPage,
+          offsetReturned: vocabularyWordsData.offset,
+          limitReturned: vocabularyWordsData.limit
+        })
+
         const mappedWords: WordEntry[] = vocabularyWordsData.words.map((w: any) => ({
           word: w.word,
           phonetic: w.phonetic || '',
@@ -577,13 +587,27 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
         // 追加新数据（无限滚动）
         if (currentPage === 0) {
+          console.log('📄 [DEBUG] 设置第一页数据，单词数:', mappedWords.length)
           setWords(mappedWords)
         } else {
+          console.log('📄 [DEBUG] 追加第', currentPage, '页数据，单词数:', mappedWords.length)
           setWords(prev => [...prev, ...mappedWords])
         }
 
-        setTotalWords(vocabularyWordsData.total || 0)
-        setHasMore((currentPage + 1) * PAGE_SIZE < (vocabularyWordsData.total || 0))
+        const newTotal = vocabularyWordsData.total || 0
+        const loadedSoFar = (currentPage + 1) * PAGE_SIZE
+        const newHasMore = loadedSoFar < newTotal
+
+        console.log('📊 [DEBUG] 计算 hasMore', {
+          currentPage,
+          PAGE_SIZE,
+          loadedSoFar,
+          newTotal,
+          newHasMore
+        })
+
+        setTotalWords(newTotal)
+        setHasMore(newHasMore)
         setLoading(false)
       } else if (vocabularyWordsError) {
         console.error('Failed to load vocabulary words:', vocabularyWordsError)
@@ -595,51 +619,93 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
       setLoading(false)
     }
 
-    // 🔥 添加超时保护，防止 loading 状态卡住
-    const timeoutId = setTimeout(() => {
-      if (loading) {
-        console.warn('[VocabularyCategory] Loading 超时，强制重置')
-        setLoading(false)
-      }
-    }, 10000) // 10 秒超时
-
-    return () => clearTimeout(timeoutId)
-  }, [category, user, config, router, userWordsData, userWordsError, vocabularyWordsData, vocabularyWordsError, currentPage, shouldFetchVocabularyWords, loading])
+  }, [category, user, config, router, userWordsData, userWordsError, vocabularyWordsData, vocabularyWordsError, currentPage, shouldFetchVocabularyWords])
 
   // ══════════════════════════════════════════════════════════════════════════════
   // 无限滚动逻辑
   // ══════════════════════════════════════════════════════════════════════════════
 
   const loadMore = useCallback(() => {
-    if (!hasMore || loading) return
-    console.log('[Infinite Scroll] Loading more words... Page', currentPage + 1)
-    setCurrentPage(prev => prev + 1)
-  }, [hasMore, loading, currentPage])
+    const nextPage = currentPage + 1
+    console.log('🔄 [DEBUG] 触发加载下一页', {
+      nextPage,
+      hasMore,
+      loading,
+      isLoadingMore,
+      currentPage
+    })
+
+    if (!hasMore || loading || isLoadingMore) {
+      console.log('⚠️  [DEBUG] 加载被阻止', { hasMore, loading, isLoadingMore })
+      return
+    }
+
+    console.log('✅ [DEBUG] 开始加载第', nextPage, '页')
+    setIsLoadingMore(true)
+    setCurrentPage(nextPage)
+
+    // 数据加载完成后重置状态
+    setTimeout(() => {
+      console.log('🔄 [DEBUG] 重置 isLoadingMore 状态')
+      setIsLoadingMore(false)
+    }, 1000)
+  }, [hasMore, loading, isLoadingMore, currentPage])
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // 无限滚动 - 使用 useLayoutEffect 确保在 DOM 渲染后绑定 observer
+  // ══════════════════════════════════════════════════════════════════════════════
 
   useEffect(() => {
     // 只对 Oxford 3000 / IELTS 启用无限滚动
-    if (!shouldFetchVocabularyWords || !loadMoreRef.current) return
+    if (!shouldFetchVocabularyWords) return
 
-    // 🔥 性能优化：提前 300px 触发预加载，实现无缝滚动
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          console.log('[Infinite Scroll] Triggered! Loading next page...')
-          loadMore()
-        }
-      },
-      { rootMargin: '300px', threshold: 0.1 }
-    )
+    console.log('🔍 [DEBUG] useEffect 执行，检查 ref:', {
+      hasRef: !!loadMoreRef.current,
+      hasMore,
+      loading,
+      isLoadingMore,
+      wordsCount: words.length
+    })
 
-    observer.observe(loadMoreRef.current!)
-    observerRef.current = observer
+    // 使用 requestAnimationFrame 确保 DOM 完全渲染
+    const rafId = requestAnimationFrame(() => {
+      if (!loadMoreRef.current) {
+        console.log('❌ [DEBUG] RAF 后 ref 仍为 null')
+        return
+      }
+
+      console.log('✅ [DEBUG] RAF 后 ref 存在，创建 IntersectionObserver')
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0]
+          console.log('👀 [DEBUG] IntersectionObserver 触发', {
+            isIntersecting: entry.isIntersecting,
+            hasMore,
+            loading,
+            isLoadingMore
+          })
+
+          if (entry.isIntersecting && hasMore && !loading && !isLoadingMore) {
+            console.log('🚀 [DEBUG] 检测到触底，触发加载')
+            loadMore()
+          }
+        },
+        { rootMargin: '600px', threshold: 0.1 }
+      )
+
+      observer.observe(loadMoreRef.current)
+      observerRef.current = observer
+    })
 
     return () => {
+      cancelAnimationFrame(rafId)
       if (observerRef.current) {
         observerRef.current.disconnect()
+        observerRef.current = null
       }
     }
-  }, [shouldFetchVocabularyWords, hasMore, loading, loadMore])
+  }, [shouldFetchVocabularyWords, hasMore, loading, isLoadingMore, loadMore, words.length])
 
   // ══════════════════════════════════════════════════════════════════════════════
   // 语言监听
@@ -868,8 +934,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         {filteredWords.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredWords.map((word) => (
-                <WordCardErrorBoundary key={`${word.word}-${currentLanguage}`}>
+              {filteredWords.map((word, index) => (
+                <WordCardErrorBoundary key={`${word.word}-${index}`}>
                   <WordCard
                     word={word}
                     currentLanguage={currentLanguage}
@@ -881,12 +947,24 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
               ))}
             </div>
 
-            {/* 无限滚动触发器 */}
-            {shouldFetchVocabularyWords && hasMore && (
-              <div ref={loadMoreRef} className="py-8 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            )}
+            {/* 无限滚动触发器 - 始终渲染 ref，通过 display 控制可见性 */}
+            <div
+              ref={loadMoreRef}
+              style={{
+                display: shouldFetchVocabularyWords && hasMore ? 'flex' : 'none',
+                minHeight: '200px'
+              }}
+              className="py-12 items-center justify-center bg-blue-50 border-2 border-dashed border-blue-300"
+            >
+              {isLoadingMore || loading ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-blue-600"></div>
+                  <p className="text-sm text-gray-500">加载更多单词...</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">📌 向下滚动加载更多 (锚点可见)</p>
+              )}
+            </div>
 
             {/* 加载完成提示 */}
             {!hasMore && shouldFetchVocabularyWords && (
