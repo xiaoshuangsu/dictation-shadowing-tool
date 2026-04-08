@@ -480,9 +480,9 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   const [flashcardWord, setFlashcardWord] = useState<WordEntry | null>(null)
   const [showFlashcard, setShowFlashcard] = useState(false)
 
-  // Intersection Observer 引用
-  const loadMoreRef = useRef<HTMLDivElement>(null)
+  // Intersection Observer 引用 - 使用 Callback Ref 模式
   const observerRef = useRef<IntersectionObserver | null>(null)
+  const loadMoreRefFn = useRef<(() => void) | null>(null) // 存储 loadMore 的最新引用
 
   const config = CATEGORY_CONFIG[category]
 
@@ -591,7 +591,22 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
           setWords(mappedWords)
         } else {
           console.log('📄 [DEBUG] 追加第', currentPage, '页数据，单词数:', mappedWords.length)
-          setWords(prev => [...prev, ...mappedWords])
+
+          // 🔧 前端去重防护：防止数据库重合词导致的 Key 重复报错
+          setWords(prev => {
+            const combined = [...prev, ...mappedWords]
+            const seen = new Set<string>()
+
+            return combined.filter(word => {
+              // 使用 word 作为唯一标识（数据库中 word 字段是唯一的）
+              if (seen.has(word.word)) {
+                console.log(`🔍 [去重] 跳过重复单词: ${word.word}`)
+                return false
+              }
+              seen.add(word.word)
+              return true
+            })
+          })
         }
 
         const newTotal = vocabularyWordsData.total || 0
@@ -609,10 +624,17 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         setTotalWords(newTotal)
         setHasMore(newHasMore)
         setLoading(false)
+
+        // 🔧 数据加载完成后重置 isLoadingMore
+        if (isLoadingMore) {
+          console.log('🔄 [DEBUG] 数据加载完成，重置 isLoadingMore')
+          setIsLoadingMore(false)
+        }
       } else if (vocabularyWordsError) {
         console.error('Failed to load vocabulary words:', vocabularyWordsError)
         setWords([])
         setLoading(false)
+        setIsLoadingMore(false)
       }
     } else {
       setWords([])
@@ -644,68 +666,87 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     setIsLoadingMore(true)
     setCurrentPage(nextPage)
 
-    // 数据加载完成后重置状态
-    setTimeout(() => {
-      console.log('🔄 [DEBUG] 重置 isLoadingMore 状态')
-      setIsLoadingMore(false)
-    }, 1000)
+    // 数据加载完成后重置状态（由 SWR 数据返回触发）
   }, [hasMore, loading, isLoadingMore, currentPage])
 
+  // 🔧 始终保持 ref 指向最新的 loadMore 函数
+  loadMoreRefFn.current = loadMore
+
   // ══════════════════════════════════════════════════════════════════════════════
-  // 无限滚动 - 使用 useLayoutEffect 确保在 DOM 渲染后绑定 observer
+  // 无限滚动 - Callback Ref 模式（最稳妥）
   // ══════════════════════════════════════════════════════════════════════════════
 
-  useEffect(() => {
-    // 只对 Oxford 3000 / IELTS 启用无限滚动
-    if (!shouldFetchVocabularyWords) return
-
-    console.log('🔍 [DEBUG] useEffect 执行，检查 ref:', {
-      hasRef: !!loadMoreRef.current,
+  /**
+   * Callback Ref - 当 DOM 节点挂载/卸载时自动触发
+   * 这是 React 官方推荐的动态 observer 绑定方式
+   *
+   * 🔧 注意：使用 ref 存储 loadMore，避免依赖循环
+   */
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    console.log('🔄 [Callback Ref] 触发', {
+      hasNode: !!node,
+      shouldFetchVocabularyWords,
       hasMore,
       loading,
-      isLoadingMore,
-      wordsCount: words.length
+      isLoadingMore
     })
 
-    // 使用 requestAnimationFrame 确保 DOM 完全渲染
-    const rafId = requestAnimationFrame(() => {
-      if (!loadMoreRef.current) {
-        console.log('❌ [DEBUG] RAF 后 ref 仍为 null')
-        return
-      }
-
-      console.log('✅ [DEBUG] RAF 后 ref 存在，创建 IntersectionObserver')
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          const entry = entries[0]
-          console.log('👀 [DEBUG] IntersectionObserver 触发', {
-            isIntersecting: entry.isIntersecting,
-            hasMore,
-            loading,
-            isLoadingMore
-          })
-
-          if (entry.isIntersecting && hasMore && !loading && !isLoadingMore) {
-            console.log('🚀 [DEBUG] 检测到触底，触发加载')
-            loadMore()
-          }
-        },
-        { rootMargin: '600px', threshold: 0.1 }
-      )
-
-      observer.observe(loadMoreRef.current)
-      observerRef.current = observer
-    })
-
-    return () => {
-      cancelAnimationFrame(rafId)
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-        observerRef.current = null
-      }
+    // 只对 Oxford 3000 / IELTS 启用无限滚动
+    if (!shouldFetchVocabularyWords) {
+      console.log('⏭️  [Callback Ref] 跳过（非词库分类）')
+      return
     }
-  }, [shouldFetchVocabularyWords, hasMore, loading, isLoadingMore, loadMore, words.length])
+
+    // 清理旧的 observer
+    if (observerRef.current) {
+      console.log('🧹 [Callback Ref] 清理旧 observer')
+      observerRef.current.disconnect()
+      observerRef.current = null
+    }
+
+    // node 为 null 时（卸载），直接返回
+    if (!node) {
+      console.log('⏭️  [Callback Ref] node 为 null，跳过')
+      return
+    }
+
+    // hasMore = false 时，不创建 observer
+    if (!hasMore) {
+      console.log('⏭️  [Callback Ref] hasMore = false，不创建 observer')
+      return
+    }
+
+    // 正在加载时，不创建 observer（避免重复触发）
+    if (loading || isLoadingMore) {
+      console.log('⏭️  [Callback Ref] 正在加载，不创建 observer')
+      return
+    }
+
+    // 创建并绑定 observer
+    console.log('✅ [Callback Ref] 创建 IntersectionObserver')
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        console.log('👀 [Callback Ref] Observer 触发', {
+          isIntersecting: entry.isIntersecting,
+          hasMore,
+          loading,
+          isLoadingMore
+        })
+
+        if (entry.isIntersecting && hasMore && !loading && !isLoadingMore) {
+          console.log('🚀 [Callback Ref] 检测到触底，触发 loadMore')
+          // 使用 ref 获取最新的 loadMore 函数
+          loadMoreRefFn.current?.()
+        }
+      },
+      { rootMargin: '600px', threshold: 0.1 }
+    )
+
+    observer.observe(node)
+    observerRef.current = observer
+    console.log('🎯 [Callback Ref] observer 绑定完成')
+  }, [shouldFetchVocabularyWords, hasMore, loading, isLoadingMore])
 
   // ══════════════════════════════════════════════════════════════════════════════
   // 语言监听
@@ -947,25 +988,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
               ))}
             </div>
 
-            {/* 无限滚动触发器 - 始终渲染 ref，通过 display 控制可见性 */}
-            <div
-              ref={loadMoreRef}
-              style={{
-                display: shouldFetchVocabularyWords && hasMore ? 'flex' : 'none',
-                minHeight: '200px'
-              }}
-              className="py-12 items-center justify-center bg-blue-50 border-2 border-dashed border-blue-300"
-            >
-              {isLoadingMore || loading ? (
-                <div className="flex flex-col items-center gap-3">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-blue-600"></div>
-                  <p className="text-sm text-gray-500">加载更多单词...</p>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-400">📌 向下滚动加载更多 (锚点可见)</p>
-              )}
-            </div>
-
             {/* 加载完成提示 */}
             {!hasMore && shouldFetchVocabularyWords && (
               <div className="py-8 text-center text-gray-500">
@@ -978,6 +1000,27 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
             <p className="text-gray-500">
               {searchQuery ? 'No words found matching your search.' : 'No words in this collection yet.'}
             </p>
+          </div>
+        )}
+
+        {/* 无限滚动触发器 - 始终存在于 DOM 中（移出条件渲染） */}
+        {shouldFetchVocabularyWords && (
+          <div
+            ref={loadMoreRef}
+            style={{
+              minHeight: '200px',
+              display: hasMore ? 'flex' : 'none'
+            }}
+            className="py-12 items-center justify-center"
+          >
+            {isLoadingMore || loading ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-blue-600"></div>
+                <p className="text-sm text-gray-500">加载更多单词...</p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">📌 向下滚动加载更多 (锚点可见)</p>
+            )}
           </div>
         )}
       </div>

@@ -162,12 +162,13 @@ export async function GET(request: Request) {
     }
 
     // 第三步：查询分页数据 - 使用 IN 查询（性能优于 LIKE）
+    // 🔧 修复：Supabase .range() 包含两端，所以结束位置要减 1
     const { data: wordsData, error: wordsError } = await supabase
       .from('dictionary_cache')
       .select('word, phonetic, definitions, translations, example, audio_r2_url, audio_url_us, audio_url_uk')
       .in('category', [dbCategory, `${dbCategory},ielts`, `ielts,${dbCategory}`])
       .order('word', { ascending: true })
-      .range(offset, offset + limit)
+      .range(offset, offset + limit - 1) // 修复：offset + limit - 1 确保不重复
 
     if (wordsError) {
       console.error('[API] ❌ 查询单词失败:', wordsError)

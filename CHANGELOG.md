@@ -1,5 +1,62 @@
 # Changelog
 
+## [30.0.3] - 2026-04-08
+
+### Fix
+- **无限滚动触发器修复 (IntersectionObserver Callback Ref)** 🎯
+  - **问题描述**：修复了无限滚动功能失效的问题。原 `useRef + useEffect` 模式中，由于 `words.length` 依赖导致无限循环，且 `loadMoreRef.current` 在 DOM 渲染前为 null，导致 IntersectionObserver 无法正确挂载。
+
+  - **修复方案**：
+    - **Callback Ref 模式**：弃用 `useRef + useEffect`，改用 React 官方推荐的 `useCallback` 创建 callback ref，确保 DOM 节点挂载时自动触发 observer 初始化。
+    - **依赖循环消除**：使用 `loadMoreRefFn` ref 存储最新 `loadMore` 函数引用，避免 callback ref 依赖数组包含 `currentPage` 导致的无限重建。
+    - **锚点渲染优化**：将 `<div ref={loadMoreRef}>` 移出条件渲染，确保始终存在于 DOM 中。
+
+  - **修改文件**：
+    - `src/app/vocabulary/[category]/VocabularyCategoryContent.tsx` - 重构无限滚动逻辑
+
+- **分页偏移量重复修复 (Pagination Range Calculation)** 📄
+  - **问题描述**：修复了第一页加载 31 个单词、第二页重复显示第 31 个单词的问题。原因为 Supabase 的 `.range(offset, offset + limit)` 包含两端，导致第一页返回索引 0-30（31 个），第二页返回索引 30-60（31 个），索引 30 重复。
+
+  - **修复方案**：
+    - **API 层修正**：将 `.range(offset, offset + limit)` 改为 `.range(offset, offset + limit - 1)`，确保每页严格返回 `limit` 个单词。
+    - **前端去重防护**：在 `setWords` 更新状态时，使用 `Set` 基于 `word` 字段去重，防止数据库重合词导致的 Key 重复报错。
+
+  - **修改文件**：
+    - `src/app/api/vocabulary-words/route.ts` - 修正 range 计算
+    - `src/app/vocabulary/[category]/VocabularyCategoryContent.tsx` - 添加去重逻辑
+
+### Tech Details
+- **Callback Ref 实现原理**：
+  ```typescript
+  const loadMoreRef = useCallback((node: HTMLDivElement | null) => {
+    if (node && hasMore && !loading) {
+      const observer = new IntersectionObserver(...)
+      observer.observe(node)
+      observerRef.current = observer
+    }
+  }, [hasMore, loading, isLoadingMore])
+  ```
+
+- **分页计算验证**：
+  ```
+  第一页：range(0, 29) → 30 个单词（索引 0-29）
+  第二页：range(30, 59) → 30 个单词（索引 30-59）
+  第三页：range(60, 89) → 30 个单词（索引 60-89）
+  ```
+
+- **前端去重逻辑**：
+  ```typescript
+  setWords(prev => {
+    const combined = [...prev, ...mappedWords]
+    const seen = new Set<string>()
+    return combined.filter(word => {
+      if (seen.has(word.word)) return false
+      seen.add(word.word)
+      return true
+    })
+  })
+  ```
+
 ## [30.0.2] - 2026-04-08
 
 ### Feat
