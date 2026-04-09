@@ -1,5 +1,24 @@
 # Changelog
 
+## [30.0.4] - 2026-04-09
+
+### Fix
+- **复习弹窗单词索引错位修复 (ReviewOverlay Word Index Mismatch)** 🎯
+  - **问题描述**：修复了点击生词本中第 N 个单词时，弹窗显示的是第 N+startIndex 个单词的问题。原因是 VocabularyCategoryContent 传递的是已切片的数组（`filteredWords.slice(index)`），但 ReviewOverlay 将 `currentIndex` 初始化为 `startIndex`，导致显示 `words[startIndex]` 而不是 `words[0]`。
+
+  - **修复方案**：
+    - **强制初始化为 0**：将 ReviewOverlay 中的 `currentIndex` 初始化从 `startIndex` 改为 `0`，因为传入的 `words` 已经是切片后的数组，`words[0]` 就是用户点击的那个词。
+    - **进度公式保持正确**：进度显示使用 `startIndex + currentIndex + 1`，确保显示正确（如点击第 6 个词，进度显示 6/30）。
+    - **增强调试日志**：在组件挂载时打印 `words[0].word` 和 `words[0].id`，方便核对与用户点击的单词是否一致。
+    - **API 请求日志增强**：在发送 PATCH 请求前打印完整的 Request Body 和 Header，方便排查 400 错误。
+
+  - **修改文件**：
+    - `src/components/ReviewOverlay.tsx` - 修复索引初始化和增强调试日志
+
+  - **遗留问题**：API 400 错误排查中（点击 "Too Easy" 或 "Hard" 时频繁出现），新增的调试日志将帮助定位问题根源。
+
+---
+
 ## [30.0.3] - 2026-04-08
 
 ### Fix

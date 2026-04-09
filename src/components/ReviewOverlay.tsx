@@ -196,8 +196,8 @@ const getOriginalSentence = (transcript: any[] | null, timestamp: number | null)
 }
 
 export default function ReviewOverlay({ words, user, onClose, startIndex = 0, originalLength }: ReviewOverlayProps) {
-  // 🔥 V4.2: 使用 startIndex 初始化（支持从任意单词开始）
-  const [currentIndex, setCurrentIndex] = useState(startIndex)
+  // 🔥 V4.3: 强制初始化为 0（因为传入的 words 已经是切片后的数组，words[0] 就是用户点击的那个词）
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   // 🔥 V4.2: 计算原始列表长度（用于进度显示）
   const totalWords = originalLength ?? words.length
@@ -220,12 +220,17 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
   // 🔥 V4.3: 初始化队列 - 组件挂载时执行
   useEffect(() => {
     if (words.length > 0) {
-      console.log('[ReviewOverlay] 🎬 组件挂载，接收到的初始索引为:', startIndex)
-      console.log('[ReviewOverlay] 📝 原始列表长度:', totalWords)
+      // 🔍 核对 ID 一致性：打印 words[0].word，确认与用户点击的单词一致
+      console.log('[ReviewOverlay] 🎬 组件挂载')
+      console.log('[ReviewOverlay] 📝 接收到的 startIndex:', startIndex)
+      console.log('[ReviewOverlay] 📝 原始列表长度 (originalLength):', originalLength)
       console.log('[ReviewOverlay] 📝 当前队列长度:', words.length)
-      console.log('[ReviewOverlay] 📝 队列第一个单词:', words[0]?.word)
+      console.log('[ReviewOverlay] 🔍 队列第一个单词 (words[0].word):', words[0]?.word)
+      console.log('[ReviewOverlay] 🔍 队列第一个单词 (words[0].id):', words[0]?.id)
+      console.log('[ReviewOverlay] ⚠️  请核对：这个单词应该是用户点击的那个词')
+
       setDynamicQueue(words)
-      setCurrentIndex(startIndex)
+      setCurrentIndex(0)  // 🔥 V4.3: 强制初始化为 0
       setMasteredWordIds(new Set())
       setIsCompleted(false)
       setFlipped(false)
@@ -396,16 +401,25 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
     // 🔥 V4.1: 先提交数据到 API（无论选择什么，Reviewed 都会 +1）
     if (masteryStatus && user?.id) {
       try {
+        // 🔍 调试日志：打印完整的 Request Body 和 Header
+        const requestBody = {
+          wordId: currentWord.id,
+          masteryStatus: masteryStatus
+        }
+        console.log('[ReviewOverlay] 🔍 准备发送 PATCH 请求:')
+        console.log('  - URL:', '/api/user-words')
+        console.log('  - Header.Authorization:', `Bearer ${user.id.substring(0, 8)}...`)
+        console.log('  - Request Body:', JSON.stringify(requestBody, null, 2))
+        console.log('  - currentWord.id:', currentWord.id)
+        console.log('  - currentWord.word:', currentWord.word)
+
         const response = await fetch('/api/user-words', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${user.id}`
           },
-          body: JSON.stringify({
-            wordId: currentWord.id,
-            masteryStatus: masteryStatus
-          })
+          body: JSON.stringify(requestBody)
         })
 
         if (response.ok) {
@@ -430,10 +444,12 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
           console.log('[ReviewOverlay] 🔄 已触发全局统计数据刷新（所有页面）')
         } else {
           const errorData = await response.json()
-          console.error('[ReviewOverlay] ❌ 更新单词状态失败:', errorData)
+          console.error('[ReviewOverlay] ❌ 更新单词状态失败:')
+          console.error('  - HTTP Status:', response.status)
+          console.error('  - Error Response:', errorData)
         }
       } catch (error) {
-        console.error('[ReviewOverlay] 更新单词状态出错:', error)
+        console.error('[ReviewOverlay] ❌ 更新单词状态出错:', error)
       }
     }
 
