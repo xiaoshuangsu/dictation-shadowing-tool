@@ -1,5 +1,33 @@
 # Changelog
 
+## [30.1.0] - 2026-04-09
+
+### Fix
+- **彻底解决复习弹窗 Loading 假死及闪退问题** 🎯
+  - **问题描述**：修复了点击 "Start Reviewing" 按钮后 Loading 状态无法正确重置，以及弹窗闪现即逝的问题。原因为超时保护逻辑误伤，以及在异步链条中状态重置不及时。
+  - **修复方案**：
+    - **数据返回标志位**：使用 `dataReceived` 标志位跟踪数据是否成功返回，防止超时逻辑误伤。
+    - **立即清理计时器**：在 API 返回成功后立即清除超时定时器，防止延迟触发超时逻辑。
+    - **强制状态重置**：确保在所有异步路径（成功/失败/超时）中都执行 `setIsFetchingWords(false)`。
+    - **空数据保护**：ReviewOverlay 组件允许 `definition` 字段为 `null`，提供默认空对象防止崩溃。
+  - **修改文件**：
+    - `src/app/vocabulary/VocabularyHubContent.tsx` - 超时保护优化和状态重置
+    - `src/components/ReviewOverlay.tsx` - 空数据保护和字段容错
+
+### Refactor
+- **优化异步控制流，增加 8 秒全局超时保护** ⚡
+  - 移除多重超时定时器（3秒弹窗 + 5秒请求），统一为 8 秒全局超时保护。
+  - 使用 `setTimeout` 确保 state 更新后再打开弹窗，避免状态同步问题。
+  - 添加详细的调试日志，方便排查问题。
+
+### Data
+- **兼容 user_words 表的 Null 字段处理** 💾
+  - **数据库迁移**：`definition` 等字段已设为 Nullable（执行 `ALTER TABLE user_words ALTER COLUMN definition DROP NOT NULL`）。
+  - **容错处理**：ReviewOverlay 组件允许 `definition` 为 `null`，提供默认空对象防止组件崩溃。
+  - **"瘦身版"单词入库**：Mastery Mode 支持从任意词库练习时自动添加单词到 `user_words` 表，无需完整释义信息。
+
+---
+
 ## [30.0.5] - 2026-04-09
 
 ### Fix

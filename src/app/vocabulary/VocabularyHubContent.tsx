@@ -112,6 +112,10 @@ export function VocabularyHubContent() {
   const [localReviewedIncrement, setLocalReviewedIncrement] = useState(0)
   const [isRefreshing, setIsRefreshing] = useState(false)  // 加载状态
 
+  // 🔥 V3.1: 加载状态与错误提示
+  const [isFetchingWords, setIsFetchingWords] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
+
   // 🔥 使用 SWR 获取统计数据（自动缓存和重新验证）
   const { data: statsData, error: statsError, mutate: mutateStats } = useSWR(
     user ? ['/api/user-words/stats', user.id] : null,
@@ -162,6 +166,25 @@ export function VocabularyHubContent() {
     }
 
     console.log('[Hub] 👤 用户已登录，开始获取到期单词...')
+
+    // 🔥 V3.1: 重置状态
+    setIsFetchingWords(true)
+    setFetchError(null)
+
+    // 🔥 V3.1: 使用标志位跟踪数据是否成功返回
+    let dataReceived = false
+
+    // 🔥 V3.1: 8秒超时保护（只在数据确实没有返回时触发）
+    const timeoutId = setTimeout(() => {
+      if (!dataReceived && isFetchingWords) {
+        console.error('[Hub] ⏰ 请求超时（8秒）- 数据未返回')
+        setIsFetchingWords(false)
+        setShowReviewOverlay(false)
+        setFetchError('获取单词列表超时，请重试')
+        alert('⏰ 请求超时\n\n获取单词列表超过 8 秒，请稍后重试。\n\n如果问题持续存在，可能是网络连接或服务器问题。')
+      }
+    }, 8000)
+
     try {
       const response = await fetch('/api/user-words?status=learning&limit=100', {
         headers: { 'Authorization': `Bearer ${user.id}` }
@@ -173,6 +196,9 @@ export function VocabularyHubContent() {
         const data = await response.json()
         console.log('[Hub] 📊 获取到单词数量:', data.words?.length || 0)
 
+        // 🔥 V3.1: 立即标记数据已收到，防止超时逻辑误伤
+        dataReceived = true
+
         const now = new Date()
 
         // 过滤出今日到期的单词
@@ -182,19 +208,59 @@ export function VocabularyHubContent() {
         }) || []
 
         console.log('[Hub] ✅ 今日到期单词数量:', dueWords.length)
-        setDueWordsQueue(dueWords)
+        console.log('[Hub] 📝 单词列表预览:', dueWords.map((w: any) => ({
+          word: w.word,
+          hasPhonetic: !!w.phonetic,
+          hasDefinition: !!w.definition,
+          phonetic: w.phonetic,
+          definition: w.definition
+        })))
+
+        // 🔥 V3.1: 立即清除超时定时器
+        clearTimeout(timeoutId)
 
         if (dueWords.length > 0) {
           console.log('[Hub] 🎯 准备打开复习弹窗...')
+
+          // 🔥 V3.1: 先设置单词队列
+          setDueWordsQueue(dueWords)
+          console.log('[Hub] 🔄 已设置 dueWordsQueue, 长度:', dueWords.length)
+
+          // 🔥 V3.1: 立即关闭 Loading，不等待弹窗渲染
+          setIsFetchingWords(false)
+
+          // 🔥 V3.1: 立即打开弹窗（不需要 setTimeout）
+          console.log('[Hub] 🚀 打开弹窗')
           setShowReviewOverlay(true)
+
+          // 🔥 V3.1: 验证弹窗状态
+          setTimeout(() => {
+            console.log('[Hub] ✅ 弹窗状态验证:', {
+              showReviewOverlay,
+              dueWordsQueue: dueWordsQueue.length,
+              isFetchingWords
+            })
+          }, 50)
         } else {
           console.log('[Hub] ⚠️ 没有到期的单词')
+          setIsFetchingWords(false)
+          alert('✅ 所有单词都已复习完成！\n\n今日没有需要复习的单词。')
         }
       } else {
-        console.log('[Hub] ❌ API 请求失败:', response.status)
+        console.error('[Hub] ❌ API 请求失败:', response.status, response.statusText)
+        const errorText = await response.text()
+        console.error('[Hub] ❌ 错误详情:', errorText)
+        setIsFetchingWords(false)
+        clearTimeout(timeoutId)
+        setFetchError(`API 请求失败: ${response.status}`)
+        alert(`❌ 获取单词失败\n\n状态码: ${response.status}\n\n请稍后重试，如果问题持续，请联系技术支持。`)
       }
     } catch (error) {
       console.error('[Hub] 💥 获取到期单词失败:', error)
+      setIsFetchingWords(false)
+      clearTimeout(timeoutId)
+      setFetchError(`网络错误: ${(error as Error).message}`)
+      alert(`❌ 网络错误\n\n${(error as Error).message}\n\n请检查网络连接后重试。`)
     }
   }
 
@@ -354,10 +420,22 @@ export function VocabularyHubContent() {
                 {stats.dueWords > 0 && (
                   <button
                     onClick={handleStartReviewing}
-                    className="inline-flex items-center gap-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white px-7 py-3.5 rounded-xl text-base font-semibold hover:scale-105 hover:shadow-lg hover:shadow-orange-200 transition-all duration-200"
+                    disabled={isFetchingWords}
+                    className={`inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl text-base font-semibold transition-all duration-200 ${
+                      isFetchingWords
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-orange-500 to-red-500 text-white hover:scale-105 hover:shadow-lg hover:shadow-orange-200'
+                    }`}
                   >
                     <Star className="w-4 h-4" />
-                    Start Reviewing
+                    {isFetchingWords ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      'Start Reviewing'
+                    )}
                   </button>
                 )}
               </div>
@@ -521,20 +599,37 @@ export function VocabularyHubContent() {
       {showReviewOverlay && dueWordsQueue.length > 0 && user && (
         <ReviewOverlay
           key={`flashcard-hub-${dueWordsQueue[0]?.word || 'initial'}`}
-          words={dueWordsQueue.map((w: any) => ({
-            id: w.id || '',
-            word: w.word,
-            phonetic: w.phonetic || '',
-            definition: w.definition,
-            translations: w.translations,
-            context_sentence: w.context_sentence || w.dictionary_cache?.example || '',
-            audio_url_us: w.audio_url_us || w.dictionary_cache?.audio_url_us || '',
-            audio_url_uk: w.audio_url_uk || w.dictionary_cache?.audio_url_uk || '',
-            dictionary_cache: w.dictionary_cache,
-            material_info: w.material_info,
-            audio_timestamp: w.audio_timestamp,
-            material_title: w.material_title
-          }))}
+          words={dueWordsQueue.map((w: any) => {
+            // 🔥 V3.1: 容错处理 - 确保所有必需字段都有默认值
+            const wordData = {
+              id: w.id || '',
+              word: w.word || 'unknown',
+              phonetic: w.phonetic || '',
+              definition: w.definition || null, // 🔥 允许 null
+              translations: w.translations || null,
+              context_sentence: w.context_sentence || w.dictionary_cache?.example || '',
+              audio_url_us: w.audio_url_us || w.dictionary_cache?.audio_url_us || '',
+              audio_url_uk: w.audio_url_uk || w.dictionary_cache?.audio_url_uk || '',
+              dictionary_cache: w.dictionary_cache || null,
+              material_info: w.material_info || null,
+              audio_timestamp: w.audio_timestamp || null,
+              material_title: w.material_title || ''
+            }
+
+            // 🔍 调试：打印第一个单词的详细信息
+            if (w === dueWordsQueue[0]) {
+              console.log('[Hub] 📝 第一个单词数据:', {
+                word: wordData.word,
+                hasPhonetic: !!wordData.phonetic,
+                hasDefinition: !!wordData.definition,
+                phonetic: wordData.phonetic,
+                definition: wordData.definition,
+                hasTranslations: !!wordData.translations
+              })
+            }
+
+            return wordData
+          })}
           user={user}
           onClose={handleCloseReview}
           onReviewComplete={handleReviewComplete}

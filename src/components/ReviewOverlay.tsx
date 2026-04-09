@@ -268,19 +268,25 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
   const allWordsMastered = masteredWordIds.size === words.length
 
   // 🔥 V4.1: 空值检查 - 防止队列重置时 currentWord 为 undefined
-  if (!currentWord || !currentWord.definition) {
+  // 🔥 V3.1: 只检查 currentWord 是否存在，允许 definition 为 null
+  if (!currentWord) {
+    console.warn('[ReviewOverlay] ⚠️ currentWord 为空，显示 Loading')
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="text-white text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
           <p>Loading...</p>
+          <p className="text-sm mt-2 text-gray-300">
+            队列长度: {dynamicQueue.length} | 当前索引: {currentIndex}
+          </p>
         </div>
       </div>
     )
   }
 
   // 解析翻译（双层释义）
-  const definition = parseDefinition(currentWord.definition)
+  // 🔥 V3.1: 如果 definition 为 null，提供默认空对象
+  const definition = parseDefinition(currentWord.definition || '{}')
   const englishDefinition = getEnglishDefinition(currentWord.definition)
   const targetTranslation = getCurrentTranslation(
     currentWord.definition,
