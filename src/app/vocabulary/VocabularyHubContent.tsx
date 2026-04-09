@@ -21,6 +21,7 @@ import ReviewOverlay from '@/components/ReviewOverlay'
 interface TodayStats {
   dueWords: number
   reviewed: number
+  newWords?: number  // 🔥 V3.0: 今日新学单词数
   accuracy: number
   streak: number
   goalAchieved: boolean  // 🔥 是否达成每日目标
@@ -107,6 +108,10 @@ export function VocabularyHubContent() {
   const [showReviewOverlay, setShowReviewOverlay] = useState(false)
   const [dueWordsQueue, setDueWordsQueue] = useState<any[]>([])
 
+  // 🔥 V3.0: 乐观更新状态（本地实时计数）
+  const [localReviewedIncrement, setLocalReviewedIncrement] = useState(0)
+  const [isRefreshing, setIsRefreshing] = useState(false)  // 加载状态
+
   // 🔥 使用 SWR 获取统计数据（自动缓存和重新验证）
   const { data: statsData, error: statsError, mutate: mutateStats } = useSWR(
     user ? ['/api/user-words/stats', user.id] : null,
@@ -120,11 +125,20 @@ export function VocabularyHubContent() {
   )
 
   // 解析统计数据
-  const stats: TodayStats = statsData?.stats || {
+  const baseStats: TodayStats = statsData?.stats || {
     dueWords: 0,
     reviewed: 0,
+    newWords: 0,
     accuracy: 0,
-    streak: 0
+    streak: 0,
+    goalAchieved: false,
+    dailyGoal: 20
+  }
+
+  // 🔥 V3.0: 合并服务器数据和本地乐观更新
+  const stats: TodayStats = {
+    ...baseStats,
+    reviewed: baseStats.reviewed + localReviewedIncrement
   }
 
   // 加载用户数据
@@ -192,9 +206,48 @@ export function VocabularyHubContent() {
   const handleCloseReview = () => {
     setShowReviewOverlay(false)
     setDueWordsQueue([])
-    // 刷新统计数据
-    console.log('[Hub] 🔄 关闭弹窗，触发统计数据刷新')
-    mutateStats()
+    setIsRefreshing(true)  // 显示加载状态
+
+    // 🔥 V3.0: 终极修复 - 1500ms 延迟 + 强制忽略缓存
+    console.log('[Hub] 🔄 关闭弹窗，1500ms 后触发硬刷新...')
+
+    setTimeout(async () => {
+      console.log('[Hub] ⏱️ 硬刷新开始...')
+
+      try {
+        // 强制 SWR 重新从服务器拉取，完全忽略缓存
+        await mutateStats(
+          undefined,  // 不更新数据
+          {
+            revalidate: true,      // 强制重新验证
+            deduping: false,       // 允许重复请求
+            optimisticData: undefined  // 🔥 不使用乐观数据，强制拉取最新
+          }
+        )
+
+        console.log('[Hub] ✅ 统计已同步，重置本地计数器')
+
+        // 在统计数据确认刷新后，再重置本地计数器
+        setLocalReviewedIncrement(0)
+      } catch (error) {
+        console.error('[Hub] ❌ 刷新失败:', error)
+        // 即使失败也重置计数器
+        setLocalReviewedIncrement(0)
+      } finally {
+        setIsRefreshing(false)  // 隐藏加载状态
+      }
+    }, 1500)
+  }
+
+  // 🔥 V3.0: 乐观更新回调（彻底掌握模式：只有 familiar/mastered 才计数）
+  const handleReviewComplete = (masteryStatus: 'learning' | 'familiar' | 'mastered') => {
+    // 只有当单词状态变为 familiar 或 mastered 时，才计入进度
+    if (masteryStatus === 'familiar' || masteryStatus === 'mastered') {
+      console.log('[Hub] ✅ 单词已掌握，本地计数 +1', { masteryStatus })
+      setLocalReviewedIncrement(prev => prev + 1)
+    } else {
+      console.log('[Hub] 🔄 单词仍需练习，不计入进度', { masteryStatus })
+    }
   }
 
   // 认证加载中
@@ -239,8 +292,21 @@ export function VocabularyHubContent() {
     return list
   })
 
-  // 计算进度百分比
-  const progressPercent = stats.dueWords > 0 ? Math.round((stats.reviewed / stats.dueWords) * 100) : 0
+  // 计算进度百分比（基于每日目标，防止超过 100%）
+  // 🔥 V3.0: 使用每日目标作为分母，确保进度不会超过 100%
+  const progressPercent = Math.min(
+    100,
+    stats.dailyGoal > 0 ? Math.round((stats.reviewed / stats.dailyGoal) * 100) : 0
+  )
+
+  // 🔍 调试日志：打印进度计算详情
+  console.log('[Hub] 📊 进度计算:', {
+    reviewed: stats.reviewed,
+    dueWords: stats.dueWords,
+    dailyGoal: stats.dailyGoal,
+    progressPercent,
+    goalAchieved: stats.goalAchieved
+  })
 
   // 🔥 火焰状态：根据每日目标达成状态切换动画
   const isFireActive = stats.goalAchieved || false
@@ -310,19 +376,28 @@ export function VocabularyHubContent() {
                 {/* 进度条 */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-600">Progress</span>
-                    <span className="text-sm font-mono font-semibold text-gray-900">
-                      {stats.reviewed} / {stats.dueWords}
+                    <span className="text-sm font-medium text-gray-600">
+                      Progress
+                      {isRefreshing && (
+                        <span className="ml-2 text-xs text-blue-500 animate-pulse">Syncing...</span>
+                      )}
+                    </span>
+                    <span className={`text-sm font-mono font-semibold ${isRefreshing ? 'text-blue-600 animate-pulse' : 'text-gray-900'}`}>
+                      {stats.reviewed} / {stats.dailyGoal}
                     </span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-green-500 to-emerald-500 h-2.5 rounded-full transition-all duration-500 ease-out"
+                      className={`bg-gradient-to-r h-2.5 rounded-full transition-all duration-500 ease-out ${
+                        isRefreshing ? 'from-blue-500 to-cyan-500 animate-pulse' : 'from-green-500 to-emerald-500'
+                      }`}
                       style={{ width: `${progressPercent}%` }}
                     ></div>
                   </div>
                   <div className="mt-1.5 text-right">
-                    <span className="text-xs font-semibold text-green-600">{progressPercent}%</span>
+                    <span className={`text-xs font-semibold ${isRefreshing ? 'text-blue-600' : 'text-green-600'}`}>
+                      {progressPercent}%
+                    </span>
                   </div>
                 </div>
 
@@ -462,6 +537,7 @@ export function VocabularyHubContent() {
           }))}
           user={user}
           onClose={handleCloseReview}
+          onReviewComplete={handleReviewComplete}
         />
       )}
     </div>

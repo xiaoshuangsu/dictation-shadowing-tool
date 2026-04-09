@@ -58,6 +58,7 @@ interface ReviewOverlayProps {
   onClose: () => void
   startIndex?: number  // 🔥 V4.2: 起始索引（在原始列表中的位置）
   originalLength?: number  // 🔥 V4.2: 原始列表长度（用于进度显示）
+  onReviewComplete?: () => void  // 🔥 V3.0: 乐观更新回调（复习完成时触发）
 }
 
 // 翻译解析
@@ -195,7 +196,7 @@ const getOriginalSentence = (transcript: any[] | null, timestamp: number | null)
   return null
 }
 
-export default function ReviewOverlay({ words, user, onClose, startIndex = 0, originalLength }: ReviewOverlayProps) {
+export default function ReviewOverlay({ words, user, onClose, startIndex = 0, originalLength, onReviewComplete }: ReviewOverlayProps) {
   // 🔥 V4.3: 强制初始化为 0（因为传入的 words 已经是切片后的数组，words[0] 就是用户点击的那个词）
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -391,6 +392,12 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
     // 🔥 V4.1: 先提交数据到 API（无论选择什么，Reviewed 都会 +1）
     if (masteryStatus && user?.id) {
       try {
+        console.log('[ReviewOverlay] 🚀 准备发送 PATCH 请求:', {
+          wordId: currentWord.id,
+          word: currentWord.word,
+          masteryStatus
+        })
+
         const response = await fetch('/api/user-words', {
           method: 'PATCH',
           headers: {
@@ -399,27 +406,48 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
           },
           body: JSON.stringify({
             wordId: currentWord.id,
+            word: currentWord.word,
+            definition: currentWord.definition,
+            phonetic: currentWord.phonetic,
+            translations: currentWord.translations,
+            contextSentence: currentWord.context_sentence,
+            audioUrl: currentWord.audio_url_us || currentWord.audio_url_uk,
             masteryStatus: masteryStatus
           })
         })
 
+        console.log('[ReviewOverlay] 📡 API 响应状态:', response.status)
+
         if (response.ok) {
-          // 🔥 强制刷新所有统计数据缓存（全局同步）
+          const result = await response.json()
+          console.log('[ReviewOverlay] ✅ API 请求成功:', result)
+
+          // 🔥 V4.4: 精准触发首页统计刷新（使用 SWR 数组格式 key）
+          const statsKey = ['/api/user-words/stats', user.id]
+          console.log('[ReviewOverlay] 🔄 触发统计缓存刷新:', statsKey)
+
           mutate(
             (key) => {
-              if (typeof key === 'string') {
-                return key.startsWith('/api/user-words/stats')
-              }
-              if (Array.isArray(key) && key.length > 0) {
-                return key[0] === '/api/user-words/stats'
+              // 匹配数组格式的 key: ['/api/user-words/stats', userId]
+              if (Array.isArray(key) && key.length === 2) {
+                return key[0] === '/api/user-words/stats' && key[1] === user.id
               }
               return false
             },
             undefined,
             { revalidate: true }
           )
+
+          console.log('[ReviewOverlay] ✅ 统计缓存刷新指令已发送')
+
+          // 🔥 V3.0: 触发乐观更新（传递 masteryStatus）
+          if (onReviewComplete) {
+            console.log('[ReviewOverlay] ⚡ 触发乐观更新回调，状态:', masteryStatus)
+            onReviewComplete(masteryStatus)
+          }
         } else {
-          console.error('[ReviewOverlay] ❌ 更新单词状态失败:', response.status, await response.json())
+          const errorData = await response.json()
+          console.error('[ReviewOverlay] ❌ 更新单词状态失败:', response.status, errorData)
         }
       } catch (error) {
         console.error('[ReviewOverlay] ❌ 更新单词状态出错:', error)

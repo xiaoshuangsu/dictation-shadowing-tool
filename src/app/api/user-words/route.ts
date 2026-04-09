@@ -591,7 +591,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json()
-    const { wordId, masteryStatus } = body
+    const { wordId, masteryStatus, word, definition, phonetic, translations, contextSentence, audioUrl } = body
 
     // 🔴 从 Authorization header 获取 userId
     const authHeader = request.headers.get('authorization')
@@ -605,9 +605,17 @@ export async function PATCH(request: Request) {
     }
 
     // 验证必填字段
-    if (!wordId || !masteryStatus) {
+    // 🔥 V3.0 修复：wordId 可以为空，但 word 和 masteryStatus 必须存在
+    if (!masteryStatus) {
       return NextResponse.json(
-        { error: 'Missing required fields: wordId, masteryStatus' },
+        { error: 'Missing required field: masteryStatus' },
+        { status: 400 }
+      )
+    }
+
+    if (!word) {
+      return NextResponse.json(
+        { error: 'Missing required field: word' },
         { status: 400 }
       )
     }
@@ -620,68 +628,129 @@ export async function PATCH(request: Request) {
       )
     }
 
-    console.log('[API] Updating word mastery:', { userId, wordId, masteryStatus })
+    console.log('[API] Upserting word mastery:', { userId, wordId, masteryStatus, word })
 
     // 🔴 使用函数调用获取客户端
     const supabase = getSupabaseClient()
 
-    // 🔴 根据掌握状态设置复习级别和下次复习时间
-    let nextReviewAt = new Date()
-    let reviewLevel = 0
+    // 🔥 V3.0 修复：优先使用单词名称检查（支持从不同词库练习）
+    // 因为 Oxford/IELTS 的 ID 来自 vocabulary_words 表，不能直接用于 user_words 表
+    const { data: existingRecord, error: checkError } = await supabase
+      .from('user_words')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('word', word?.toLowerCase()?.trim())
+      .maybeSingle()
 
-    if (masteryStatus === 'mastered') {
-      // 已掌握：设置较高的复习级别，下次复习时间设为 7 天后
-      reviewLevel = 5
-      nextReviewAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 天后
-    } else if (masteryStatus === 'learning') {
-      // 学习中：重置复习级别，下次复习时间设为 1 小时后
-      reviewLevel = 0
-      nextReviewAt = new Date(Date.now() + 1 * 60 * 60 * 1000) // 1 小时后
-    } else if (masteryStatus === 'familiar') {
-      // 熟悉：设置中等复习级别，下次复习时间设为 1 天后
-      reviewLevel = 3
-      nextReviewAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) // 1 天后
+    let data, error
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 = 未找到记录，这是预期的
+      console.error('[API] Check error:', checkError)
+      return NextResponse.json(
+        { error: 'Failed to check word', details: checkError.message },
+        { status: 500 }
+      )
     }
 
-    const { data, error } = await supabase
-      .from('user_words')
-      .update({
-        mastery_status: masteryStatus,
-        review_level: reviewLevel,
-        next_review_at: nextReviewAt.toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', wordId)
-      .eq('user_id', userId)
-      .select()
-      .single()
+    if (existingRecord) {
+      // 🔥 记录存在，更新它
+      console.log('[API] 📝 记录已存在，更新...')
+
+      // 🔴 根据掌握状态设置复习级别和下次复习时间
+      let nextReviewAt = new Date()
+      let reviewLevel = 0
+
+      if (masteryStatus === 'mastered') {
+        reviewLevel = 5
+        nextReviewAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      } else if (masteryStatus === 'learning') {
+        reviewLevel = 0
+        nextReviewAt = new Date(Date.now() + 1 * 60 * 60 * 1000)
+      } else if (masteryStatus === 'familiar') {
+        reviewLevel = 3
+        nextReviewAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
+      }
+
+      const updateResult = await supabase
+        .from('user_words')
+        .update({
+          mastery_status: masteryStatus,
+          review_level: reviewLevel,
+          next_review_at: nextReviewAt.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', wordId)
+        .eq('user_id', userId)
+        .select()
+        .single()
+
+      data = updateResult.data
+      error = updateResult.error
+    } else {
+      // 🔥 记录不存在，创建新记录（"练即入库"）
+      console.log('[API] ➕ 记录不存在，创建新记录...')
+
+      // 如果没有提供单词信息，返回错误
+      if (!word) {
+        return NextResponse.json(
+          { error: 'Missing word for new record' },
+          { status: 400 }
+        )
+      }
+
+      // 设置初始复习时间（立即到期）
+      const nextReviewAt = new Date()
+
+      // 🔥 V3.0 简化插入逻辑：只保留确认存在的字段
+      const insertResult = await supabase
+        .from('user_words')
+        .insert({
+          user_id: userId,
+          word: word?.toLowerCase()?.trim(),
+          mastery_status: masteryStatus,
+          review_level: 0,
+          next_review_at: nextReviewAt.toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      data = insertResult.data
+      error = insertResult.error
+    }
 
     if (error) {
-      console.error('[API] Update error:', error)
+      console.error('[API] Upsert error:', error)
       return NextResponse.json(
-        { error: 'Failed to update word', details: error.message },
+        { error: 'Failed to upsert word', details: error.message },
         { status: 500 }
       )
     }
 
     if (!data) {
       return NextResponse.json(
-        { error: 'Word not found or unauthorized' },
-        { status: 404 }
+        { error: 'Failed to upsert word - no data returned' },
+        { status: 500 }
       )
     }
 
-    console.log('[API] ✅ Updated word mastery:', {
+    console.log('[API] ✅ Upserted word mastery:', {
       id: wordId,
+      word: data.word,
+      action: existingRecord ? 'updated' : 'created',
       status: masteryStatus,
-      reviewLevel,
-      nextReviewAt
+      updated_at: data.updated_at,
+      created_at: data.created_at,
+      updated_at_is_new: new Date(data.updated_at) > new Date(Date.now() - 10000)
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Word updated successfully',
-      word: data
+      message: existingRecord ? 'Word updated successfully' : 'Word added successfully',
+      word: data,
+      isNew: !existingRecord  // 🔥 标识是否为新创建的记录
     })
   } catch (error: any) {
     console.error('[API] Unexpected error:', error)

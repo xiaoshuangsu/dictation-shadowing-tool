@@ -2,9 +2,10 @@
  * User Words Stats API
  * 获取用户生词统计信息
  *
- * V2.0 - 真实统计数据
- * - Due Today: 统计 next_review_at <= now 的单词
- * - Reviewed: 统计今天已复习的单词（updated_at 在今天）
+ * V3.0 - 修正统计逻辑，区分新学与复习
+ * - Due Today: 统计 next_review_at <= now 的单词（仅 learning 状态）
+ * - Reviewed Today: 统计今天复习过的单词（updated_at 在今天且 created_at 在今天之前）
+ * - New Words Today: 统计今天新添加的单词（created_at 在今天）
  * - Accuracy: 根据掌握状态计算准确率
  * - Streak: 从 user_profiles 获取连胜天数
  */
@@ -46,18 +47,63 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-    // 1. Due Today: 统计 next_review_at <= now 的单词
+    // 1. Due Today: 统计 next_review_at <= now 的单词（仅 learning 状态）
+    // 🔥 V3.0 彻底掌握模式：删除日期过滤，只要是 learning 且到期就计入
     const dueWords = userWords?.filter((w: any) => {
+      // 必须是 learning 状态
       if (w.mastery_status !== 'learning') return false
+
+      // 检查是否到期（不管今天是否复习过）
       if (!w.next_review_at) return true
       return new Date(w.next_review_at) <= now
     }).length || 0
 
-    // 2. Reviewed: 统计今天已复习的单词（updated_at 在今天且 mastery_status 已更新）
-    const reviewed = userWords?.filter((w: any) => {
+    // 2. Reviewed Today: 统计今天复习过的单词
+    // 🔥 V3.0 修复：包含所有今天复习过的单词
+    // - 以前添加的单词，今天复习过
+    // - 今天添加后又复习的单词（updated_at > created_at）
+    const reviewedWords = userWords?.filter((w: any) => {
       const updatedAt = new Date(w.updated_at)
-      return updatedAt >= todayStart
+      const createdAt = new Date(w.created_at)
+
+      // 情况1：今天更新过，且不是今天创建的 → 复习过
+      if (updatedAt >= todayStart && createdAt < todayStart) {
+        return true
+      }
+
+      // 情况2：今天创建的，但更新时间晚于创建时间 → 创建后又复习过
+      if (createdAt >= todayStart && updatedAt > createdAt) {
+        return true
+      }
+
+      return false
+    }) || []
+
+    const reviewedToday = reviewedWords.length
+
+    // 🔍 调试日志：打印最近复习的单词
+    if (reviewedWords.length > 0) {
+      console.log('[Stats API] 🔍 今天复习的单词（最近5个）:', reviewedWords.slice(-5).map((w: any) => ({
+        word: w.word,
+        created_at: w.created_at,
+        updated_at: w.updated_at
+      })))
+    }
+
+    // 3. New Words Today: 统计今天新添加的单词
+    const newWordsToday = userWords?.filter((w: any) => {
+      const createdAt = new Date(w.created_at)
+      return createdAt >= todayStart
     }).length || 0
+
+    // 🔍 调试日志：打印统计详情
+    console.log('[Stats API] 📊 今日统计:', {
+      userId: userId.substring(0, 8) + '...',
+      dueWords,
+      reviewedToday,
+      newWordsToday,
+      totalWords: userWords?.length || 0
+    })
 
     // 3. Accuracy: 根据掌握状态计算准确率
     // mastered = 100% 正确, familiar = 50% 正确, learning = 0% 正确
@@ -80,13 +126,14 @@ export async function GET(request: NextRequest) {
 
     const streak = profile?.current_streak || 0
 
-    // 🔥 每日目标：20 个单词
+    // 🔥 每日目标：20 个单词（基于复习数，不含新学）
     const DAILY_GOAL = 20
-    const goalAchieved = reviewed >= DAILY_GOAL
+    const goalAchieved = reviewedToday >= DAILY_GOAL
 
     const stats = {
       dueWords,
-      reviewed,
+      reviewed: reviewedToday,      // 🔥 V3.0: 使用修正后的 reviewedToday
+      newWords: newWordsToday,      // 🔥 V3.0: 新增字段
       accuracy,
       streak,
       goalAchieved,
