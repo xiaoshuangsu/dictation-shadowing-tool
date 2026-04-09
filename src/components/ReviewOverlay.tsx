@@ -50,6 +50,7 @@ interface ReviewWord {
   }
   audio_timestamp?: number | null
   material_title?: string
+  next_review_at?: string | null  // 🔥 V3.3: 下次复习时间，用于判断复习模式
 }
 
 interface ReviewOverlayProps {
@@ -58,7 +59,8 @@ interface ReviewOverlayProps {
   onClose: () => void
   startIndex?: number  // 🔥 V4.2: 起始索引（在原始列表中的位置）
   originalLength?: number  // 🔥 V4.2: 原始列表长度（用于进度显示）
-  onReviewComplete?: () => void  // 🔥 V3.0: 乐观更新回调（复习完成时触发）
+  onReviewComplete?: (masteryStatus: 'learning' | 'familiar' | 'mastered', isOriginallyDue: boolean) => void  // 🔥 V3.3: 乐观更新回调（复习完成时触发，传递模式和原始状态）
+  initialDueWordsCount?: number  // 🔥 V3.3: 初始 Today's Review 数量（用于区分复习模式和主动练习）
 }
 
 // 翻译解析
@@ -104,7 +106,6 @@ const getCurrentTranslation = (
   if (translationsStr) {
     // 检查是否是简单的翻译字符串（非 JSON 对象）
     if (!translationsStr.startsWith('{') && translationsStr.trim().length > 0) {
-      console.log('[getCurrentTranslation] ✅ 使用 matched_translation:', translationsStr.substring(0, 30))
       return translationsStr
     }
 
@@ -140,12 +141,11 @@ const getCurrentTranslation = (
         const key = langMap[currentLanguage] || 'zh';
         const translation = parsedTranslations[key] || parsedTranslations['en'] || parsedTranslations['zh'];
         if (translation) {
-          console.log('[getCurrentTranslation] ✅ 使用 19 国语言翻译:', key, translation.substring(0, 30))
           return translation;
         }
       }
     } catch (e) {
-      console.warn('[getCurrentTranslation] 解析 translations 失败:', e);
+      // 静默处理解析错误，回退到 definitions 字段
     }
   }
 
@@ -204,7 +204,7 @@ const getOriginalSentence = (transcript: any[] | null, timestamp: number | null)
   return null
 }
 
-export default function ReviewOverlay({ words, user, onClose, startIndex = 0, originalLength, onReviewComplete }: ReviewOverlayProps) {
+export default function ReviewOverlay({ words, user, onClose, startIndex = 0, originalLength, onReviewComplete, initialDueWordsCount = 0 }: ReviewOverlayProps) {
   // 🔥 V4.3: 强制初始化为 0（因为传入的 words 已经是切片后的数组，words[0] 就是用户点击的那个词）
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -359,7 +359,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
   // 🔥 V4.1: 空值检查 - 防止队列重置时 currentWord 为 undefined
   // 🔥 V3.1: 只检查 currentWord 是否存在，允许 definition 为 null
   if (!currentWord) {
-    console.warn('[ReviewOverlay] ⚠️ currentWord 为空，显示 Loading')
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="text-white text-center">
@@ -469,7 +468,7 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
         await audio.play()
         return
       } catch (err) {
-        console.warn('[ReviewOverlay] R2 音频播放失败:', err)
+        // R2 音频播放失败，使用兜底方案
       }
     }
 
@@ -487,12 +486,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
     // 🔥 V4.1: 先提交数据到 API（无论选择什么，Reviewed 都会 +1）
     if (masteryStatus && user?.id) {
       try {
-        console.log('[ReviewOverlay] 🚀 准备发送 PATCH 请求:', {
-          wordId: currentWord.id,
-          word: currentWord.word,
-          masteryStatus
-        })
-
         const response = await fetch('/api/user-words', {
           method: 'PATCH',
           headers: {
@@ -511,16 +504,10 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
           })
         })
 
-        console.log('[ReviewOverlay] 📡 API 响应状态:', response.status)
-
         if (response.ok) {
-          const result = await response.json()
-          console.log('[ReviewOverlay] ✅ API 请求成功:', result)
+          await response.json()
 
           // 🔥 V4.4: 精准触发首页统计刷新（使用 SWR 数组格式 key）
-          const statsKey = ['/api/user-words/stats', user.id]
-          console.log('[ReviewOverlay] 🔄 触发统计缓存刷新:', statsKey)
-
           mutate(
             (key) => {
               // 匹配数组格式的 key: ['/api/user-words/stats', userId]
@@ -533,19 +520,19 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
             { revalidate: true }
           )
 
-          console.log('[ReviewOverlay] ✅ 统计缓存刷新指令已发送')
-
-          // 🔥 V3.0: 触发乐观更新（传递 masteryStatus）
+          // 🔥 V3.3: 判断并传递复习模式信息给父组件
           if (onReviewComplete) {
-            console.log('[ReviewOverlay] ⚡ 触发乐观更新回调，状态:', masteryStatus)
-            onReviewComplete(masteryStatus)
+            // 检查单词的 next_review_at 来判断是"消耗任务"还是"新增任务"
+            const wordNextReviewAt = currentWord.next_review_at
+            const now = new Date()
+            const isOriginallyDue = wordNextReviewAt && new Date(wordNextReviewAt) <= now
+
+            // 🔥 V3.3: 传递模式和原始状态给父组件，由父组件决定是否增加计数
+            onReviewComplete(masteryStatus, isOriginallyDue)
           }
-        } else {
-          const errorData = await response.json()
-          console.error('[ReviewOverlay] ❌ 更新单词状态失败:', response.status, errorData)
         }
       } catch (error) {
-        console.error('[ReviewOverlay] ❌ 更新单词状态出错:', error)
+        // 静默处理错误
       }
     }
 

@@ -116,6 +116,9 @@ export function VocabularyHubContent() {
   const [isFetchingWords, setIsFetchingWords] = useState(false)
   const [fetchError, setFetchError] = useState<string | null>(null)
 
+  // 🔥 V3.3: 记录初始 Today's Review 数量（用于区分复习模式和主动练习）
+  const [initialDueWordsCount, setInitialDueWordsCount] = useState(0)
+
   // 🔥 使用 SWR 获取统计数据（自动缓存和重新验证）
   const { data: statsData, error: statsError, mutate: mutateStats } = useSWR(
     user ? ['/api/user-words/stats', user.id] : null,
@@ -159,13 +162,9 @@ export function VocabularyHubContent() {
 
   // 获取今日到期的单词
   const fetchDueWords = async () => {
-    console.log('[Hub] 🚀 点击了 Start Reviewing 按钮')
     if (!user) {
-      console.log('[Hub] ❌ 用户未登录')
       return
     }
-
-    console.log('[Hub] 👤 用户已登录，开始获取到期单词...')
 
     // 🔥 V3.1: 重置状态
     setIsFetchingWords(true)
@@ -177,7 +176,6 @@ export function VocabularyHubContent() {
     // 🔥 V3.1: 8秒超时保护（只在数据确实没有返回时触发）
     const timeoutId = setTimeout(() => {
       if (!dataReceived && isFetchingWords) {
-        console.error('[Hub] ⏰ 请求超时（8秒）- 数据未返回')
         setIsFetchingWords(false)
         setShowReviewOverlay(false)
         setFetchError('获取单词列表超时，请重试')
@@ -190,11 +188,8 @@ export function VocabularyHubContent() {
         headers: { 'Authorization': `Bearer ${user.id}` }
       })
 
-      console.log('[Hub] 📡 API 响应状态:', response.status)
-
       if (response.ok) {
         const data = await response.json()
-        console.log('[Hub] 📊 获取到单词数量:', data.words?.length || 0)
 
         // 🔥 V3.1: 立即标记数据已收到，防止超时逻辑误伤
         dataReceived = true
@@ -207,56 +202,33 @@ export function VocabularyHubContent() {
           return new Date(w.next_review_at) <= now
         }) || []
 
-        console.log('[Hub] ✅ 今日到期单词数量:', dueWords.length)
-        console.log('[Hub] 📝 单词列表预览:', dueWords.map((w: any) => ({
-          word: w.word,
-          hasPhonetic: !!w.phonetic,
-          hasDefinition: !!w.definition,
-          phonetic: w.phonetic,
-          definition: w.definition
-        })))
-
         // 🔥 V3.1: 立即清除超时定时器
         clearTimeout(timeoutId)
 
         if (dueWords.length > 0) {
-          console.log('[Hub] 🎯 准备打开复习弹窗...')
-
           // 🔥 V3.1: 先设置单词队列
           setDueWordsQueue(dueWords)
-          console.log('[Hub] 🔄 已设置 dueWordsQueue, 长度:', dueWords.length)
+
+          // 🔥 V3.3: 记录初始 Today's Review 数量
+          setInitialDueWordsCount(stats.dueWords)
 
           // 🔥 V3.1: 立即关闭 Loading，不等待弹窗渲染
           setIsFetchingWords(false)
 
           // 🔥 V3.1: 立即打开弹窗（不需要 setTimeout）
-          console.log('[Hub] 🚀 打开弹窗')
           setShowReviewOverlay(true)
-
-          // 🔥 V3.1: 验证弹窗状态
-          setTimeout(() => {
-            console.log('[Hub] ✅ 弹窗状态验证:', {
-              showReviewOverlay,
-              dueWordsQueue: dueWordsQueue.length,
-              isFetchingWords
-            })
-          }, 50)
         } else {
-          console.log('[Hub] ⚠️ 没有到期的单词')
           setIsFetchingWords(false)
           alert('✅ 所有单词都已复习完成！\n\n今日没有需要复习的单词。')
         }
       } else {
-        console.error('[Hub] ❌ API 请求失败:', response.status, response.statusText)
         const errorText = await response.text()
-        console.error('[Hub] ❌ 错误详情:', errorText)
         setIsFetchingWords(false)
         clearTimeout(timeoutId)
         setFetchError(`API 请求失败: ${response.status}`)
         alert(`❌ 获取单词失败\n\n状态码: ${response.status}\n\n请稍后重试，如果问题持续，请联系技术支持。`)
       }
     } catch (error) {
-      console.error('[Hub] 💥 获取到期单词失败:', error)
       setIsFetchingWords(false)
       clearTimeout(timeoutId)
       setFetchError(`网络错误: ${(error as Error).message}`)
@@ -265,7 +237,6 @@ export function VocabularyHubContent() {
   }
 
   const handleStartReviewing = () => {
-    console.log('[Hub] 🖱️ handleStartReviewing 被调用')
     fetchDueWords()
   }
 
@@ -275,11 +246,8 @@ export function VocabularyHubContent() {
     setIsRefreshing(true)  // 显示加载状态
 
     // 🔥 V3.0: 终极修复 - 1500ms 延迟 + 强制忽略缓存
-    console.log('[Hub] 🔄 关闭弹窗，1500ms 后触发硬刷新...')
 
     setTimeout(async () => {
-      console.log('[Hub] ⏱️ 硬刷新开始...')
-
       try {
         // 强制 SWR 重新从服务器拉取，完全忽略缓存
         await mutateStats(
@@ -291,12 +259,9 @@ export function VocabularyHubContent() {
           }
         )
 
-        console.log('[Hub] ✅ 统计已同步，重置本地计数器')
-
         // 在统计数据确认刷新后，再重置本地计数器
         setLocalReviewedIncrement(0)
       } catch (error) {
-        console.error('[Hub] ❌ 刷新失败:', error)
         // 即使失败也重置计数器
         setLocalReviewedIncrement(0)
       } finally {
@@ -305,11 +270,14 @@ export function VocabularyHubContent() {
     }, 1500)
   }
 
-  // 🔥 V3.1: 乐观更新回调（彻底掌握模式：所有复习都计数）
-  const handleReviewComplete = (masteryStatus: 'learning' | 'familiar' | 'mastered') => {
-    // 🔥 V3.2: 无论点击哪个按钮，只要完成交互都计入进度
-    console.log('[Hub] ✅ 单词复习完成，本地计数 +1', { masteryStatus })
-    setLocalReviewedIncrement(prev => prev + 1)
+  // 🔥 V3.3: 乐观更新回调（区分复习模式和主动练习模式）
+  const handleReviewComplete = (masteryStatus: 'learning' | 'familiar' | 'mastered', isOriginallyDue: boolean) => {
+    // 🔥 V3.3: 只在"主动练习"模式下增加计数
+    // - 复习模式（isOriginallyDue = true）：消耗现有任务，计数不变
+    // - 主动练习（isOriginallyDue = false）：新增任务，计数 +1
+    if (!isOriginallyDue) {
+      setLocalReviewedIncrement(prev => prev + 1)
+    }
   }
 
   // 认证加载中
@@ -360,15 +328,6 @@ export function VocabularyHubContent() {
     100,
     stats.dailyGoal > 0 ? Math.round((stats.reviewed / stats.dailyGoal) * 100) : 0
   )
-
-  // 🔍 调试日志：打印进度计算详情
-  console.log('[Hub] 📊 进度计算:', {
-    reviewed: stats.reviewed,
-    dueWords: stats.dueWords,
-    dailyGoal: stats.dailyGoal,
-    progressPercent,
-    goalAchieved: stats.goalAchieved
-  })
 
   // 🔥 火焰状态：根据每日目标达成状态切换动画
   const isFireActive = stats.goalAchieved || false
@@ -595,6 +554,7 @@ export function VocabularyHubContent() {
       {showReviewOverlay && dueWordsQueue.length > 0 && user && (
         <ReviewOverlay
           key={`flashcard-hub-${dueWordsQueue[0]?.word || 'initial'}`}
+          initialDueWordsCount={initialDueWordsCount}
           words={dueWordsQueue.map((w: any) => {
             // 🔥 V3.1: 容错处理 - 确保所有必需字段都有默认值
             const wordData = {
@@ -609,19 +569,8 @@ export function VocabularyHubContent() {
               dictionary_cache: w.dictionary_cache || null,
               material_info: w.material_info || null,
               audio_timestamp: w.audio_timestamp || null,
-              material_title: w.material_title || ''
-            }
-
-            // 🔍 调试：打印第一个单词的详细信息
-            if (w === dueWordsQueue[0]) {
-              console.log('[Hub] 📝 第一个单词数据:', {
-                word: wordData.word,
-                hasPhonetic: !!wordData.phonetic,
-                hasDefinition: !!wordData.definition,
-                phonetic: wordData.phonetic,
-                definition: wordData.definition,
-                hasTranslations: !!wordData.translations
-              })
+              material_title: w.material_title || '',
+              next_review_at: w.next_review_at || null  // 🔥 V3.3: 传递 next_review_at，用于判断复习模式
             }
 
             return wordData

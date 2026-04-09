@@ -1,5 +1,32 @@
 # Changelog
 
+## [30.1.3] - 2026-04-10
+
+### Feature
+- **重构 SRS 统计逻辑，实现复习与主动练习模式的智能计数差异化** 📊
+  - **问题描述**：原统计逻辑对所有复习操作都计数，无法区分"复习任务"和"主动练习"。
+  - **实现方案**：
+    - **模式识别**：根据单词的 `next_review_at` 时间戳，自动区分复习模式（过去时间）和主动练习模式（新词或未来时间）。
+    - **差异化计数**：
+      - 复习模式：点击任何按钮，Today's Review 数字不变（消耗现有任务）。
+      - 主动练习模式：点击任何按钮（含 Still Learning），Today's Review +1（新增任务）。
+    - **实时更新**：复习后统计数据自动刷新，无需手动刷新页面。
+  - **效果**：统计数字更准确地反映用户的学习进度和任务完成情况。
+  - **修改文件**：
+    - `src/components/ReviewOverlay.tsx` - 添加模式识别逻辑
+    - `src/app/vocabulary/VocabularyHubContent.tsx` - 实现差异化计数
+
+### Optimization
+- **清理所有调试日志** 🧹
+  - 移除 `ReviewOverlay.tsx`、`VocabularyHubContent.tsx`、`VocabularyCategoryContent.tsx` 中的所有 `console.log` 和调试信息。
+  - 提升生产环境性能，减少控制台噪音。
+
+- **健壮性优化** 🛡️
+  - 在 `getCurrentTranslation` 函数中添加更严谨的 try-catch 处理，防止解析非 JSON 数据时报错。
+  - 增强音频播放错误处理，静默处理失败情况。
+
+---
+
 ## [30.1.2] - 2026-04-09
 
 ### Fix

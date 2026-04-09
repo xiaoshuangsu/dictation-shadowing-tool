@@ -201,7 +201,7 @@ function getCurrentTranslation(
         }
       }
     } catch (e) {
-      console.warn('[getCurrentTranslation] 解析 translations 失败，回退到 definitions:', e);
+      // 静默处理解析错误，回退到 definitions 字段
     }
   }
 
@@ -288,7 +288,6 @@ function WordCard({ word, index, currentLanguage, category, onPlayAudio, onClick
       word.translations || word.dictionary_cache?.translations
     )
   } catch (e) {
-    console.warn(`[WordCard] ${word.word} 翻译解析失败:`, e)
     englishDefinition = ''
     targetTranslation = ''
   }
@@ -558,7 +557,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         // 🔥 V3.2: 批量补全缺失释义
         fetchMissingDefinitions(mappedWords)
       } else if (userWordsError) {
-        console.error('Failed to load user words:', userWordsError)
         setWords([])
         setLoading(false)
       }
@@ -620,7 +618,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
           setIsLoadingMore(false)
         }
       } else if (vocabularyWordsError) {
-        console.error('Failed to load vocabulary words:', vocabularyWordsError)
         setWords([])
         setLoading(false)
         setIsLoadingMore(false)
@@ -641,12 +638,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     const wordsWithoutDefinition = wordsToCheck.filter(w => !w.definition || w.definition === '{}')
 
     if (wordsWithoutDefinition.length === 0) {
-      console.log('[VocabularyCategory] ✅ 所有单词都有释义，无需补全')
       return
     }
-
-    console.log('[VocabularyCategory] 🔄 发现', wordsWithoutDefinition.length, '个单词缺少释义，开始批量补全...')
-    console.log('[VocabularyCategory] 🌍 当前语言偏好:', currentLanguage)
 
     try {
       // 批量调用 API 获取释义
@@ -661,7 +654,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
       if (response.ok) {
         const data = await response.json()
-        console.log('[VocabularyCategory] ✅ 批量获取释义成功:', data.hitCount, '个命中,', data.missCount, '个未命中')
 
         // 更新单词列表
         setWords(prevWords => {
@@ -669,8 +661,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
             if (!word.definition || word.definition === '{}') {
               const cached = data.words[word.word.toLowerCase()]
               if (cached) {
-                console.log('[VocabularyCategory] ✅ 补全单词:', word.word, '| 匹配翻译:', cached.matched_translation || '无')
-
                 const translationToUse = cached.matched_translation || ''
 
                 return {
@@ -695,19 +685,15 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
             return word
           })
         })
-      } else {
-        console.error('[VocabularyCategory] ❌ 批量获取释义失败:', response.status)
       }
     } catch (error) {
-      console.error('[VocabularyCategory] 💥 批量获取释义出错:', error)
+      // 静默处理错误
     }
   }
 
   // 🔥 V3.2: 语言变化时，重新补全所有单词的翻译
   useEffect(() => {
     if (words.length > 0) {
-      console.log('[VocabularyCategory] 🌍 语言已切换至:', currentLanguage, '重新补全所有单词翻译...')
-
       // 重新补全所有单词（无论是否有释义）
       const response = fetch('/api/dictionary-batch', {
         method: 'POST',
@@ -720,8 +706,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
       response.then(res => res.json()).then(data => {
         if (data.success) {
-          console.log('[VocabularyCategory] ✅ 语言切换后补全成功:', data.hitCount, '个命中')
-
           // 更新所有单词的翻译
           setWords(prevWords => {
             return prevWords.map(word => {
@@ -746,7 +730,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
           })
         }
       }).catch(error => {
-        console.error('[VocabularyCategory] 💥 语言切换后补全失败:', error)
+        // 静默处理错误
       })
     }
   }, [currentLanguage]) // 🔥 只监听 currentLanguage 变化
@@ -888,9 +872,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         utterance.rate = 0.9
         utterance.pitch = 1.0
         window.speechSynthesis.speak(utterance)
-        console.log(`[TTS] Web Speech API 播放成功 (${word} ${accent.toUpperCase()})`)
       } catch (err) {
-        console.error(`[TTS] Web Speech API 播放失败 (${word} ${accent.toUpperCase()}):`, err)
         throw err
       }
     } else {
@@ -903,12 +885,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   // ══════════════════════════════════════════════════════════════════════════════
 
   const handleOpenFlashcard = (index: number) => {
-    console.log('[VocabularyCategoryContent] 🖱️ 点击单词卡片，接收到的索引:', index)
-
     // 🔥 V4.3: 从该位置开始的所有单词作为复习队列
     const reviewQueue = filteredWords.slice(index)
-    console.log('[VocabularyCategoryContent] 📝 复习队列长度:', reviewQueue.length)
-    console.log('[VocabularyCategoryContent] 📝 原始列表长度:', filteredWords.length)
 
     // 🔥 V4.3: 一次性更新配置对象（强制同步，直接使用参数）
     const newConfig = {
@@ -917,8 +895,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
       words: reviewQueue,
       originalLength: filteredWords.length
     }
-    console.log('[VocabularyCategoryContent] 🔄 一次性更新配置:', newConfig)
-    console.log('[VocabularyCategoryContent] ✅ startIndex 参数值:', index)
     setReviewConfig(newConfig)
   }
 
