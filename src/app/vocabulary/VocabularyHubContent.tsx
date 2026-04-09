@@ -1,10 +1,11 @@
 /**
  * Vocabulary Hub Content - 学习中心看板内容
  *
- * V1.5 - 使用 SWR 获取真实统计数据
+ * V1.6 - Streak 目标与火焰动画
  * - 左侧 60%：行动焦点
  * - 右侧 40%：数据反馈
  * - 数据自动刷新：复习后统计数据自动更新
+ * - 🔥 火焰动画：达成每日目标（20个单词）后触发
  */
 
 'use client'
@@ -21,6 +22,8 @@ interface TodayStats {
   reviewed: number
   accuracy: number
   streak: number
+  goalAchieved: boolean  // 🔥 是否达成每日目标
+  dailyGoal: number     // 每日目标（20个单词）
 }
 
 // Mock 数据：词库列表
@@ -178,6 +181,9 @@ export function VocabularyHubContent() {
   // 计算进度百分比
   const progressPercent = stats.dueWords > 0 ? Math.round((stats.reviewed / stats.dueWords) * 100) : 0
 
+  // 🔥 火焰状态：根据每日目标达成状态切换动画
+  const isFireActive = stats.goalAchieved || false
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -290,11 +296,30 @@ export function VocabularyHubContent() {
 
                   {/* Streak */}
                   <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Flame className="w-4 h-4 text-orange-400 flex-shrink-0" />
-                      <span className="text-xs text-gray-500">Streak</span>
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Flame
+                          className={`w-4 h-4 flex-shrink-0 transition-all duration-300 ${
+                            isFireActive
+                              ? 'text-orange-500 animate-fire-pulse'
+                              : 'text-gray-400'
+                          }`}
+                        />
+                        <span className="text-xs text-gray-500">Streak</span>
+                      </div>
+                      {/* 🔥 每日目标提示 */}
+                      {isFireActive && (
+                        <span className="text-[10px] font-bold text-orange-600 animate-pulse">
+                          🔥
+                        </span>
+                      )}
                     </div>
-                    <div className="text-xl font-bold text-gray-900">{stats.streak}</div>
+                    <div className="flex items-baseline justify-between">
+                      <div className="text-xl font-bold text-gray-900">{stats.streak}</div>
+                      <div className="text-[10px] text-gray-400">
+                        / {stats.dailyGoal}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

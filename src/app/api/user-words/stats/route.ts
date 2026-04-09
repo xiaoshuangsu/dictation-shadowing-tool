@@ -80,11 +80,17 @@ export async function GET(request: NextRequest) {
 
     const streak = profile?.current_streak || 0
 
+    // 🔥 每日目标：20 个单词
+    const DAILY_GOAL = 20
+    const goalAchieved = reviewed >= DAILY_GOAL
+
     const stats = {
       dueWords,
       reviewed,
       accuracy,
-      streak
+      streak,
+      goalAchieved,
+      dailyGoal: DAILY_GOAL
     }
 
     return NextResponse.json({
