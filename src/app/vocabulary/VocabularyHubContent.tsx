@@ -445,6 +445,7 @@ export function VocabularyHubContent() {
       {/* 🔥 连续复习弹窗 - 首页直接复习 */}
       {showReviewOverlay && dueWordsQueue.length > 0 && user && (
         <ReviewOverlay
+          key={`flashcard-hub-${dueWordsQueue[0]?.word || 'initial'}`}
           words={dueWordsQueue.map((w: any) => ({
             id: w.id || '',
             word: w.word,

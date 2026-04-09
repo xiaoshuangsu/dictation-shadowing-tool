@@ -263,13 +263,14 @@ function isR2AudioUrl(url?: string | null): boolean {
 
 interface WordCardProps {
   word: WordEntry
+  index: number  // 🔥 V4.3: 添加索引参数
   currentLanguage: string
   category: string
   onPlayAudio: (word: WordEntry, accent: 'us' | 'uk') => void
-  onClick: (word: WordEntry) => void
+  onClick: (index: number) => void  // 🔥 修改为接收索引
 }
 
-function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: WordCardProps) {
+function WordCard({ word, index, currentLanguage, category, onPlayAudio, onClick }: WordCardProps) {
   // 🔧 空值检查
   if (!word) {
     return null
@@ -331,7 +332,7 @@ function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: Wor
   return (
     <div
       className="p-4 border border-gray-200 bg-white hover:shadow-md transition-all hover:border-blue-300 cursor-pointer"
-      onClick={() => onClick(word)}
+      onClick={() => onClick(index)}  // 🔥 传递索引而不是 word 对象
     >
       {/* 顶部：单词 + 音标 + 双发音按钮 */}
       <div className="flex items-start justify-between mb-3">
@@ -472,6 +473,13 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   // 闪卡状态 - V4.0 连续复习模式
   const [flashcardQueue, setFlashcardQueue] = useState<WordEntry[]>([])
   const [showFlashcard, setShowFlashcard] = useState(false)
+
+  // 🔥 V4.3: 统一复习配置对象（强制同步状态）
+  const [reviewConfig, setReviewConfig] = useState({
+    isOpen: false,
+    startIndex: 0,
+    words: [] as WordEntry[]
+  })
 
   // Intersection Observer 引用 - 使用 Callback Ref 模式
   const observerRef = useRef<IntersectionObserver | null>(null)
@@ -768,18 +776,33 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   // 闪卡处理
   // ══════════════════════════════════════════════════════════════════════════════
 
-  const handleOpenFlashcard = (word: WordEntry) => {
-    // 找到被点击单词的索引
-    const wordIndex = filteredWords.findIndex(w => w.id === word.id)
-    // 从该位置开始的所有单词作为复习队列
-    const reviewQueue = filteredWords.slice(wordIndex)
-    setFlashcardQueue(reviewQueue)
-    setShowFlashcard(true)
+  const handleOpenFlashcard = (index: number) => {
+    console.log('[VocabularyCategoryContent] 🖱️ 点击单词卡片，接收到的索引:', index)
+
+    // 🔥 V4.3: 从该位置开始的所有单词作为复习队列
+    const reviewQueue = filteredWords.slice(index)
+    console.log('[VocabularyCategoryContent] 📝 复习队列长度:', reviewQueue.length)
+    console.log('[VocabularyCategoryContent] 📝 原始列表长度:', filteredWords.length)
+
+    // 🔥 V4.3: 一次性更新配置对象（强制同步，直接使用参数）
+    const newConfig = {
+      isOpen: true,
+      startIndex: index,  // 🔥 直接使用函数参数，不依赖任何外部状态
+      words: reviewQueue,
+      originalLength: filteredWords.length
+    }
+    console.log('[VocabularyCategoryContent] 🔄 一次性更新配置:', newConfig)
+    console.log('[VocabularyCategoryContent] ✅ startIndex 参数值:', index)
+    setReviewConfig(newConfig)
   }
 
   const handleCloseFlashcard = () => {
-    setShowFlashcard(false)
-    setFlashcardQueue([])
+    // 🔥 V4.3: 重置配置对象
+    setReviewConfig({
+      isOpen: false,
+      startIndex: 0,
+      words: []
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -919,6 +942,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
                 <WordCardErrorBoundary key={`${word.word}-${index}`}>
                   <WordCard
                     word={word}
+                    index={index}  // 🔥 传递索引
                     currentLanguage={currentLanguage}
                     category={category}
                     onPlayAudio={handlePlayAudio}
@@ -965,10 +989,11 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         )}
       </div>
 
-      {/* 闪卡模态框 - V4.0 连续复习模式 */}
-      {showFlashcard && flashcardQueue.length > 0 && user && (
+      {/* 闪卡模态框 - V4.3 组件重刷模式 */}
+      {reviewConfig.isOpen && reviewConfig.words.length > 0 && user && (
         <ReviewOverlay
-          words={flashcardQueue.map(w => ({
+          key={`flashcard-${category}-${reviewConfig.startIndex}`}  // 🔥 强制 Key 刷新
+          words={reviewConfig.words.map(w => ({
             id: w.id || '',
             word: w.word,
             phonetic: w.phonetic || '',
@@ -984,6 +1009,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
           }))}
           user={user}
           onClose={handleCloseFlashcard}
+          startIndex={reviewConfig.startIndex}
+          originalLength={reviewConfig.originalLength}
         />
       )}
     </div>

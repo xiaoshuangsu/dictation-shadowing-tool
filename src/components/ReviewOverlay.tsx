@@ -56,6 +56,8 @@ interface ReviewOverlayProps {
   words: ReviewWord[]
   user: AuthUser | null
   onClose: () => void
+  startIndex?: number  // 🔥 V4.2: 起始索引（在原始列表中的位置）
+  originalLength?: number  // 🔥 V4.2: 原始列表长度（用于进度显示）
 }
 
 // 翻译解析
@@ -193,36 +195,46 @@ const getOriginalSentence = (transcript: any[] | null, timestamp: number | null)
   return null
 }
 
-export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayProps) {
-  const [currentIndex, setCurrentIndex] = useState(0)
+export default function ReviewOverlay({ words, user, onClose, startIndex = 0, originalLength }: ReviewOverlayProps) {
+  // 🔥 V4.2: 使用 startIndex 初始化（支持从任意单词开始）
+  const [currentIndex, setCurrentIndex] = useState(startIndex)
+
+  // 🔥 V4.2: 计算原始列表长度（用于进度显示）
+  const totalWords = originalLength ?? words.length
   const [flipped, setFlipped] = useState(false)
   const [userInput, setUserInput] = useState('')
   const [isCorrect, setIsCorrect] = useState(false | null)
   const [showedAnswer, setShowedAnswer] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
   const [currentLanguage, setCurrentLanguage] = useState<string>('zh')
-  const [isCompleted, setIsCompleted] = useState(false) // V4.0: 完成状态
-  const [cardDirection, setCardDirection] = useState<'left' | 'right'>('right') // V4.0: 切换方向
+  const [isCompleted, setIsCompleted] = useState(false)
+  const [cardDirection, setCardDirection] = useState<'left' | 'right'>('right')
 
   // 🔥 V4.1: 动态队列管理
   const [dynamicQueue, setDynamicQueue] = useState<ReviewWord[]>([])
   const [masteredWordIds, setMasteredWordIds] = useState<Set<string>>(new Set())
 
   const inputRef = useRef<HTMLInputElement>(null)
+  const isInitializedRef = useRef(false)  // 🔥 V4.2: 跟踪是否已初始化
 
-  // 🔥 V4.1: 监听 words prop 变化，重置队列
+  // 🔥 V4.3: 初始化队列 - 组件挂载时执行
   useEffect(() => {
-    console.log('[ReviewOverlay] 🔄 words prop 变化，重置队列:', words.length)
-    console.log('[ReviewOverlay] 📝 队列第一个单词:', words[0]?.word)
-    setDynamicQueue(words)
-    setCurrentIndex(0)
-    setMasteredWordIds(new Set())
-    setIsCompleted(false)
-    setFlipped(false)
-    setUserInput('')
-    setIsCorrect(null)
-    setShowedAnswer(false)
-  }, [words])
+    if (words.length > 0) {
+      console.log('[ReviewOverlay] 🎬 组件挂载，接收到的初始索引为:', startIndex)
+      console.log('[ReviewOverlay] 📝 原始列表长度:', totalWords)
+      console.log('[ReviewOverlay] 📝 当前队列长度:', words.length)
+      console.log('[ReviewOverlay] 📝 队列第一个单词:', words[0]?.word)
+      setDynamicQueue(words)
+      setCurrentIndex(startIndex)
+      setMasteredWordIds(new Set())
+      setIsCompleted(false)
+      setFlipped(false)
+      setUserInput('')
+      setIsCorrect(null)
+      setShowedAnswer(false)
+      isInitializedRef.current = true
+    }
+  }, [])  // 🔥 只在挂载时执行一次，不监听任何依赖
 
   // 🔄 同步用户选择的语言偏好
   useEffect(() => {
@@ -531,7 +543,7 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
           <>
             <div className="text-center text-white mb-4">
               <span className="text-lg font-semibold">
-                {currentIndex + 1} / {dynamicQueue.length} (剩余 {dynamicQueue.length} 个)
+                {startIndex + currentIndex + 1} / {totalWords}
               </span>
             </div>
 
