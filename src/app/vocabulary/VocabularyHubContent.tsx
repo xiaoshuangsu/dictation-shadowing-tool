@@ -11,10 +11,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
 import { useAuth } from '@/lib/hooks/useAuth'
 import Link from 'next/link'
 import { Flame, TrendingUp, Target, Award, BookOpen, Clock, Star } from 'lucide-react'
+import ReviewOverlay from '@/components/ReviewOverlay'
 
 // 真实统计数据：今日复习统计
 interface TodayStats {
@@ -103,6 +104,8 @@ const fetcher = async (url: string, userId: string) => {
 export function VocabularyHubContent() {
   const { user, loading: authLoading } = useAuth()
   const [myWordsCount, setMyWordsCount] = useState(0)
+  const [showReviewOverlay, setShowReviewOverlay] = useState(false)
+  const [dueWordsQueue, setDueWordsQueue] = useState<any[]>([])
 
   // 🔥 使用 SWR 获取统计数据（自动缓存和重新验证）
   const { data: statsData, error: statsError, mutate: mutateStats } = useSWR(
@@ -135,6 +138,47 @@ export function VocabularyHubContent() {
       loadData()
     }
   }, [user])
+
+  // 获取今日到期的单词
+  const fetchDueWords = async () => {
+    if (!user) return
+
+    try {
+      const response = await fetch('/api/user-words?status=learning&limit=100', {
+        headers: { 'Authorization': `Bearer ${user.id}` }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const now = new Date()
+
+        // 过滤出今日到期的单词
+        const dueWords = data.words?.filter((w: any) => {
+          if (!w.next_review_at) return true
+          return new Date(w.next_review_at) <= now
+        }) || []
+
+        setDueWordsQueue(dueWords)
+
+        if (dueWords.length > 0) {
+          setShowReviewOverlay(true)
+        }
+      }
+    } catch (error) {
+      console.error('[Hub] 获取到期单词失败:', error)
+    }
+  }
+
+  const handleStartReviewing = () => {
+    fetchDueWords()
+  }
+
+  const handleCloseReview = () => {
+    setShowReviewOverlay(false)
+    setDueWordsQueue([])
+    // 刷新统计数据
+    mutateStats()
+  }
 
   // 认证加载中
   if (authLoading) {
@@ -225,13 +269,13 @@ export function VocabularyHubContent() {
 
                 {/* 醒目 CTA 按钮 */}
                 {stats.dueWords > 0 && (
-                  <Link
-                    href="/vocabulary/my-words"
+                  <button
+                    onClick={handleStartReviewing}
                     className="inline-flex items-center gap-2.5 bg-gradient-to-r from-orange-500 to-red-500 text-white px-7 py-3.5 rounded-xl text-base font-semibold hover:scale-105 hover:shadow-lg hover:shadow-orange-200 transition-all duration-200"
                   >
                     <Star className="w-4 h-4" />
                     Start Reviewing
-                  </Link>
+                  </button>
                 )}
               </div>
             </div>
@@ -380,6 +424,28 @@ export function VocabularyHubContent() {
           </div>
         </div>
       </div>
+
+      {/* 🔥 连续复习弹窗 - 首页直接复习 */}
+      {showReviewOverlay && dueWordsQueue.length > 0 && user && (
+        <ReviewOverlay
+          words={dueWordsQueue.map((w: any) => ({
+            id: w.id || '',
+            word: w.word,
+            phonetic: w.phonetic || '',
+            definition: w.definition,
+            translations: w.translations,
+            context_sentence: w.context_sentence || w.dictionary_cache?.example || '',
+            audio_url_us: w.audio_url_us || w.dictionary_cache?.audio_url_us || '',
+            audio_url_uk: w.audio_url_uk || w.dictionary_cache?.audio_url_uk || '',
+            dictionary_cache: w.dictionary_cache,
+            material_info: w.material_info,
+            audio_timestamp: w.audio_timestamp,
+            material_title: w.material_title
+          }))}
+          user={user}
+          onClose={handleCloseReview}
+        />
+      )}
     </div>
   )
 }
