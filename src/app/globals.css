@@ -152,3 +152,64 @@
   animation: fire-pulse 1.5s ease-in-out infinite, fire-glow 1.5s ease-in-out infinite;
 }
 
+/* 🔄 闪卡切换动画 - V4.0 连续复习模式 */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.3s ease-out forwards;
+}
+
+/* 闪卡容器过渡效果 */
+.flashcard-container {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.flashcard-exit {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.flashcard-enter {
+  opacity: 0;
+  transform: translateX(30px);
+}
+

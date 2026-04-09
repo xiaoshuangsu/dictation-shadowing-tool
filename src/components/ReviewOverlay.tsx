@@ -201,6 +201,8 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
   const [showedAnswer, setShowedAnswer] = useState(false)
   const [isShaking, setIsShaking] = useState(false)
   const [currentLanguage, setCurrentLanguage] = useState<string>('zh')
+  const [isCompleted, setIsCompleted] = useState(false) // V4.0: 完成状态
+  const [cardDirection, setCardDirection] = useState<'left' | 'right'>('right') // V4.0: 切换方向
   const inputRef = useRef<HTMLInputElement>(null)
 
   const currentWord = words[currentIndex]
@@ -343,6 +345,7 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
   }
 
   const handleNext = async (masteryStatus?: 'learning' | 'familiar' | 'mastered') => {
+    // 提交单词状态
     if (masteryStatus && user?.id) {
       try {
         const response = await fetch('/api/user-words', {
@@ -358,34 +361,34 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
         })
 
         if (response.ok) {
-          const result = await response.json()
-
           // 🔥 触发统计数据重新验证（全局 mutate）
-          // 这会刷新所有使用 /api/user-words/stats 的 SWR 缓存
           mutate(
             (key) => Array.isArray(key) && key[0] === '/api/user-words/stats',
             undefined,
             { revalidate: true }
           )
-        } else {
-          const errorData = await response.json()
-          console.error('[ReviewOverlay] ❌ 更新单词状态失败:', errorData)
         }
       } catch (error) {
         console.error('[ReviewOverlay] 更新单词状态出错:', error)
       }
     }
 
+    // 检查是否是最后一张卡片
     if (isLastCard) {
-      onClose()
+      // 显示完成状态而不是立即关闭
+      setIsCompleted(true)
       return
     }
 
-    setCurrentIndex(prev => prev + 1)
-    setFlipped(false)
-    setUserInput('')
-    setIsCorrect(null)
-    setShowedAnswer(false)
+    // V4.0: 切换到下一个单词，添加过渡动画
+    setCardDirection('right')
+    setTimeout(() => {
+      setCurrentIndex(prev => prev + 1)
+      setFlipped(false)
+      setUserInput('')
+      setIsCorrect(null)
+      setShowedAnswer(false)
+    }, 300) // 300ms 过渡延迟
   }
 
   const createBlankSentence = (sentence: string, word: string) => {
@@ -432,13 +435,30 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
       </button>
 
       <div className="w-full max-w-2xl mx-auto">
-        <div className="text-center text-white mb-4">
-          <span className="text-lg font-semibold">
-            {currentIndex + 1} / {words.length}
-          </span>
-        </div>
+        {/* V4.0: 完成状态显示 */}
+        {isCompleted ? (
+          <div className="bg-white rounded-2xl p-12 shadow-2xl text-center animate-fade-in">
+            <h2 className="text-4xl font-bold mb-4">All done! 🎉</h2>
+            <p className="text-gray-600 mb-8">
+              {`You've reviewed ${words.length} word${words.length > 1 ? 's' : ''}!`}
+            </p>
+            <button
+              onClick={onClose}
+              className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+            >
+              Continue
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="text-center text-white mb-4">
+              <span className="text-lg font-semibold">
+                {currentIndex + 1} / {words.length}
+              </span>
+            </div>
 
-        <div className="relative">
+        <div className={`relative animate-fade-in-scale`}>
+          <div key={currentIndex} className={`flashcard-container ${flipped ? '' : ''}`}>
           {/* 正面：拼写练习 */}
           <div
             className={`w-full bg-white rounded-2xl p-8 flex flex-col justify-between transition-all duration-500 ${
@@ -697,7 +717,10 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
                 </button>
               )}
             </div>
+          </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   )

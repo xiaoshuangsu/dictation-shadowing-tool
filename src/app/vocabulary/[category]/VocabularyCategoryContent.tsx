@@ -292,14 +292,6 @@ function WordCard({ word, currentLanguage, category, onPlayAudio, onClick }: Wor
     targetTranslation = ''
   }
 
-  // 🔍 详细调试日志（仅前 3 个单词）
-  if (['abandon', 'abandonment', 'abc'].includes(word.word)) {
-    console.log(`[WordCard] 📝 ${word.word} - 语言: ${currentLanguage}`, {
-      englishDefinition: englishDefinition.substring(0, 40),
-      targetTranslation: targetTranslation?.substring(0, 40)
-    })
-  }
-
   // 标准例句
   const standardExample = word.dictionary_cache?.example || word.example
 
@@ -477,8 +469,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   const [totalWords, setTotalWords] = useState(0)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
-  // 闪卡状态
-  const [flashcardWord, setFlashcardWord] = useState<WordEntry | null>(null)
+  // 闪卡状态 - V4.0 连续复习模式
+  const [flashcardQueue, setFlashcardQueue] = useState<WordEntry[]>([])
   const [showFlashcard, setShowFlashcard] = useState(false)
 
   // Intersection Observer 引用 - 使用 Callback Ref 模式
@@ -777,13 +769,17 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   // ══════════════════════════════════════════════════════════════════════════════
 
   const handleOpenFlashcard = (word: WordEntry) => {
-    setFlashcardWord(word)
+    // 找到被点击单词的索引
+    const wordIndex = filteredWords.findIndex(w => w.id === word.id)
+    // 从该位置开始的所有单词作为复习队列
+    const reviewQueue = filteredWords.slice(wordIndex)
+    setFlashcardQueue(reviewQueue)
     setShowFlashcard(true)
   }
 
   const handleCloseFlashcard = () => {
     setShowFlashcard(false)
-    setFlashcardWord(null)
+    setFlashcardQueue([])
   }
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -969,23 +965,23 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         )}
       </div>
 
-      {/* 闪卡模态框 */}
-      {showFlashcard && flashcardWord && user && (
+      {/* 闪卡模态框 - V4.0 连续复习模式 */}
+      {showFlashcard && flashcardQueue.length > 0 && user && (
         <ReviewOverlay
-          words={[{
-            id: flashcardWord.id || '',
-            word: flashcardWord.word,
-            phonetic: flashcardWord.phonetic || '',
-            definition: flashcardWord.definition,
-            translations: flashcardWord.translations,
-            context_sentence: flashcardWord.context_sentence || flashcardWord.dictionary_cache?.example || '',
-            audio_url_us: flashcardWord.audio_url_us || flashcardWord.dictionary_cache?.audio_url_us || '',
-            audio_url_uk: flashcardWord.audio_url_uk || flashcardWord.dictionary_cache?.audio_url_uk || '',
-            dictionary_cache: flashcardWord.dictionary_cache,
-            material_info: flashcardWord.material_info,
-            audio_timestamp: flashcardWord.audio_timestamp,
-            material_title: flashcardWord.material_title
-          }]}
+          words={flashcardQueue.map(w => ({
+            id: w.id || '',
+            word: w.word,
+            phonetic: w.phonetic || '',
+            definition: w.definition,
+            translations: w.translations,
+            context_sentence: w.context_sentence || w.dictionary_cache?.example || '',
+            audio_url_us: w.audio_url_us || w.dictionary_cache?.audio_url_us || '',
+            audio_url_uk: w.audio_url_uk || w.dictionary_cache?.audio_url_uk || '',
+            dictionary_cache: w.dictionary_cache,
+            material_info: w.material_info,
+            audio_timestamp: w.audio_timestamp,
+            material_title: w.material_title
+          }))}
           user={user}
           onClose={handleCloseFlashcard}
         />
