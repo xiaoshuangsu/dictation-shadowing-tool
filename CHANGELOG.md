@@ -1,5 +1,32 @@
 # Changelog
 
+## [30.1.2] - 2026-04-09
+
+### Fix
+- **修复跨页面语言偏好同步（日语/繁体中文）** 🌍
+  - **问题描述**：在素材练习页修改语言后，My Words 页面和复习弹窗没有同步更新，导致同一单词在不同页面显示不同语言的释义。
+  - **根本原因**：
+    - `VocabularyCategoryContent.tsx` 虽然监听了 `translation-language-change` 事件，但语言变化后已加载的单词数据不会重新获取翻译。
+    - 语言状态更新了，但单词数据是静态的，没有触发重新补全。
+  - **修复方案**：
+    - **监听语言变化**：添加 `useEffect` 监听 `currentLanguage` 变化。
+    - **自动重新补全**：语言切换时，自动调用 `/api/dictionary-batch` 接口重新获取所有单词的翻译。
+    - **更新所有单词**：遍历单词列表，更新每个单词的 `translations` 和 `dictionary_cache.translations` 字段。
+  - **效果**：在素材页修改语言为日语后，My Words 页面单词立即显示日语释义。
+  - **修改文件**：
+    - `src/app/vocabulary/[category]/VocabularyCategoryContent.tsx` - 添加语言变化监听逻辑
+
+### Feature
+- **统一列表页与复习弹窗的补全逻辑** ⚡
+  - **问题描述**：My Words 列表页和复习弹窗使用不同的数据加载逻辑，维护成本高且容易出现不一致。
+  - **实现方案**：
+    - **复用批量补全逻辑**：`VocabularyCategoryContent.tsx` 复用了与 `ReviewOverlay.tsx` 相同的批量补全逻辑。
+    - **统一 API 调用**：都使用 `/api/dictionary-batch` 接口，支持 `targetLanguage` 参数。
+    - **统一翻译字段**：都使用 `matched_translation` 字段存储已提取的翻译。
+  - **效果**：确保列表页和复习页的翻译显示一致，维护更简单。
+
+---
+
 ## [30.1.1] - 2026-04-09
 
 ### Feature

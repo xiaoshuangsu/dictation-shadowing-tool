@@ -703,6 +703,54 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     }
   }
 
+  // 🔥 V3.2: 语言变化时，重新补全所有单词的翻译
+  useEffect(() => {
+    if (words.length > 0) {
+      console.log('[VocabularyCategory] 🌍 语言已切换至:', currentLanguage, '重新补全所有单词翻译...')
+
+      // 重新补全所有单词（无论是否有释义）
+      const response = fetch('/api/dictionary-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          words: words.map(w => w.word),
+          targetLanguage: currentLanguage
+        })
+      })
+
+      response.then(res => res.json()).then(data => {
+        if (data.success) {
+          console.log('[VocabularyCategory] ✅ 语言切换后补全成功:', data.hitCount, '个命中')
+
+          // 更新所有单词的翻译
+          setWords(prevWords => {
+            return prevWords.map(word => {
+              const cached = data.words[word.word.toLowerCase()]
+              if (cached) {
+                const translationToUse = cached.matched_translation || ''
+
+                return {
+                  ...word,
+                  phonetic: cached.phonetic || word.phonetic || '',
+                  definition: cached.definitions ? JSON.stringify(cached.definitions) : word.definition,
+                  translations: translationToUse || null,
+                  dictionary_cache: {
+                    ...word.dictionary_cache,
+                    translations: translationToUse || null,
+                    matched_translation: cached.matched_translation || null
+                  }
+                }
+              }
+              return word
+            })
+          })
+        }
+      }).catch(error => {
+        console.error('[VocabularyCategory] 💥 语言切换后补全失败:', error)
+      })
+    }
+  }, [currentLanguage]) // 🔥 只监听 currentLanguage 变化
+
   // ══════════════════════════════════════════════════════════════════════════════
   // 无限滚动逻辑
   // ══════════════════════════════════════════════════════════════════════════════

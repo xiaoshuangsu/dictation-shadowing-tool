@@ -305,15 +305,11 @@ export function VocabularyHubContent() {
     }, 1500)
   }
 
-  // 🔥 V3.0: 乐观更新回调（彻底掌握模式：只有 familiar/mastered 才计数）
+  // 🔥 V3.1: 乐观更新回调（彻底掌握模式：所有复习都计数）
   const handleReviewComplete = (masteryStatus: 'learning' | 'familiar' | 'mastered') => {
-    // 只有当单词状态变为 familiar 或 mastered 时，才计入进度
-    if (masteryStatus === 'familiar' || masteryStatus === 'mastered') {
-      console.log('[Hub] ✅ 单词已掌握，本地计数 +1', { masteryStatus })
-      setLocalReviewedIncrement(prev => prev + 1)
-    } else {
-      console.log('[Hub] 🔄 单词仍需练习，不计入进度', { masteryStatus })
-    }
+    // 🔥 V3.2: 无论点击哪个按钮，只要完成交互都计入进度
+    console.log('[Hub] ✅ 单词复习完成，本地计数 +1', { masteryStatus })
+    setLocalReviewedIncrement(prev => prev + 1)
   }
 
   // 认证加载中

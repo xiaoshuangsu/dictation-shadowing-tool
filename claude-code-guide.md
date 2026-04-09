@@ -234,7 +234,7 @@ cat claude-code-guide.md docs/youtube_automation.md docs/dictionary_prepopulatio
 
 ---
 
-**版本**：V30.6
+**版本**：V30.7
 **更新日期**：2026-04-09
 **架构状态**：生产就绪（Vercel 托管）
 **部署平台**：https://shadowhub.app
