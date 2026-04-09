@@ -220,15 +220,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
   // 🔥 V4.3: 初始化队列 - 组件挂载时执行
   useEffect(() => {
     if (words.length > 0) {
-      // 🔍 核对 ID 一致性：打印 words[0].word，确认与用户点击的单词一致
-      console.log('[ReviewOverlay] 🎬 组件挂载')
-      console.log('[ReviewOverlay] 📝 接收到的 startIndex:', startIndex)
-      console.log('[ReviewOverlay] 📝 原始列表长度 (originalLength):', originalLength)
-      console.log('[ReviewOverlay] 📝 当前队列长度:', words.length)
-      console.log('[ReviewOverlay] 🔍 队列第一个单词 (words[0].word):', words[0]?.word)
-      console.log('[ReviewOverlay] 🔍 队列第一个单词 (words[0].id):', words[0]?.id)
-      console.log('[ReviewOverlay] ⚠️  请核对：这个单词应该是用户点击的那个词')
-
       setDynamicQueue(words)
       setCurrentIndex(0)  // 🔥 V4.3: 强制初始化为 0
       setMasteredWordIds(new Set())
@@ -314,7 +305,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
       }
     } else {
       // 后端匹配不正确，使用 context_sentence 作为兜底
-      console.log(`[Flashcard] ⚠️ Backend matched sentence doesn't contain word for '${currentWord.word}', using context_sentence`)
       if (currentWord.context_sentence) {
         originalSentence = {
           sentence: currentWord.context_sentence,
@@ -401,31 +391,19 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
     // 🔥 V4.1: 先提交数据到 API（无论选择什么，Reviewed 都会 +1）
     if (masteryStatus && user?.id) {
       try {
-        // 🔍 调试日志：打印完整的 Request Body 和 Header
-        const requestBody = {
-          wordId: currentWord.id,
-          masteryStatus: masteryStatus
-        }
-        console.log('[ReviewOverlay] 🔍 准备发送 PATCH 请求:')
-        console.log('  - URL:', '/api/user-words')
-        console.log('  - Header.Authorization:', `Bearer ${user.id.substring(0, 8)}...`)
-        console.log('  - Request Body:', JSON.stringify(requestBody, null, 2))
-        console.log('  - currentWord.id:', currentWord.id)
-        console.log('  - currentWord.word:', currentWord.word)
-
         const response = await fetch('/api/user-words', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${user.id}`
           },
-          body: JSON.stringify(requestBody)
+          body: JSON.stringify({
+            wordId: currentWord.id,
+            masteryStatus: masteryStatus
+          })
         })
 
         if (response.ok) {
-          const result = await response.json()
-          console.log('[ReviewOverlay] ✅ 单词状态更新成功:', masteryStatus, result)
-
           // 🔥 强制刷新所有统计数据缓存（全局同步）
           mutate(
             (key) => {
@@ -440,13 +418,8 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
             undefined,
             { revalidate: true }
           )
-
-          console.log('[ReviewOverlay] 🔄 已触发全局统计数据刷新（所有页面）')
         } else {
-          const errorData = await response.json()
-          console.error('[ReviewOverlay] ❌ 更新单词状态失败:')
-          console.error('  - HTTP Status:', response.status)
-          console.error('  - Error Response:', errorData)
+          console.error('[ReviewOverlay] ❌ 更新单词状态失败:', response.status, await response.json())
         }
       } catch (error) {
         console.error('[ReviewOverlay] ❌ 更新单词状态出错:', error)
@@ -456,8 +429,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
     // 🔥 V4.1: 根据选择处理队列逻辑
     if (masteryStatus === 'learning') {
       // 选择 Still Learning：将单词移到队列末尾
-      console.log('[ReviewOverlay] 🔄 Still Learning - 单词移到队列末尾:', currentWord.word)
-
       const wordToMove = dynamicQueue[currentIndex]
       const newQueue = [...dynamicQueue.slice(0, currentIndex), ...dynamicQueue.slice(currentIndex + 1)]
       newQueue.push(wordToMove)
@@ -470,14 +441,11 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
 
     } else if (masteryStatus === 'familiar' || masteryStatus === 'mastered') {
       // 选择 Kinda Know 或 Too Easy：标记为已掌握
-      console.log('[ReviewOverlay] ✅ 掌握单词 - 从队列移除:', currentWord.word)
-
       setMasteredWordIds(prev => new Set(prev).add(currentWord.id))
 
       // 检查是否所有原始单词都已掌握
       const newMasteredSet = new Set(masteredWordIds).add(currentWord.id)
       if (newMasteredSet.size === words.length) {
-        console.log('[ReviewOverlay] 🎉 所有单词已掌握！')
         setIsCompleted(true)
         return
       }
