@@ -203,10 +203,26 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
   const [currentLanguage, setCurrentLanguage] = useState<string>('zh')
   const [isCompleted, setIsCompleted] = useState(false) // V4.0: 完成状态
   const [cardDirection, setCardDirection] = useState<'left' | 'right'>('right') // V4.0: 切换方向
+
+  // 🔥 V4.1: 动态队列管理
+  const [dynamicQueue, setDynamicQueue] = useState<ReviewWord[]>([])
+  const [masteredWordIds, setMasteredWordIds] = useState<Set<string>>(new Set())
+
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const currentWord = words[currentIndex]
-  const isLastCard = currentIndex === words.length - 1
+  // 🔥 V4.1: 监听 words prop 变化，重置队列
+  useEffect(() => {
+    console.log('[ReviewOverlay] 🔄 words prop 变化，重置队列:', words.length)
+    console.log('[ReviewOverlay] 📝 队列第一个单词:', words[0]?.word)
+    setDynamicQueue(words)
+    setCurrentIndex(0)
+    setMasteredWordIds(new Set())
+    setIsCompleted(false)
+    setFlipped(false)
+    setUserInput('')
+    setIsCorrect(null)
+    setShowedAnswer(false)
+  }, [words])
 
   // 🔄 同步用户选择的语言偏好
   useEffect(() => {
@@ -223,6 +239,36 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
       window.removeEventListener('translation-language-change', updateLanguage)
     }
   }, [])
+
+  // 自动聚焦输入框
+  useEffect(() => {
+    if (!flipped && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [currentIndex, flipped])
+
+  // 重置显示答案状态
+  useEffect(() => {
+    setShowedAnswer(false)
+  }, [currentIndex])
+
+  const currentWord = dynamicQueue[currentIndex]
+  const isLastCard = currentIndex === dynamicQueue.length - 1
+
+  // 🔥 V4.1: 检查是否所有单词都已掌握
+  const allWordsMastered = masteredWordIds.size === words.length
+
+  // 🔥 V4.1: 空值检查 - 防止队列重置时 currentWord 为 undefined
+  if (!currentWord || !currentWord.definition) {
+    return (
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   // 解析翻译（双层释义）
   const definition = parseDefinition(currentWord.definition)
@@ -270,16 +316,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
   // 双发音（智能路由）
   const hasUsR2Audio = isR2AudioUrl(currentWord.audio_url_us || currentWord.dictionary_cache?.audio_url_us)
   const hasUkR2Audio = isR2AudioUrl(currentWord.audio_url_uk || currentWord.dictionary_cache?.audio_url_uk)
-
-  useEffect(() => {
-    if (!flipped && inputRef.current) {
-      inputRef.current.focus()
-    }
-  }, [currentIndex, flipped])
-
-  useEffect(() => {
-    setShowedAnswer(false)
-  }, [currentIndex])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -345,7 +381,7 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
   }
 
   const handleNext = async (masteryStatus?: 'learning' | 'familiar' | 'mastered') => {
-    // 提交单词状态
+    // 🔥 V4.1: 先提交数据到 API（无论选择什么，Reviewed 都会 +1）
     if (masteryStatus && user?.id) {
       try {
         const response = await fetch('/api/user-words', {
@@ -361,34 +397,76 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
         })
 
         if (response.ok) {
-          // 🔥 触发统计数据重新验证（全局 mutate）
+          const result = await response.json()
+          console.log('[ReviewOverlay] ✅ 单词状态更新成功:', masteryStatus, result)
+
+          // 🔥 强制刷新所有统计数据缓存（全局同步）
           mutate(
-            (key) => Array.isArray(key) && key[0] === '/api/user-words/stats',
+            (key) => {
+              if (typeof key === 'string') {
+                return key.startsWith('/api/user-words/stats')
+              }
+              if (Array.isArray(key) && key.length > 0) {
+                return key[0] === '/api/user-words/stats'
+              }
+              return false
+            },
             undefined,
             { revalidate: true }
           )
+
+          console.log('[ReviewOverlay] 🔄 已触发全局统计数据刷新（所有页面）')
+        } else {
+          const errorData = await response.json()
+          console.error('[ReviewOverlay] ❌ 更新单词状态失败:', errorData)
         }
       } catch (error) {
         console.error('[ReviewOverlay] 更新单词状态出错:', error)
       }
     }
 
-    // 检查是否是最后一张卡片
-    if (isLastCard) {
-      // 显示完成状态而不是立即关闭
-      setIsCompleted(true)
-      return
+    // 🔥 V4.1: 根据选择处理队列逻辑
+    if (masteryStatus === 'learning') {
+      // 选择 Still Learning：将单词移到队列末尾
+      console.log('[ReviewOverlay] 🔄 Still Learning - 单词移到队列末尾:', currentWord.word)
+
+      const wordToMove = dynamicQueue[currentIndex]
+      const newQueue = [...dynamicQueue.slice(0, currentIndex), ...dynamicQueue.slice(currentIndex + 1)]
+      newQueue.push(wordToMove)
+
+      setDynamicQueue(newQueue)
+
+      // 切换到下一个单词（如果已经在末尾，则回到开头）
+      const nextIndex = currentIndex >= newQueue.length - 1 ? 0 : currentIndex
+      setCurrentIndex(nextIndex)
+
+    } else if (masteryStatus === 'familiar' || masteryStatus === 'mastered') {
+      // 选择 Kinda Know 或 Too Easy：标记为已掌握
+      console.log('[ReviewOverlay] ✅ 掌握单词 - 从队列移除:', currentWord.word)
+
+      setMasteredWordIds(prev => new Set(prev).add(currentWord.id))
+
+      // 检查是否所有原始单词都已掌握
+      const newMasteredSet = new Set(masteredWordIds).add(currentWord.id)
+      if (newMasteredSet.size === words.length) {
+        console.log('[ReviewOverlay] 🎉 所有单词已掌握！')
+        setIsCompleted(true)
+        return
+      }
+
+      // 从队列中移除该单词
+      const newQueue = dynamicQueue.filter((_, idx) => idx !== currentIndex)
+      setDynamicQueue(newQueue)
+
+      // 重置到第一个单词
+      setCurrentIndex(0)
     }
 
-    // V4.0: 切换到下一个单词，添加过渡动画
-    setCardDirection('right')
-    setTimeout(() => {
-      setCurrentIndex(prev => prev + 1)
-      setFlipped(false)
-      setUserInput('')
-      setIsCorrect(null)
-      setShowedAnswer(false)
-    }, 300) // 300ms 过渡延迟
+    // 重置卡片状态
+    setFlipped(false)
+    setUserInput('')
+    setIsCorrect(null)
+    setShowedAnswer(false)
   }
 
   const createBlankSentence = (sentence: string, word: string) => {
@@ -440,7 +518,7 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
           <div className="bg-white rounded-2xl p-12 shadow-2xl text-center animate-fade-in">
             <h2 className="text-4xl font-bold mb-4">All done! 🎉</h2>
             <p className="text-gray-600 mb-8">
-              {`You've reviewed ${words.length} word${words.length > 1 ? 's' : ''}!`}
+              {`You've mastered all ${masteredWordIds.size} word${masteredWordIds.size > 1 ? 's' : ''}!`}
             </p>
             <button
               onClick={onClose}
@@ -453,7 +531,7 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
           <>
             <div className="text-center text-white mb-4">
               <span className="text-lg font-semibold">
-                {currentIndex + 1} / {words.length}
+                {currentIndex + 1} / {dynamicQueue.length} (剩余 {dynamicQueue.length} 个)
               </span>
             </div>
 

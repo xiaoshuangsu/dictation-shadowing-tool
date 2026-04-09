@@ -141,15 +141,24 @@ export function VocabularyHubContent() {
 
   // 获取今日到期的单词
   const fetchDueWords = async () => {
-    if (!user) return
+    console.log('[Hub] 🚀 点击了 Start Reviewing 按钮')
+    if (!user) {
+      console.log('[Hub] ❌ 用户未登录')
+      return
+    }
 
+    console.log('[Hub] 👤 用户已登录，开始获取到期单词...')
     try {
       const response = await fetch('/api/user-words?status=learning&limit=100', {
         headers: { 'Authorization': `Bearer ${user.id}` }
       })
 
+      console.log('[Hub] 📡 API 响应状态:', response.status)
+
       if (response.ok) {
         const data = await response.json()
+        console.log('[Hub] 📊 获取到单词数量:', data.words?.length || 0)
+
         const now = new Date()
 
         // 过滤出今日到期的单词
@@ -158,18 +167,25 @@ export function VocabularyHubContent() {
           return new Date(w.next_review_at) <= now
         }) || []
 
+        console.log('[Hub] ✅ 今日到期单词数量:', dueWords.length)
         setDueWordsQueue(dueWords)
 
         if (dueWords.length > 0) {
+          console.log('[Hub] 🎯 准备打开复习弹窗...')
           setShowReviewOverlay(true)
+        } else {
+          console.log('[Hub] ⚠️ 没有到期的单词')
         }
+      } else {
+        console.log('[Hub] ❌ API 请求失败:', response.status)
       }
     } catch (error) {
-      console.error('[Hub] 获取到期单词失败:', error)
+      console.error('[Hub] 💥 获取到期单词失败:', error)
     }
   }
 
   const handleStartReviewing = () => {
+    console.log('[Hub] 🖱️ handleStartReviewing 被调用')
     fetchDueWords()
   }
 
@@ -177,6 +193,7 @@ export function VocabularyHubContent() {
     setShowReviewOverlay(false)
     setDueWordsQueue([])
     // 刷新统计数据
+    console.log('[Hub] 🔄 关闭弹窗，触发统计数据刷新')
     mutateStats()
   }
 
