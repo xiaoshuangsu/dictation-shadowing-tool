@@ -48,6 +48,7 @@ const fetcherPublic = async (url: string) => {
 // ══════════════════════════════════════════════════════════════════════════════
 
 interface WordEntry {
+  id: string
   word: string
   phonetic: string
   definition: string
@@ -534,6 +535,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
       // My Words 数据处理
       if (userWordsData?.words) {
         const mappedWords: WordEntry[] = userWordsData.words.map((w: any) => ({
+          id: w.id,
           word: w.word,
           phonetic: w.phonetic || '',
           definition: w.definition,
@@ -561,6 +563,7 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
       // Oxford 3000 / IELTS 数据处理（支持无限滚动）
       if (vocabularyWordsData?.words) {
         const mappedWords: WordEntry[] = vocabularyWordsData.words.map((w: any) => ({
+          id: w.id,
           word: w.word,
           phonetic: w.phonetic || '',
           definition: w.definition,

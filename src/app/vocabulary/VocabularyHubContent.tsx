@@ -1,19 +1,21 @@
 /**
  * Vocabulary Hub Content - 学习中心看板内容
  *
- * V1.4 - 响应式左右结构（桌面端 flex-row，移动端 flex-col）
+ * V1.5 - 使用 SWR 获取真实统计数据
  * - 左侧 60%：行动焦点
  * - 右侧 40%：数据反馈
+ * - 数据自动刷新：复习后统计数据自动更新
  */
 
 'use client'
 
 import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import { useAuth } from '@/lib/hooks/useAuth'
 import Link from 'next/link'
 import { Flame, TrendingUp, Target, Award, BookOpen, Clock, Star } from 'lucide-react'
 
-// Mock 数据：今日复习统计
+// 真实统计数据：今日复习统计
 interface TodayStats {
   dueWords: number
   reviewed: number
@@ -86,34 +88,50 @@ const WORD_LISTS: WordList[] = [
   }
 ]
 
+// SWR fetcher 函数
+const fetcher = async (url: string, userId: string) => {
+  const response = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${userId}` }
+  })
+  if (!response.ok) throw new Error('Failed to fetch stats')
+  return response.json()
+}
+
 export function VocabularyHubContent() {
   const { user, loading: authLoading } = useAuth()
-  const [stats, setStats] = useState<TodayStats>({
+  const [myWordsCount, setMyWordsCount] = useState(0)
+
+  // 🔥 使用 SWR 获取统计数据（自动缓存和重新验证）
+  const { data: statsData, error: statsError, mutate: mutateStats } = useSWR(
+    user ? ['/api/user-words/stats', user.id] : null,
+    ([url, userId]) => fetcher(url, userId as string),
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 10000, // 10秒内相同请求自动去重
+      refreshInterval: 0 // 手动刷新
+    }
+  )
+
+  // 解析统计数据
+  const stats: TodayStats = statsData?.stats || {
     dueWords: 0,
     reviewed: 0,
     accuracy: 0,
     streak: 0
-  })
-  const [myWordsCount, setMyWordsCount] = useState(0)
+  }
 
   // 加载用户数据
   useEffect(() => {
     const loadData = async () => {
       await new Promise(resolve => setTimeout(resolve, 100))
-
-      // Mock 统计数据
-      setStats({
-        dueWords: 15,
-        reviewed: 8,
-        accuracy: 85,
-        streak: 7
-      })
-
-      setMyWordsCount(42)
+      setMyWordsCount(42) // Mock 数据，后续可从 API 获取
     }
 
-    loadData()
-  }, [])
+    if (user) {
+      loadData()
+    }
+  }, [user])
 
   // 认证加载中
   if (authLoading) {
@@ -188,7 +206,7 @@ export function VocabularyHubContent() {
                 {/* 标题 */}
                 <div className="flex items-center gap-2.5 mb-5">
                   <Flame className="w-5 h-5 text-orange-500" />
-                  <h2 className="text-xl font-bold text-gray-900">Today's Review</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Today&apos;s Review</h2>
                 </div>
 
                 {/* 核心视觉焦点：大数字 */}

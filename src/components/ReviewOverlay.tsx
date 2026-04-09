@@ -1,11 +1,12 @@
 /**
  * ReviewOverlay - 闪卡拼写训练遮罩层组件
  *
- * V2.0 - 同步最新单词卡片逻辑
+ * V2.1 - 添加统计联动
  * - 双层释义：英文释义 + 目标语翻译
  * - 双例句：词典标准例句 + 素材实战原句
  * - 智能音频路由：R2 优先 + Web Speech API 兜底
  * - 素材跳转：使用修复后的英文 Slug 路径
+ * - 统计联动：复习完成后自动刷新首页统计
  *
  * 功能：
  * - 全屏遮罩层，用于闪卡训练
@@ -24,6 +25,7 @@ import { AuthUser } from '@/lib/hooks/useAuth'
 import { categoryToSlug } from '@/lib/utils/category'
 import logger from '@/lib/utils/logger'
 import { getStoredLanguage } from '@/components/TranslationLanguageSelector'
+import useSWR, { mutate } from 'swr'
 
 interface ReviewWord {
   id: string
@@ -342,8 +344,6 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
 
   const handleNext = async (masteryStatus?: 'learning' | 'familiar' | 'mastered') => {
     if (masteryStatus && user?.id) {
-      logger.debug(`[ReviewOverlay] 更新单词 "${currentWord.word}" (ID: ${currentWord.id}) 掌握状态为: ${masteryStatus}`)
-
       try {
         const response = await fetch('/api/user-words', {
           method: 'PATCH',
@@ -359,7 +359,14 @@ export default function ReviewOverlay({ words, user, onClose }: ReviewOverlayPro
 
         if (response.ok) {
           const result = await response.json()
-          logger.debug(`[ReviewOverlay] ✅ 成功更新单词状态:`, result)
+
+          // 🔥 触发统计数据重新验证（全局 mutate）
+          // 这会刷新所有使用 /api/user-words/stats 的 SWR 缓存
+          mutate(
+            (key) => Array.isArray(key) && key[0] === '/api/user-words/stats',
+            undefined,
+            { revalidate: true }
+          )
         } else {
           const errorData = await response.json()
           console.error('[ReviewOverlay] ❌ 更新单词状态失败:', errorData)

@@ -1,6 +1,12 @@
 /**
  * User Words Stats API
  * 获取用户生词统计信息
+ *
+ * V2.0 - 真实统计数据
+ * - Due Today: 统计 next_review_at <= now 的单词
+ * - Reviewed: 统计今天已复习的单词（updated_at 在今天）
+ * - Accuracy: 根据掌握状态计算准确率
+ * - Streak: 从 user_profiles 获取连胜天数
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -32,7 +38,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', userId)
 
     if (error) {
-      console.error('Error fetching user words:', error)
+      console.error('[Stats API] ❌ 获取用户生词失败:', error)
       return NextResponse.json({ success: false, error: 'Failed to fetch stats' }, { status: 500 })
     }
 
@@ -40,19 +46,45 @@ export async function GET(request: NextRequest) {
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
+    // 1. Due Today: 统计 next_review_at <= now 的单词
     const dueWords = userWords?.filter((w: any) => {
       if (w.mastery_status !== 'learning') return false
       if (!w.next_review_at) return true
       return new Date(w.next_review_at) <= now
     }).length || 0
 
-    // Mock 数据：今日已复习、准确率、连续天数
-    // TODO: 从 practice_records 表计算真实数据
+    // 2. Reviewed: 统计今天已复习的单词（updated_at 在今天且 mastery_status 已更新）
+    const reviewed = userWords?.filter((w: any) => {
+      const updatedAt = new Date(w.updated_at)
+      return updatedAt >= todayStart
+    }).length || 0
+
+    // 3. Accuracy: 根据掌握状态计算准确率
+    // mastered = 100% 正确, familiar = 50% 正确, learning = 0% 正确
+    let accuracy = 0
+    if (userWords && userWords.length > 0) {
+      const totalAccuracy = userWords.reduce((sum: number, w: any) => {
+        if (w.mastery_status === 'mastered') return sum + 100
+        if (w.mastery_status === 'familiar') return sum + 50
+        return sum // learning = 0
+      }, 0)
+      accuracy = Math.round(totalAccuracy / userWords.length)
+    }
+
+    // 4. Streak: 从 user_profiles 获取连胜天数
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('current_streak')
+      .eq('id', userId)
+      .single()
+
+    const streak = profile?.current_streak || 0
+
     const stats = {
       dueWords,
-      reviewed: Math.floor(Math.random() * 20),
-      accuracy: 75 + Math.floor(Math.random() * 20),
-      streak: 3 + Math.floor(Math.random() * 14)
+      reviewed,
+      accuracy,
+      streak
     }
 
     return NextResponse.json({
@@ -61,7 +93,7 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error in stats API:', error)
+    console.error('[Stats API] ❌ 错误:', error)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }
