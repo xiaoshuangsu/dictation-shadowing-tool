@@ -289,7 +289,7 @@ function WordCard({ word, index, currentLanguage, category, onPlayAudio, onClick
     )
   } catch (e) {
     console.warn(`[WordCard] ${word.word} 翻译解析失败:`, e)
-    englishDefinition = 'Definition in flashcard'
+    englishDefinition = ''
     targetTranslation = ''
   }
 
@@ -399,9 +399,9 @@ function WordCard({ word, index, currentLanguage, category, onPlayAudio, onClick
           </p>
         )}
 
-        {/* 容错：都无释义时显示占位符 */}
+        {/* 容错：都无释义时显示提示 */}
         {!englishDefinition && !targetTranslation && (
-          <p className="text-sm text-slate-400 italic">Definition in flashcard</p>
+          <p className="text-sm text-slate-400 italic">暂无释义</p>
         )}
       </div>
 
@@ -554,6 +554,9 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         setTotalWords(userWordsData.total || 0)
         setHasMore(false)
         setLoading(false)
+
+        // 🔥 V3.2: 批量补全缺失释义
+        fetchMissingDefinitions(mappedWords)
       } else if (userWordsError) {
         console.error('Failed to load user words:', userWordsError)
         setWords([])
@@ -583,6 +586,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
         // 追加新数据（无限滚动）
         if (currentPage === 0) {
           setWords(mappedWords)
+          // 🔥 V3.2: 批量补全缺失释义（仅首次加载）
+          fetchMissingDefinitions(mappedWords)
         } else {
           // 🔧 前端去重防护：防止数据库重合词导致的 Key 重复报错
           setWords(prev => {
@@ -598,6 +603,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
               return true
             })
           })
+          // 🔥 V3.2: 批量补全新加载的单词
+          fetchMissingDefinitions(mappedWords)
         }
 
         const newTotal = vocabularyWordsData.total || 0
@@ -624,6 +631,77 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     }
 
   }, [category, user, config, router, userWordsData, userWordsError, vocabularyWordsData, vocabularyWordsError, currentPage, shouldFetchVocabularyWords])
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // 🔥 V3.2: 批量补全缺失释义的逻辑
+  // ══════════════════════════════════════════════════════════════════════════════
+
+  const fetchMissingDefinitions = async (wordsToCheck: WordEntry[]) => {
+    // 找出缺少释义的单词
+    const wordsWithoutDefinition = wordsToCheck.filter(w => !w.definition || w.definition === '{}')
+
+    if (wordsWithoutDefinition.length === 0) {
+      console.log('[VocabularyCategory] ✅ 所有单词都有释义，无需补全')
+      return
+    }
+
+    console.log('[VocabularyCategory] 🔄 发现', wordsWithoutDefinition.length, '个单词缺少释义，开始批量补全...')
+    console.log('[VocabularyCategory] 🌍 当前语言偏好:', currentLanguage)
+
+    try {
+      // 批量调用 API 获取释义
+      const response = await fetch('/api/dictionary-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          words: wordsWithoutDefinition.map(w => w.word),
+          targetLanguage: currentLanguage
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[VocabularyCategory] ✅ 批量获取释义成功:', data.hitCount, '个命中,', data.missCount, '个未命中')
+
+        // 更新单词列表
+        setWords(prevWords => {
+          return prevWords.map(word => {
+            if (!word.definition || word.definition === '{}') {
+              const cached = data.words[word.word.toLowerCase()]
+              if (cached) {
+                console.log('[VocabularyCategory] ✅ 补全单词:', word.word, '| 匹配翻译:', cached.matched_translation || '无')
+
+                const translationToUse = cached.matched_translation || ''
+
+                return {
+                  ...word,
+                  phonetic: cached.phonetic || word.phonetic || '',
+                  definition: cached.definitions ? JSON.stringify(cached.definitions) : '{}',
+                  translations: translationToUse || null,
+                  example: cached.example || word.example || '',
+                  audio_url_us: cached.audio_url_us || word.audio_url_us || '',
+                  audio_url_uk: cached.audio_url_uk || word.audio_url_uk || '',
+                  dictionary_cache: {
+                    ...word.dictionary_cache,
+                    audio_url_us: cached.audio_url_us || '',
+                    audio_url_uk: cached.audio_url_uk || '',
+                    example: cached.example || '',
+                    translations: translationToUse || null,
+                    matched_translation: cached.matched_translation || null
+                  }
+                }
+              }
+            }
+            return word
+          })
+        })
+      } else {
+        console.error('[VocabularyCategory] ❌ 批量获取释义失败:', response.status)
+      }
+    } catch (error) {
+      console.error('[VocabularyCategory] 💥 批量获取释义出错:', error)
+    }
+  }
 
   // ══════════════════════════════════════════════════════════════════════════════
   // 无限滚动逻辑

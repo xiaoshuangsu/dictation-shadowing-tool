@@ -100,8 +100,15 @@ const getCurrentTranslation = (
   currentLanguage: string,
   translationsStr?: string
 ): string => {
-  // 🔧 优先使用 translations 字段（19 国语言）
+  // 🔥 V3.2: 优先使用 matched_translation（简单字符串）
   if (translationsStr) {
+    // 检查是否是简单的翻译字符串（非 JSON 对象）
+    if (!translationsStr.startsWith('{') && translationsStr.trim().length > 0) {
+      console.log('[getCurrentTranslation] ✅ 使用 matched_translation:', translationsStr.substring(0, 30))
+      return translationsStr
+    }
+
+    // 🔧 优先使用 translations 字段（19 国语言）
     try {
       const parsedTranslations = JSON.parse(translationsStr);
       if (Object.keys(parsedTranslations).length > 4) {
@@ -133,6 +140,7 @@ const getCurrentTranslation = (
         const key = langMap[currentLanguage] || 'zh';
         const translation = parsedTranslations[key] || parsedTranslations['en'] || parsedTranslations['zh'];
         if (translation) {
+          console.log('[getCurrentTranslation] ✅ 使用 19 国语言翻译:', key, translation.substring(0, 30))
           return translation;
         }
       }
@@ -232,6 +240,87 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
       isInitializedRef.current = true
     }
   }, [])  // 🔥 只在挂载时执行一次，不监听任何依赖
+
+  // 🔥 V3.2: 动态关联释义 - 批量补全缺失的单词数据
+  useEffect(() => {
+    const fetchMissingDefinitions = async () => {
+      if (!dynamicQueue || dynamicQueue.length === 0) return
+
+      // 找出缺少释义的单词
+      const wordsWithoutDefinition = dynamicQueue.filter(w => !w.definition || w.definition === '{}')
+
+      if (wordsWithoutDefinition.length === 0) {
+        console.log('[ReviewOverlay] ✅ 所有单词都有释义，无需补全')
+        return
+      }
+
+      console.log('[ReviewOverlay] 🔄 发现', wordsWithoutDefinition.length, '个单词缺少释义，开始批量补全...')
+      console.log('[ReviewOverlay] 🌍 当前语言偏好:', currentLanguage)
+
+      try {
+        // 🔥 V3.2: 传递目标语言参数
+        const response = await fetch('/api/dictionary-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            words: wordsWithoutDefinition.map(w => w.word),
+            targetLanguage: currentLanguage
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          console.log('[ReviewOverlay] ✅ 批量获取释义成功:', data.hitCount, '个命中,', data.missCount, '个未命中')
+
+          // 合并数据到队列
+          const updatedQueue = dynamicQueue.map(word => {
+            if (!word.definition || word.definition === '{}') {
+              const cached = data.words[word.word.toLowerCase()]
+              if (cached) {
+                console.log('[ReviewOverlay] ✅ 补全单词:', word.word, '| 匹配翻译:', cached.matched_translation || '无')
+
+                // 🔥 V3.2: 优先使用 matched_translation，回退到完整 definitions
+                const translationToUse = cached.matched_translation || ''
+
+                return {
+                  ...word,
+                  phonetic: cached.phonetic || word.phonetic || '',
+                  definition: cached.definitions ? JSON.stringify(cached.definitions) : '{}',
+                  // 🔥 V3.2: 优先使用匹配的翻译，而不是整个 definitions 对象
+                  translations: translationToUse || null,
+                  context_sentence: cached.example || word.context_sentence || '',
+                  dictionary_cache: {
+                    ...word.dictionary_cache,
+                    audio_url_us: cached.audio_url_us || '',
+                    audio_url_uk: cached.audio_url_uk || '',
+                    example: cached.example || '',
+                    // 🔥 V3.2: 保存匹配的翻译
+                    translations: translationToUse || null,
+                    matched_translation: cached.matched_translation || null
+                  }
+                }
+              }
+            }
+            return word
+          })
+
+          setDynamicQueue(updatedQueue)
+          console.log('[ReviewOverlay] ✅ 队列更新完成，已补全', Object.keys(data.words).length, '个单词')
+        } else {
+          console.error('[ReviewOverlay] ❌ 批量获取释义失败:', response.status)
+        }
+      } catch (error) {
+        console.error('[ReviewOverlay] 💥 批量获取释义出错:', error)
+      }
+    }
+
+    // 延迟执行，确保队列已初始化且语言偏好已加载
+    const timeoutId = setTimeout(() => {
+      fetchMissingDefinitions()
+    }, 100)
+
+    return () => clearTimeout(timeoutId)
+  }, [dynamicQueue, currentLanguage]) // 🔥 V3.2: 监听队列和语言变化
 
   // 🔄 同步用户选择的语言偏好
   useEffect(() => {
@@ -576,14 +665,21 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
               <div>
                 {/* 双层释义 */}
                 <div className="mb-6 space-y-2">
-                  {englishDefinition && (
+                  {englishDefinition ? (
                     <p className="text-base text-slate-500 text-center leading-relaxed">
                       {englishDefinition}
                     </p>
-                  )}
-                  {targetTranslation && (
+                  ) : null}
+                  {targetTranslation ? (
                     <p className="text-xl font-bold text-gray-900 text-center leading-relaxed">
                       {targetTranslation}
+                    </p>
+                  ) : null}
+
+                  {/* 🔥 V3.2: 渲染兜底 - 显示"暂无释义" */}
+                  {!englishDefinition && !targetTranslation && (
+                    <p className="text-lg text-gray-400 text-center leading-relaxed italic">
+                      暂无释义
                     </p>
                   )}
                 </div>

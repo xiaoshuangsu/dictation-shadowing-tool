@@ -1,5 +1,45 @@
 # Changelog
 
+## [30.1.1] - 2026-04-09
+
+### Feature
+- **实现 My Words 列表页与 Oxford/IELTS 库的动态释义补全逻辑** 🎯
+  - **问题描述**：修复了新词显示 'Definition in flashcard' 占位符的问题，实现了从 `dictionary_cache` 表实时获取释义的功能。
+  - **实现方案**：
+    - **批量补全 API**：创建 `/api/dictionary-batch` 接口，支持一次性获取多个单词的释义。
+    - **自动触发机制**：列表页加载单词后，自动检测并补全缺失释义的单词。
+    - **性能优化**：批量查询（非逐个请求），减少 API 调用次数。
+  - **修改文件**：
+    - `src/app/api/dictionary-batch/route.ts` - 新增批量获取 API
+    - `src/app/vocabulary/[category]/VocabularyCategoryContent.tsx` - 添加批量补全逻辑
+
+### Feature
+- **增强 /api/dictionary-batch 接口，支持 targetLanguage 参数** 🌍
+  - **问题描述**：复习弹窗显示释义时，忽略了用户的语言偏好设置，总是显示默认语言（英文）。
+  - **实现方案**：
+    - **语言参数传递**：接口接收 `targetLanguage` 参数（如 `zh_hant`、`vi`、`ja` 等）。
+    - **动态匹配翻译**：根据目标语言从 `definitions` JSONB 对象中提取对应翻译。
+    - **语言映射**：前端语言代码（`zh_hant`）映射到数据库字段（`zh-Hant`）。
+    - **返回匹配翻译**：新增 `matched_translation` 字段，直接返回已提取的翻译文本。
+  - **效果**：复习 `advantage` 时，如果用户选择繁体中文，显示「優勢；有利條件」而非英文释义。
+
+### Refactor
+- **统一 ReviewOverlay 与列表页的数据加载机制** ⚡
+  - **复用批量补全逻辑**：复习弹窗和列表页都使用 `/api/dictionary-batch` 接口补全数据。
+  - **优化翻译获取**：`getCurrentTranslation` 函数优先使用 `matched_translation`（简单字符串），回退到完整 19 国语言对象。
+  - **清理占位符**：替换 'Definition in flashcard' 为"暂无释义"。
+
+### Fix
+- **修复语言偏好联动失效问题** 🔧
+  - **问题描述**：素材听写练习页面设置的语言偏好（如繁体中文），在复习弹窗中没有生效。
+  - **修复方案**：
+    - **前端状态透传**：ReviewOverlay 在调用批量补全接口时传递 `currentLanguage`。
+    - **依赖数组更新**：监听 `currentLanguage` 变化，确保语言切换时重新获取翻译。
+    - **跨页面一致性**：列表页和复习页使用相同的语言获取逻辑。
+  - **验证**：确保 My Words 列表页、复习弹窗、素材练习页面的语言显示一致。
+
+---
+
 ## [30.1.0] - 2026-04-09
 
 ### Fix
