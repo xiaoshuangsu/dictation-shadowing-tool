@@ -433,9 +433,40 @@ export async function GET(request: Request) {
         const material = word.material_id ? materialsMap[word.material_id] : null
 
         // 🔥 从 translations 字段提取目标语言的翻译
-        const matchedTranslation = cache.translations?.[targetLanguage] ||
-                                   cache.definitions?.[getLanguageKey(targetLanguage)] ||
-                                   ''
+        // 🔴 优先使用 translations 字段（21 国语言），避免回退到英文
+        let matchedTranslation = ''
+
+        if (cache.translations && typeof cache.translations === 'object') {
+          // 直接从 translations 对象获取目标语言
+          matchedTranslation = cache.translations[targetLanguage] || ''
+
+          // 如果目标语言不存在，尝试常见回退语言（但不是英文）
+          if (!matchedTranslation && targetLanguage !== 'zh') {
+            matchedTranslation = cache.translations['zh'] || cache.translations['zh_hant'] || ''
+          }
+
+          // 最后才回退到英文（作为兜底）
+          if (!matchedTranslation) {
+            matchedTranslation = cache.translations['en'] || ''
+          }
+        }
+
+        // 🔧 如果 translations 字段为空，尝试从旧的 definitions 字段获取
+        if (!matchedTranslation && cache.definitions && typeof cache.definitions === 'object') {
+          const langKey = getLanguageKey(targetLanguage)
+          matchedTranslation = cache.definitions[langKey] || cache.definitions['zh-CN'] || cache.definitions['en'] || ''
+        }
+
+        // 🔴 调试日志：帮助排查翻译匹配问题
+        if (word.word.toLowerCase() === 'hurtle') {
+          console.log('[API] 🐛 HURTLE translation:', {
+            word: word.word,
+            targetLanguage,
+            matchedTranslation,
+            hasTranslations: !!cache.translations,
+            translationsKeys: cache.translations ? Object.keys(cache.translations) : []
+          })
+        }
 
         return {
           ...word,

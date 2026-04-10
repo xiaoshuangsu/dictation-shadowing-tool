@@ -644,12 +644,41 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   // ══════════════════════════════════════════════════════════════════════════════
 
   const fetchMissingDefinitions = async (wordsToCheck: WordEntry[]) => {
-    // 找出缺少释义的单词
-    const wordsWithoutDefinition = wordsToCheck.filter(w => !w.definition || w.definition === '{}')
+    // 🔥 找出需要补全的单词（两种情况）：
+    // 1. definition 为空
+    // 2. matched_translation 为空或为英文（说明 API 没有正确匹配用户语言）
+    const wordsNeedCompletion = wordsToCheck.filter(w => {
+      // 情况1：没有释义
+      if (!w.definition || w.definition === '{}') {
+        return true
+      }
 
-    if (wordsWithoutDefinition.length === 0) {
+      // 情况2：有释义但翻译不匹配用户语言
+      const matchedTrans = w.dictionary_cache?.matched_translation || w.translations || ''
+      const isEnglish = /^[a-zA-Z\s\.,;]+$/.test(matchedTrans) // 简单判断是否为英文
+      const isEmpty = !matchedTrans || matchedTrans.trim() === ''
+
+      // 🔴 如果翻译为空或为英文，需要重新补全（除非用户语言就是英文）
+      if ((isEmpty || isEnglish) && currentLanguage !== 'en') {
+        console.log('[Vocabulary] 🔄 需要补全翻译:', {
+          word: w.word,
+          currentLanguage,
+          matchedTrans,
+          isEmpty,
+          isEnglish
+        })
+        return true
+      }
+
+      return false
+    })
+
+    if (wordsNeedCompletion.length === 0) {
+      console.log('[Vocabulary] ✅ 所有单词翻译已匹配，无需补全')
       return
     }
+
+    console.log('[Vocabulary] 🔄 开始补全', wordsNeedCompletion.length, '个单词的翻译')
 
     try {
       // 批量调用 API 获取释义
