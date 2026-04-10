@@ -59,7 +59,7 @@ interface ReviewOverlayProps {
   onClose: () => void
   startIndex?: number  // 🔥 V4.2: 起始索引（在原始列表中的位置）
   originalLength?: number  // 🔥 V4.2: 原始列表长度（用于进度显示）
-  onReviewComplete?: (masteryStatus: 'learning' | 'familiar' | 'mastered', isOriginallyDue: boolean) => void  // 🔥 V3.3: 乐观更新回调（复习完成时触发，传递模式和原始状态）
+  onReviewComplete?: (update: { dueWordsChange: number, reviewedChange: number }) => void  // 🔥 V4.5: 传递精确的计数更新
   initialDueWordsCount?: number  // 🔥 V3.3: 初始 Today's Review 数量（用于区分复习模式和主动练习）
 }
 
@@ -486,8 +486,46 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
   }
 
   const handleNext = async (masteryStatus?: 'learning' | 'familiar' | 'mastered') => {
-    // 🔥 V4.1: 先提交数据到 API（无论选择什么，Reviewed 都会 +1）
+    // 🔥 V4.5: 计算精确的计数更新
+    let dueWordsChange = 0
+    let reviewedChange = 0
+
     if (masteryStatus && user?.id) {
+      // 判断是复习模式还是主动学习模式
+      const wordNextReviewAt = currentWord.next_review_at
+      const now = new Date()
+      const isOriginallyDue = wordNextReviewAt && new Date(wordNextReviewAt) <= now
+
+      if (isOriginallyDue) {
+        // 🔥 复习模式（消耗任务）
+        if (masteryStatus === 'learning') {
+          // Still Learning：两者都不变
+          dueWordsChange = 0
+          reviewedChange = 0
+        } else {
+          // Kinda Know/Too Easy：Today's Review -1，Reviewed +1
+          dueWordsChange = -1
+          reviewedChange = 1
+        }
+      } else {
+        // 🔥 主动学习（新增任务）
+        if (masteryStatus === 'learning') {
+          // Still Learning：Today's Review +1（将其加入今日待办）
+          dueWordsChange = 1
+          reviewedChange = 0
+        } else {
+          // Kinda Know/Too Easy：Reviewed +1
+          dueWordsChange = 0
+          reviewedChange = 1
+        }
+      }
+
+      // 🔥 V4.5: 先触发乐观更新（立即更新UI）
+      if (onReviewComplete) {
+        onReviewComplete({ dueWordsChange, reviewedChange })
+      }
+
+      // 🔥 V4.5: 然后提交数据到 API
       try {
         const response = await fetch('/api/user-words', {
           method: 'PATCH',
@@ -522,17 +560,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
             undefined,
             { revalidate: true }
           )
-
-          // 🔥 V3.3: 判断并传递复习模式信息给父组件
-          if (onReviewComplete) {
-            // 检查单词的 next_review_at 来判断是"消耗任务"还是"新增任务"
-            const wordNextReviewAt = currentWord.next_review_at
-            const now = new Date()
-            const isOriginallyDue = wordNextReviewAt && new Date(wordNextReviewAt) <= now
-
-            // 🔥 V3.3: 传递模式和原始状态给父组件，由父组件决定是否增加计数
-            onReviewComplete(masteryStatus, isOriginallyDue)
-          }
         }
       } catch (error) {
         // 静默处理错误

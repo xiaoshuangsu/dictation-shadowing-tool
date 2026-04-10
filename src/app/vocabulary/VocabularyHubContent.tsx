@@ -10,7 +10,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import useSWR, { mutate } from 'swr'
 import { useAuth } from '@/lib/hooks/useAuth'
 import Link from 'next/link'
@@ -110,7 +110,18 @@ export function VocabularyHubContent() {
 
   // 🔥 V3.0: 乐观更新状态（本地实时计数）
   const [localReviewedIncrement, setLocalReviewedIncrement] = useState(0)
+  const [localDueWordsIncrement, setLocalDueWordsIncrement] = useState(0)  // 🔥 V4.5: Today's Review 本地增量
   const [isRefreshing, setIsRefreshing] = useState(false)  // 加载状态
+
+  // 🔥 V4.5: 使用 ref 来访问最新的状态值（在回调中）
+  const localReviewedIncrementRef = useRef(localReviewedIncrement)
+  const localDueWordsIncrementRef = useRef(localDueWordsIncrement)
+
+  // 🔥 V4.5: 同步 ref 的值
+  useEffect(() => {
+    localReviewedIncrementRef.current = localReviewedIncrement
+    localDueWordsIncrementRef.current = localDueWordsIncrement
+  })
 
   // 🔥 V3.1: 加载状态与错误提示
   const [isFetchingWords, setIsFetchingWords] = useState(false)
@@ -145,6 +156,7 @@ export function VocabularyHubContent() {
   // 🔥 V3.0: 合并服务器数据和本地乐观更新
   const stats: TodayStats = {
     ...baseStats,
+    dueWords: baseStats.dueWords + localDueWordsIncrement,  // 🔥 V4.5: 合并 Today's Review 增量
     reviewed: baseStats.reviewed + localReviewedIncrement
   }
 
@@ -270,13 +282,32 @@ export function VocabularyHubContent() {
     }, 1500)
   }
 
-  // 🔥 V3.3: 乐观更新回调（区分复习模式和主动练习模式）
-  const handleReviewComplete = (masteryStatus: 'learning' | 'familiar' | 'mastered', isOriginallyDue: boolean) => {
-    // 🔥 V3.3: 只在"主动练习"模式下增加计数
-    // - 复习模式（isOriginallyDue = true）：消耗现有任务，计数不变
-    // - 主动练习（isOriginallyDue = false）：新增任务，计数 +1
-    if (!isOriginallyDue) {
-      setLocalReviewedIncrement(prev => prev + 1)
+  // 🔥 V4.5: 乐观更新回调（接收精确的计数更新）
+  const handleReviewComplete = (update: { dueWordsChange: number, reviewedChange: number }) => {
+    const { dueWordsChange, reviewedChange } = update
+
+    // 🔥 V4.5: 根据更新值调整本地计数
+    if (dueWordsChange !== 0) {
+      setLocalDueWordsIncrement(prev => {
+        const newValue = prev + dueWordsChange
+        console.log('[VocabularyHub] 📊 Today\'s Review 更新:', {
+          change: dueWordsChange,
+          oldValue: prev,
+          newValue
+        })
+        return newValue
+      })
+    }
+    if (reviewedChange !== 0) {
+      setLocalReviewedIncrement(prev => {
+        const newValue = prev + reviewedChange
+        console.log('[VocabularyHub] 📊 Reviewed 更新:', {
+          change: reviewedChange,
+          oldValue: prev,
+          newValue
+        })
+        return newValue
+      })
     }
   }
 
