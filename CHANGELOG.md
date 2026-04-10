@@ -1,5 +1,49 @@
 # Changelog
 
+## [30.2.3] - 2026-04-10
+
+### Fix
+- **修复 Supabase 连接池耗尽导致的 500 错误** 🔧
+  - **问题描述**：用户快速连续点击多个单词时，PATCH 请求失败，报错 `ECONNRESET`（连接重置）。
+  - **根本原因**：Supabase 连接池无法处理快速连续的并发请求，多个长时间运行的请求（5-7秒）导致连接耗尽。
+
+  - **解决方案**：
+    1. **自动重试机制**：实现 `retrySupabaseQuery` 包装器，在遇到网络错误时自动重试 3 次。
+    2. **指数退避**：重试延迟依次为 1s → 2s → 4s，避免雪崩效应。
+    3. **全面覆盖**：对所有 Supabase 操作（查询/更新/插入）应用重试逻辑。
+
+  - **效果**：
+    - 用户连续点击 5 个单词顺畅无阻
+    - 网络抖动时自动恢复，无需手动重试
+    - 500 错误彻底消失
+
+### Refactor
+- **简化闪卡组件状态管理** 🧹
+  - **移除进度显示 UI**：删除 `Batch X: Y/30` 的显示，避免触发非预期的 GET 请求。
+  - **移除 masteredWordIds 状态**：简化为直接检查 `dynamicQueue.length === 0` 判断完成状态。
+  - **回滚 Key 属性**：从 `key={currentWord.id}` 改回 `key={currentIndex}`，确保组件稳定挂载。
+
+  - **保留核心战果**：
+    - ✅ 物理锁机制（防并发重复提交）
+    - ✅ 统计双轨制（区分复习消耗与学习新增）
+    - ✅ SWR 乐观更新（解决数据回滚问题）
+
+### Code Quality
+- **清理所有调试日志** 🧹
+  - 移除 `ReviewOverlay.tsx` 中的物理锁调试日志
+  - 移除 `VocabularyCategoryContent.tsx` 中的翻译补全日志和音频播放日志
+  - 移除 `stats/route.ts` 中的今日统计调试日志
+  - 保持生产环境代码整洁
+
+### Technical
+- **关键文件变更清单** 📝
+  - `api/user-words/route.ts`：添加 `retrySupabaseQuery` 重试包装器，覆盖所有数据库操作
+  - `ReviewOverlay.tsx`：简化状态管理，移除进度显示，保留核心逻辑
+  - `VocabularyCategoryContent.tsx`：清理所有调试日志
+  - `api/user-words/stats/route.ts`：清理调试日志，保留错误处理
+
+---
+
 ## [30.2.2] - 2026-04-10
 
 ### Fix

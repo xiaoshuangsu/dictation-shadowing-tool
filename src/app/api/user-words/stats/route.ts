@@ -81,29 +81,11 @@ export async function GET(request: NextRequest) {
 
     const reviewedToday = reviewedWords.length
 
-    // 🔍 调试日志：打印最近复习的单词
-    if (reviewedWords.length > 0) {
-      console.log('[Stats API] 🔍 今天复习的单词（最近5个）:', reviewedWords.slice(-5).map((w: any) => ({
-        word: w.word,
-        created_at: w.created_at,
-        updated_at: w.updated_at
-      })))
-    }
-
     // 3. New Words Today: 统计今天新添加的单词
     const newWordsToday = userWords?.filter((w: any) => {
       const createdAt = new Date(w.created_at)
       return createdAt >= todayStart
     }).length || 0
-
-    // 🔍 调试日志：打印统计详情
-    console.log('[Stats API] 📊 今日统计:', {
-      userId: userId.substring(0, 8) + '...',
-      dueWords,
-      reviewedToday,
-      newWordsToday,
-      totalWords: userWords?.length || 0
-    })
 
     // 3. Accuracy: 根据掌握状态计算准确率
     // mastered = 100% 正确, familiar = 50% 正确, learning = 0% 正确

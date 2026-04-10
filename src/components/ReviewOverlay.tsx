@@ -225,7 +225,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
 
   // 🔥 V4.1: 动态队列管理
   const [dynamicQueue, setDynamicQueue] = useState<ReviewWord[]>([])
-  const [masteredWordIds, setMasteredWordIds] = useState<Set<string>>(new Set())
 
   // 🔥 V4.5: 使用 useRef 进行即时同步拦截（物理锁）
   const countedForDueWordsRef = useRef<Set<string>>(new Set())  // 追踪已计入待办的词
@@ -239,7 +238,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
     if (words.length > 0) {
       setDynamicQueue(words)
       setCurrentIndex(0)  // 🔥 V4.3: 强制初始化为 0
-      setMasteredWordIds(new Set())
 
       // 🔥 V4.5: 重置 ref（物理锁）
       countedForDueWordsRef.current = new Set()
@@ -360,7 +358,7 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
   const isLastCard = currentIndex === dynamicQueue.length - 1
 
   // 🔥 V4.1: 检查是否所有单词都已掌握
-  const allWordsMastered = masteredWordIds.size === words.length
+  const allWordsMastered = dynamicQueue.length === 0
 
   // 🔥 V4.1: 空值检查 - 防止队列重置时 currentWord 为 undefined
   // 🔥 V3.1: 只检查 currentWord 是否存在，允许 definition 为 null
@@ -597,12 +595,12 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
       setCurrentIndex(nextIndex)
 
     } else if (masteryStatus === 'familiar' || masteryStatus === 'mastered') {
-      // 选择 Kinda Know 或 Too Easy：标记为已掌握
-      setMasteredWordIds(prev => new Set(prev).add(currentWord.id))
+      // 选择 Kinda Know 或 Too Easy：从队列中移除该单词
+      const newQueue = dynamicQueue.filter((_, idx) => idx !== currentIndex)
+      setDynamicQueue(newQueue)
 
-      // 检查是否所有原始单词都已掌握
-      const newMasteredSet = new Set(masteredWordIds).add(currentWord.id)
-      if (newMasteredSet.size === words.length) {
+      // 检查是否所有单词都已掌握
+      if (newQueue.length === 0) {
         setIsCompleted(true)
 
         // 🔥 V4.5: 队列完成，触发统计刷新
@@ -618,10 +616,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
         )
         return
       }
-
-      // 从队列中移除该单词
-      const newQueue = dynamicQueue.filter((_, idx) => idx !== currentIndex)
-      setDynamicQueue(newQueue)
 
       // 重置到第一个单词
       setCurrentIndex(0)
@@ -683,7 +677,7 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
           <div className="bg-white rounded-2xl p-12 shadow-2xl text-center animate-fade-in">
             <h2 className="text-4xl font-bold mb-4">All done! 🎉</h2>
             <p className="text-gray-600 mb-8">
-              {`You've mastered all ${masteredWordIds.size} word${masteredWordIds.size > 1 ? 's' : ''}!`}
+              {`You've mastered all ${words.length} word${words.length > 1 ? 's' : ''}!`}
             </p>
             <button
               onClick={onClose}
@@ -694,12 +688,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
           </div>
         ) : (
           <>
-            <div className="text-center text-white mb-4">
-              <span className="text-lg font-semibold">
-                {startIndex + currentIndex + 1} / {totalWords}
-              </span>
-            </div>
-
         <div className={`relative animate-fade-in-scale`}>
           <div key={currentIndex} className={`flashcard-container ${flipped ? '' : ''}`}>
           {/* 正面：拼写练习 */}

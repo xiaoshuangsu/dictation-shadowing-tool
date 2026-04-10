@@ -120,6 +120,43 @@ const getSupabaseClient = () => {
 }
 
 /**
+ * 🔥 V4.6: Supabase 查询重试包装器
+ * 处理网络连接错误（ECONNRESET）和临时性故障
+ * @param queryFn - Supabase 查询函数
+ * @param maxRetries - 最大重试次数（默认 3）
+ * @param delay - 重试延迟（毫秒，默认 1000ms）
+ */
+async function retrySupabaseQuery<T>(
+  queryFn: () => Promise<T>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<T> {
+  let lastError: any = null
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await queryFn()
+    } catch (error: any) {
+      lastError = error
+      const isNetworkError =
+        error.message?.includes('fetch failed') ||
+        error.message?.includes('ECONNRESET') ||
+        error.code === 'ECONNRESET'
+
+      if (isNetworkError && attempt < maxRetries) {
+        console.warn(`[API] 🔄 网络错误，第 ${attempt} 次重试... (${delay}ms 延迟)`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+        delay *= 2 // 指数退避
+      } else {
+        throw error
+      }
+    }
+  }
+
+  throw lastError
+}
+
+/**
  * 语言代码映射：将前端语言代码映射到数据库字段键
  * 用于从 definitions 字段（旧格式）提取翻译
  */
@@ -705,14 +742,15 @@ export async function PATCH(request: Request) {
     // 🔴 使用函数调用获取客户端
     const supabase = getSupabaseClient()
 
-    // 🔥 V3.0 修复：优先使用单词名称检查（支持从不同词库练习）
-    // 因为 Oxford/IELTS 的 ID 来自 vocabulary_words 表，不能直接用于 user_words 表
-    const { data: existingRecord, error: checkError } = await supabase
-      .from('user_words')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('word', word?.toLowerCase()?.trim())
-      .maybeSingle()
+    // 🔥 V4.6: 使用重试包装器查询现有记录（防止 ECONNRESET）
+    const { data: existingRecord, error: checkError } = await retrySupabaseQuery(async () => {
+      return await supabase
+        .from('user_words')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('word', word?.toLowerCase()?.trim())
+        .maybeSingle()
+    })
 
     let data, error
 
@@ -744,20 +782,21 @@ export async function PATCH(request: Request) {
         nextReviewAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
       }
 
-      // 🔥 V4.5: 幂等性保护 - 使用 existingRecord.id 而不是 wordId
-      // 防止 wordId 不匹配导致更新失败
-      const updateResult = await supabase
-        .from('user_words')
-        .update({
-          mastery_status: masteryStatus,
-          review_level: reviewLevel,
-          next_review_at: nextReviewAt.toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingRecord.id)  // 🔥 V4.5: 使用记录的实际 ID
-        .eq('user_id', userId)
-        .select()
-        .single()
+      // 🔥 V4.6: 使用重试包装器执行更新操作（防止 ECONNRESET）
+      const updateResult = await retrySupabaseQuery(async () => {
+        return await supabase
+          .from('user_words')
+          .update({
+            mastery_status: masteryStatus,
+            review_level: reviewLevel,
+            next_review_at: nextReviewAt.toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingRecord.id)
+          .eq('user_id', userId)
+          .select()
+          .single()
+      })
 
       data = updateResult.data
       error = updateResult.error
@@ -788,20 +827,22 @@ export async function PATCH(request: Request) {
       // 设置初始复习时间（立即到期）
       const nextReviewAt = new Date()
 
-      // 🔥 V3.0 简化插入逻辑：只保留确认存在的字段
-      const insertResult = await supabase
-        .from('user_words')
-        .insert({
-          user_id: userId,
-          word: word?.toLowerCase()?.trim(),
-          mastery_status: masteryStatus,
-          review_level: 0,
-          next_review_at: nextReviewAt.toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single()
+      // 🔥 V4.6: 使用重试包装器执行插入操作（防止 ECONNRESET）
+      const insertResult = await retrySupabaseQuery(async () => {
+        return await supabase
+          .from('user_words')
+          .insert({
+            user_id: userId,
+            word: word?.toLowerCase()?.trim(),
+            mastery_status: masteryStatus,
+            review_level: 0,
+            next_review_at: nextReviewAt.toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+      })
 
       data = insertResult.data
       error = insertResult.error
@@ -837,11 +878,13 @@ export async function PATCH(request: Request) {
       const now = new Date()
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-      // 统计今天复习过的单词数
-      const { data: todayReviews, error: countError } = await supabase
-        .from('user_words')
-        .select('created_at, updated_at')
-        .eq('user_id', userId)
+      // 🔥 V4.6: 使用重试包装器查询今日复习记录（防止 ECONNRESET）
+      const { data: todayReviews, error: countError } = await retrySupabaseQuery(async () => {
+        return await supabase
+          .from('user_words')
+          .select('created_at, updated_at')
+          .eq('user_id', userId)
+      })
 
       if (!countError && todayReviews) {
         const reviewedToday = todayReviews.filter((w: any) => {
@@ -865,12 +908,14 @@ export async function PATCH(request: Request) {
 
         // 如果达成目标，更新 Streak
         if (goalAchieved) {
-          // 获取当前 Streak 和最后更新日期
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('current_streak, last_streak_update')
-            .eq('id', userId)
-            .single()
+          // 🔥 V4.6: 使用重试包装器查询用户 profile（防止 ECONNRESET）
+          const { data: profile } = await retrySupabaseQuery(async () => {
+            return await supabase
+              .from('user_profiles')
+              .select('current_streak, last_streak_update')
+              .eq('id', userId)
+              .single()
+          })
 
           if (profile) {
             const lastUpdate = profile.last_streak_update ? new Date(profile.last_streak_update) : null
@@ -880,13 +925,16 @@ export async function PATCH(request: Request) {
               // 今天未更新过，Streak +1
               const newStreak = (profile.current_streak || 0) + 1
 
-              await supabase
-                .from('user_profiles')
-                .update({
-                  current_streak: newStreak,
-                  last_streak_update: now.toISOString()
-                })
-                .eq('id', userId)
+              // 🔥 V4.6: 使用重试包装器更新 Streak（防止 ECONNRESET）
+              await retrySupabaseQuery(async () => {
+                return await supabase
+                  .from('user_profiles')
+                  .update({
+                    current_streak: newStreak,
+                    last_streak_update: now.toISOString()
+                  })
+                  .eq('id', userId)
+              })
 
               console.log('[API] 🔥 Streak 更新:', {
                 oldStreak: profile.current_streak || 0,

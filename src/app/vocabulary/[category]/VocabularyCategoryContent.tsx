@@ -660,13 +660,6 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
 
       // 🔴 如果翻译为空或为英文，需要重新补全（除非用户语言就是英文）
       if ((isEmpty || isEnglish) && currentLanguage !== 'en') {
-        console.log('[Vocabulary] 🔄 需要补全翻译:', {
-          word: w.word,
-          currentLanguage,
-          matchedTrans,
-          isEmpty,
-          isEnglish
-        })
         return true
       }
 
@@ -674,11 +667,8 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
     })
 
     if (wordsNeedCompletion.length === 0) {
-      console.log('[Vocabulary] ✅ 所有单词翻译已匹配，无需补全')
       return
     }
-
-    console.log('[Vocabulary] 🔄 开始补全', wordsNeedCompletion.length, '个单词的翻译')
 
     try {
       // 批量调用 API 获取释义
@@ -896,10 +886,9 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
       try {
         const audio = new Audio(r2Url)
         await audio.play()
-        console.log(`[音频] R2 音频播放成功 (${word} ${accent.toUpperCase()})`)
         return
       } catch (err) {
-        console.warn(`[音频] R2 音频播放失败 (${word} ${accent.toUpperCase()}):`, err)
+        // 静默处理音频播放失败
       }
     }
 
