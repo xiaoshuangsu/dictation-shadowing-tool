@@ -120,6 +120,36 @@ const getSupabaseClient = () => {
 }
 
 /**
+ * 语言代码映射：将前端语言代码映射到数据库字段键
+ * 用于从 definitions 字段（旧格式）提取翻译
+ */
+function getLanguageKey(lang: string): string {
+  const langMap: Record<string, string> = {
+    'zh': 'zh-CN',
+    'zh_hant': 'zh-Hant',
+    'vi': 'vi',
+    'ja': 'ja',
+    'de': 'de',
+    'es': 'es',
+    'fr': 'fr',
+    'ko': 'ko',
+    'pt': 'pt',
+    'ru': 'ru',
+    'ar': 'ar',
+    'th': 'th',
+    'id': 'id',
+    'ms': 'ms',
+    'tr': 'tr',
+    'el': 'el',
+    'uk': 'uk',
+    'bn': 'bn',
+    'mn': 'mn',
+    'hi': 'hi'
+  }
+  return langMap[lang] || 'zh-CN'
+}
+
+/**
  * GET /api/user-words
  * 获取用户的所有生词（可按掌握状态筛选）
  *
@@ -134,6 +164,7 @@ export async function GET(request: Request) {
     const status = searchParams.get('status')
     const limit = parseInt(searchParams.get('limit') || '100')
     const offset = parseInt(searchParams.get('offset') || '0')
+    const targetLanguage = searchParams.get('targetLanguage') || 'zh'
 
     // 从请求头获取用户 ID（由前端通过 Authorization 传递）
     // 注意：实际生产环境应该验证 JWT token
@@ -177,12 +208,12 @@ export async function GET(request: Request) {
       )
     }
 
-    // 第二步：批量查询 dictionary_cache 获取音频 URL 和标准例句
+    // 第二步：批量查询 dictionary_cache 获取音频 URL、标准例句和翻译
     if (words && words.length > 0) {
       const wordList = words.map(w => w.word)
       const { data: cacheData } = await supabase
         .from('dictionary_cache')
-        .select('word, audio_url_us, audio_url_uk, example, definitions')
+        .select('word, audio_url_us, audio_url_uk, example, definitions, translations')
         .in('word', wordList)
 
       // 创建字典缓存映射
@@ -191,6 +222,7 @@ export async function GET(request: Request) {
         audio_url_uk: string | null
         example: string | null
         definitions: string | null
+        translations: Record<string, string> | null
       }> = {}
       if (cacheData) {
         cacheData.forEach(item => {
@@ -198,7 +230,8 @@ export async function GET(request: Request) {
             audio_url_us: item.audio_url_us,
             audio_url_uk: item.audio_url_uk,
             example: item.example,
-            definitions: item.definitions
+            definitions: item.definitions,
+            translations: item.translations
           }
         })
       }
@@ -394,9 +427,15 @@ export async function GET(request: Request) {
           audio_url_us: null,
           audio_url_uk: null,
           example: null,
-          definitions: null
+          definitions: null,
+          translations: null
         }
         const material = word.material_id ? materialsMap[word.material_id] : null
+
+        // 🔥 从 translations 字段提取目标语言的翻译
+        const matchedTranslation = cache.translations?.[targetLanguage] ||
+                                   cache.definitions?.[getLanguageKey(targetLanguage)] ||
+                                   ''
 
         return {
           ...word,
@@ -404,7 +443,9 @@ export async function GET(request: Request) {
             audio_url_us: cache.audio_url_us,
             audio_url_uk: cache.audio_url_uk,
             example: cache.example,
-            definitions: cache.definitions
+            definitions: cache.definitions,
+            translations: cache.translations,
+            matched_translation: matchedTranslation
           },
           material_info: material ? {
             ...material,

@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     // 批量查询 dictionary_cache
     const { data: cacheData, error } = await supabase
       .from('dictionary_cache')
-      .select('word, phonetic, definitions, example, audio_url_us, audio_url_uk')
+      .select('word, phonetic, definitions, translations, example, audio_url_us, audio_url_uk')
       .in('word', normalizedWords)
 
     if (error) {
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // 🔥 语言映射：将前端语言代码映射到数据库字段
+    // 🔥 语言映射：将前端语言代码映射到数据库字段键（用于 definitions 字段向后兼容）
     const langMap: Record<string, string> = {
       'zh': 'zh-CN',
       'zh_hant': 'zh-Hant',
@@ -100,12 +100,16 @@ export async function POST(request: Request) {
 
     if (cacheData) {
       cacheData.forEach(item => {
-        // 🔥 提取目标语言的翻译
-        const matchedTranslation = item.definitions?.[dbLangKey] || ''
+        // 🔥 优先从 translations 字段（新格式，20+种语言）提取翻译
+        // 降级到 definitions 字段（旧格式，4种语言）以保持向后兼容
+        const matchedTranslation = item.translations?.[targetLanguage] ||
+                                   item.definitions?.[dbLangKey] ||
+                                   ''
 
         wordsMap[item.word] = {
           phonetic: item.phonetic || '',
           definitions: item.definitions || {},
+          translations: item.translations || {},
           example: item.example || '',
           audio_url_us: item.audio_url_us || '',
           audio_url_uk: item.audio_url_uk || '',
