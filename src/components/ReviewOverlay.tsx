@@ -221,10 +221,15 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
   const [currentLanguage, setCurrentLanguage] = useState<string>('zh')
   const [isCompleted, setIsCompleted] = useState(false)
   const [cardDirection, setCardDirection] = useState<'left' | 'right'>('right')
+  const [isSubmitting, setIsSubmitting] = useState(false)  // 🔥 V4.5: 防止重复提交
 
   // 🔥 V4.1: 动态队列管理
   const [dynamicQueue, setDynamicQueue] = useState<ReviewWord[]>([])
   const [masteredWordIds, setMasteredWordIds] = useState<Set<string>>(new Set())
+
+  // 🔥 V4.5: 使用 useRef 进行即时同步拦截（物理锁）
+  const countedForDueWordsRef = useRef<Set<string>>(new Set())  // 追踪已计入待办的词
+  const submittingWordsRef = useRef<Set<string>>(new Set())     // 🔥 追踪正在提交的词（防重复请求）
 
   const inputRef = useRef<HTMLInputElement>(null)
   const isInitializedRef = useRef(false)  // 🔥 V4.2: 跟踪是否已初始化
@@ -235,6 +240,11 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
       setDynamicQueue(words)
       setCurrentIndex(0)  // 🔥 V4.3: 强制初始化为 0
       setMasteredWordIds(new Set())
+
+      // 🔥 V4.5: 重置 ref（物理锁）
+      countedForDueWordsRef.current = new Set()
+      submittingWordsRef.current = new Set()
+
       setIsCompleted(false)
       setFlipped(false)
       setUserInput('')
@@ -486,6 +496,26 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
   }
 
   const handleNext = async (masteryStatus?: 'learning' | 'familiar' | 'mastered') => {
+    // 🔥 V4.5: 物理锁 - 即时同步拦截
+    const wordId = currentWord.id
+
+    // 检查该单词是否正在提交中
+    if (submittingWordsRef.current.has(wordId)) {
+      console.log('[ReviewOverlay] 🔒 [物理锁] 该单词正在提交中，拦截重复请求:', {
+        word: currentWord.word,
+        wordId
+      })
+      return  // 直接返回，不执行任何操作
+    }
+
+    // 立即标记为正在提交（同步操作，不会被绕过）
+    submittingWordsRef.current.add(wordId)
+    console.log('[ReviewOverlay] 🔒 [物理锁] 已锁定单词，防止重复提交:', {
+      word: currentWord.word,
+      wordId,
+      currentLocks: submittingWordsRef.current.size
+    })
+
     // 🔥 V4.5: 计算精确的计数更新
     let dueWordsChange = 0
     let reviewedChange = 0
@@ -510,9 +540,19 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
       } else {
         // 🔥 主动学习（新增任务）
         if (masteryStatus === 'learning') {
-          // Still Learning：Today's Review +1（将其加入今日待办）
-          dueWordsChange = 1
-          reviewedChange = 0
+          // Still Learning：检查 ref 中是否已经计入待办（同步读取）
+          const alreadyCounted = countedForDueWordsRef.current.has(wordId)
+
+          if (!alreadyCounted) {
+            // 第一次点击 Still Learning：Today's Review +1，并标记为已计数
+            dueWordsChange = 1
+            reviewedChange = 0
+            countedForDueWordsRef.current.add(wordId)  // 🔥 同步操作，立即生效
+          } else {
+            // 已经计数过，不再重复 +1
+            dueWordsChange = 0
+            reviewedChange = 0
+          }
         } else {
           // Kinda Know/Too Easy：Reviewed +1
           dueWordsChange = 0
@@ -525,7 +565,7 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
         onReviewComplete({ dueWordsChange, reviewedChange })
       }
 
-      // 🔥 V4.5: 然后提交数据到 API
+      // 🔥 V4.5: 提交数据到 API
       try {
         const response = await fetch('/api/user-words', {
           method: 'PATCH',
@@ -547,22 +587,20 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
 
         if (response.ok) {
           await response.json()
-
-          // 🔥 V4.4: 精准触发首页统计刷新（使用 SWR 数组格式 key）
-          mutate(
-            (key) => {
-              // 匹配数组格式的 key: ['/api/user-words/stats', userId]
-              if (Array.isArray(key) && key.length === 2) {
-                return key[0] === '/api/user-words/stats' && key[1] === user.id
-              }
-              return false
-            },
-            undefined,
-            { revalidate: true }
-          )
         }
       } catch (error) {
         // 静默处理错误
+      } finally {
+        // 🔥 V4.5: 无论成功失败，都释放锁
+        // 使用 setTimeout 确保不会在同一个事件循环中释放
+        setTimeout(() => {
+          submittingWordsRef.current.delete(wordId)
+          console.log('[ReviewOverlay] 🔓 [物理锁] 已释放锁:', {
+            word: currentWord.word,
+            wordId,
+            remainingLocks: submittingWordsRef.current.size
+          })
+        }, 100)  // 100ms 延迟，确保请求已发出
       }
     }
 
@@ -587,6 +625,19 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
       const newMasteredSet = new Set(masteredWordIds).add(currentWord.id)
       if (newMasteredSet.size === words.length) {
         setIsCompleted(true)
+
+        // 🔥 V4.5: 队列完成，触发统计刷新
+        console.log('[ReviewOverlay] 🎉 所有单词已完成，触发统计刷新 [Server Response]')
+        mutate(
+          (key) => {
+            if (Array.isArray(key) && key.length === 2) {
+              return key[0] === '/api/user-words/stats' && key[1] === user.id
+            }
+            return false
+          },
+          undefined,
+          { revalidate: true }
+        )
         return
       }
 

@@ -257,27 +257,29 @@ export function VocabularyHubContent() {
     setDueWordsQueue([])
     setIsRefreshing(true)  // 显示加载状态
 
-    // 🔥 V3.0: 终极修复 - 1500ms 延迟 + 强制忽略缓存
+    // 🔥 V4.5: 延迟刷新统计数据，重置本地计数器
 
     setTimeout(async () => {
       try {
-        // 强制 SWR 重新从服务器拉取，完全忽略缓存
+        // 强制 SWR 重新从服务器拉取
         await mutateStats(
-          undefined,  // 不更新数据
+          undefined,
           {
-            revalidate: true,      // 强制重新验证
-            deduping: false,       // 允许重复请求
-            optimisticData: undefined  // 🔥 不使用乐观数据，强制拉取最新
+            revalidate: true,
+            deduping: false,
+            optimisticData: undefined
           }
         )
 
-        // 在统计数据确认刷新后，再重置本地计数器
+        // 🔥 V4.5: 重置所有本地计数器
+        setLocalDueWordsIncrement(0)
         setLocalReviewedIncrement(0)
       } catch (error) {
         // 即使失败也重置计数器
+        setLocalDueWordsIncrement(0)
         setLocalReviewedIncrement(0)
       } finally {
-        setIsRefreshing(false)  // 隐藏加载状态
+        setIsRefreshing(false)
       }
     }, 1500)
   }
@@ -288,26 +290,10 @@ export function VocabularyHubContent() {
 
     // 🔥 V4.5: 根据更新值调整本地计数
     if (dueWordsChange !== 0) {
-      setLocalDueWordsIncrement(prev => {
-        const newValue = prev + dueWordsChange
-        console.log('[VocabularyHub] 📊 Today\'s Review 更新:', {
-          change: dueWordsChange,
-          oldValue: prev,
-          newValue
-        })
-        return newValue
-      })
+      setLocalDueWordsIncrement(prev => prev + dueWordsChange)
     }
     if (reviewedChange !== 0) {
-      setLocalReviewedIncrement(prev => {
-        const newValue = prev + reviewedChange
-        console.log('[VocabularyHub] 📊 Reviewed 更新:', {
-          change: reviewedChange,
-          oldValue: prev,
-          newValue
-        })
-        return newValue
-      })
+      setLocalReviewedIncrement(prev => prev + reviewedChange)
     }
   }
 

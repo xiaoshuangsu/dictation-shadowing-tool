@@ -414,8 +414,8 @@ export async function GET(request: Request) {
               category: material.category,
               slug: material.slug,
               transcript: transcript,
-              matched_sentence: matchedSentence,
-              matched_index: matchedIndex
+              matched_sentence: matchedSentence || undefined,
+              matched_index: matchedIndex || undefined
             }
           })
         }
@@ -744,6 +744,8 @@ export async function PATCH(request: Request) {
         nextReviewAt = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
       }
 
+      // 🔥 V4.5: 幂等性保护 - 使用 existingRecord.id 而不是 wordId
+      // 防止 wordId 不匹配导致更新失败
       const updateResult = await supabase
         .from('user_words')
         .update({
@@ -752,13 +754,25 @@ export async function PATCH(request: Request) {
           next_review_at: nextReviewAt.toISOString(),
           updated_at: new Date().toISOString()
         })
-        .eq('id', wordId)
+        .eq('id', existingRecord.id)  // 🔥 V4.5: 使用记录的实际 ID
         .eq('user_id', userId)
         .select()
         .single()
 
       data = updateResult.data
       error = updateResult.error
+
+      // 🔥 V4.5: 幂等性检查 - 如果状态相同，视为成功（避免重复更新的错误）
+      if (error && existingRecord.mastery_status === masteryStatus) {
+        console.log('[API] ✅ 幂等性保护：状态已相同，忽略重复更新', {
+          word: existingRecord.word,
+          currentStatus: existingRecord.mastery_status,
+          requestedStatus: masteryStatus
+        })
+        // 返回现有记录，视为成功
+        data = existingRecord
+        error = null
+      }
     } else {
       // 🔥 记录不存在，创建新记录（"练即入库"）
       console.log('[API] ➕ 记录不存在，创建新记录...')
@@ -817,6 +831,78 @@ export async function PATCH(request: Request) {
       created_at: data.created_at,
       updated_at_is_new: new Date(data.updated_at) > new Date(Date.now() - 10000)
     })
+
+    // 🔥 V4.5: 更新 Streak（如果达成每日目标）
+    try {
+      const now = new Date()
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+      // 统计今天复习过的单词数
+      const { data: todayReviews, error: countError } = await supabase
+        .from('user_words')
+        .select('created_at, updated_at')
+        .eq('user_id', userId)
+
+      if (!countError && todayReviews) {
+        const reviewedToday = todayReviews.filter((w: any) => {
+          const updatedAt = new Date(w.updated_at)
+          const createdAt = new Date(w.created_at)
+
+          // 今天更新过且非今天创建，或今天创建且更新时间晚于创建时间
+          return (updatedAt >= todayStart && createdAt < todayStart) ||
+                 (createdAt >= todayStart && updatedAt > createdAt)
+        }).length
+
+        const DAILY_GOAL = 20
+        const goalAchieved = reviewedToday >= DAILY_GOAL
+
+        console.log('[API] 📊 今日统计:', {
+          userId: userId.substring(0, 8) + '...',
+          reviewedToday,
+          goalAchieved,
+          dailyGoal: DAILY_GOAL
+        })
+
+        // 如果达成目标，更新 Streak
+        if (goalAchieved) {
+          // 获取当前 Streak 和最后更新日期
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('current_streak, last_streak_update')
+            .eq('id', userId)
+            .single()
+
+          if (profile) {
+            const lastUpdate = profile.last_streak_update ? new Date(profile.last_streak_update) : null
+            const alreadyUpdatedToday = lastUpdate && lastUpdate >= todayStart
+
+            if (!alreadyUpdatedToday) {
+              // 今天未更新过，Streak +1
+              const newStreak = (profile.current_streak || 0) + 1
+
+              await supabase
+                .from('user_profiles')
+                .update({
+                  current_streak: newStreak,
+                  last_streak_update: now.toISOString()
+                })
+                .eq('id', userId)
+
+              console.log('[API] 🔥 Streak 更新:', {
+                oldStreak: profile.current_streak || 0,
+                newStreak,
+                userId: userId.substring(0, 8) + '...'
+              })
+            } else {
+              console.log('[API] ✅ Streak 今日已更新，跳过')
+            }
+          }
+        }
+      }
+    } catch (streakError) {
+      // Streak 更新失败不影响主流程
+      console.error('[API] ⚠️ Streak 更新失败（非致命）:', streakError)
+    }
 
     return NextResponse.json({
       success: true,
