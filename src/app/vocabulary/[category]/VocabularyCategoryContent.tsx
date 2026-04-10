@@ -153,12 +153,22 @@ function parseDefinition(definitionStr: string): Record<string, string> {
 function getCurrentTranslation(
   definition: string,
   currentLanguage: string,
-  translations?: string
+  translations?: string | Record<string, any> | null
 ): string {
   // 🔧 优先使用 translations 字段（19 国语言）
-  if (translations) {
+  if (translations != null) {
     try {
-      const parsedTranslations = JSON.parse(translations);
+      // 🔴 类型安全：确保 translations 是字符串或对象
+      let parsedTranslations: Record<string, any>
+
+      if (typeof translations === 'string') {
+        parsedTranslations = JSON.parse(translations);
+      } else if (typeof translations === 'object') {
+        parsedTranslations = translations as Record<string, any>;
+      } else {
+        parsedTranslations = {}
+      }
+
       const transKeys = Object.keys(parsedTranslations);
 
       if (transKeys.length > 0) {

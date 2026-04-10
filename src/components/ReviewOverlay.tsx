@@ -100,18 +100,21 @@ const getEnglishDefinition = (definitionStr: string) => {
 const getCurrentTranslation = (
   definitionStr: string,
   currentLanguage: string,
-  translationsStr?: string
+  translationsStr?: string | Record<string, any> | null
 ): string => {
   // 🔥 V3.2: 优先使用 matched_translation（简单字符串）
-  if (translationsStr) {
+  if (translationsStr != null) {
+    // 🔴 类型安全：确保 translationsStr 是字符串
+    const translationsStrStr = String(translationsStr)
+
     // 检查是否是简单的翻译字符串（非 JSON 对象）
-    if (!translationsStr.startsWith('{') && translationsStr.trim().length > 0) {
-      return translationsStr
+    if (!translationsStrStr.startsWith('{') && translationsStrStr.trim().length > 0) {
+      return translationsStrStr
     }
 
     // 🔧 优先使用 translations 字段（19 国语言）
     try {
-      const parsedTranslations = JSON.parse(translationsStr);
+      const parsedTranslations = JSON.parse(translationsStrStr);
       if (Object.keys(parsedTranslations).length > 4) {
         // 这是完整的 19 国语言翻译
         const langMap: Record<string, string> = {
