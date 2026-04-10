@@ -47,11 +47,15 @@ export const getSupabase = () => {
       supabaseUrl,
       supabaseAnonKey,
       {
+        // 🔥 彻底停用 Auth 功能：物理脱离 Supabase Auth 服务
         auth: {
-          storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-          autoRefreshToken: false,  // 🔥 禁用自动刷新，避免超时
-          persistSession: false,    // 🔥 禁用持久化，减少连接压力
-          detectSessionInUrl: false,
+          storage: undefined,          // 不使用任何存储
+          autoRefreshToken: false,     // 完全禁用自动刷新
+          persistSession: false,       // 完全禁用会话持久化
+          detectSessionInUrl: false,   // 不检测 URL 中的 session
+        },
+        db: {
+          schema: 'public',
         },
       }
     )

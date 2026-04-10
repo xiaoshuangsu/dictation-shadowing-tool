@@ -1,18 +1,12 @@
 /**
- * API Route: Topics 素材列表聚合接口（最小化版本）
+ * API Route: Topics 素材列表（物理脱离版本 - 完全硬编码）
  *
- * 特点：
- * - 使用 anon 密钥，无需 service_role
- * - 禁用 Session 校验，直接查询公共数据
- * - 添加 CORS Header
+ * 🔥 物理脱离 Supabase：不依赖任何数据库连接
+ * 所有数据均为硬编码静态 JSON
  */
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
-
-// 分类列表
+// 硬编码分类列表
 const CATEGORIES = [
   { id: '日常生活', label: 'Daily Life' },
   { id: 'Science and Facts', label: 'Science and Facts' },
@@ -30,113 +24,101 @@ const CATEGORIES = [
   { id: 'IELTS Listening', label: 'IELTS Listening' },
 ] as const
 
+// 🔥 硬编码完整静态数据（脱离数据库）
+const STATIC_DATA = {
+  materialsByCategory: {
+    '日常生活': [
+      { id: 'daily-1', title: 'Daily Greeting', category: '日常生活', difficulty: 'A1', audio_path: null, thumbnail_path: null, duration: 120, audio_size: 1024, play_count: 0 },
+      { id: 'daily-2', title: 'Ordering Food', category: '日常生活', difficulty: 'A2', audio_path: null, thumbnail_path: null, duration: 180, audio_size: 2048, play_count: 0 },
+      { id: 'daily-3', title: 'Asking Directions', category: '日常生活', difficulty: 'A2', audio_path: null, thumbnail_path: null, duration: 150, audio_size: 1536, play_count: 0 },
+      { id: 'daily-4', title: 'Weather Conversation', category: '日常生活', difficulty: 'A1', audio_path: null, thumbnail_path: null, duration: 90, audio_size: 900, play_count: 0 },
+    ],
+    'Science and Facts': [
+      { id: 'science-1', title: 'Climate Change Basics', category: 'Science and Facts', difficulty: 'B1', audio_path: null, thumbnail_path: null, duration: 300, audio_size: 4096, play_count: 0 },
+      { id: 'science-2', title: 'Solar System', category: 'Science and Facts', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 420, audio_size: 5120, play_count: 0 },
+    ],
+    'BBC Earth': [
+      { id: 'earth-1', title: 'Planet Earth', category: 'BBC Earth', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 600, audio_size: 8192, play_count: 0 },
+      { id: 'earth-2', title: 'Ocean Life', category: 'BBC Earth', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 540, audio_size: 7168, play_count: 0 },
+    ],
+    '历史演讲': [
+      { id: 'history-1', title: 'I Have a Dream', category: '历史演讲', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 900, audio_size: 10240, play_count: 0 },
+      { id: 'history-2', title: 'Gettysburg Address', category: '历史演讲', difficulty: 'C1', audio_path: null, thumbnail_path: null, duration: 180, audio_size: 2048, play_count: 0 },
+    ],
+    'TED演讲': [
+      { id: 'ted-1', title: 'The Power of Vulnerability', category: 'TED演讲', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 1200, audio_size: 15360, play_count: 0 },
+      { id: 'ted-2', title: 'How Great Leaders Inspire', category: 'TED演讲', difficulty: 'B1', audio_path: null, thumbnail_path: null, duration: 1080, audio_size: 12288, play_count: 0 },
+    ],
+    '文化历史': [
+      { id: 'culture-1', title: 'The Great Wall', category: '文化历史', difficulty: 'B1', audio_path: null, thumbnail_path: null, duration: 480, audio_size: 6144, play_count: 0 },
+      { id: 'culture-2', title: 'Egyptian Pyramids', category: '文化历史', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 540, audio_size: 7168, play_count: 0 },
+    ],
+    '心灵故事': [
+      { id: 'soul-1', title: 'The Giving Tree', category: '心灵故事', difficulty: 'A2', audio_path: null, thumbnail_path: null, duration: 360, audio_size: 4096, play_count: 0 },
+    ],
+    '艺术文化': [
+      { id: 'art-1', title: 'Mona Lisa', category: '艺术文化', difficulty: 'B1', audio_path: null, thumbnail_path: null, duration: 420, audio_size: 5120, play_count: 0 },
+      { id: 'art-2', title: 'Van Gogh', category: '艺术文化', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 480, audio_size: 6144, play_count: 0 },
+    ],
+    '故事': [
+      { id: 'story-1', title: 'Cinderella', category: '故事', difficulty: 'A2', audio_path: null, thumbnail_path: null, duration: 600, audio_size: 7168, play_count: 0 },
+    ],
+    '动画片': [
+      { id: 'cartoon-1', title: 'Disney Classics', category: '动画片', difficulty: 'A1', audio_path: null, thumbnail_path: null, duration: 720, audio_size: 8192, play_count: 0 },
+    ],
+    '人物访谈': [
+      { id: 'interview-1', title: 'Steve Jobs Interview', category: '人物访谈', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 1800, audio_size: 20480, play_count: 0 },
+    ],
+    'BBC Learning English': [
+      { id: 'bbc-1', title: '6 Minute English', category: 'BBC Learning English', difficulty: 'B1', audio_path: null, thumbnail_path: null, duration: 360, audio_size: 4096, play_count: 0 },
+      { id: 'bbc-2', title: 'English at Work', category: 'BBC Learning English', difficulty: 'B1', audio_path: null, thumbnail_path: null, duration: 420, audio_size: 5120, play_count: 0 },
+    ],
+    'VOA Learning English': [
+      { id: 'voa-1', title: 'VOA Slow English', category: 'VOA Learning English', difficulty: 'B1', audio_path: null, thumbnail_path: null, duration: 480, audio_size: 6144, play_count: 0 },
+    ],
+    'IELTS Listening': [
+      { id: 'ielts-1', title: 'IELTS Practice Test 1', category: 'IELTS Listening', difficulty: 'B2', audio_path: null, thumbnail_path: null, duration: 1800, audio_size: 20480, play_count: 0 },
+    ],
+  },
+  categoryCounts: {
+    '日常生活': 4,
+    'Science and Facts': 2,
+    'BBC Earth': 2,
+    '历史演讲': 2,
+    'TED演讲': 2,
+    '文化历史': 2,
+    '心灵故事': 1,
+    '艺术文化': 2,
+    '故事': 1,
+    '动画片': 1,
+    '人物访谈': 1,
+    'BBC Learning English': 2,
+    'VOA Learning English': 1,
+    'IELTS Listening': 1,
+  },
+  categories: CATEGORIES
+}
+
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  // 🔥 断臂求生：硬编码完整兜底数据（包含示例素材）
-  const EMERGENCY_FALLBACK = {
-    materialsByCategory: {
-      '日常生活': [
-        { id: '1', title: 'Daily Conversation - Greeting', category: '日常生活', difficulty: 'A1', audio_path: 'audio/daily/greeting.mp3', thumbnail_path: null, duration: 120 },
-        { id: '2', title: 'Ordering Food at Restaurant', category: '日常生活', difficulty: 'A2', audio_path: 'audio/daily/restaurant.mp3', thumbnail_path: null, duration: 180 },
-      ],
-      'BBC Learning English': [
-        { id: '3', title: 'BBC Learning English - 6 Minute English', category: 'BBC Learning English', difficulty: 'B1', audio_path: 'audio/bbc/6min.mp3', thumbnail_path: null, duration: 360 },
-      ],
+  // 🔥 直接返回硬编码数据，跳过所有数据库查询
+  return NextResponse.json(STATIC_DATA, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=300', // 5分钟缓存
     },
-    categoryCounts: {
-      '日常生活': 2,
-      'Science and Facts': 0,
-      'BBC Earth': 0,
-      '历史演讲': 0,
-      'TED演讲': 0,
-      '文化历史': 0,
-      '心灵故事': 0,
-      '艺术文化': 0,
-      '故事': 0,
-      '动画片': 0,
-      '人物访谈': 0,
-      'BBC Learning English': 1,
-      'VOA Learning English': 0,
-      'IELTS Listening': 0,
-    },
-    categories: CATEGORIES
-  }
-
-  try {
-    // 创建无状态客户端（禁用 auth 功能）
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    })
-
-    // 查询所有素材（公共数据）
-    const { data: allMaterials, error } = await supabase
-      .from('materials')
-      .select('*')
-      .order('category', { ascending: true })
-      .order('title')
-
-    if (error) {
-      console.error('[API Topics] 查询失败，使用兜底数据:', error.message)
-      return NextResponse.json(EMERGENCY_FALLBACK, {
-        status: 200,
-        headers: getCorsHeaders(),
-      })
-    }
-
-    if (!allMaterials || allMaterials.length === 0) {
-      console.warn('[API Topics] 无数据，使用兜底数据')
-      return NextResponse.json(EMERGENCY_FALLBACK, {
-        status: 200,
-        headers: getCorsHeaders(),
-      })
-    }
-
-    // 按分类聚合
-    const materialsByCategory: Record<string, any[]> = {}
-    const categoryCounts: Record<string, number> = {}
-
-    for (const category of CATEGORIES) {
-      const categoryMaterials = allMaterials.filter(m => m.category === category.id)
-      categoryCounts[category.id] = categoryMaterials.length
-      materialsByCategory[category.id] = categoryMaterials.slice(0, 4)
-    }
-
-    return NextResponse.json({
-      materialsByCategory,
-      categoryCounts,
-      categories: CATEGORIES
-    }, {
-      status: 200,
-      headers: getCorsHeaders(),
-    })
-  } catch (error: any) {
-    console.error('[API Topics] 异常，使用兜底数据:', error?.message || error)
-    return NextResponse.json(EMERGENCY_FALLBACK, {
-      status: 200,
-      headers: getCorsHeaders(),
-    })
-  }
+  })
 }
 
-// CORS Headers
-function getCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Cache-Control': 'public, max-age=60',
-  }
-}
-
-// OPTIONS 方法处理 CORS 预检请求
+// OPTIONS 方法
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
-    headers: getCorsHeaders(),
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    },
   })
 }
