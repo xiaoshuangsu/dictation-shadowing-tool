@@ -255,40 +255,41 @@ export function VocabularyHubContent() {
   const handleCloseReview = () => {
     setShowReviewOverlay(false)
     setDueWordsQueue([])
-    setIsRefreshing(true)  // 显示加载状态
 
-    // 🔥 V4.5: 延迟刷新统计数据，重置本地计数器
+    // 🔥 V4.6: 完全移除强制刷新，保留深度乐观更新的数据
+    // SWR 缓存中已经是最新数据（由 handleReviewComplete 更新）
+    // 不需要立即从服务器拉取，避免在 API 返回前覆盖乐观更新
 
-    setTimeout(async () => {
-      try {
-        // 强制 SWR 重新从服务器拉取
-        await mutateStats(
-          undefined,
-          {
-            revalidate: true,
-            deduping: false,
-            optimisticData: undefined
-          }
-        )
-
-        // 🔥 V4.5: 重置所有本地计数器
-        setLocalDueWordsIncrement(0)
-        setLocalReviewedIncrement(0)
-      } catch (error) {
-        // 即使失败也重置计数器
-        setLocalDueWordsIncrement(0)
-        setLocalReviewedIncrement(0)
-      } finally {
-        setIsRefreshing(false)
-      }
-    }, 1500)
+    // 🔥 V4.6: 延迟重置本地计数器（等待 API 返回后自然验证）
+    setTimeout(() => {
+      setLocalDueWordsIncrement(0)
+      setLocalReviewedIncrement(0)
+    }, 5000)  // 5秒后重置，确保 3 秒 API 延迟 + 缓冲时间
   }
 
-  // 🔥 V4.5: 乐观更新回调（接收精确的计数更新）
+  // 🔥 V4.6: 深度乐观更新回调（修复 SWR 数据回滚 Bug）
   const handleReviewComplete = (update: { dueWordsChange: number, reviewedChange: number }) => {
     const { dueWordsChange, reviewedChange } = update
 
-    // 🔥 V4.5: 根据更新值调整本地计数
+    // 🔥 V4.6: 计算更新后的完整统计数据（用于深度乐观更新 SWR 缓存）
+    const newStats: TodayStats = {
+      ...baseStats,
+      dueWords: baseStats.dueWords + localDueWordsIncrementRef.current + dueWordsChange,
+      reviewed: baseStats.reviewed + localReviewedIncrementRef.current + reviewedChange,
+      newWords: baseStats.newWords,
+      accuracy: baseStats.accuracy,
+      streak: baseStats.streak,
+      goalAchieved: baseStats.goalAchieved,
+      dailyGoal: baseStats.dailyGoal
+    }
+
+    // 🔥 V4.6: 深度乐观更新 SWR 缓存（false = 不触发网络请求，防止回滚）
+    mutateStats(
+      { stats: newStats },
+      { revalidate: false }
+    )
+
+    // 🔥 V4.6: 根据更新值调整本地计数（保持 UI 实时响应）
     if (dueWordsChange !== 0) {
       setLocalDueWordsIncrement(prev => prev + dueWordsChange)
     }

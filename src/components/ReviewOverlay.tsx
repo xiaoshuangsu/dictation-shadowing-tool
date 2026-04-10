@@ -263,12 +263,8 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
       const wordsWithoutDefinition = dynamicQueue.filter(w => !w.definition || w.definition === '{}')
 
       if (wordsWithoutDefinition.length === 0) {
-        console.log('[ReviewOverlay] ✅ 所有单词都有释义，无需补全')
         return
       }
-
-      console.log('[ReviewOverlay] 🔄 发现', wordsWithoutDefinition.length, '个单词缺少释义，开始批量补全...')
-      console.log('[ReviewOverlay] 🌍 当前语言偏好:', currentLanguage)
 
       try {
         // 🔥 V3.2: 传递目标语言参数
@@ -283,14 +279,12 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
 
         if (response.ok) {
           const data = await response.json()
-          console.log('[ReviewOverlay] ✅ 批量获取释义成功:', data.hitCount, '个命中,', data.missCount, '个未命中')
 
           // 合并数据到队列
           const updatedQueue = dynamicQueue.map(word => {
             if (!word.definition || word.definition === '{}') {
               const cached = data.words[word.word.toLowerCase()]
               if (cached) {
-                console.log('[ReviewOverlay] ✅ 补全单词:', word.word, '| 匹配翻译:', cached.matched_translation || '无')
 
                 // 🔥 V3.2: 优先使用 matched_translation，回退到完整 definitions
                 const translationToUse = cached.matched_translation || ''
@@ -318,7 +312,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
           })
 
           setDynamicQueue(updatedQueue)
-          console.log('[ReviewOverlay] ✅ 队列更新完成，已补全', Object.keys(data.words).length, '个单词')
         } else {
           console.error('[ReviewOverlay] ❌ 批量获取释义失败:', response.status)
         }
@@ -501,20 +494,11 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
 
     // 检查该单词是否正在提交中
     if (submittingWordsRef.current.has(wordId)) {
-      console.log('[ReviewOverlay] 🔒 [物理锁] 该单词正在提交中，拦截重复请求:', {
-        word: currentWord.word,
-        wordId
-      })
       return  // 直接返回，不执行任何操作
     }
 
     // 立即标记为正在提交（同步操作，不会被绕过）
     submittingWordsRef.current.add(wordId)
-    console.log('[ReviewOverlay] 🔒 [物理锁] 已锁定单词，防止重复提交:', {
-      word: currentWord.word,
-      wordId,
-      currentLocks: submittingWordsRef.current.size
-    })
 
     // 🔥 V4.5: 计算精确的计数更新
     let dueWordsChange = 0
@@ -595,11 +579,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
         // 使用 setTimeout 确保不会在同一个事件循环中释放
         setTimeout(() => {
           submittingWordsRef.current.delete(wordId)
-          console.log('[ReviewOverlay] 🔓 [物理锁] 已释放锁:', {
-            word: currentWord.word,
-            wordId,
-            remainingLocks: submittingWordsRef.current.size
-          })
         }, 100)  // 100ms 延迟，确保请求已发出
       }
     }
@@ -627,7 +606,6 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
         setIsCompleted(true)
 
         // 🔥 V4.5: 队列完成，触发统计刷新
-        console.log('[ReviewOverlay] 🎉 所有单词已完成，触发统计刷新 [Server Response]')
         mutate(
           (key) => {
             if (Array.isArray(key) && key.length === 2) {
