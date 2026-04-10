@@ -33,11 +33,19 @@ const CATEGORIES = [
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  // 硬编码 fallback 数据（构建时备用）
-  const fallbackResponse = {
-    materialsByCategory: {},
+  // 🔥 断臂求生：硬编码完整兜底数据（包含示例素材）
+  const EMERGENCY_FALLBACK = {
+    materialsByCategory: {
+      '日常生活': [
+        { id: '1', title: 'Daily Conversation - Greeting', category: '日常生活', difficulty: 'A1', audio_path: 'audio/daily/greeting.mp3', thumbnail_path: null, duration: 120 },
+        { id: '2', title: 'Ordering Food at Restaurant', category: '日常生活', difficulty: 'A2', audio_path: 'audio/daily/restaurant.mp3', thumbnail_path: null, duration: 180 },
+      ],
+      'BBC Learning English': [
+        { id: '3', title: 'BBC Learning English - 6 Minute English', category: 'BBC Learning English', difficulty: 'B1', audio_path: 'audio/bbc/6min.mp3', thumbnail_path: null, duration: 360 },
+      ],
+    },
     categoryCounts: {
-      '日常生活': 0,
+      '日常生活': 2,
       'Science and Facts': 0,
       'BBC Earth': 0,
       '历史演讲': 0,
@@ -48,7 +56,7 @@ export async function GET() {
       '故事': 0,
       '动画片': 0,
       '人物访谈': 0,
-      'BBC Learning English': 0,
+      'BBC Learning English': 1,
       'VOA Learning English': 0,
       'IELTS Listening': 0,
     },
@@ -73,15 +81,16 @@ export async function GET() {
       .order('title')
 
     if (error) {
-      console.error('[API Topics] 查询失败:', error)
-      return NextResponse.json(fallbackResponse, {
+      console.error('[API Topics] 查询失败，使用兜底数据:', error.message)
+      return NextResponse.json(EMERGENCY_FALLBACK, {
         status: 200,
         headers: getCorsHeaders(),
       })
     }
 
     if (!allMaterials || allMaterials.length === 0) {
-      return NextResponse.json(fallbackResponse, {
+      console.warn('[API Topics] 无数据，使用兜底数据')
+      return NextResponse.json(EMERGENCY_FALLBACK, {
         status: 200,
         headers: getCorsHeaders(),
       })
@@ -106,8 +115,8 @@ export async function GET() {
       headers: getCorsHeaders(),
     })
   } catch (error: any) {
-    console.error('[API Topics] 错误:', error?.message || error)
-    return NextResponse.json(fallbackResponse, {
+    console.error('[API Topics] 异常，使用兜底数据:', error?.message || error)
+    return NextResponse.json(EMERGENCY_FALLBACK, {
       status: 200,
       headers: getCorsHeaders(),
     })

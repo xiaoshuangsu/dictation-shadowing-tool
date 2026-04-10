@@ -49,9 +49,9 @@ export const getSupabase = () => {
       {
         auth: {
           storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true,
+          autoRefreshToken: false,  // 🔥 禁用自动刷新，避免超时
+          persistSession: false,    // 🔥 禁用持久化，减少连接压力
+          detectSessionInUrl: false,
         },
       }
     )
