@@ -133,7 +133,7 @@ R2_AUDIO_PATH_PREFIX = "audio/dictionary"
 EXISTING_LANGUAGES = ['zh', 'zh_hant', 'vi']
 
 # 新增的 16 种语言（分两组，确保稳定性）
-GROUP_A = ['ar', 'de', 'es', 'ja', 'ms', 'ru', 'tr', 'el']  # 8 种
+GROUP_A = ['ar', 'de', 'es', 'fr', 'ja', 'ms', 'ru', 'tr', 'el']  # 9 种（含法语）
 GROUP_B = ['id', 'ko', 'pt', 'th', 'uk', 'bn', 'mn', 'hi']  # 8 种
 
 # 全部 19 种语言（不含 en）
@@ -147,6 +147,7 @@ LANGUAGE_NAMES = {
     'ar': 'العربية',
     'de': 'Deutsch',
     'es': 'Español',
+    'fr': 'Français',
     'ja': '日本語',
     'ms': 'Bahasa Melayu',
     'ru': 'Русский',
@@ -671,6 +672,7 @@ class TranslationEngine:
         'ar': '阿拉伯',
         'de': '德语',
         'es': '西语',
+        'fr': '法语',
         'ja': '日语',
         'ms': '马来',
         'ru': '俄语',
@@ -858,6 +860,157 @@ translation_engine = TranslationEngine()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# 模块 H：智能批量翻译引擎（增量补齐模式）
+# ══════════════════════════════════════════════════════════════════════════════
+
+class SmartTranslationEngine:
+    """
+    智能批量翻译引擎
+
+    支持增量补齐模式：
+    - 只翻译缺失的语言
+    - 智能分批（每批最多 10 种语言）
+    - 断点续传支持
+    """
+
+    def __init__(self, batch_size: int = 10):
+        """
+        初始化智能翻译引擎
+
+        参数:
+            batch_size: 每批翻译的最大语言数量
+        """
+        self.batch_size = batch_size
+        self.base_engine = TranslationEngine()
+        logger.info(f"🧠 SmartTranslationEngine 初始化完成")
+        logger.info(f"   批处理大小: {batch_size} 种语言/批")
+
+    def translate_with_patch_mode(
+        self,
+        word: str,
+        en_definition: str,
+        existing_translations: Dict[str, str]
+    ) -> Dict[str, str]:
+        """
+        增量补齐模式翻译
+
+        参数:
+            word: 单词
+            en_definition: 英文释义
+            existing_translations: 现有翻译字典
+
+        返回:
+            完整翻译字典（包含现有翻译）
+        """
+        # 1. 识别缺失的语言
+        missing_languages = self._get_missing_languages(existing_translations)
+
+        if not missing_languages:
+            logger.debug(f"   ✅ {word} 翻译已完整，跳过")
+            return existing_translations
+
+        logger.info(f"   📝 缺失语言: {len(missing_languages)} 种 - {', '.join(missing_languages[:5])}{'...' if len(missing_languages) > 5 else ''}")
+
+        # 2. 分批翻译
+        merged_translations = existing_translations.copy()
+        batches = self._create_batches(missing_languages, self.batch_size)
+
+        for batch_idx, batch_languages in enumerate(batches, 1):
+            logger.info(f"   🔄 批次 {batch_idx}/{len(batches)}: {len(batch_languages)} 种语言")
+
+            try:
+                # 调用基础翻译引擎
+                batch_result = self._translate_batch_with_retry(
+                    word, en_definition, batch_languages, batch_idx
+                )
+
+                # 合并结果
+                merged_translations.update(batch_result)
+                logger.info(f"   ✅ 批次 {batch_idx} 完成")
+
+                # 批次间冷却（避免 Rate Limit）
+                if batch_idx < len(batches):
+                    time.sleep(1.5)
+
+            except Exception as e:
+                logger.error(f"   ❌ 批次 {batch_idx} 失败: {e}")
+                # 继续处理下一批次（降级策略）
+
+        return merged_translations
+
+    def _get_missing_languages(self, existing: Dict[str, str]) -> List[str]:
+        """
+        识别缺失的语言
+
+        参数:
+            existing: 现有翻译字典
+
+        返回:
+            缺失的语言列表
+        """
+        existing_keys = set(existing.keys())
+        standard_keys = set(ALL_19_LANGUAGES)
+        missing = standard_keys - existing_keys
+        return sorted(list(missing))
+
+    def _create_batches(self, languages: List[str], batch_size: int) -> List[List[str]]:
+        """
+        创建批次
+
+        参数:
+            languages: 语言列表
+            batch_size: 批次大小
+
+        返回:
+            批次列表
+        """
+        batches = []
+        for i in range(0, len(languages), batch_size):
+            batch = languages[i:i + batch_size]
+            batches.append(batch)
+        return batches
+
+    def _translate_batch_with_retry(
+        self,
+        word: str,
+        en_definition: str,
+        target_languages: List[str],
+        batch_idx: int
+    ) -> Dict[str, str]:
+        """
+        带重试的批量翻译
+
+        参数:
+            word: 单词
+            en_definition: 英文释义
+            target_languages: 目标语言列表
+            batch_idx: 批次索引（用于日志）
+
+        返回:
+            翻译字典
+        """
+        max_retries = 3
+
+        for attempt in range(1, max_retries + 1):
+            try:
+                # 直接调用基础引擎的 API
+                result = self.base_engine._call_glm_api(word, en_definition, target_languages)
+                return result
+
+            except Exception as e:
+                if attempt < max_retries:
+                    backoff = 2.0 ** (attempt - 1)
+                    logger.warning(f"   ⚠️  批次 {batch_idx} 重试 {attempt}/{max_retries}: {e}")
+                    logger.warning(f"   ⏱️  等待 {backoff:.1f} 秒...")
+                    time.sleep(backoff)
+                else:
+                    logger.error(f"   ❌ 批次 {batch_idx} 最终失败: {e}")
+                    return {}
+
+        return {}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # 模块 D：Edge TTS 音频生成
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -987,6 +1140,245 @@ def save_to_cache(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# 模块 G：断点续传与进度报告
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CheckpointManager:
+    """
+    断点续传管理器
+
+    保存和恢复处理进度，支持中断后继续
+    """
+
+    def __init__(self, checkpoint_file: str):
+        """
+        初始化检查点管理器
+
+        参数:
+            checkpoint_file: 检查点文件路径
+        """
+        self.checkpoint_file = Path(checkpoint_file)
+        self.checkpoint_file.parent.mkdir(exist_ok=True, parents=True)
+        self.data = self._load_checkpoint()
+
+    def _load_checkpoint(self) -> Dict:
+        """加载检查点文件"""
+        if self.checkpoint_file.exists():
+            try:
+                with open(self.checkpoint_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                logger.info(f"✅ 加载检查点: {self.checkpoint_file}")
+                return data
+            except Exception as e:
+                logger.warning(f"⚠️  检查点文件损坏，重新创建: {e}")
+                return self._create_empty_checkpoint()
+        else:
+            return self._create_empty_checkpoint()
+
+    def _create_empty_checkpoint(self) -> Dict:
+        """创建空的检查点数据"""
+        return {
+            'processed_words': [],
+            'failed_words': [],
+            'last_word': None,
+            'timestamp': None,
+            'statistics': {
+                'success': 0,
+                'failed': 0,
+                'skipped': 0
+            }
+        }
+
+    def save_checkpoint(self, word: str, status: str):
+        """
+        保存检查点
+
+        参数:
+            word: 当前处理的单词
+            status: 状态 ('success', 'failed', 'skipped')
+        """
+        if status == 'success':
+            if word not in self.data['processed_words']:
+                self.data['processed_words'].append(word)
+            self.data['statistics']['success'] = len(self.data['processed_words'])
+        elif status == 'failed':
+            if word not in self.data['failed_words']:
+                self.data['failed_words'].append(word)
+            self.data['statistics']['failed'] = len(self.data['failed_words'])
+        elif status == 'skipped':
+            self.data['statistics']['skipped'] += 1
+
+        self.data['last_word'] = word
+        self.data['timestamp'] = datetime.now().isoformat()
+
+        try:
+            with open(self.checkpoint_file, 'w', encoding='utf-8') as f:
+                json.dump(self.data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.error(f"❌ 保存检查点失败: {e}")
+
+    def is_processed(self, word: str) -> bool:
+        """
+        检查单词是否已处理
+
+        参数:
+            word: 单词
+
+        返回:
+            是否已处理
+        """
+        return word in self.data['processed_words']
+
+    def get_resume_position(self, words: List[str]) -> int:
+        """
+        获取恢复位置
+
+        参数:
+            words: 单词列表
+
+        返回:
+            恢复索引（0 表示从头开始）
+        """
+        if not self.data['last_word']:
+            return 0
+
+        try:
+            idx = words.index(self.data['last_word'])
+            return idx + 1
+        except ValueError:
+            return 0
+
+    def get_statistics(self) -> Dict:
+        """获取统计信息"""
+        return self.data['statistics']
+
+
+class ProgressReporter:
+    """
+    进度报告器
+
+    定期输出处理进度汇总
+    """
+
+    def __init__(self, total: int, report_interval: int, silent: bool = False):
+        """
+        初始化进度报告器
+
+        参数:
+            total: 总单词数
+            report_interval: 报告间隔（单词数）
+            silent: 是否静默模式
+        """
+        self.total = total
+        self.report_interval = report_interval
+        self.silent = silent
+        self.success = 0
+        self.failed = 0
+        self.skipped = 0
+        self.start_time = time.time()
+
+    def update(self, status: str):
+        """
+        更新计数
+
+        参数:
+            status: 状态 ('success', 'failed', 'skipped')
+        """
+        if status == 'success':
+            self.success += 1
+        elif status == 'failed':
+            self.failed += 1
+        elif status == 'skipped':
+            self.skipped += 1
+
+    def maybe_report(self, current: int, word: str = ''):
+        """
+        定期报告进度
+
+        参数:
+            current: 当前处理索引（1-based）
+            word: 当前单词（可选）
+        """
+        if current % self.report_interval == 0 or current == self.total:
+            self._report(current, word)
+
+    def _report(self, current: int, word: str):
+        """输出进度报告"""
+        elapsed = time.time() - self.start_time
+        avg_time = elapsed / current if current > 0 else 0
+        remaining = (self.total - current) * avg_time if current > 0 else 0
+
+        # 静默模式：简化输出
+        if self.silent:
+            logger.info(
+                f"📊 进度: {current}/{self.total} | "
+                f"✅ {self.success} | ❌ {self.failed} | ⏭️ {self.skipped} | "
+                f"⏱️ {remaining/60:.1f}分钟剩余"
+            )
+        else:
+            logger.info("-" * 70)
+            logger.info(f"📊 进度报告 [{current}/{self.total}]")
+            if word:
+                logger.info(f"   当前单词: {word}")
+            logger.info(f"   ✅ 成功: {self.success}")
+            logger.info(f"   ❌ 失败: {self.failed}")
+            logger.info(f"   ⏭️ 跳过: {self.skipped}")
+            logger.info(f"   ⏱️  已用时: {elapsed/60:.1f} 分钟")
+            logger.info(f"   📈 剩余: {remaining/60:.1f} 分钟")
+            logger.info("-" * 70)
+
+    def final_report(self):
+        """输出最终报告"""
+        elapsed = time.time() - self.start_time
+        logger.info("")
+        logger.info("=" * 70)
+        logger.info("📊 最终统计")
+        logger.info("=" * 70)
+        logger.info(f"✅ 成功: {self.success}/{self.total}")
+        logger.info(f"❌ 失败: {self.failed}")
+        logger.info(f"⏭️ 跳过: {self.skipped}")
+        logger.info(f"⏱️  总耗时: {elapsed/60:.1f} 分钟")
+        logger.info(f"📈 平均速度: {elapsed/self.total:.1f} 秒/词" if self.total > 0 else "")
+
+
+class SilentModeLogger:
+    """
+    静默模式日志控制器
+
+    在静默模式下减少日志输出
+    """
+
+    def __init__(self, enabled: bool = False):
+        """
+        初始化静默模式控制器
+
+        参数:
+            enabled: 是否启用静默模式
+        """
+        self.enabled = enabled
+        self.original_level = None
+
+    def enable(self):
+        """启用静默模式"""
+        if self.enabled and self.original_level is None:
+            self.original_level = logger.level
+            logger.setLevel(logging.WARNING)
+
+    def disable(self):
+        """禁用静默模式"""
+        if self.enabled and self.original_level is not None:
+            logger.setLevel(self.original_level)
+            self.original_level = None
+
+    def __enter__(self):
+        self.enable()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.disable()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # 主函数
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -998,15 +1390,208 @@ def main():
     )
     parser.add_argument('--test', action='store_true', help='测试模式（3 个单词）')
     parser.add_argument('--oxford', action='store_true', help='使用 Oxford 3000 数据源')
+    parser.add_argument('--all', action='store_true', help='处理所有 dictionary_cache 表中的单词')
     parser.add_argument('--limit', type=int, default=3, help='单词数量限制')
     parser.add_argument('--only-audio', action='store_true', help='仅补录音频（跳过已存在 R2 链接的条目）')
     parser.add_argument('--delay', type=float, default=0.5, help='TTS 请求间隔秒数（避免限流）')
+    parser.add_argument('--patch-mode', action='store_true', help='增量补齐模式：只更新缺失的语言')
+    parser.add_argument('--silent', action='store_true', help='静默模式：减少日志输出')
+    parser.add_argument('--batch-size', type=int, default=10, help='每批翻译的语言数量（默认：10，推荐：8-10）')
+    parser.add_argument('--checkpoint-file', type=str, default='scripts/patch_checkpoint.json', help='断点续传文件路径')
+    parser.add_argument('--report-interval', type=int, default=50, help='进度报告间隔（单词数，默认：50）')
     args = parser.parse_args()
 
     print("=" * 70)
     print("词典缓存预生成脚本 V3.0")
     print("=" * 70)
     print()
+
+    # 增量补齐模式
+    if args.patch_mode:
+        logger.info("🔧 增量补齐模式")
+        logger.info("-" * 70)
+
+        # 初始化组件
+        checkpoint_manager = CheckpointManager(args.checkpoint_file)
+        progress_reporter = ProgressReporter(
+            total=0,  # 会在分析后更新
+            report_interval=args.report_interval,
+            silent=args.silent
+        )
+        silent_mode = SilentModeLogger(enabled=args.silent)
+
+        # 启用静默模式
+        silent_mode.enable()
+
+        # 分析单词翻译状态
+        logger.info("[步骤 1/4] 分析单词翻译状态...")
+        response_all = supabase.table('dictionary_cache').select('word', 'translations').not_.is_('translations', 'null').execute()
+
+        all_words_data = response_all.data
+        all_words = [w['word'] for w in all_words_data]
+        logger.info(f"📊 总单词数: {len(all_words)}")
+
+        incomplete_words = []
+        complete_words = []
+
+        for word_entry in all_words_data:
+            word = word_entry['word']
+            translations_raw = word_entry.get('translations')
+
+            try:
+                if isinstance(translations_raw, str):
+                    translations = json.loads(translations_raw)
+                elif isinstance(translations_raw, dict):
+                    translations = translations_raw
+                else:
+                    continue
+
+                if translations is None:
+                    continue
+
+                existing_keys = set(translations.keys())
+                standard_keys = set(ALL_19_LANGUAGES)
+                missing_keys = standard_keys - existing_keys
+
+                if len(missing_keys) > 0:
+                    incomplete_words.append({
+                        'word': word,
+                        'existing_keys': existing_keys,
+                        'missing_keys': sorted(list(missing_keys)),
+                        'translations': translations
+                    })
+                else:
+                    complete_words.append({
+                        'word': word,
+                        'translations': translations
+                    })
+
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                continue
+
+        logger.info(f"✅ 翻译不全: {len(incomplete_words)} 个")
+        logger.info(f"✅ 翻译完整（缺法语）: {len(complete_words)} 个")
+
+        # 创建补齐计划
+        logger.info("[步骤 2/4] 创建补齐计划...")
+
+        patch_plan = []
+
+        # 逻辑 A：翻译不全的单词，补齐所有缺失语言
+        for word_info in incomplete_words:
+            patch_plan.append({
+                'word': word_info['word'],
+                'existing_translations': word_info['translations'],
+                'target_languages': word_info['missing_keys'],
+                'mode': '补齐缺失',
+                'missing_count': len(word_info['missing_keys'])
+            })
+
+        # 逻辑 B：翻译完整的单词，只补法语
+        for word_info in complete_words:
+            if 'fr' not in word_info['translations']:
+                patch_plan.append({
+                    'word': word_info['word'],
+                    'existing_translations': word_info['translations'],
+                    'target_languages': ['fr'],
+                    'mode': '补齐法语',
+                    'missing_count': 1
+                })
+
+        logger.info(f"📋 补齐计划: {len(patch_plan)} 个单词")
+        logger.info(f"   - 翻译不全: {len(incomplete_words)} 个")
+        logger.info(f"   - 补法语: {len(complete_words)} 个")
+
+        # 测试模式限制
+        if args.test:
+            logger.info(f"⚠️  测试模式: 只处理前 {args.limit} 个单词")
+            patch_plan = patch_plan[:args.limit]
+
+        # 更新进度报告器
+        progress_reporter.total = len(patch_plan)
+
+        # 获取恢复位置
+        resume_idx = checkpoint_manager.get_resume_position([p['word'] for p in patch_plan])
+        if resume_idx > 0:
+            logger.info(f"🔄 从第 {resume_idx + 1} 个单词恢复处理")
+
+        # 初始化智能翻译引擎
+        smart_engine = SmartTranslationEngine(batch_size=args.batch_size)
+
+        # 执行补齐
+        logger.info("[步骤 3/4] 执行增量补齐...")
+        logger.info("-" * 70)
+
+        # 禁用静默模式以显示处理详情
+        silent_mode.disable()
+
+        for idx, task in enumerate(patch_plan[resume_idx:], start=resume_idx + 1):
+            word = task['word']
+            existing_translations = task['existing_translations']
+            target_languages = task['target_languages']
+            mode = task['mode']
+
+            # 检查是否已处理
+            if checkpoint_manager.is_processed(word):
+                logger.info(f"\n[{idx}/{len(patch_plan)}] ⏭️ {word} (已处理，跳过)")
+                progress_reporter.update('skipped')
+                progress_reporter.maybe_report(idx, word)
+                continue
+
+            # 重新启用静默模式（如果不是报告时间）
+            if not args.silent or idx % args.report_interval != 0:
+                silent_mode.enable()
+
+            logger.info(f"\n[{idx}/{len(patch_plan)}] {word} ({mode})")
+            logger.info(f"   缺失: {len(target_languages)} 种语言")
+
+            try:
+                # 获取英文释义
+                response = supabase.table('dictionary_cache').select('definitions').eq('word', word).execute()
+                en_definition = word  # 默认值
+
+                if response.data:
+                    definitions = response.data[0].get('definitions', {})
+                    if isinstance(definitions, str):
+                        definitions = json.loads(definitions)
+                    en_definition = definitions.get('en', word)
+
+                # 智能补齐翻译
+                updated_translations = smart_engine.translate_with_patch_mode(
+                    word, en_definition, existing_translations
+                )
+
+                # 更新数据库
+                update_response = supabase.table('dictionary_cache').update({
+                    'translations': updated_translations
+                }).eq('word', word).execute()
+
+                if update_response.data:
+                    logger.info(f"   ✅ 补齐成功")
+                    checkpoint_manager.save_checkpoint(word, 'success')
+                    progress_reporter.update('success')
+                else:
+                    logger.error(f"   ❌ 数据库更新失败")
+                    checkpoint_manager.save_checkpoint(word, 'failed')
+                    progress_reporter.update('failed')
+
+            except Exception as e:
+                logger.error(f"   ❌ 处理失败: {e}")
+                checkpoint_manager.save_checkpoint(word, 'failed')
+                progress_reporter.update('failed')
+
+            # 进度报告
+            progress_reporter.maybe_report(idx, word)
+
+            # 延迟
+            time.sleep(0.5)
+
+        # 最终报告
+        progress_reporter.final_report()
+
+        logger.info("[步骤 4/4] 补齐完成")
+        logger.info(f"📁 检查点文件: {args.checkpoint_file}")
+        return
 
     # 创建临时音频目录
     temp_audio_dir = Path('/tmp/dictation_word_audio')
