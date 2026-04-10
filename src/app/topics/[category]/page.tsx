@@ -5,6 +5,9 @@ import { CATEGORY_SLUG_MAP } from '@/lib/utils/category'
 import { Metadata } from 'next'
 import CategoryPage from '@/components/topics/CategoryPage'
 
+// 🔴 强制动态渲染：避免构建时查询数据库
+export const dynamic = 'force-dynamic'
+
 // 🔴 关键修复：从共享配置导入凭证，避免重复定义
 const SUPABASE_CONFIG = {
   url: 'https://cuxotlijjnxbsirpdkgr.supabase.co',

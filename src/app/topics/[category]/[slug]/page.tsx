@@ -5,6 +5,9 @@ import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
 import type { Metadata } from 'next'
 
+// 🔴 强制动态渲染：避免构建时查询数据库
+export const dynamic = 'force-dynamic'
+
 // 🔴 关键修复：从共享配置导入凭证，避免重复定义
 // TODO: 考虑将这些凭证移到 .env.local 或独立的配置文件
 const SUPABASE_CONFIG = {

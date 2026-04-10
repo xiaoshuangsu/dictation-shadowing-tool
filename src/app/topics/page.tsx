@@ -2,6 +2,9 @@ import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { MaterialsPageContent } from '../TopicsContent'
 
+// 🔴 强制动态渲染：避免构建时查询数据库
+export const dynamic = 'force-dynamic'
+
 // 🔴 SEO 优化：Topics 列表页元数据
 export const metadata: Metadata = {
   title: 'Explore English Practice Materials - ShadowHub Library',

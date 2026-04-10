@@ -33,10 +33,25 @@ const CATEGORIES = [
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  // 默认响应
-  const defaultResponse = {
+  // 硬编码 fallback 数据（构建时备用）
+  const fallbackResponse = {
     materialsByCategory: {},
-    categoryCounts: {},
+    categoryCounts: {
+      '日常生活': 0,
+      'Science and Facts': 0,
+      'BBC Earth': 0,
+      '历史演讲': 0,
+      'TED演讲': 0,
+      '文化历史': 0,
+      '心灵故事': 0,
+      '艺术文化': 0,
+      '故事': 0,
+      '动画片': 0,
+      '人物访谈': 0,
+      'BBC Learning English': 0,
+      'VOA Learning English': 0,
+      'IELTS Listening': 0,
+    },
     categories: CATEGORIES
   }
 
@@ -59,14 +74,14 @@ export async function GET() {
 
     if (error) {
       console.error('[API Topics] 查询失败:', error)
-      return NextResponse.json(defaultResponse, {
+      return NextResponse.json(fallbackResponse, {
         status: 200,
         headers: getCorsHeaders(),
       })
     }
 
     if (!allMaterials || allMaterials.length === 0) {
-      return NextResponse.json(defaultResponse, {
+      return NextResponse.json(fallbackResponse, {
         status: 200,
         headers: getCorsHeaders(),
       })
@@ -92,7 +107,7 @@ export async function GET() {
     })
   } catch (error: any) {
     console.error('[API Topics] 错误:', error?.message || error)
-    return NextResponse.json(defaultResponse, {
+    return NextResponse.json(fallbackResponse, {
       status: 200,
       headers: getCorsHeaders(),
     })
