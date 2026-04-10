@@ -1,5 +1,61 @@
 # Changelog
 
+## [30.2.0] - 2026-04-10
+
+### Feature
+- **21国语言词典满血版** 🌍
+  - **词库全量补全**：通过 AI 自动化脚本完成了 1000 个高频单词的补全，目前每个单词均支持 21 种语言（含新增的法语 fr）。
+  - **支持语言列表**：
+    - 英语 (en)
+    - 亚太地区：简中 (zh)、繁中 (zh_hant)、越南语 (vi)、日语 (ja)、韩语 (ko)、印尼语 (id)、马来语 (ms)、泰语 (th)、孟加拉语 (bn)
+    - 欧洲地区：法语 (fr)、德语 (de)、西班牙语 (es)、葡萄牙语 (pt)、俄语 (ru)、乌克兰语 (uk)、波兰语 (pl)、希腊语 (el)、土耳其语 (tr)
+    - 中东地区：阿拉伯语 (ar)
+    - 南亚地区：印地语 (hi)
+    - 其他：蒙古语 (mn)
+
+### Refactor
+- **API 架构重构** 🏗️
+  - **重构范围**：`/api/user-words` 和 `/api/dictionary-batch`
+  - **数据源迁移**：从旧的 `definitions` 字段（仅 4 语：en, zh-CN, zh-Hant, vi）切换至全新的 JSONB `translations` 字段（21 语）
+  - **智能匹配**：新增 `matched_translation` 逻辑，根据用户语言偏好实时返回精准翻译
+  - **向后兼容**：保留对 `definitions` 字段的降级支持，确保旧数据正常显示
+
+### Optimization
+- **健壮性修复** 🛡️
+  - **API Token 溢出问题**：解决了长单词多语言请求导致的 API Token 溢出问题
+  - **断点续传机制**：引入了 Checkpoint 断点续传机制，支持大规模数据处理任务中断恢复
+  - **分批处理**：智能分批翻译（Batch Size 10），避免 API 限流和超时
+  - **静默运行模式**：生产环境支持静默日志输出，减少性能开销
+
+### Technical
+- **数据库同步** 🔄
+  - 实现了 `dictionary_cache` 母库与 `user_words` 生词表的自动化数据对齐
+  - 前端现在直接从 `dictionary_cache.translations` 获取最新翻译，无需额外同步步骤
+
+- **前端集成** 💻
+  - 生词页面（My Words）和复习弹窗（Review Overlay）现在能完美展示日语、繁中等 20+ 种语言
+  - 彻底解决了"回退到英语释义"的黄框显示问题
+  - 支持实时语言切换，无需刷新页面
+
+- **自动化脚本** 🤖
+  - 新增 `scripts/prepopulate_dictionary_cache_v3.py`，支持分批处理（Batch Size 10）和静默运行模式
+  - 新增 `scripts/PATCH_DEPLOYMENT_GUIDE.md`，完整的部署和监控指南
+  - 实现增量补齐模式，只翻译缺失的语言，大幅提升效率
+  - 成功处理 1000 个单词，成功率 100%，总耗时约 2 小时
+
+### Performance
+- **翻译速度优化** ⚡
+  - 批量查询优化：从逐个查询改为批量查询，减少 API 调用次数
+  - 缓存机制：`dictionary_cache` 表作为翻译缓存中心，避免重复翻译
+  - 智能降级：优先使用 21 语言翻译，缺失时自动降级到 4 语言翻译
+
+### Documentation
+- **部署指南** 📚
+  - 新增 `PATCH_DEPLOYMENT_GUIDE.md`，包含完整的测试、部署、监控和验证步骤
+  - 提供故障排除指南和性能指标参考
+
+---
+
 ## [30.1.3] - 2026-04-10
 
 ### Feature
