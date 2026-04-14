@@ -77,10 +77,7 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
 
   // R2 URL 配置（统一使用 Worker 代理）
   const R2_WORKER_URL = 'https://media.shadowhub.app'
-  const SUPABASE_URL = 'https://cuxotlijjnxbsirpdkgr.supabase.co'
-
-  // 🔴 开发环境检测
-  const isDevelopment = process.env.NODE_ENV === 'development'
+  // 🔥 物理脱离 Supabase：移除 SUPABASE_URL，不再使用 Supabase Storage
 
   // 获取缩略图 URL
   const getThumbnailUrl = (path: string | null) => {
@@ -103,15 +100,6 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
       return path
     }
     return `${R2_WORKER_URL}/${path}`
-  }
-
-  // 获取 Supabase fallback URL
-  const getSupabaseUrl = (path: string | null) => {
-    if (!path) return null
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      return path
-    }
-    return `${SUPABASE_URL}/storage/v1/object/public/engnovate-audio/${path}`
   }
 
   // 格式化文件大小
@@ -186,7 +174,7 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
   }
 
   const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
-  const supabaseUrl = getSupabaseUrl(material.thumbnail_path)
+  // 🔥 物理脱离 Supabase：移除 supabaseUrl
 
   // 🔴 关键优化：使用回调函数预加载下一批图片
   const preloadNextBatch = useCallback(() => {
@@ -207,15 +195,9 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget
-    const currentSrc = img.src
-
-    // 如果当前是 R2 URL，尝试 Supabase Storage
-    if (currentSrc.includes('r2-proxy') && supabaseUrl) {
-      img.src = supabaseUrl
-    } else {
-      // 都失败了，隐藏图片，显示占位符
-      img.style.display = 'none'
-    }
+    // 🔥 物理脱离 Supabase：不再 fallback 到 Supabase Storage
+    // 直接隐藏图片，显示占位符
+    img.style.display = 'none'
   }
 
   // 🔴 清理音频资源

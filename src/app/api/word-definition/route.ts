@@ -105,11 +105,11 @@ export async function POST(request: Request) {
     const supabase = getSupabaseClient()
 
     // ============================================
-    // 第一步：查询缓存
+    // 第一步：查询缓存（只选择必要字段）
     // ============================================
     const { data: cachedData, error: cacheError } = await supabase
       .from('dictionary_cache')
-      .select('*')
+      .select('word, phonetic, translations, definitions, example, audio_r2_url, audio_url_us, audio_url_uk, hit_count')  // 🔥 优化：只查询必要字段
       .eq('word', normalizedWord)
       .single()
 

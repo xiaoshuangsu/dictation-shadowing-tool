@@ -220,10 +220,10 @@ export async function GET(request: Request) {
     // 🔴 使用函数调用获取客户端
     const supabase = getSupabaseClient()
 
-    // 第一步：查询 user_words
+    // 第一步：查询 user_words（只选择必要字段，减少流量）
     let query = supabase
       .from('user_words')
-      .select('*')
+      .select('id, user_id, word, phonetic, context_sentence, material_id, material_title, audio_timestamp, audio_url, mastery_status, created_at, updated_at, next_review_at, review_level')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
@@ -245,12 +245,12 @@ export async function GET(request: Request) {
       )
     }
 
-    // 第二步：批量查询 dictionary_cache 获取音频 URL、标准例句和翻译
+    // 第二步：批量查询 dictionary_cache 获取音频 URL、标准例句和翻译（只选择必要字段）
     if (words && words.length > 0) {
       const wordList = words.map(w => w.word)
       const { data: cacheData } = await supabase
         .from('dictionary_cache')
-        .select('word, audio_url_us, audio_url_uk, example, definitions, translations')
+        .select('word, audio_url_us, audio_url_uk, example, translations')
         .in('word', wordList)
 
       // 创建字典缓存映射
@@ -273,7 +273,7 @@ export async function GET(request: Request) {
         })
       }
 
-      // 第三步：查询 materials 表获取素材信息（用于原句跳转）
+      // 第三步：查询 materials 表获取素材信息（用于原句跳转，只选择必要字段）
       const materialIds = words
         .map(w => w.material_id)
         .filter((id): id is string => id != null)
@@ -297,7 +297,7 @@ export async function GET(request: Request) {
       if (materialIds.length > 0) {
         const { data: materials } = await supabase
           .from('materials')
-          .select('id, category, slug, transcript')
+          .select('id, category, slug, transcript')  // 🔥 优化：只查询必要字段
           .in('id', materialIds)
 
         if (materials) {
@@ -602,7 +602,7 @@ export async function POST(request: Request) {
     // 🔴 使用函数调用获取客户端
     const supabase = getSupabaseClient()
 
-    // 检查是否已存在
+    // 检查是否已存在（只选择必要字段）
     const { data: existing } = await supabase
       .from('user_words')
       .select('id, mastery_status')
@@ -746,7 +746,7 @@ export async function PATCH(request: Request) {
     const { data: existingRecord, error: checkError } = await retrySupabaseQuery(async () => {
       return await supabase
         .from('user_words')
-        .select('*')
+        .select('id, user_id, word, mastery_status, review_level, current_streak, last_streak_update')  // 🔥 优化：只查询必要字段
         .eq('user_id', userId)
         .eq('word', word?.toLowerCase()?.trim())
         .maybeSingle()

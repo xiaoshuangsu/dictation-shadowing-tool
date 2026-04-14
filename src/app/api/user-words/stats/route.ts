@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
     // 创建 Supabase 客户端
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 获取用户的所有生词
+    // 获取用户的所有生词（只选择必要字段，减少流量）
     const { data: userWords, error } = await supabase
       .from('user_words')
-      .select('*')
+      .select('mastery_status, next_review_at, updated_at, created_at')
       .eq('user_id', userId)
 
     if (error) {
