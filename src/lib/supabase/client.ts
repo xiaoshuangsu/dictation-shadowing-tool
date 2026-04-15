@@ -47,12 +47,13 @@ export const getSupabase = () => {
       supabaseUrl,
       supabaseAnonKey,
       {
-        // 🔥 彻底停用 Auth 功能：物理脱离 Supabase Auth 服务
+        // ✅ 恢复正常 Auth 配置（宽限期已生效）
         auth: {
-          storage: undefined,          // 不使用任何存储
-          autoRefreshToken: false,     // 完全禁用自动刷新
-          persistSession: false,       // 完全禁用会话持久化
-          detectSessionInUrl: false,   // 不检测 URL 中的 session
+          storageKey: 'sb-auth-token',  // 恢复正常的存储 key
+          autoRefreshToken: true,       // 恢复自动刷新
+          persistSession: true,         // 恢复会话持久化
+          detectSessionInUrl: true,     // 恢复 URL 检测
+          flowType: 'pkce',             // 使用 PKCE 流程
         },
         db: {
           schema: 'public',
