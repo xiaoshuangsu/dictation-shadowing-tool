@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useEffect } from "react"
+import { useRef, useState, useEffect, useCallback } from "react"
 import logger from '@/lib/utils/logger'
 
 interface Sentence {
@@ -41,57 +41,6 @@ export default function AudioPlayer({
   const hasCalledReadyRef = useRef(false)
   const rafIdRef = useRef<number | null>(null)
 
-  useEffect(() => {
-    if (audioRefInternal.current && onReady && !hasCalledReadyRef.current) {
-      hasCalledReadyRef.current = true
-
-      const audio = audioRefInternal.current
-      logger.debug('[AudioPlayer] Audio element created, readyState:', audio.readyState)
-
-      const handleLoadStart = () => {
-        logger.debug('[AudioPlayer] Load started')
-      }
-
-      const handleLoadedMetadata = () => {
-        logger.debug('[AudioPlayer] Metadata loaded, readyState:', audio.readyState, 'Duration:', audio.duration)
-      }
-
-      const handleCanPlay = () => {
-        logger.debug('[AudioPlayer] Audio can play, readyState:', audio.readyState)
-      }
-
-      const handleCanPlayThrough = () => {
-        logger.debug('[AudioPlayer] Audio fully loaded, readyState:', audio.readyState)
-      }
-
-      const handleError = (e: Event) => {
-        console.error('[AudioPlayer] Error loading audio:', e)
-        const error = (e.target as HTMLAudioElement).error
-        if (error) {
-          console.error('[AudioPlayer] Error code:', error.code, 'Error message:', error.message)
-        }
-      }
-
-      audio.addEventListener('loadstart', handleLoadStart)
-      audio.addEventListener('loadedmetadata', handleLoadedMetadata)
-      audio.addEventListener('canplay', handleCanPlay)
-      audio.addEventListener('canplaythrough', handleCanPlayThrough)
-      audio.addEventListener('error', handleError)
-
-      logger.debug('[AudioPlayer] Waiting for user interaction to load audio')
-
-      onReady(audio)
-
-      return () => {
-        audio.removeEventListener('loadstart', handleLoadStart)
-        audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
-        audio.removeEventListener('canplay', handleCanPlay)
-        audio.removeEventListener('canplaythrough', handleCanPlayThrough)
-        audio.removeEventListener('error', handleError)
-      }
-    }
-  }, [audioSrc, onReady])
-
   const isPlayingRef = useRef(false)
   const lastUpdateTimeRef = useRef<number>(0)
   const totalPlayedSecondsRef = useRef<number>(0)
@@ -113,10 +62,19 @@ export default function AudioPlayer({
     }
   }
 
-  const playSentence = () => {
+  // 初始化回调
+  useEffect(() => {
+    if (audioRefInternal.current && onReady && !hasCalledReadyRef.current) {
+      hasCalledReadyRef.current = true
+      onReady(audioRefInternal.current)
+    }
+  }, [onReady])
+
+  // 核心播放逻辑：音频单例 + 内存级跳转
+  const playSentence = useCallback(() => {
     const audio = audioRefInternal.current
     if (!audio) {
-      console.error('[AudioPlayer] audio element not found')
+      console.error('[AudioPlayer] Audio element not found')
       return
     }
 
@@ -127,8 +85,6 @@ export default function AudioPlayer({
 
     const startTime = currentSentence.startTime
     const endTime = currentSentence.endTime
-
-    setLoading(true)
 
     const startNum = typeof startTime === 'string' ? parseFloat(startTime) : startTime
     const endNum = typeof endTime === 'string' ? parseFloat(endTime) : endTime
@@ -173,6 +129,7 @@ export default function AudioPlayer({
       setIsPlaying(true)
       isPlayingRef.current = true
       lastUpdateTimeRef.current = Date.now()
+      setLoading(false)
     }
 
     const handlePause = () => {
@@ -180,72 +137,37 @@ export default function AudioPlayer({
       isPlayingRef.current = false
     }
 
-    const handleCanPlay = () => {
-      setLoading(false)
+    const handleWaiting = () => {
+      setLoading(true)
     }
 
     const handlePlaying = () => {
       setLoading(false)
     }
 
-    const handleWaiting = () => {
-      setLoading(true)
-    }
-
     audio.addEventListener('timeupdate', handleTimeUpdate)
     audio.addEventListener('play', handlePlay)
     audio.addEventListener('pause', handlePause)
-    audio.addEventListener('canplay', handleCanPlay)
-    audio.addEventListener('playing', handlePlaying)
     audio.addEventListener('waiting', handleWaiting)
+    audio.addEventListener('playing', handlePlaying)
 
-    let seekComplete = false
-    const handleSeeked = () => {
-      seekComplete = true
-      audio.play().then(() => {
-        setIsPlaying(true)
-        isPlayingRef.current = true
-        lastUpdateTimeRef.current = Date.now()
-        rafIdRef.current = requestAnimationFrame(checkEndTime)
-      }).catch(err => {
-        console.error('[AudioPlayer] Play error:', err)
-        setIsPlaying(false)
-        setLoading(false)
-      })
-      audio.removeEventListener('seeked', handleSeeked)
-    }
+    // 内存级跳转：不重新加载音频
+    const seekTime = startNum + START_COMPENSATION
+    audio.currentTime = seekTime
 
-    audio.addEventListener('seeked', handleSeeked)
-
-    const isLoading = audio.readyState < 2
-    const timeoutMs = isLoading ? 10000 : 2000
-
-    const seekTimeout = setTimeout(() => {
-      if (!seekComplete) {
-        if (Math.abs(audio.currentTime - startNum) < 0.5) {
-          seekComplete = true
-          audio.removeEventListener('seeked', handleSeeked)
-          audio.play().then(() => {
-            setIsPlaying(true)
-            isPlayingRef.current = true
-            lastUpdateTimeRef.current = Date.now()
-            rafIdRef.current = requestAnimationFrame(checkEndTime)
-          }).catch(err => {
-            console.error('[AudioPlayer] Play error after timeout:', err)
-            setIsPlaying(false)
-            setLoading(false)
-          })
-        } else {
-          if (audio.readyState >= 2) {
-            console.error('[AudioPlayer] Seek failed')
-            setLoading(false)
-          }
-        }
-      }
-    }, timeoutMs)
+    // 立即播放
+    audio.play().then(() => {
+      setIsPlaying(true)
+      isPlayingRef.current = true
+      lastUpdateTimeRef.current = Date.now()
+      rafIdRef.current = requestAnimationFrame(checkEndTime)
+    }).catch(err => {
+      console.error('[AudioPlayer] Play failed:', err)
+      setIsPlaying(false)
+      setLoading(false)
+    })
 
     cleanupRef.current = () => {
-      clearTimeout(seekTimeout)
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current)
         rafIdRef.current = null
@@ -253,52 +175,20 @@ export default function AudioPlayer({
       audio.removeEventListener('timeupdate', handleTimeUpdate)
       audio.removeEventListener('play', handlePlay)
       audio.removeEventListener('pause', handlePause)
-      audio.removeEventListener('canplay', handleCanPlay)
-      audio.removeEventListener('playing', handlePlaying)
       audio.removeEventListener('waiting', handleWaiting)
-      audio.removeEventListener('seeked', handleSeeked)
+      audio.removeEventListener('playing', handlePlaying)
     }
+  }, [currentSentence, playbackRate, endBuffer, onTimeUpdate, onPlaybackTimeUpdate, onPlayEnd])
 
-    const trySeekAndPlay = () => {
-      logger.debug('[AudioPlayer] User clicked, calling audio.load()...')
-      logger.debug('[AudioPlayer] readyState before load:', audio.readyState)
-
-      audio.load()
-
-      if (audio.readyState < 2) {
-        logger.debug('[AudioPlayer] Waiting for audio to load...')
-        audio.addEventListener('canplay', () => {
-          logger.debug('[AudioPlayer] Audio loaded, readyState:', audio.readyState)
-          performSeek()
-        }, { once: true })
-        return
-      }
-      performSeek()
-    }
-
-    const performSeek = () => {
-      try {
-        const seekTime = startNum + START_COMPENSATION
-        audio.currentTime = seekTime
-      } catch (err) {
-        console.error('[AudioPlayer] Failed to seek:', err)
-        clearTimeout(seekTimeout)
-        setLoading(false)
-      }
-    }
-
-    setTimeout(() => {
-      trySeekAndPlay()
-    }, 50)
-  }
-
+  // 响应自动播放触发器
   useEffect(() => {
     if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
       prevTriggerRef.current = autoPlayTrigger
-      setTimeout(() => playSentence(), 50)
+      playSentence()
     }
-  }, [autoPlayTrigger, currentSentence])
+  }, [autoPlayTrigger, playSentence])
 
+  // 清理
   useEffect(() => {
     return () => {
       if (rafIdRef.current !== null) {
@@ -309,5 +199,6 @@ export default function AudioPlayer({
     }
   }, [])
 
+  // 音频单例 + 全量预加载
   return <audio ref={audioRefInternal} src={audioSrc} preload="auto" />
 }
