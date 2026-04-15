@@ -19,6 +19,7 @@ interface TrainingModeModalProps {
     category: string;
     slug: string;
     audio_path: string | null;
+    source_type?: 'r2' | 'youtube' | null;  // 🔥 新增：素材类型
   } | null;
 }
 
@@ -46,6 +47,21 @@ export function TrainingModeModal({ isOpen, onClose, material }: TrainingModeMod
   }, [isOpen, material]);
 
   const preloadAssets = async () => {
+    // 🔥 YouTube 素材跳过音频预加载（无 R2 音频文件）
+    if (material?.source_type === 'youtube') {
+      logger.debug('[TrainingModeModal] YouTube 素材，跳过音频预加载');
+      // 仍然预加载挖空数据
+      if (material.id) {
+        try {
+          await preloadClozeData(material.id, new AbortController().signal);
+        } catch (error) {
+          console.error('[TrainingModeModal] 挖空数据预加载失败:', error);
+        }
+      }
+      setPreloadStatus('success');
+      return;
+    }
+
     if (!material?.audio_path) {
       logger.debug('[TrainingModeModal] 素材没有音频路径，跳过预加载');
       return;

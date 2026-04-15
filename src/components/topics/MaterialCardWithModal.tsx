@@ -334,7 +334,8 @@ export function MaterialCard({ material, onPlay }: MaterialCardProps) {
           title: material.title,
           category: material.category,
           slug: material.slug,
-          audio_path: material.audio_path
+          audio_path: material.audio_path,
+          source_type: material.source_type  // 🔥 传递素材类型
         }}
       />
     </>

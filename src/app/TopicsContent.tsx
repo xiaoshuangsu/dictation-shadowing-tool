@@ -282,7 +282,8 @@ export function MaterialsPageContent() {
             title: selectedMaterial.title,
             category: selectedMaterial.category,
             slug: selectedMaterial.slug || titleToSlug(selectedMaterial.title),
-            audio_path: selectedMaterial.audio_path
+            audio_path: selectedMaterial.audio_path,
+            source_type: selectedMaterial.source_type  // 🔥 传递素材类型
           }}
         />
       )}

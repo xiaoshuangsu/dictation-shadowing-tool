@@ -1,5 +1,45 @@
 # Changelog
 
+## [30.3.1] - 2026-04-15
+
+### Bug Fixes 🔧
+- **修复 YouTube 素材 404 崩溃** 🐛
+  - **问题**：YouTube 素材被错误地请求 R2 路径（`media.shadowhub.app/youtube/xxx`），导致 404 错误和播放失败
+  - **根本原因**：`TrainingModeModal` 对所有素材都执行音频预加载，将 YouTube ID 当作 R2 路径处理
+  - **解决方案**：在 `TrainingModeModal` 中添加 `source_type` 检测，YouTube 素材跳过音频预加载
+
+- **修复 R2 素材音频失声** 🔇
+  - **问题**：修复 YouTube 后，R2 素材点击播放无声音
+  - **根本原因**：`getCdnUrl` 的 YouTube 路径检测逻辑过于宽泛，误判了 R2 路径
+  - **解决方案**：回退 `getCdnUrl` 中的 YouTube 检测，完全依赖 `source_type` 字段进行分流
+
+- **修复 YouTube IFrame 跨域错误** 🌐
+  - **问题**：`Failed to execute 'postMessage' on 'DOMWindow'` 错误
+  - **解决方案**：在 `YouTubePlayer` 的 `playerVars` 中添加 `origin: window.location.origin`
+
+### Implementation 🔨
+- **实现基于 source_type 的媒体资源分流加载逻辑**
+  - **TrainingModeModal.tsx**：
+    - 添加 `source_type` 字段到接口
+    - YouTube 素材：跳过音频预加载，保留挖空数据预加载
+    - R2 素材：预加载音频和挖空数据
+  - **MaterialCardWithModal.tsx**：传递 `source_type` 到 TrainingModeModal
+  - **TopicsContent.tsx**：传递 `source_type` 到 TrainingModeModal
+  - **PracticePage.tsx**：确保播放器分流逻辑完全互斥
+    - YouTube：`audioSrc: undefined, videoUrl: undefined`
+    - R2：使用 `getCdnUrl` 处理路径
+
+### Technical
+- **关键文件变更** 📝
+  - `components/topics/TrainingModeModal.tsx`：添加 source_type 分流逻辑
+  - `components/topics/MaterialCardWithModal.tsx`：传递 source_type
+  - `app/TopicsContent.tsx`：传递 source_type
+  - `components/YouTubePlayer.tsx`：添加 origin 参数修复跨域
+  - `app/topics/[category]/[slug]/PracticePage.tsx`：确保路径分流互斥
+  - `package.json`：版本号更新至 30.3.1
+
+---
+
 ## [30.3.0] - 2026-04-15
 
 ### Performance (Major) 🚀

@@ -76,12 +76,6 @@ export default function UniversalPlayer({
     }
   }, [material.source_type, material.youtube_id, material.video_path])
 
-  console.log('[UniversalPlayer] 播放器类型:', playerType, {
-    source_type: material.source_type,
-    youtube_id: material.youtube_id,
-    has_video_path: !!material.video_path
-  })
-
   // 根据类型渲染对应的播放器
   switch (playerType) {
     case 'youtube':

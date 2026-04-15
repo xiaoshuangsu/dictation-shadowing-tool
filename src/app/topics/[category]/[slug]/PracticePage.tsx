@@ -87,9 +87,11 @@ export default function PracticePage({ category, slug }: { category: string; slu
   const [dictationIndex, setDictationIndex] = useState(0)
   const [shadowingIndex, setShadowingIndex] = useState(0)
 
+  // 🔥 getCdnUrl 仅处理 R2 资源，不做 YouTube 检测（由 source_type 分流）
   const getCdnUrl = useCallback((url: string | null): string | undefined => {
     if (!url) return undefined
 
+    // 已是完整 URL（包括 YouTube 缩略图），直接返回
     if (url.startsWith('http://') || url.startsWith('https://')) {
       if (url.includes('/videos/') && !url.endsWith('.mp4')) {
         return `${url}.mp4`
@@ -97,6 +99,7 @@ export default function PracticePage({ category, slug }: { category: string; slu
       return url
     }
 
+    // R2 资源：添加 CDN 前缀
     const workerUrl = 'https://media.shadowhub.app'
     let finalUrl = `${workerUrl}/${url}`
 
