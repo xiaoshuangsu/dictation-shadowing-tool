@@ -16,11 +16,13 @@ interface YouTubePlayerProps {
   autoPlayTrigger?: number
   onPlayEnd?: () => void
   onTimeUpdate?: (currentTime: number) => void
+  onPlaybackTimeUpdate?: (totalPlayedSeconds: number) => void
   onLoadingChange?: (isLoading: boolean) => void
   onReady?: () => void
+  onDegraded?: () => void
   endBuffer?: number
-  practiceMode?: boolean  // 🔴 新增：是否启用练习模式（句子循环）
-  nextSentence?: Sentence | null  // 🔴 新增：下一句（用于时间戳重叠保护）
+  practiceMode?: boolean
+  nextSentence?: Sentence | null
 }
 
 // 全局声明 YouTube API
@@ -38,11 +40,13 @@ export default function YouTubePlayer({
   autoPlayTrigger = 0,
   onPlayEnd,
   onTimeUpdate,
+  onPlaybackTimeUpdate,
   onLoadingChange,
   onReady,
+  onDegraded,
   endBuffer = -0.2,
-  practiceMode = false,  // 🔴 默认为自由播放模式
-  nextSentence = null  // 🔴 默认无下一句
+  practiceMode = false,
+  nextSentence = null
 }: YouTubePlayerProps) {
   const playerRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -50,28 +54,20 @@ export default function YouTubePlayer({
   const prevTriggerRef = useRef(0)
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isPlayingRef = useRef(false)
-  const isPracticeModeRef = useRef(false)  // 🔴 标记是否在练习模式
+  const isPracticeModeRef = useRef(false)
 
-  // 🔴 时间戳重叠保护：计算安全的结束时间
+  // 时间戳重叠保护
   const getSafeEndTime = useCallback((sentence: Sentence): number => {
     const endTime = typeof sentence.endTime === 'string'
       ? parseFloat(sentence.endTime)
       : sentence.endTime
 
-    // 如果有下一句，检查是否重叠
     if (nextSentence) {
       const nextStartTime = typeof nextSentence.startTime === 'string'
         ? parseFloat(nextSentence.startTime)
         : nextSentence.startTime
 
-      // 如果当前句结束时间超过下一句开始时间，强制修正
       if (endTime > nextStartTime) {
-        console.warn('[YouTubePlayer] 检测到时间戳重叠，强制修正:', {
-          originalEnd: endTime,
-          nextStart: nextStartTime,
-          overlap: endTime - nextStartTime
-        })
-        // 保留 100ms 缓冲
         return Math.max(nextStartTime - 0.1, endTime - (endTime - nextStartTime))
       }
     }
@@ -81,26 +77,21 @@ export default function YouTubePlayer({
 
   // 加载 YouTube Iframe API
   useEffect(() => {
-    // 如果 API 已经加载，直接返回
     if (window.YT) {
       setIsPlayerReady(true)
       return
     }
 
-    // 加载 YouTube Iframe API
     const tag = document.createElement('script')
     tag.src = "https://www.youtube.com/iframe_api"
     const firstScriptTag = document.getElementsByTagName('script')[0]
     firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
 
-    // 设置 API 就绪回调
     window.onYouTubeIframeAPIReady = () => {
-      console.log('[YouTubePlayer] YouTube API 已加载')
       setIsPlayerReady(true)
     }
 
     return () => {
-      // 清理
       if (window.onYouTubeIframeAPIReady) {
         window.onYouTubeIframeAPIReady = () => {}
       }
@@ -113,43 +104,70 @@ export default function YouTubePlayer({
       return
     }
 
-    console.log('[YouTubePlayer] 初始化播放器:', youtubeId)
+    // 🔥 手动创建 IFrame，完全控制 src URL
+    const origin = window.location.origin.replace(/\/$/, '') // 🔥 移除末尾斜杠
+    const iframeId = `youtube-player-${youtubeId}`
 
-    playerRef.current = new window.YT.Player(containerRef.current, {
-      videoId: youtubeId,
-      playerVars: {
-        playsinline: 1,
-        controls: 0,  // 隐藏原生播放器控制，完全由练习区域控制
-        modestbranding: 1,
-        rel: 0,
-        disablekb: 1,  // 禁用键盘控制
-        origin: window.location.origin  // 修复 postMessage 跨域错误
-      },
+    // 清空容器
+    containerRef.current.innerHTML = ''
+
+    // 创建 IFrame
+    const iframe = document.createElement('iframe')
+    iframe.id = iframeId
+    iframe.className = 'w-full h-full'
+    iframe.src = `https://www.youtube.com/embed/${youtubeId}?` +
+      `enablejsapi=1&` +
+      `origin=${encodeURIComponent(origin)}&` +  // ✅ 硬编码 origin（无末尾斜杠）
+      `playsinline=1&` +
+      `controls=0&` +
+      `modestbranding=1&` +
+      `rel=0&` +
+      `disablekb=1`
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+    iframe.allowFullscreen = true
+    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin')  // ✅ 修复跨域
+
+    containerRef.current.appendChild(iframe)
+
+    // 初始化 YouTube Player
+    playerRef.current = new window.YT.Player(iframeId, {
       events: {
         onReady: (event: any) => {
-          console.log('[YouTubePlayer] 播放器已就绪')
           onReady?.()
           onLoadingChange?.(false)
+
+          // 🔥 YouTube 播放器就绪后，先静音（绕过自动播放限制）
+          if (playerRef.current && playerRef.current.mute) {
+            playerRef.current.mute()
+          }
+
+          if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
+            prevTriggerRef.current = autoPlayTrigger
+            setTimeout(() => playSentence(), 100)
+          }
         },
         onStateChange: (event: any) => {
           const playerState = event.data
-          // YT.PlayerState: UNSTARTED=-1, ENDED=0, PLAYING=1, PAUSED=2, BUFFERING=3, CUED=5
-          if (playerState === 1) { // PLAYING
+          if (playerState === 1) {
             isPlayingRef.current = true
             onLoadingChange?.(false)
             startTimeUpdate()
-          } else if (playerState === 2) { // PAUSED
+          } else if (playerState === 2) {
             isPlayingRef.current = false
             stopTimeUpdate()
-          } else if (playerState === 3) { // BUFFERING
+          } else if (playerState === 3) {
             onLoadingChange?.(true)
-          } else if (playerState === 0) { // ENDED
+          } else if (playerState === 0) {
             isPlayingRef.current = false
             stopTimeUpdate()
           }
         },
         onError: (event: any) => {
           console.error('[YouTubePlayer] 播放器错误:', event.data)
+          // 错误代码 2 = 无效参数
+          if (event.data === 2 && onDegraded) {
+            onDegraded()
+          }
         }
       }
     })
@@ -163,6 +181,11 @@ export default function YouTubePlayer({
     }
   }, [isPlayerReady, youtubeId])
 
+  // 同步 practiceMode
+  useEffect(() => {
+    isPracticeModeRef.current = practiceMode
+  }, [practiceMode])
+
   // 时间更新
   const startTimeUpdate = useCallback(() => {
     if (timeUpdateIntervalRef.current) return
@@ -172,26 +195,28 @@ export default function YouTubePlayer({
         const currentTime = playerRef.current.getCurrentTime()
         onTimeUpdate?.(currentTime)
 
-        // 🔴 只在练习模式下检查句子结束时间
+        if (onPlaybackTimeUpdate && isPlayingRef.current) {
+          onPlaybackTimeUpdate((prev: number) => prev + 0.1)
+        }
+
         if (isPracticeModeRef.current) {
           const safeEndTime = getSafeEndTime(currentSentence)
 
           if (currentTime >= safeEndTime + endBuffer) {
-            // 暂停并重置到开始时间
             playerRef.current.pauseVideo()
             const startTime = typeof currentSentence.startTime === 'string'
               ? parseFloat(currentSentence.startTime)
               : currentSentence.startTime
             playerRef.current.seekTo(startTime, true)
             isPlayingRef.current = false
-            isPracticeModeRef.current = false  // 🔴 退出练习模式
+            isPracticeModeRef.current = false
             stopTimeUpdate()
             onPlayEnd?.()
           }
         }
       }
-    }, 100) // 每 100ms 更新一次
-  }, [currentSentence, endBuffer, onTimeUpdate, onPlayEnd, getSafeEndTime])
+    }, 100)
+  }, [currentSentence, endBuffer, onTimeUpdate, onPlaybackTimeUpdate, onPlayEnd, getSafeEndTime])
 
   const stopTimeUpdate = useCallback(() => {
     if (timeUpdateIntervalRef.current) {
@@ -200,7 +225,6 @@ export default function YouTubePlayer({
     }
   }, [])
 
-  // 播放句子
   const playSentence = useCallback(() => {
     if (!playerRef.current || !playerRef.current.playVideo) {
       console.warn('[YouTubePlayer] 播放器未就绪')
@@ -213,40 +237,32 @@ export default function YouTubePlayer({
 
     const safeEndTime = getSafeEndTime(currentSentence)
 
-    console.log('[YouTubePlayer] 播放句子:', {
-      startTime,
-      endTime: safeEndTime,
-      originalEndTime: currentSentence.endTime,
-      playbackRate
-    })
-
-    // 🔴 设置练习模式标志
     isPracticeModeRef.current = true
 
-    // 设置播放速度
     if (playerRef.current.setPlaybackRate) {
       playerRef.current.setPlaybackRate(playbackRate)
     }
 
-    // 跳转到开始时间
     playerRef.current.seekTo(startTime, true)
 
-    // 稍微延迟后开始播放，确保 seek 完成
+    // 🔥 立即播放（YouTube playVideo() 不返回 Promise）
     setTimeout(() => {
       if (playerRef.current && playerRef.current.playVideo) {
         playerRef.current.playVideo()
       }
     }, 200)
 
-    // 启动时间更新
     startTimeUpdate()
-  }, [currentSentence, playbackRate, startTimeUpdate, getSafeEndTime])
+  }, [currentSentence, playbackRate, startTimeUpdate, getSafeEndTime, onPlayEnd])
 
   // 自动播放触发
   useEffect(() => {
-    if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current && isPlayerReady) {
+    if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
       prevTriggerRef.current = autoPlayTrigger
-      setTimeout(() => playSentence(), 100)
+
+      if (isPlayerReady) {
+        setTimeout(() => playSentence(), 100)
+      }
     }
   }, [autoPlayTrigger, isPlayerReady, playSentence])
 

@@ -727,19 +727,31 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
                 if (playerInfo.thumbnailPath) {
                   return (
-                    <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
+                    <div
+                      className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg cursor-pointer group"
+                      onClick={() => {
+                        // 🔥 优化时序：先设置状态，给 React 渲染窗口
+                        setHasStarted(true)
+                        // 🔥 延迟触发播放，确保 IFrame 已渲染
+                        setTimeout(() => {
+                          setAutoPlayTrigger(prev => prev + 1)
+                        }, 50)
+                      }}
+                    >
                       <div
-                        className="absolute inset-0 bg-cover bg-center"
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
                         style={{ backgroundImage: `url(${playerInfo.thumbnailPath})` }}
                       >
-                        <div className="absolute inset-0 bg-black/30"></div>
+                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors duration-300"></div>
                       </div>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-white text-center">
-                          <svg className="w-16 h-16 mx-auto mb-2 opacity-75" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                          </svg>
-                          <p className="text-sm font-medium">Audio Material</p>
+                        <div className="text-white text-center transform transition-transform duration-300 group-hover:scale-110">
+                          <div className="w-16 h-16 mx-auto mb-2 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors duration-300">
+                            <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                          <p className="text-sm font-medium">点击开始练习</p>
                         </div>
                       </div>
                     </div>

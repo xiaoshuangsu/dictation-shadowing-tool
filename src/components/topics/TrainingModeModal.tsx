@@ -273,21 +273,21 @@ export function TrainingModeModal({ isOpen, onClose, material }: TrainingModeMod
                 <path d="M12 36V32C12 20.954 20.954 12 32 12C43.046 12 52 20.954 52 32V36" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" opacity="0.3"/>
 
                 <rect x="8" y="32" width="12" height="20" rx="6" fill="#9333EA"/>
-                <rect x="8" y="32" width="12" height="20" rx="6" fill="url(#gradientLeft)" fill-opacity="0.2"/>
+                <rect x="8" y="32" width="12" height="20" rx="6" fill="url(#gradientLeft)" fillOpacity="0.2"/>
                 <rect x="10" y="34" width="6" height="8" rx="3" fill="#A78BFA" opacity="0.4"/>
 
                 <rect x="44" y="32" width="12" height="20" rx="6" fill="#9333EA"/>
-                <rect x="44" y="32" width="12" height="20" rx="6" fill="url(#gradientRight)" fill-opacity="0.2"/>
+                <rect x="44" y="32" width="12" height="20" rx="6" fill="url(#gradientRight)" fillOpacity="0.2"/>
                 <rect x="48" y="34" width="6" height="8" rx="3" fill="#A78BFA" opacity="0.4"/>
 
                 <defs>
                   <linearGradient id="gradientLeft" x1="8" y1="32" x2="20" y2="52" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#FFFFFF"/>
-                    <stop offset="100%" stop-color="#000000"/>
+                    <stop offset="0%" stopColor="#FFFFFF"/>
+                    <stop offset="100%" stopColor="#000000"/>
                   </linearGradient>
                   <linearGradient id="gradientRight" x1="44" y1="32" x2="56" y2="52" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#FFFFFF"/>
-                    <stop offset="100%" stop-color="#000000"/>
+                    <stop offset="0%" stopColor="#FFFFFF"/>
+                    <stop offset="100%" stopColor="#000000"/>
                   </linearGradient>
                 </defs>
               </svg>

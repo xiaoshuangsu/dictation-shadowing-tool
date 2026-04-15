@@ -1,5 +1,32 @@
 # Changelog
 
+## [30.3.2] - 2026-04-15
+
+### Bug Fixes 🔧
+- **修复 React DOM 属性警告** ⚛️
+  - **问题**：控制台警告 `Invalid DOM property 'fill-opacity'. Did you mean 'fillOpacity'?`
+  - **根本原因**：React 不允许在 JSX 中使用带横杠的 SVG 属性
+  - **解决方案**：在 `TrainingModeModal.tsx` 中将所有 `fill-opacity` 改为 `fillOpacity`，`stop-color` 改为 `stopColor`
+
+- **稳定 R2 素材音视频播放** 🎵
+  - **确认**：R2 音频和视频素材播放逻辑完全正常
+  - **优化**：保持 `getCdnUrl` 逻辑简洁，完全依赖 `source_type` 分流
+  - **性能**：音频单例模式继续工作，切换句子秒开
+
+### Refactoring 🔄
+- **YouTube Player 重构（进行中）** 🚧
+  - **改进**：开始手动创建 IFrame 元素，完全控制 src URL
+  - **目标**：解决 YouTube postMessage 跨域问题
+  - **状态**：**部分完成**（IFrame 手动注入已实现，跨域和声音问题待解决）
+
+### Technical
+- **关键文件变更** 📝
+  - `components/topics/TrainingModeModal.tsx`：修复 SVG 属性命名
+  - `components/YouTubePlayer.tsx`：重构为手动 IFrame 注入（进行中）
+  - `package.json`：版本号更新至 30.3.2
+
+---
+
 ## [30.3.1] - 2026-04-15
 
 ### Bug Fixes 🔧
