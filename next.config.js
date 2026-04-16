@@ -5,8 +5,23 @@ const nextConfig = {
   // output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
 
   // Image optimization
+  // 🔥 v30.4.2: 启用图片优化，支持 priority 和 blur placeholder
   images: {
-    unoptimized: true,
+    unoptimized: false,  // 🔥 启用图片优化
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'media.shadowhub.app',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',  // 🔥 YouTube 缩略图
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
 
   // 🔴 修复：禁用 trailingSlash，避免 API 路由末尾斜杠导致的 500 错误

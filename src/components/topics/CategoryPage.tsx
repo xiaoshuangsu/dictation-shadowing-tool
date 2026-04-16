@@ -3,8 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { getCategoryMetadataBySlug, categoryToSlug, slugToCategory } from '@/lib/utils/category'
-import { getSupabase } from '@/lib/supabase/client'
+import { getCategoryMetadataBySlug, categoryToSlug } from '@/lib/utils/category'
 import { titleToSlug } from '@/lib/utils/slug'
 import { TrainingModeModal } from './TrainingModeModal'
 import { TrainingModeErrorBoundary } from './TrainingModeErrorBoundary'
@@ -39,14 +38,17 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 interface CategoryPageProps {
   categorySlug: string
+  initialMaterials: Material[]  // 🔥 v30.4.0: 从服务端传入的数据
+  totalCount: number  // 🔥 v30.4.0: 从服务端传入的总数
 }
 
-export default function CategoryPage({ categorySlug }: CategoryPageProps) {
+export default function CategoryPage({ categorySlug, initialMaterials, totalCount }: CategoryPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [materials, setMaterials] = useState<Material[]>([])
-  const [loading, setLoading] = useState(true)
+  // 🔥 v30.4.0: 使用服务端传入的数据初始化状态
+  const [materials, setMaterials] = useState<Material[]>(initialMaterials)
+  const [loading, setLoading] = useState(false)  // 🔥 v30.4.0: 数据已在服务端获取，无需 loading
   const [error, setError] = useState<string | null>(null)
 
   // 🔴 新增：训练模式弹窗状态
@@ -156,62 +158,7 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
     return () => clearTimeout(timeoutId)
   }, [currentPage, loading, categorySlug])
 
-  // Fetch materials for this category
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-
-    async function fetchMaterials() {
-      try {
-        const supabase = getSupabase()
-        // 🔴 关键修复：使用 slugToCategory 获取中文名称，因为数据库存储的是中文
-        const categoryName = slugToCategory(categorySlug)
-
-        const { data, error } = await supabase
-          .from('materials')
-          .select('id, title, category, difficulty, audio_path, thumbnail_path, audio_size, duration, play_count, created_at, updated_at, is_premium, source_type, youtube_id, video_path')
-          .eq('category', categoryName)
-          .order('title')
-
-        if (error) throw error
-
-        // 🔴 调试：检查 is_premium 字段
-        console.log('🔍 [CategoryPage] 获取到的素材数据:', {
-          count: data?.length,
-          sample: data?.slice(0, 3).map(m => ({
-            title: m.title,
-            is_premium: m.is_premium,
-            is_premium_type: typeof m.is_premium
-          }))
-        })
-
-        // 对 Daily Life 分类的素材进行特殊排序：有自定义封面的在前
-        let sortedData = data || []
-        if (categoryName === '日常生活') {
-          sortedData = sortedData.sort((a, b) => {
-            const DEFAULT_COVER = 'thumbnails/culture-history-cover.jpg'
-            const aHasCustomCover = a.thumbnail_path && a.thumbnail_path !== DEFAULT_COVER
-            const bHasCustomCover = b.thumbnail_path && b.thumbnail_path !== DEFAULT_COVER
-
-            // 自定义封面优先
-            if (aHasCustomCover && !bHasCustomCover) return -1
-            if (!aHasCustomCover && bHasCustomCover) return 1
-
-            // 同类型按标题排序
-            return (a.title || '').localeCompare(b.title || '')
-          })
-        }
-
-        setMaterials(sortedData)
-      } catch (err) {
-        console.error('Failed to fetch materials:', err)
-        setError('Failed to load materials')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchMaterials()
-  }, [categorySlug, categoryMetadata])
+  // 🔥 v30.4.0: 移除客户端 fetch 逻辑，数据已由服务端获取
 
   // Filter materials by search, difficulty and duration
   const filteredMaterials = useMemo(() => {
@@ -354,11 +301,11 @@ export default function CategoryPage({ categorySlug }: CategoryPageProps) {
                   {categoryMetadata?.name || categorySlug}
                 </h1>
                 <span className="text-sm text-gray-500">
-                  ({filteredMaterials.length} materials)
+                  ({totalCount} materials)
                 </span>
               </div>
               <p className="text-lg text-gray-600">
-                {categoryMetadata?.description || `${filteredMaterials.length} materials to practice`}
+                {categoryMetadata?.description || `${totalCount} materials to practice`}
               </p>
             </div>
           </div>

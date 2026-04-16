@@ -1,17 +1,84 @@
-// Dynamic routes for category pages - generate static paths at build time
+/**
+ * Category Page - 服务端组件（v30.4.0 重构）
+ *
+ * ✅ 重构目标：
+ * - 服务端预取数据：消除客户端 CORS Preflight 延迟
+ * - 单次查询：确保首屏只发起 1 个数据库请求
+ * - 清理客户端 Effect：子组件通过 Props 接收数据
+ */
+
 import { createClient } from '@supabase/supabase-js'
 import { Suspense } from 'react'
-import { CATEGORY_SLUG_MAP } from '@/lib/utils/category'
+import { CATEGORY_SLUG_MAP, slugToCategory } from '@/lib/utils/category'
 import { Metadata } from 'next'
 import CategoryPage from '@/components/topics/CategoryPage'
 
 // 🔴 强制动态渲染：避免构建时查询数据库
 export const dynamic = 'force-dynamic'
 
-// 🔴 关键修复：从共享配置导入凭证，避免重复定义
-const SUPABASE_CONFIG = {
-  url: 'https://cuxotlijjnxbsirpdkgr.supabase.co',
-  key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1eG90bGlqam54YnNpcnBka2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExMDg1MzQsImV4cCI6MjA4NjY4NDUzNH0.J_Ix3NnKEFDGlINAWQBCLZyW1lmep-5BKqnIAfpgQwk'
+/**
+ * 🔥 v30.4.0: 服务端数据获取函数
+ *
+ * 在服务端获取指定分类的素材数据，避免客户端 CORS Preflight
+ */
+async function getCategoryData(categorySlug: string) {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
+
+  if (!serviceKey) {
+    console.warn('[CategoryPage] ⚠️  SUPABASE_SERVICE_ROLE_KEY not set')
+    return {
+      materials: [],
+      totalCount: 0
+    }
+  }
+
+  const supabase = createClient(
+    'https://cuxotlijjnxbsirpdkgr.supabase.co',
+    serviceKey
+  )
+
+  const categoryName = slugToCategory(categorySlug)
+  const DEFAULT_COVER = 'thumbnails/culture-history-cover.jpg'
+
+  try {
+    // 🔥 单次查询 - 获取该分类的所有素材（严格字段白名单）
+    const { data: materials, error } = await supabase
+      .from('materials')
+      .select('id, title, category, difficulty, thumbnail_path, slug, duration')  // 🔥 严格字段白名单
+      .eq('category', categoryName)
+      .order('title')
+
+    if (error) {
+      throw error
+    }
+
+    // 对 Daily Life 分类的素材进行特殊排序：有自定义封面的在前
+    let sortedMaterials = materials || []
+    if (categoryName === '日常生活') {
+      sortedMaterials = sortedMaterials.sort((a, b) => {
+        const aHasCustomCover = a.thumbnail_path && a.thumbnail_path !== DEFAULT_COVER
+        const bHasCustomCover = b.thumbnail_path && b.thumbnail_path !== DEFAULT_COVER
+
+        // 自定义封面优先
+        if (aHasCustomCover && !bHasCustomCover) return -1
+        if (!aHasCustomCover && bHasCustomCover) return 1
+
+        // 同类型按标题排序
+        return (a.title || '').localeCompare(b.title || '')
+      })
+    }
+
+    return {
+      materials: sortedMaterials,
+      totalCount: sortedMaterials.length
+    }
+  } catch (error) {
+    console.error('[CategoryPage] Error fetching category data:', error)
+    return {
+      materials: [],
+      totalCount: 0
+    }
+  }
 }
 
 /**
@@ -61,7 +128,10 @@ export async function generateMetadata({ params }: { params: { category: string 
 
 export const dynamicParams = true
 
-export default function Page({ params }: { params: { category: string } }) {
+export default async function Page({ params }: { params: { category: string } }) {
+  // 🔥 v30.4.0: 在服务端获取数据，避免客户端 CORS Preflight
+  const categoryData = await getCategoryData(params.category)
+
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
@@ -71,7 +141,11 @@ export default function Page({ params }: { params: { category: string } }) {
         </div>
       </div>
     }>
-      <CategoryPage categorySlug={params.category} />
+      <CategoryPage
+        categorySlug={params.category}
+        initialMaterials={categoryData.materials}
+        totalCount={categoryData.totalCount}
+      />
     </Suspense>
   )
 }

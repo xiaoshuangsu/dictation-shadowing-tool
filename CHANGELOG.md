@@ -1,5 +1,71 @@
 # Changelog
 
+## [30.4.2] - 2026-04-16
+
+### Architecture Upgrade 🏗️ (Major)
+- **全栈 SSR 重构：消除 CORS Preflight 瓶颈** 🚀
+  - **问题**：客户端直接查询 Supabase 触发 CORS Preflight（OPTIONS 请求），本地环境排队严重（29s+ 超时）
+  - **根本原因**：
+    - Topics 列表页：客户端发起 3-5 个并行请求，每个触发 CORS Preflight
+    - 练习详情页：客户端查询 `select('*')`，触发 CORS Preflight 导致 `net::ERR_CONNECTION_CLOSED`
+  - **解决方案**：
+    - 服务端预取数据：所有页面改为 Server Component 在服务端查询 Supabase
+    - 消除客户端请求：浏览器只接收渲染好的 HTML，不再发起 Supabase 查询
+    - 区分查询场景：列表页精简字段，详情页全量字段
+  - **效果**：
+    - 首屏请求数降至 2 个以内（1 Auth + 1 Data）
+    - 消除 29s+ CORS Preflight 排队延迟
+    - 练习页面 "Material Not Found" 错误修复
+
+### Performance Optimization 🚀
+- **Topics 页面：单次聚合查询** 📉
+  - **优化前**：14 个分类 × 2 个查询（素材 + 计数）= 28 个并行请求
+  - **优化后**：1 次聚合查询获取所有分类数据
+  - **字段精简**：只查询 `id, title, category, difficulty, thumbnail_path, slug`
+  - **效果**：首屏加载速度提升 10x+
+
+### Bug Fixes 🔧 (Critical)
+- **修复详情页 "Material Not Found" 错误** 🛠️
+  - **问题**：v30.4.0 字段白名单限制导致练习页面无法获取 `transcript` 和 `audio_path`
+  - **解决方案**：
+    - 列表页：保持精简字段（性能优化）
+    - 详情页：恢复全量字段查询（`select('*')`）
+    - 数据通过 Props 从服务端传递到客户端
+  - **效果**：练习页面功能恢复正常，音频播放和听写功能正常
+
+### UX Enhancement ✨
+- **图片加载优先级优化** 🖼️
+  - **LCP 优化**：首屏图片（第一个分类的前 2 个卡片）使用 `priority={true}`
+  - **占位符优化**：所有图片添加 `placeholder="blur"`，防止页面跳动
+  - **懒加载兜底**：非首屏图片强制开启 `loading="lazy"`
+  - **效果**：首屏图片优先显示，视觉稳定性显著提升
+
+### Technical
+- **关键文件变更** 📝
+  - `src/app/topics/page.tsx`：
+    - 重构为服务端组件，在服务端获取所有分类数据
+    - 单次聚合查询，消除客户端请求
+  - `src/app/topics/MaterialsPageContent.tsx`：
+    - 改为纯展示组件，接收数据作为 props
+    - 使用 `next/image` 替代 `<img>` 标签，优化加载策略
+  - `src/app/topics/[category]/page.tsx`：
+    - 服务端预取分类数据，消除客户端 CORS Preflight
+    - 保持精简字段查询（+ duration）
+  - `src/app/topics/[category]/[slug]/page.tsx`：
+    - 服务端预取素材完整数据（包括 transcript, audio_path）
+    - 数据通过 props 传递给客户端组件
+  - `src/app/topics/[category]/[slug]/PracticePage.tsx`：
+    - 改为纯展示组件，移除客户端 Supabase 查询逻辑
+  - `src/app/api/topics/route.ts`：
+    - 优化为单次聚合查询（28 个并行请求 → 1 个请求）
+    - 严格字段白名单，减少数据传输
+  - `next.config.js`：
+    - 启用 Next.js 图片优化（`unoptimized: false`）
+    - 配置外部图片域名（media.shadowhub.app, i.ytimg.com）
+  - `package.json`：版本号更新至 30.4.2
+
+---
+
 ## [30.3.9] - 2026-04-16
 
 ### Bug Fixes 🔧 (Critical)

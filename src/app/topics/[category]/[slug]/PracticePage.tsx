@@ -47,7 +47,13 @@ const defaultSentences: Sentence[] = [
   { id: 2, text: "Today is November 26th.", startTime: 3.6, endTime: 5.6, translation: { zh: "今天是11月26日。" } },
 ]
 
-export default function PracticePage({ category, slug }: { category: string; slug: string }) {
+interface PracticePageProps {
+  category: string
+  slug: string
+  initialMaterial: Material | null  // 🔥 v30.4.2: 从服务端传入的数据
+}
+
+export default function PracticePage({ category, slug, initialMaterial }: PracticePageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
@@ -78,8 +84,9 @@ export default function PracticePage({ category, slug }: { category: string; slu
 
   const timestampParam = searchParams.get('t')
 
-  const [material, setMaterial] = useState<Material | null>(null)
-  const [loading, setLoading] = useState(true)
+  // 🔥 v30.4.2: 使用服务端传入的数据初始化
+  const [material, setMaterial] = useState<Material | null>(initialMaterial)
+  const [loading, setLoading] = useState(false)  // 🔥 数据已在服务端获取
   const [error, setError] = useState<string | null>(null)
 
   const [sampleSentences, setSampleSentences] = useState<Sentence[]>(defaultSentences)
@@ -189,91 +196,61 @@ export default function PracticePage({ category, slug }: { category: string; slu
     }
   }, [loading, material, sampleSentences.length])
 
+  // 🔥 v30.4.2: 处理服务端传入的数据
   useEffect(() => {
-    async function findMaterial() {
+    if (!initialMaterial) {
+      setError('Material not found')
+      setLoading(false)
+      return
+    }
+
+    // 处理 transcript 数据
+    let transcriptData = initialMaterial.transcript
+    if (typeof transcriptData === 'string') {
       try {
-        const { data: found, error } = await supabase
-          .from('materials')
-          .select('*')
-          .eq('slug', slug)
-          .single()
-
-        if (error) {
-          console.error('Database query error:', error)
-          setError('Failed to load material')
-          return
-        }
-
-        if (!found) {
-          setError('Material not found')
-          return
-        }
-
-        setMaterial(found)
-
-        let transcriptData = found.transcript
-        if (typeof transcriptData === 'string') {
-          try {
-            transcriptData = JSON.parse(transcriptData)
-          } catch (e) {
-            console.error('Failed to parse transcript JSON:', e)
-            transcriptData = null
-          }
-        }
-
-        if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
-          const transcript = transcriptData
-            .map((s: any, index: number) => {
-              // 安全处理 translation 字段
-              let safeTranslation = undefined
-
-              if (s.translation) {
-                if (typeof s.translation === 'object' && s.translation !== null) {
-                  safeTranslation = s.translation
-                } else if (typeof s.translation === 'string') {
-                  // 如果是字符串，记录警告并设置为 undefined
-                  console.warn(`[PracticePage] Sentence ${index} translation is string, expected object:`, s.translation)
-                  safeTranslation = undefined
-                }
-              }
-
-              const sentenceData = {
-                ...s,
-                id: s.id ?? index,
-                startTime: s.startTime,
-                endTime: s.endTime,
-                translation: safeTranslation
-              }
-
-              // 调试日志：记录每个句子的数据结构
-              if (process.env.NODE_ENV === 'development' && index < 3) {
-                console.log(`[PracticePage] Sentence ${index} data structure:`, {
-                  hasText: !!s.text,
-                  translationType: typeof s.translation,
-                  translationKeys: s.translation && typeof s.translation === 'object' ? Object.keys(s.translation) : 'N/A',
-                  finalTranslation: safeTranslation
-                })
-              }
-
-              return sentenceData
-            })
-            // 🔴 关键修复：过滤掉没有 text 字段的无效句子
-            .filter((s: any) => s.text && s.text.trim().length > 0)
-
-          console.log(`[PracticePage] 有效句子数: ${transcript.length} / ${transcriptData.length}`)
-
-          setSampleSentences(transcript)
-        }
-      } catch (err) {
-        console.error('Error loading material:', err)
-        setError('Failed to load material')
-      } finally {
-        setLoading(false)
+        transcriptData = JSON.parse(transcriptData)
+      } catch (e) {
+        console.error('Failed to parse transcript JSON:', e)
+        transcriptData = null
       }
     }
 
-    findMaterial()
-  }, [slug])
+    if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+      const transcript = transcriptData
+        .map((s: any, index: number) => {
+          // 安全处理 translation 字段
+          let safeTranslation = undefined
+
+          if (s.translation) {
+            if (typeof s.translation === 'object' && s.translation !== null) {
+              safeTranslation = s.translation
+            } else if (typeof s.translation === 'string') {
+              // 如果是字符串，记录警告并设置为 undefined
+              console.warn(`[PracticePage] Sentence ${index} translation is string, expected object:`, s.translation)
+              safeTranslation = undefined
+            }
+          }
+
+          const sentenceData = {
+            ...s,
+            id: s.id ?? index,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            translation: safeTranslation
+          }
+
+          return sentenceData
+        })
+        // 🔴 关键修复：过滤掉没有 text 字段的无效句子
+        .filter((s: any) => s.text && s.text.trim().length > 0)
+
+      console.log(`[PracticePage] 有效句子数: ${transcript.length} / ${transcriptData.length}`)
+
+      setSampleSentences(transcript)
+    }
+
+    setLoading(false)
+  }, [initialMaterial])
 
   useEffect(() => {
     if (modeParam && modeParam !== mode) {

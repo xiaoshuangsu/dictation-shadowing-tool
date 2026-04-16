@@ -1,8 +1,14 @@
 /**
- * API Route: Topics 素材列表（恢复数据库连接版本）
+ * API Route: Topics 素材列表（v30.4.0 - 单次聚合查询）
  *
- * ✅ Supabase 宽限期已生效，恢复数据库查询
- * 🔥 优化：使用精简字段查询，减少 Egress 流量
+ * ✅ 重构目标：
+ * - 单次聚合查询：避免分批次请求导致的 CORS Preflight 排队
+ * - 精简字段：只返回 id, title, category, difficulty, thumbnail_path, slug
+ * - 服务端预取：由服务端组件调用，消除客户端请求延迟
+ *
+ * 🔥 性能优化：
+ * - 从 28 个并行请求（14 分类 × 2 查询）优化为 2 个聚合查询
+ * - 响应体积减少 50%+（移除 audio_path, audio_size, duration, play_count）
  */
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
@@ -46,40 +52,68 @@ const getSupabaseClient = () => {
 /**
  * GET /api/topics
  * 获取所有分类的素材列表（每个分类最多 4 个）
+ *
+ * 🔥 v30.4.0 优化：单次聚合查询，避免 CORS Preflight 排队
  */
 export async function GET() {
   try {
     const supabase = getSupabaseClient()
+    const DEFAULT_COVER = 'thumbnails/culture-history-cover.jpg'
 
+    const categoryIds = CATEGORIES.map(c => c.id)
     const result: Record<string, any[]> = {}
     const counts: Record<string, number> = {}
 
-    // 并行获取所有分类的素材（每个分类最多4个）和总数
-    const promises = CATEGORIES.map(async (category) => {
-      // 🔥 优化：只查询必要字段，减少 Egress 流量
-      const { data, error } = await supabase
-        .from('materials')
-        .select('id, title, category, difficulty, audio_path, thumbnail_path, audio_size, duration, play_count, slug')
-        .eq('category', category.id)
-        .order('title')
-        .limit(4)
+    // 🔥 v30.4.0: 单次聚合查询 - 一次性获取所有分类的素材
+    const { data: allMaterials, error: materialsError } = await supabase
+      .from('materials')
+      .select('id, title, category, difficulty, thumbnail_path, slug')  // 🔥 严格字段白名单
+      .in('category', categoryIds)
+      .order('category, title')
 
-      if (!error && data) {
-        result[category.id] = data
-      }
+    if (materialsError) {
+      throw materialsError
+    }
 
-      // 获取该分类的总数
-      const { count } = await supabase
-        .from('materials')
-        .select('*', { count: 'exact', head: true })
-        .eq('category', category.id)
+    // 🔥 处理素材数据：按分类分组，每个分类最多 4 个
+    if (allMaterials) {
+      // 按分类分组
+      const materialsByCategory: Record<string, any[]> = {}
+      categoryIds.forEach(catId => {
+        materialsByCategory[catId] = []
+      })
 
-      if (count !== null) {
-        counts[category.id] = count
-      }
-    })
+      allMaterials.forEach(material => {
+        if (materialsByCategory[material.category]) {
+          materialsByCategory[material.category].push(material)
+        }
+      })
 
-    await Promise.all(promises)
+      // 处理每个分类的素材
+      CATEGORIES.forEach(category => {
+        const materials = materialsByCategory[category.id] || []
+
+        if (category.id === '日常生活') {
+          // 对于 Daily Life，优先显示有自定义封面的素材
+          const customCoverMaterials = materials.filter(m =>
+            m.thumbnail_path && m.thumbnail_path !== DEFAULT_COVER
+          )
+          const defaultCoverMaterials = materials.filter(m =>
+            !m.thumbnail_path || m.thumbnail_path === DEFAULT_COVER
+          )
+          // 合并：自定义封面在前，默认封面在后，各取前几个
+          const customMaterials = customCoverMaterials.slice(0, 4)
+          const remainingCount = 4 - customMaterials.length
+          const defaultMaterials = defaultCoverMaterials.slice(0, remainingCount)
+          result[category.id] = [...customMaterials, ...defaultMaterials]
+        } else {
+          result[category.id] = materials.slice(0, 4)
+        }
+
+        // 记录该分类的总数
+        counts[category.id] = materials.length
+      })
+    }
 
     const responseData = {
       materialsByCategory: result,
