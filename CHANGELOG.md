@@ -1,5 +1,32 @@
 # Changelog
 
+## [30.3.9] - 2026-04-16
+
+### Bug Fixes 🔧 (Critical)
+- **修复 Topics 页面请求超时（分批次聚合）** 🚨
+  - **问题**：v30.3.8 的全量聚合查询导致单次请求过载，超时 12 秒
+  - **解决方案**：调整为分批次聚合策略
+    - 将 14 个分类拆分为 3 批，每批 4-5 个分类
+    - 每批独立查询，避免单次请求过载
+    - 严格字段白名单：只查询 `id, title, category, difficulty, thumbnail_path, slug`
+    - 绝对禁止 `transcript` 字段
+  - **效果**：请求数 20+ → 3-5 个（分批次聚合），响应速度恢复毫秒级
+
+### Performance Optimization 🚀
+- **平衡性能与稳定性**
+  - 维持聚合查询优势（消灭 N+1 问题）
+  - 避免单次请求过载（分批次处理）
+  - 严格字段控制（减少数据传输）
+
+### Technical
+- **关键文件变更** 📝
+  - `src/lib/hooks/useMaterials.ts`：
+    - 分批次聚合逻辑（14 分类 → 3 批）
+    - 严格字段白名单（6 个字段）
+  - `package.json`：版本号更新至 30.3.9
+
+---
+
 ## [30.3.8] - 2026-04-16
 
 ### Performance Optimization 🚀 (Major)

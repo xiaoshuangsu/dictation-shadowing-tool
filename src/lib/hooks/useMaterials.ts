@@ -81,7 +81,7 @@ const swrConfig: SWRConfiguration = {
 
 /**
  * Fetcher 函数：获取所有分类的素材
- * 🔥 V30.3.8: 优化查询 - 从 28 个独立查询聚合为 2 个查询（解决 N+1 问题）
+ * 🔥 V30.3.9: 分批次聚合 - 将 14 个分类分为 3 批，避免单次请求过载
  */
 async function fetchMaterials(): Promise<MaterialsResponse> {
   const supabaseClient = getSupabase()
@@ -90,63 +90,78 @@ async function fetchMaterials(): Promise<MaterialsResponse> {
   const result: MaterialsByCategory = {}
   const counts: CategoryCounts = {}
 
-  // 🔥 V30.3.8: 第一步 - 一次性查询所有分类的素材（每个分类最多 4-50 个）
-  // 使用 IN 查询，在应用层过滤分类
-  const { data: allMaterials } = await supabaseClient
-    .from('materials')
-    .select('id, title, category, difficulty, thumbnail_path, slug')  // 🔥 只查询必要字段，禁止 transcript
-    .in('category', CATEGORIES.map(c => c.id))
-    .order('category, title')
+  // 🔥 V30.3.9: 分批次聚合 - 将 14 个分类分为 3 批，每批 4-5 个分类
+  const batchSize = 5
+  const batches: Array<typeof CATEGORIES> = []
 
-  // 🔥 V30.3.8: 第二步 - 一次性查询所有分类的数量
-  const { data: allCounts } = await supabaseClient
-    .from('materials')
-    .select('category', { count: 'exact', head: true })
-    .in('category', CATEGORIES.map(c => c.id))
-
-  // 🔥 处理素材数据
-  if (allMaterials) {
-    // 按分类分组
-    const materialsByCategoryMap: Record<string, any[]> = {}
-    CATEGORIES.forEach(category => {
-      materialsByCategoryMap[category.id] = []
-    })
-
-    allMaterials.forEach(material => {
-      if (materialsByCategoryMap[material.category]) {
-        materialsByCategoryMap[material.category].push(material)
-      }
-    })
-
-    // 处理每个分类的素材
-    CATEGORIES.forEach(category => {
-      const materials = materialsByCategoryMap[category.id] || []
-
-      if (category.id === '日常生活') {
-        // 对于 Daily Life，优先显示有自定义封面的素材
-        const customCoverMaterials = materials.filter(m =>
-          m.thumbnail_path && m.thumbnail_path !== DEFAULT_COVER
-        )
-        const defaultCoverMaterials = materials.filter(m =>
-          !m.thumbnail_path || m.thumbnail_path === DEFAULT_COVER
-        )
-        // 合并：自定义封面在前，默认封面在后，各取前几个
-        const customMaterials = customCoverMaterials.slice(0, 4)
-        const remainingCount = 4 - customMaterials.length
-        const defaultMaterials = defaultCoverMaterials.slice(0, remainingCount)
-        result[category.id] = [...customMaterials, ...defaultMaterials] as Material[]
-      } else {
-        result[category.id] = materials.slice(0, 4) as Material[]
-      }
-    })
+  for (let i = 0; i < CATEGORIES.length; i += batchSize) {
+    batches.push(CATEGORIES.slice(i, i + batchSize))
   }
 
-  // 🔥 处理计数数据
-  if (allCounts) {
-    allCounts.forEach(item => {
-      counts[item.category] = item.count
-    })
-  }
+  // 并行处理每批
+  const batchPromises = batches.map(async (batch) => {
+    const batchCategoryIds = batch.map(c => c.id)
+
+    // 🔥 第一步：查询该批次的素材（严格字段白名单）
+    const { data: materialsData } = await supabaseClient
+      .from('materials')
+      .select('id, title, category, difficulty, thumbnail_path, slug')  // 🔥 严格字段白名单
+      .in('category', batchCategoryIds)
+      .order('category, title')
+      .limit(50)  // 每个分类最多 50 个（Daily Life）
+
+    // 🔥 第二步：查询该批次的计数
+    const { data: countsData } = await supabaseClient
+      .from('materials')
+      .select('category', { count: 'exact', head: true })
+      .in('category', batchCategoryIds)
+
+    // 🔥 处理素材数据
+    if (materialsData) {
+      // 按分类分组
+      const materialsByCategoryMap: Record<string, any[]> = {}
+      batch.forEach(category => {
+        materialsByCategoryMap[category.id] = []
+      })
+
+      materialsData.forEach(material => {
+        if (materialsByCategoryMap[material.category]) {
+          materialsByCategoryMap[material.category].push(material)
+        }
+      })
+
+      // 处理每个分类的素材
+      batch.forEach(category => {
+        const materials = materialsByCategoryMap[category.id] || []
+
+        if (category.id === '日常生活') {
+          // 对于 Daily Life，优先显示有自定义封面的素材
+          const customCoverMaterials = materials.filter(m =>
+            m.thumbnail_path && m.thumbnail_path !== DEFAULT_COVER
+          )
+          const defaultCoverMaterials = materials.filter(m =>
+            !m.thumbnail_path || m.thumbnail_path === DEFAULT_COVER
+          )
+          // 合并：自定义封面在前，默认封面在后，各取前几个
+          const customMaterials = customCoverMaterials.slice(0, 4)
+          const remainingCount = 4 - customMaterials.length
+          const defaultMaterials = defaultCoverMaterials.slice(0, remainingCount)
+          result[category.id] = [...customMaterials, ...defaultMaterials] as Material[]
+        } else {
+          result[category.id] = materials.slice(0, 4) as Material[]
+        }
+      })
+    }
+
+    // 🔥 处理计数数据
+    if (countsData) {
+      countsData.forEach(item => {
+        counts[item.category] = item.count
+      })
+    }
+  })
+
+  await Promise.all(batchPromises)
 
   return {
     materialsByCategory: result,
