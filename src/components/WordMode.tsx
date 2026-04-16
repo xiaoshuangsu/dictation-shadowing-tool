@@ -62,17 +62,6 @@ export default function WordMode({
   // 🔥 v6.1.1 修复：支持弯撇号 U+2019（智能引号），解决 "It's" 被拆分的问题
   const renderTokens = (sentence.text || '').match(/([a-zA-Z0-9'\u2019-]+|[.,!?;:]+|\s+)/g) || []
 
-  // 调试日志
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[WordMode] Sentence data:', {
-      hasText: !!sentence.text,
-      textLength: sentence.text?.length || 0,
-      textPreview: sentence.text?.substring(0, 50) || 'EMPTY',
-      hasTranslation: !!sentence.translation,
-      translationType: typeof sentence.translation
-    })
-  }
-
   // Select word to hide:优先使用 sentence.blanks，否则使用随机算法
   const { targetTokenIndex, hiddenWord } = useMemo(() => {
     if (spaceTokens.length === 0) {

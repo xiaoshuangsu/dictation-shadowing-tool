@@ -115,17 +115,23 @@ export default function YouTubePlayer({
     const iframe = document.createElement('iframe')
     iframe.id = iframeId
     iframe.className = 'w-full h-full'
-    iframe.src = `https://www.youtube.com/embed/${youtubeId}?` +
-      `enablejsapi=1&` +
-      `origin=${encodeURIComponent(origin)}&` +  // ✅ 硬编码 origin（无末尾斜杠）
-      `playsinline=1&` +
-      `controls=0&` +
-      `modestbranding=1&` +
-      `rel=0&` +
-      `disablekb=1`
+
+    // 🔥 优化：构建 URL 参数，不设置 origin（让 YouTube 自动检测）
+    // origin 参数在 localhost 环境下会导致 postMessage 警告，但不影响功能
+    const params = new URLSearchParams({
+      enablejsapi: '1',
+      playsinline: '1',
+      controls: '0',
+      modestbranding: '1',
+      rel: '0',
+      disablekb: '1',
+      // 只在非 localhost 环境设置 origin
+      ...(origin && !origin.includes('localhost') && !origin.includes('127.0.0.1') ? { origin } : {})
+    })
+
+    iframe.src = `https://www.youtube.com/embed/${youtubeId}?${params.toString()}`
     iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
     iframe.allowFullscreen = true
-    iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin')  // ✅ 修复跨域
 
     containerRef.current.appendChild(iframe)
 
@@ -136,10 +142,8 @@ export default function YouTubePlayer({
           onReady?.()
           onLoadingChange?.(false)
 
-          // 🔥 YouTube 播放器就绪后，先静音（绕过自动播放限制）
-          if (playerRef.current && playerRef.current.mute) {
-            playerRef.current.mute()
-          }
+          // 🔥 播放器就绪后，不自动静音，确保有声音
+          // 移除了之前的 mute() 调用，避免视频无声
 
           if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
             prevTriggerRef.current = autoPlayTrigger
@@ -238,6 +242,14 @@ export default function YouTubePlayer({
     const safeEndTime = getSafeEndTime(currentSentence)
 
     isPracticeModeRef.current = true
+
+    // 🔥 确保音量正常（取消静音并设置音量为 100）
+    if (playerRef.current.unMute) {
+      playerRef.current.unMute()
+    }
+    if (playerRef.current.setVolume) {
+      playerRef.current.setVolume(100)
+    }
 
     if (playerRef.current.setPlaybackRate) {
       playerRef.current.setPlaybackRate(playbackRate)

@@ -1,5 +1,33 @@
 # Changelog
 
+## [30.3.3] - 2026-04-16
+
+### Bug Fixes 🔧
+- **修复 YouTube postMessage 跨域握手错误** 🌐
+  - **问题**：`Target Origin provided ('https://www.youtube.com') does not match the recipient window's origin ('http://localhost:3000')`
+  - **解决方案**：只在非 localhost 环境设置 `origin` 参数，让 YouTube 自动检测本地环境
+
+- **修复 YouTube 播放无声问题** 🔊
+  - **问题**：播放器就绪时自动调用 `mute()`，导致视频显示但无声音
+  - **解决方案**：移除自动静音逻辑，在播放时强制 `unMute()` 并设置音量为 100%
+
+- **优化播放控制** ⚡
+  - **改进**：在所有播放场景（左栏、中栏、右栏）确保音量正常
+  - **优化**：使用 `URLSearchParams` 构建 URL 参数，提高代码可维护性
+
+### Code Cleanup 🧹
+- **移除冗余日志** 📝
+  - **WordMode.tsx**：删除播放时的重绘日志（`[WordMode] Sentence data:`），减少控制台干扰
+  - **YouTubePlayer.tsx**：保留必要的错误捕获（`console.error` 和 `console.warn`）
+
+### Technical
+- **关键文件变更** 📝
+  - `components/YouTubePlayer.tsx`：移除自动静音、优化 origin 参数、确保播放音量
+  - `components/WordMode.tsx`：清理调试日志
+  - `package.json`：版本号更新至 30.3.3
+
+---
+
 ## [30.3.2] - 2026-04-15
 
 ### Bug Fixes 🔧
