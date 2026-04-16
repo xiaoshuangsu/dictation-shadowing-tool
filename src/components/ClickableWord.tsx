@@ -175,7 +175,10 @@ function ClickableWord({
       {tooltipState.visible && !isHidden && (
         <div
           className="fixed inset-0 z-40"
-          onClick={closeTooltip}
+          onClick={(e) => {
+            e.stopPropagation()
+            closeTooltip()
+          }}
         />
       )}
     </>
