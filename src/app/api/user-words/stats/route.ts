@@ -8,6 +8,8 @@
  * - New Words Today: 统计今天新添加的单词（created_at 在今天）
  * - Accuracy: 根据掌握状态计算准确率
  * - Streak: 从 user_profiles 获取连胜天数
+ *
+ * 🔥 V30.3.6: 添加内存缓存，防止频繁查询 user_profiles
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -18,6 +20,10 @@ export const dynamic = 'force-dynamic'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+// 🔥 V30.3.6: 简单的内存缓存，防止频繁查询 user_profiles
+const profileCache: Map<string, { streak: number; timestamp: number }> = new Map()
+const PROFILE_CACHE_TTL = 10 * 60 * 1000  // 10 分钟缓存
 
 export async function GET(request: NextRequest) {
   try {
@@ -100,13 +106,29 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Streak: 从 user_profiles 获取连胜天数
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('current_streak')
-      .eq('id', userId)
-      .single()
+    // 🔥 V30.3.6: 使用内存缓存，减少数据库查询
+    let streak = 0
+    const cachedProfile = profileCache.get(userId)
 
-    const streak = profile?.current_streak || 0
+    if (cachedProfile && Date.now() - cachedProfile.timestamp < PROFILE_CACHE_TTL) {
+      // 缓存命中
+      streak = cachedProfile.streak
+    } else {
+      // 缓存未命中，查询数据库
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('current_streak')
+        .eq('id', userId)
+        .single()
+
+      streak = profile?.current_streak || 0
+
+      // 保存到缓存
+      profileCache.set(userId, {
+        streak,
+        timestamp: Date.now()
+      })
+    }
 
     // 🔥 每日目标：20 个单词（基于复习数，不含新学）
     const DAILY_GOAL = 20

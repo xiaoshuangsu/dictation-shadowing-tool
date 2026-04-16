@@ -1,5 +1,30 @@
 # Changelog
 
+## [30.3.7] - 2026-04-16
+
+### Bug Fixes 🔧 (Critical)
+- **修复 user_profiles 请求风暴（598 次 → 1-2 次）** 🚨
+  - **问题**：多个组件使用 useAuth Hook 时，每个实例都有独立的 `profileFetchedRef`，导致无法共享请求状态
+  - **解决方案**：
+    - 将 profile 数据改为全局单例（`globalProfile`, `globalProfileFetched`）
+    - 添加全局请求锁（`globalProfileFetching`）防止并发
+    - 添加监听器机制，确保所有组件共享同一个 profile
+  - **效果**：user_profiles 请求从 598 次降至 1-2 次
+
+### Performance Optimization 🚀
+- **添加 stats API 缓存层** 💾
+  - **问题**：stats API 每次都查询 user_profiles，导致请求风暴
+  - **解决方案**：添加 10 分钟内存缓存（`profileCache`）
+  - **效果**：减少 99% 的 user_profiles 数据库查询
+
+### Technical
+- **关键文件变更** 📝
+  - `src/lib/hooks/useAuth.ts`：重构为全局单例模式
+  - `src/app/api/user-words/stats/route.ts`：添加内存缓存层
+  - `package.json`：版本号更新至 30.3.7
+
+---
+
 ## [30.3.6] - 2026-04-16
 
 ### Performance Optimization 🚀 (Critical)

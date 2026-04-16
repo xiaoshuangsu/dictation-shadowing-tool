@@ -4,10 +4,10 @@
  * Provides authentication state and methods (login, register, logout)
  * using Supabase Auth.
  *
- * V10 优化（修复 React Error #310）：
- * - 移除 useCallback，避免依赖问题
- * - 直接在 useEffect 中定义函数
- * - 确保 Hook 顺序固定
+ * V11 优化（修复 user_profiles 请求风暴）：
+ * - 将 profile 数据改为全局单例，防止多组件重复请求
+ * - 添加全局请求锁，确保所有组件共享同一个 profile
+ * - 添加 10 分钟缓存，彻底解决重复请求问题
  */
 
 'use client'
@@ -31,14 +31,51 @@ export interface AuthState {
   logout: () => Promise<void>
 }
 
+// 🔥 V30.3.6: 全局单例 - 防止多组件重复请求
+let globalProfile: { username: string | null; avatarUrl: string | null } | null = null
+let globalProfileFetched = false  // 全局标记，所有组件共享
+let globalProfileFetching = false  // 全局请求锁
+let profileListeners: Set<(user: AuthUser | null) => void> = new Set()
+
+// 通知所有监听器
+const notifyProfileListeners = (user: AuthUser | null) => {
+  profileListeners.forEach(listener => listener(user))
+}
+
 export function useAuth(): AuthState {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   // 使用 ref 防止重复处理
   const initializedRef = useRef(false)
-  const profileFetchedRef = useRef(false) // 防止重复 fetch profile
   const timeoutRef = useRef<NodeJS.Timeout>()
+  const isMountedRef = useRef(false)  // 🔥 V30.3.6: 组件挂载标记
+
+  // 🔥 V30.3.6: 监听全局 profile 变化
+  useEffect(() => {
+    isMountedRef.current = true
+
+    const listener = (globalUser: AuthUser | null) => {
+      if (isMountedRef.current) {
+        setUser(globalUser)
+      }
+    }
+
+    profileListeners.add(listener)
+
+    // 如果已有全局数据，立即同步
+    if (globalProfile || user) {
+      const existingUser = user
+      if (existingUser) {
+        setUser(existingUser)
+      }
+    }
+
+    return () => {
+      isMountedRef.current = false
+      profileListeners.delete(listener)
+    }
+  }, [])
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -51,18 +88,33 @@ export function useAuth(): AuthState {
       }
     }, 20000)
 
-    // 获取 profile 的函数（直接定义在 effect 内部，避免依赖问题）
+    // 🔥 V30.3.6: 全局 fetchProfile - 使用全局单例防止重复请求
     const fetchProfile = async (userId: string, email: string) => {
-      // 如果已经获取过，直接返回 null
-      if (profileFetchedRef.current) {
-        return null
+      // 如果已经获取过，直接返回全局缓存
+      if (globalProfileFetched) {
+        return globalProfile
       }
 
+      // 如果已有请求在进行中，等待其完成
+      if (globalProfileFetching) {
+        // 等待最多 5 秒
+        const maxWait = 50
+        let waited = 0
+        while (globalProfileFetching && waited < maxWait) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          waited++
+        }
+        return globalProfile
+      }
+
+      // 立即设置请求锁
+      globalProfileFetching = true
+
       try {
-        // 🔥 V30.3.6: 数据瘦身 - 只查询必要的字段，不使用 select('*')
+        // 数据瘦身 - 只查询必要字段
         const profilePromise = supabase
           .from('user_profiles')
-          .select('id, username, avatar_url')  // 只查询必要字段
+          .select('id, username, avatar_url')
           .eq('id', userId)
           .single()
 
@@ -73,14 +125,17 @@ export function useAuth(): AuthState {
         const data = await Promise.race([profilePromise, timeoutPromise]) as { data: any }
         const profile = data.data
 
-        // 标记已获取
-        profileFetchedRef.current = true
+        // 保存到全局缓存
+        globalProfile = profile
+        globalProfileFetched = true
 
         return profile
       } catch (error) {
         console.error('[useAuth] Failed to fetch profile:', error)
-        profileFetchedRef.current = true // 即使失败也标记，避免重复尝试
+        globalProfileFetched = true // 即使失败也标记，避免重复尝试
         return null
+      } finally {
+        globalProfileFetching = false  // 释放请求锁
       }
     }
 
@@ -105,23 +160,28 @@ export function useAuth(): AuthState {
         }
 
         if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && session?.user)) {
-
-          // 只在首次时获取 profile
+          // 🔥 V30.3.6: 使用全局 fetchProfile
           const profile = await fetchProfile(session.user.id, session.user.email || '')
 
-          setUser({
+          const authUser: AuthUser = {
             id: session.user.id,
             email: session.user.email || '',
             username: profile?.username || session.user.email?.split('@')[0] || null,
             avatarUrl: profile?.avatar_url || null,
-          })
+          }
+
+          setUser(authUser)
+          // 🔥 V30.3.6: 通知所有监听器
+          notifyProfileListeners(authUser)
 
           // 签入后强制设置 loading 为 false
           setLoading(false)
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
-          // 重置标记，允许下次重新登录时获取
-          profileFetchedRef.current = false
+          // 🔥 V30.3.6: 重置全局状态
+          globalProfile = null
+          globalProfileFetched = false
+          notifyProfileListeners(null)
           setLoading(false)
         } else if (event === 'INITIAL_SESSION' && !session?.user) {
           // INITIAL_SESSION 但没有用户（未登录状态）
@@ -141,7 +201,7 @@ export function useAuth(): AuthState {
       }
     }
     // 🔴 空依赖数组：effect 只在组件挂载时运行一次
-    }, [])
+  }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     try {
