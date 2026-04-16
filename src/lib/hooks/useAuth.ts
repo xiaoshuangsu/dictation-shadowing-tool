@@ -59,9 +59,10 @@ export function useAuth(): AuthState {
       }
 
       try {
+        // 🔥 V30.3.6: 数据瘦身 - 只查询必要的字段，不使用 select('*')
         const profilePromise = supabase
           .from('user_profiles')
-          .select('*')
+          .select('id, username, avatar_url')  // 只查询必要字段
           .eq('id', userId)
           .single()
 

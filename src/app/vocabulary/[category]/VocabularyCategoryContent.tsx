@@ -10,7 +10,7 @@
 
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import useSWR from 'swr'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRouter } from 'next/navigation'
@@ -501,10 +501,18 @@ export function VocabularyCategoryContent({ category }: { category: string }) {
   // ══════════════════════════════════════════════════════════════════════════════
 
   // My Words API
-  const shouldFetchUserWords = category === 'my-words' && user
+  // 🔥 V30.3.6: 使用 useMemo 稳定 SWR key
+  const userWordsKey = useMemo(() => {
+    return (category === 'my-words' && user) ? `/api/user-words?userId=${user.id}` : null
+  }, [category, user?.id])
+
   const { data: userWordsData, error: userWordsError } = useSWR(
-    shouldFetchUserWords ? ['/api/user-words', user.id] : null,
-    ([url, userId]) => fetcherWithAuth(url, userId as string),
+    userWordsKey,
+    (url) => {
+      const userId = user?.id
+      if (!userId) throw new Error('No user ID')
+      return fetcherWithAuth('/api/user-words', userId)
+    },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,

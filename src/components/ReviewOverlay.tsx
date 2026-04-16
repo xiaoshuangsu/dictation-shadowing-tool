@@ -604,10 +604,11 @@ export default function ReviewOverlay({ words, user, onClose, startIndex = 0, or
         setIsCompleted(true)
 
         // 🔥 V4.5: 队列完成，触发统计刷新
+        // 🔥 V30.3.6: 修复 key 格式以匹配新的 URL 格式（使用查询参数）
         mutate(
           (key) => {
-            if (Array.isArray(key) && key.length === 2) {
-              return key[0] === '/api/user-words/stats' && key[1] === user.id
+            if (typeof key === 'string' && key.startsWith('/api/user-words/stats?userId=')) {
+              return key === `/api/user-words/stats?userId=${user.id}`
             }
             return false
           },

@@ -213,9 +213,13 @@ function ClickableSentence({ text, sentence, materialId, materialTitle, audioSrc
     <div className="text-base text-gray-900 leading-relaxed">
       {tokens.map((token, index) => {
         if (token.isWord) {
+          // 🔥 V30.3.6: 修复 key 稳定性，使用单词本身+index 而非纯 index
+          // 防止 ClickableWord 频繁重新挂载，触发海量 useUserVocabulary 请求
+          const stableKey = `${token.originalWord || token.text}-${index}`
+
           return (
             <ClickableWord
-              key={index}
+              key={stableKey}
               word={token.text}
               originalWord={token.originalWord}
               contextSentence={sentence.text}
@@ -226,7 +230,7 @@ function ClickableSentence({ text, sentence, materialId, materialTitle, audioSrc
             />
           )
         } else {
-          return <span key={index}>{token.text}</span>
+          return <span key={`${token.text}-${index}`}>{token.text}</span>
         }
       })}
     </div>

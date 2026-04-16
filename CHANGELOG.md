@@ -1,5 +1,51 @@
 # Changelog
 
+## [30.3.6] - 2026-04-16
+
+### Performance Optimization 🚀 (Critical)
+- **修复请求风暴 + 数据瘦身（97% 降幅）** 📉
+  - **问题 1：请求风暴**：从生词页面返回素材练习页面时出现 1300+ 重复请求
+  - **问题 2：数据爆炸**：单次 `/api/user-words` 请求达到 4.1 MB
+  - **解决方案**：
+    - 修复 SWR Key 稳定性（使用 useMemo 稳定引用）
+    - 移除 `transcript` 字段查询（节省 4MB+）
+    - 移除 `definitions` 字段传输
+    - 添加 60 秒去重配置（dedupingInterval）
+    - 强化 `useUserVocabulary` 请求锁
+  - **效果**：响应大小从 4.1 MB 降至 50-100 KB（**97% ↓**），请求次数控制在 1-2 次
+
+### Bug Fixes 🔧
+- **修复 PATCH /api/user-words 500 错误** 🛠️
+  - **问题 1**：查询了不存在的字段（`current_streak`, `last_streak_update`）
+  - **问题 2**：插入新记录时缺少必填字段（`definition`, `phonetic`, `context_sentence` 等）
+  - **解决方案**：
+    - 移除不存在的字段查询
+    - 补全所有必填字段（参考 POST 方法）
+  - **影响**：闪卡复习 "Still Learning" 按钮恢复正常
+
+- **修复 ClickableWord 的 key 稳定性** 🔑
+  - **问题**：使用 `index` 作为 key，导致组件频繁重新挂载
+  - **解决方案**：使用 `${word}-${index}` 作为稳定 key
+  - **影响**：彻底解决重复挂载导致的请求风暴
+
+### Technical
+- **关键文件变更** 📝
+  - `src/app/api/user-words/route.ts`：
+    - 移除 `transcript` 字段查询（数据瘦身）
+    - 移除 `definitions` 字段传输
+    - 补全 INSERT 必填字段
+    - 移除不存在的字段查询
+  - `src/lib/hooks/useUserWords.ts`：使用 useMemo 稳定 SWR Key
+  - `src/lib/hooks/useUserVocabulary.ts`：添加双重请求锁
+  - `src/app/vocabulary/VocabularyHubContent.tsx`：稳定 SWR Key + 60秒去重
+  - `src/app/vocabulary/[category]/VocabularyCategoryContent.tsx`：稳定 SWR Key
+  - `src/components/ClickableTranscript.tsx`：修复 key 稳定性
+  - `src/components/ReviewOverlay.tsx`：修复 mutate 调用
+  - `src/lib/hooks/useAuth.ts`：优化 user_profiles 查询
+  - `package.json`：版本号更新至 30.3.6
+
+---
+
 ## [30.3.5] - 2026-04-16
 
 ### Bug Fixes 🔧

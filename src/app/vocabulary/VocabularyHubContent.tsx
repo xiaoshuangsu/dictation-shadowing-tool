@@ -10,7 +10,7 @@
 
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import useSWR, { mutate } from 'swr'
 import { useAuth } from '@/lib/hooks/useAuth'
 import Link from 'next/link'
@@ -130,14 +130,24 @@ export function VocabularyHubContent() {
   // 🔥 V3.3: 记录初始 Today's Review 数量（用于区分复习模式和主动练习）
   const [initialDueWordsCount, setInitialDueWordsCount] = useState(0)
 
+  // 🔥 V30.3.6: 使用 useMemo 稳定 SWR key，防止每次渲染创建新数组引用
+  const statsKey = useMemo(() => {
+    return user ? `/api/user-words/stats?userId=${user.id}` : null
+  }, [user?.id])
+
   // 🔥 使用 SWR 获取统计数据（自动缓存和重新验证）
   const { data: statsData, error: statsError, mutate: mutateStats } = useSWR(
-    user ? ['/api/user-words/stats', user.id] : null,
-    ([url, userId]) => fetcher(url, userId as string),
+    statsKey,
+    (url) => {
+      // 从 URL 中提取 userId
+      const userId = user?.id
+      if (!userId) throw new Error('No user ID')
+      return fetcher(url, userId)
+    },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 10000, // 10秒内相同请求自动去重
+      dedupingInterval: 60000, // 🔥 V30.3.6: 60秒去重，防止返回页面时的请求风暴
       refreshInterval: 0 // 手动刷新
     }
   )

@@ -10,6 +10,7 @@
 'use client'
 
 import useSWR, { SWRConfiguration } from 'swr'
+import { useMemo } from 'react'
 
 // 🔴 创建全局缓存存储，确保组件卸载后缓存仍然保留
 // 这是解决 Topics ↔ Vocabulary 切换闪烁的关键
@@ -101,9 +102,11 @@ const swrConfig: SWRConfiguration = {
  * ```
  */
 export function useUserWords(status: string = 'all', userId?: string | null) {
-  // 🔴 构建 URL
-  const query = status === 'all' ? '' : `?status=${status}`
-  const url = `/api/user-words${query}`
+  // 🔥 V30.3.6: 使用 useMemo 稳定 URL，防止每次渲染都创建新引用导致 SWR 重复请求
+  const url = useMemo(() => {
+    const query = status === 'all' ? '' : `?status=${status}`
+    return `/api/user-words${query}`
+  }, [status])
 
   // 🔴 使用 SWR 管理数据请求
   // 注意：fetcher 需要包含 Authorization header
@@ -134,10 +137,13 @@ export function useUserWords(status: string = 'all', userId?: string | null) {
  * Hook: 检查单个单词是否已保存
  */
 export function useWordSaved(word: string, userId?: string | null) {
-  const checkUrl = `/api/user-words/check?word=${encodeURIComponent(word)}`
+  // 🔥 V30.3.6: 使用 useMemo 稳定 URL，防止每次渲染都创建新引用导致 SWR 重复请求
+  const checkUrl = useMemo(() => {
+    return `/api/user-words/check?word=${encodeURIComponent(word)}`
+  }, [word])
 
   const { data, error, isLoading } = useSWR<boolean>(
-    checkUrl,  // 🔴 key 始终是 checkUrl，不使用条件
+    userId && word ? checkUrl : null,  // 🔥 V30.3.6: 使用条件 key，避免无效请求
     async () => {
       // 🔴 在 fetcher 中判断 userId 和 word
       if (!userId || !word) {
