@@ -1,5 +1,26 @@
 # Changelog
 
+## [30.3.5] - 2026-04-16
+
+### Bug Fixes 🔧
+- **修复素材练习页面点击单词弹窗时的 Hydration Error** 🛠️
+  - **问题**：`<div>/<h3> cannot be a descendant of <p>` - HTML 结构违规导致 React Hydration 失败
+  - **解决方案**：将 ClickableSentence 组件中的 `<p>` 标签更换为 `<div>`，保留原有 className 样式
+  - **影响范围**：素材练习页面的 Transcript 右栏
+
+### Known Issues ⚠️
+- **PATCH /api/user-words 500 错误** 🐛
+  - **问题**：在 My Words 闪卡复习中点击 "Still Learning" 触发 PATCH 请求时报 500 错误
+  - **状态**：待排查，下一阶段处理
+  - **临时方案**：用户可选择 "Kinda Know" 或 "Too Easy" 绕过此问题
+
+### Technical
+- **关键文件变更** 📝
+  - `src/components/ClickableTranscript.tsx`：修复 DOM 结构违规（`<p>` → `<div>`）
+  - `package.json`：版本号更新至 30.3.5
+
+---
+
 ## [30.3.4] - 2026-04-16
 
 ### Bug Fixes 🔧

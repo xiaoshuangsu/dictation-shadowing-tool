@@ -209,7 +209,8 @@ function ClickableSentence({ text, sentence, materialId, materialTitle, audioSrc
   const tokens = tokenizeSentence(text)
 
   return (
-    <p className="text-base text-gray-900 leading-relaxed">
+    // 🔥 修复 Hydration Error：将 <p> 改为 <div>，避免嵌套 WordTooltip 的 <div>
+    <div className="text-base text-gray-900 leading-relaxed">
       {tokens.map((token, index) => {
         if (token.isWord) {
           return (
@@ -228,6 +229,6 @@ function ClickableSentence({ text, sentence, materialId, materialTitle, audioSrc
           return <span key={index}>{token.text}</span>
         }
       })}
-    </p>
+    </div>
   )
 }

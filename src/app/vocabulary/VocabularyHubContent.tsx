@@ -267,11 +267,11 @@ export function VocabularyHubContent() {
     }, 5000)  // 5秒后重置，确保 3 秒 API 延迟 + 缓冲时间
   }
 
-  // 🔥 V4.6: 深度乐观更新回调（修复 SWR 数据回滚 Bug）
+  // 🔥 V4.7: 深度乐观更新回调（修复 SWR 数据回滚 Bug）
   const handleReviewComplete = (update: { dueWordsChange: number, reviewedChange: number }) => {
     const { dueWordsChange, reviewedChange } = update
 
-    // 🔥 V4.6: 计算更新后的完整统计数据（用于深度乐观更新 SWR 缓存）
+    // 🔥 V4.7: 计算更新后的完整统计数据（用于深度乐观更新 SWR 缓存）
     const newStats: TodayStats = {
       ...baseStats,
       dueWords: baseStats.dueWords + localDueWordsIncrementRef.current + dueWordsChange,
@@ -283,13 +283,13 @@ export function VocabularyHubContent() {
       dailyGoal: baseStats.dailyGoal
     }
 
-    // 🔥 V4.6: 深度乐观更新 SWR 缓存（false = 不触发网络请求，防止回滚）
+    // 🔥 V4.7: 深度乐观更新 SWR 缓存（revalidate: false = 不触发网络请求，防止回滚）
     mutateStats(
       { stats: newStats },
       { revalidate: false }
     )
 
-    // 🔥 V4.6: 根据更新值调整本地计数（保持 UI 实时响应）
+    // 🔥 V4.7: 根据更新值调整本地计数（保持 UI 实时响应）
     if (dueWordsChange !== 0) {
       setLocalDueWordsIncrement(prev => prev + dueWordsChange)
     }
