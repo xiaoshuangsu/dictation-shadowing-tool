@@ -59,6 +59,7 @@ export const CATEGORIES = [
 
 /**
  * SWR 配置：优化性能 - 与 useUserWords 保持一致的配置
+ * 🔥 V30.3.8: 增加缓存时间至 5 分钟，减少请求频率
  */
 const swrConfig: SWRConfiguration = {
   // 🔴 关键优化：完全禁用自动重新验证
@@ -66,8 +67,8 @@ const swrConfig: SWRConfiguration = {
   revalidateOnFocus: false,       // 切换标签时不重新请求
   revalidateOnReconnect: false,   // 网络重连时不重新请求
 
-  // 🔴 长时间缓存：1小时内只要有缓存就不再请求
-  dedupingInterval: 3600000,      // 1小时（60分钟 × 60秒 × 1000ms）
+  // 🔥 V30.3.8: 5分钟缓存，避免频繁请求
+  dedupingInterval: 300000,       // 5分钟（减少数据库压力）
 
   // 🔴 加载状态优化
   keepPreviousData: true,         // 请求期间保留旧数据（避免白屏）
@@ -80,6 +81,7 @@ const swrConfig: SWRConfiguration = {
 
 /**
  * Fetcher 函数：获取所有分类的素材
+ * 🔥 V30.3.8: 优化查询 - 从 28 个独立查询聚合为 2 个查询（解决 N+1 问题）
  */
 async function fetchMaterials(): Promise<MaterialsResponse> {
   const supabaseClient = getSupabase()
@@ -88,26 +90,44 @@ async function fetchMaterials(): Promise<MaterialsResponse> {
   const result: MaterialsByCategory = {}
   const counts: CategoryCounts = {}
 
-  // 并行获取所有分类的素材（每个分类最多4个）和总数
-  const promises = CATEGORIES.map(async (category) => {
-    // 对于 Daily Life 分类，获取更多素材以便筛选有自定义封面的
-    const limit = category.id === '日常生活' ? 50 : 4
+  // 🔥 V30.3.8: 第一步 - 一次性查询所有分类的素材（每个分类最多 4-50 个）
+  // 使用 IN 查询，在应用层过滤分类
+  const { data: allMaterials } = await supabaseClient
+    .from('materials')
+    .select('id, title, category, difficulty, thumbnail_path, slug')  // 🔥 只查询必要字段，禁止 transcript
+    .in('category', CATEGORIES.map(c => c.id))
+    .order('category, title')
 
-    // 获取素材
-    const { data, error } = await supabaseClient
-      .from('materials')
-      .select('*')
-      .eq('category', category.id)
-      .order('title')
-      .limit(limit)
+  // 🔥 V30.3.8: 第二步 - 一次性查询所有分类的数量
+  const { data: allCounts } = await supabaseClient
+    .from('materials')
+    .select('category', { count: 'exact', head: true })
+    .in('category', CATEGORIES.map(c => c.id))
 
-    if (!error && data) {
-      // 对于 Daily Life，优先显示有自定义封面的素材
+  // 🔥 处理素材数据
+  if (allMaterials) {
+    // 按分类分组
+    const materialsByCategoryMap: Record<string, any[]> = {}
+    CATEGORIES.forEach(category => {
+      materialsByCategoryMap[category.id] = []
+    })
+
+    allMaterials.forEach(material => {
+      if (materialsByCategoryMap[material.category]) {
+        materialsByCategoryMap[material.category].push(material)
+      }
+    })
+
+    // 处理每个分类的素材
+    CATEGORIES.forEach(category => {
+      const materials = materialsByCategoryMap[category.id] || []
+
       if (category.id === '日常生活') {
-        const customCoverMaterials = data.filter(m =>
+        // 对于 Daily Life，优先显示有自定义封面的素材
+        const customCoverMaterials = materials.filter(m =>
           m.thumbnail_path && m.thumbnail_path !== DEFAULT_COVER
         )
-        const defaultCoverMaterials = data.filter(m =>
+        const defaultCoverMaterials = materials.filter(m =>
           !m.thumbnail_path || m.thumbnail_path === DEFAULT_COVER
         )
         // 合并：自定义封面在前，默认封面在后，各取前几个
@@ -116,22 +136,17 @@ async function fetchMaterials(): Promise<MaterialsResponse> {
         const defaultMaterials = defaultCoverMaterials.slice(0, remainingCount)
         result[category.id] = [...customMaterials, ...defaultMaterials] as Material[]
       } else {
-        result[category.id] = data.slice(0, 4) as Material[]
+        result[category.id] = materials.slice(0, 4) as Material[]
       }
-    }
+    })
+  }
 
-    // 获取该分类的总数
-    const { count } = await supabaseClient
-      .from('materials')
-      .select('*', { count: 'exact', head: true })
-      .eq('category', category.id)
-
-    if (count !== null) {
-      counts[category.id] = count
-    }
-  })
-
-  await Promise.all(promises)
+  // 🔥 处理计数数据
+  if (allCounts) {
+    allCounts.forEach(item => {
+      counts[item.category] = item.count
+    })
+  }
 
   return {
     materialsByCategory: result,

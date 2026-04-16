@@ -135,9 +135,25 @@ export function MaterialsPageContent() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-8">
           {isLoading && Object.keys(materialsByCategory).length === 0 ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="mt-4 text-gray-600">Loading...</p>
+            // 🔥 V30.3.8: 骨架屏加载状态
+            <div className="space-y-12">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <section key={index} className="animate-pulse">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="h-8 bg-gray-200 rounded w-48"></div>
+                    <div className="h-6 bg-gray-200 rounded w-24"></div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {Array.from({ length: 4 }).map((_, cardIndex) => (
+                      <div key={cardIndex} className="bg-white rounded-lg shadow-sm p-4">
+                        <div className="h-32 bg-gray-200 rounded mb-3"></div>
+                        <div className="h-5 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
           ) : error ? (
             <div className="text-center py-16">
@@ -159,6 +175,7 @@ export function MaterialsPageContent() {
           ) : (
             <div className="space-y-12">
               {CATEGORIES.map((category) => {
+                // 🔥 V30.3.8: 防御性渲染 - 使用可选链，确保局部数据缺失不影响全页渲染
                 const categoryMaterials = materialsByCategory[category.id] || []
 
                 if (categoryMaterials.length === 0) return null
@@ -173,7 +190,7 @@ export function MaterialsPageContent() {
                       >
                         {category.label}
                         <span className="ml-2 text-sm font-normal text-gray-500">
-                          ({categoryCounts[category.id] || 0} materials)
+                          ({categoryCounts?.[category.id] || 0} materials)
                         </span>
                       </Link>
                       <Link
@@ -187,14 +204,17 @@ export function MaterialsPageContent() {
                     {/* Card Grid - 显示前4个素材 */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {categoryMaterials.map((material, index) => {
+                        // 🔥 V30.3.8: 防御性渲染 - 确保数据安全
+                        if (!material) return null
+
                         // 移动端只显示第一个卡片，桌面端显示所有卡片
                         const isHiddenOnMobile = index > 0
-                        const thumbnailUrl = getThumbnailUrl(material.thumbnail_path)
-                        const imageLoaded = imageLoadedStates[material.id] || false
+                        const thumbnailUrl = getThumbnailUrl(material?.thumbnail_path)
+                        const imageLoaded = imageLoadedStates[material?.id] || false
 
                         return (
                           <div
-                            key={material.id}
+                            key={material?.id || index}
                             className={`bg-white shadow-sm border border-gray-100 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 group ${
                               isHiddenOnMobile ? 'hidden sm:block' : ''
                             }`}
@@ -205,13 +225,13 @@ export function MaterialsPageContent() {
                                 <img
                                   crossOrigin="anonymous"
                                   src={thumbnailUrl}
-                                  alt={material.title}
+                                  alt={material?.title || 'Material'}
                                   className={`w-full h-full object-cover transition-opacity duration-300 ${
                                     imageLoaded ? 'opacity-100' : 'opacity-0'
                                   }`}
                                   loading="lazy"
                                   onLoad={() => {
-                                    setImageLoadedStates(prev => ({ ...prev, [material.id]: true }))
+                                    setImageLoadedStates(prev => ({ ...prev, [material?.id]: true }))
                                   }}
                                 />
                               ) : (
