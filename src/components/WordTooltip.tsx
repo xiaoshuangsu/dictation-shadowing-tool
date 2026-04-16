@@ -104,7 +104,7 @@ export default function WordTooltip({
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [currentLanguage, setCurrentLanguage] = useState<keyof WordDefinition['definitions']>('zh-CN')
+  const [currentLanguage, setCurrentLanguage] = useState<keyof WordDefinition['translations']>('zh')
   const [isMobile, setIsMobile] = useState(false)
 
   // 🔴 音频相关状态
@@ -219,7 +219,8 @@ export default function WordTooltip({
   useEffect(() => {
     const updateLanguage = () => {
       const storedLang = getStoredLanguage()
-      const mappedLang = LANGUAGE_MAP[storedLang] || 'zh-CN'
+      // 🔥 修复：fallback 从 'zh-CN' 改为 'zh'（与 translations 对象的键匹配）
+      const mappedLang = LANGUAGE_MAP[storedLang] || 'zh'
       setCurrentLanguage(mappedLang)
     }
 

@@ -107,21 +107,16 @@ export async function POST(request: Request) {
     // ============================================
     // 第一步：查询缓存（只选择必要字段）
     // ============================================
+    // 🔥 优化：只查询必要字段，减少网络传输
     const { data: cachedData, error: cacheError } = await supabase
       .from('dictionary_cache')
-      .select('word, phonetic, translations, definitions, example, audio_r2_url, audio_url_us, audio_url_uk, hit_count')  // 🔥 优化：只查询必要字段
+      .select('word, phonetic, translations, definitions, example, audio_r2_url, audio_url_us, audio_url_uk')  // 移除 hit_count（不需要在查询时返回）
       .eq('word', normalizedWord)
       .single()
 
     if (cachedData) {
       // 缓存命中！
       console.log('[API] ✓ Cache hit for:', normalizedWord)
-
-      // 增加命中计数
-      await supabase
-        .from('dictionary_cache')
-        .update({ hit_count: (cachedData.hit_count || 0) + 1 })
-        .eq('word', normalizedWord)
 
       // ========================================
       // V3.0 优先：返回 translations（20 种语言）

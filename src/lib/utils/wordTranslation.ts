@@ -2,7 +2,10 @@
  * 单词翻译工具函数
  *
  * 使用智谱 GLM-4-Flash API 进行单词翻译
+ * 集成 IndexedDB 缓存，避免重复网络请求
  */
+
+import { wordCache } from './indexedDB'
 
 export interface WordDefinition {
   word: string
@@ -40,6 +43,8 @@ export interface WordDefinition {
 /**
  * 调用 GLM API 获取单词定义
  *
+ * 🔥 优化：优先从 IndexedDB 缓存读取，避免重复网络请求
+ *
  * @param word - 要翻译的单词
  * @returns 单词定义
  */
@@ -51,9 +56,17 @@ export async function fetchWordDefinition(word: string): Promise<WordDefinition 
   const normalizedWord = word.toLowerCase().trim()
 
   try {
-    // 使用 GLM API 获取单词定义
+    // 🔥 第一步：从 IndexedDB 缓存读取
+    const cached = await wordCache.get(normalizedWord)
+    if (cached) {
+      return cached
+    }
+
+    // 🔥 第二步：缓存未命中，调用 GLM API
     const glmResult = await fetchGLMDefinition(normalizedWord)
     if (glmResult) {
+      // 🔥 第三步：保存到 IndexedDB 缓存
+      await wordCache.set(normalizedWord, glmResult)
       return glmResult
     }
 
