@@ -35,6 +35,21 @@ GLM_API_KEY = os.environ.get("GLM_API_KEY")
 DEFAULT_CATEGORY = "Science and Facts"
 DEFAULT_DIFFICULTY = "B2"
 
+# 分类参数映射（用户输入的简短参数 → 数据库中的中文名称）
+CATEGORY_PARAM_MAP = {
+    'daily': '日常生活',
+    'heart': '心灵故事',
+    'science': 'Science and Facts',
+    'ted': 'TED演讲',
+    'ielts': 'IELTS Listening',
+    'bbc': 'BBC Learning English',
+    'culture': '文化历史',
+    'art': '艺术文化',
+    'story': '故事',
+    'cartoon': '动画片',
+    'interview': '人物访谈',
+}
+
 EXISTING_LANGUAGES = ['zh', 'zh_hant', 'vi']
 GROUP_A = ['ar', 'de', 'es', 'ja', 'ms', 'ru', 'tr', 'el']
 GROUP_B = ['id', 'ko', 'pt', 'th', 'uk', 'bn', 'mn', 'hi']
@@ -1753,7 +1768,9 @@ def main():
     i = 2
     while i < len(sys.argv):
         if sys.argv[i] == '--category' and i + 1 < len(sys.argv):
-            category = sys.argv[i + 1]
+            raw_category = sys.argv[i + 1]
+            # 🔄 分类参数映射：支持简短参数
+            category = CATEGORY_PARAM_MAP.get(raw_category.lower(), raw_category)
             i += 2
         elif sys.argv[i] == '--difficulty' and i + 1 < len(sys.argv):
             difficulty = sys.argv[i + 1]
@@ -1860,7 +1877,9 @@ def main():
     i = 2
     while i < len(sys.argv):
         if sys.argv[i] == '--category' and i + 1 < len(sys.argv):
-            category = sys.argv[i + 1]
+            raw_category = sys.argv[i + 1]
+            # 🔄 分类参数映射：支持简短参数
+            category = CATEGORY_PARAM_MAP.get(raw_category.lower(), raw_category)
             i += 2
         elif sys.argv[i] == '--difficulty' and i + 1 < len(sys.argv):
             difficulty = sys.argv[i + 1]

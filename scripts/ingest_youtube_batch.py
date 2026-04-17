@@ -42,6 +42,21 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 DEFAULT_CATEGORY = "Science and Facts"
 DEFAULT_DIFFICULTY = "B2"
 
+# 分类参数映射（用户输入的简短参数 → 数据库中的中文名称）
+CATEGORY_PARAM_MAP = {
+    'daily': '日常生活',
+    'heart': '心灵故事',
+    'science': 'Science and Facts',
+    'ted': 'TED演讲',
+    'ielts': 'IELTS Listening',
+    'bbc': 'BBC Learning English',
+    'culture': '文化历史',
+    'art': '艺术文化',
+    'story': '故事',
+    'cartoon': '动画片',
+    'interview': '人物访谈',
+}
+
 # 进度文件
 PROGRESS_FILE = Path("/tmp/youtube_batch_progress.json")
 
@@ -212,23 +227,33 @@ def print_help():
 用法: python3 scripts/ingest_youtube_batch.py <URL1> [URL2] [URL3] ... [选项]
 
 选项:
-  --category <分类>    设置分类（默认: Science and Facts）
+  --category <分类>    设置分类（支持简短参数: daily, heart, science 等）
   --difficulty <难度>  设置难度（默认: B2）
   --force              强制重新处理已入库的视频
   --help, -h           显示帮助信息
 
-示例:
-  # 处理单个视频
-  python3 scripts/ingest_youtube_batch.py "https://youtu.be/xxxxx"
+简短参数映射:
+  daily     → 日常生活
+  heart     → 心灵故事
+  science   → Science and Facts
+  ted       → TED演讲
+  ielts     → IELTS Listening
+  bbc       → BBC Learning English
+  culture   → 文化历史
+  art       → 艺术文化
+  story     → 故事
+  cartoon   → 动画片
+  interview → 人物访谈
 
-  # 批量处理多个视频
-  python3 scripts/ingest_youtube_batch.py "https://youtu.be/xxxxx" "https://youtu.be/yyyyy" "https://youtu.be/zzzzz"
+示例:
+  # 处理单个视频（使用简短参数）
+  python3 scripts/ingest_youtube_batch.py "https://youtu.be/xxxxx" --category daily
+
+  # 批量处理多个视频（使用中文分类名）
+  python3 scripts/ingest_youtube_batch.py "https://youtu.be/xxxxx" "https://youtu.be/yyyyy" --category "心灵故事"
 
   # 指定分类和难度
-  python3 scripts/ingest_youtube_batch.py "https://youtu.be/xxxxx" --category "BBC Earth" --difficulty "C2"
-
-  # 强制重新处理（即使已入库）
-  python3 scripts/ingest_youtube_batch.py "https://youtu.be/xxxxx" --force
+  python3 scripts/ingest_youtube_batch.py "https://youtu.be/xxxxx" --category heart --difficulty B2
     """)
 
 
@@ -252,7 +277,9 @@ if __name__ == '__main__':
             video_urls.append(arg)
             i += 1
         elif arg == '--category' and i + 1 < len(sys.argv):
-            category = sys.argv[i + 1]
+            raw_category = sys.argv[i + 1]
+            # 🔄 分类参数映射：支持简短参数
+            category = CATEGORY_PARAM_MAP.get(raw_category.lower(), raw_category)
             i += 2
         elif arg == '--difficulty' and i + 1 < len(sys.argv):
             difficulty = sys.argv[i + 1]
