@@ -796,16 +796,9 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
             'quiet': True,
             'no_warnings': True,
             'skip_download': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['web'],
-                }
-            },
             'nocheckcertificate': True,
             # 🔴 启用 Cookies 配置
             'cookiesfrombrowser': ('chrome',),
-            # 🔴 启用远程组件（解决 JS Challenge）
-            'remote_components': ['ejs:github'],
         }
 
         log(f"   📡 正在获取视频信息...")
@@ -830,6 +823,22 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
             subtitle_url = None
             subtitle_type = None
 
+            # 🔍 调试：检查 info 结构
+            has_subtitles_key = 'subtitles' in info
+            has_autocaptions_key = 'automatic_captions' in info
+
+            if has_subtitles_key:
+                subs_keys = list(info['subtitles'].keys()) if info['subtitles'] else []
+                log(f"   🔍 DEBUG: subtitles 键存在: True, 内容: {subs_keys}")
+            else:
+                log(f"   🔍 DEBUG: subtitles 键不存在")
+
+            if has_autocaptions_key:
+                auto_keys = list(info['automatic_captions'].keys())[:5] if info['automatic_captions'] else []
+                log(f"   🔍 DEBUG: automatic_captions 键存在: True, 前5个: {auto_keys}")
+            else:
+                log(f"   🔍 DEBUG: automatic_captions 键不存在")
+
             # 优先使用手动字幕
             if 'subtitles' in info and 'en' in info['subtitles']:
                 subtitle_url = info['subtitles']['en'][0]['url']
@@ -838,6 +847,9 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
             elif 'automatic_captions' in info and 'en' in info['automatic_captions']:
                 subtitle_url = info['automatic_captions']['en'][0]['url']
                 subtitle_type = "自动生成字幕"
+
+            # 🔍 调试日志
+            log(f"   🔍 DEBUG: subtitle_url = {'已设置' if subtitle_url else 'None'}")
 
             if subtitle_url:
                 log(f"   📌 字幕类型: {subtitle_type}")
@@ -889,8 +901,8 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
 # ============ 数据库操作 ============
 
 def upsert_material(client: Client, metadata: Dict, transcript: List[Dict],
-                   category: str, difficulty: str, failed_groups: List[str]) -> bool:
-    """入库素材"""
+                   category: str, difficulty: str, failed_groups: List[str]) -> Dict:
+    """入库素材，返回包含 ID 的字典"""
     video_id = metadata['video_id']
     title = metadata['title']
     slug = title_to_slug(title)
@@ -940,13 +952,13 @@ def upsert_material(client: Client, metadata: Dict, transcript: List[Dict],
             material_id = result.data[0]['id']
             log(f"   ✅ 创建成功 (ID: {material_id})")
 
-        return True
+        return {'id': material_id, 'success': True}
 
     except Exception as e:
         log(f"   ❌ 入库失败: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        return {'success': False}
 
 
 # ============ 主函数 ============
@@ -968,11 +980,17 @@ def print_help():
     print("  python3 scripts/ingest_youtube_ytdlp.py <YouTube_URL> [选项]")
     print("")
     print("选项：")
-    print("  --category <分类>    素材分类（默认: Science and Facts）")
-    print("  --difficulty <难度>  难度等级（默认: B2）")
-    print("  --basic-only         仅翻译 3 种基础语言（默认开启，避免与后台抢 API）")
-    print("  --full-translation   翻译全部 19 种语言（慎用，可能导致 429 错误）")
-    print("  --help              显示此帮助信息")
+    print("  --category <分类>       素材分类（默认: Science and Facts）")
+    print("  --difficulty <难度>     难度等级（默认: B2）")
+    print("  --skip-translation      跳过翻译，仅入库（推荐：API 达到上限时使用）")
+    print("  --basic-only            仅翻译 3 种基础语言（默认开启）")
+    print("  --full-translation      翻译全部 19 种语言（慎用，可能导致 429 错误）")
+    print("  --help                  显示此帮助信息")
+    print("")
+    print("推荐工作流（避免 API 限制）：")
+    print("  1. python3 scripts/ingest_youtube_ytdlp.py <URL> --skip-translation")
+    print("  2. 确认入库成功，记录数据库 ID")
+    print("  3. python3 scripts/retry_failed_translations.py（补全翻译）")
     print("")
     print("=" * 70)
 
@@ -1572,16 +1590,9 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
             'quiet': True,
             'no_warnings': True,
             'skip_download': True,
-            'extractor_args': {
-                'youtube': {
-                    'player_client': ['web'],
-                }
-            },
             'nocheckcertificate': True,
             # 🔴 启用 Cookies 配置
             'cookiesfrombrowser': ('chrome',),
-            # 🔴 启用远程组件（解决 JS Challenge）
-            'remote_components': ['ejs:github'],
         }
 
         log(f"   📡 正在获取视频信息...")
@@ -1606,6 +1617,22 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
             subtitle_url = None
             subtitle_type = None
 
+            # 🔍 调试：检查 info 结构
+            has_subtitles_key = 'subtitles' in info
+            has_autocaptions_key = 'automatic_captions' in info
+
+            if has_subtitles_key:
+                subs_keys = list(info['subtitles'].keys()) if info['subtitles'] else []
+                log(f"   🔍 DEBUG: subtitles 键存在: True, 内容: {subs_keys}")
+            else:
+                log(f"   🔍 DEBUG: subtitles 键不存在")
+
+            if has_autocaptions_key:
+                auto_keys = list(info['automatic_captions'].keys())[:5] if info['automatic_captions'] else []
+                log(f"   🔍 DEBUG: automatic_captions 键存在: True, 前5个: {auto_keys}")
+            else:
+                log(f"   🔍 DEBUG: automatic_captions 键不存在")
+
             # 优先使用手动字幕
             if 'subtitles' in info and 'en' in info['subtitles']:
                 subtitle_url = info['subtitles']['en'][0]['url']
@@ -1614,6 +1641,9 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
             elif 'automatic_captions' in info and 'en' in info['automatic_captions']:
                 subtitle_url = info['automatic_captions']['en'][0]['url']
                 subtitle_type = "自动生成字幕"
+
+            # 🔍 调试日志
+            log(f"   🔍 DEBUG: subtitle_url = {'已设置' if subtitle_url else 'None'}")
 
             if subtitle_url:
                 log(f"   📌 字幕类型: {subtitle_type}")
@@ -1664,8 +1694,8 @@ def fetch_youtube_metadata(video_url: str) -> Dict:
 # ============ 数据库操作 ============
 
 def upsert_material(client: Client, metadata: Dict, transcript: List[Dict],
-                   category: str, difficulty: str, failed_groups: List[str]) -> bool:
-    """入库素材"""
+                   category: str, difficulty: str, failed_groups: List[str]) -> Dict:
+    """入库素材，返回包含 ID 的字典"""
     video_id = metadata['video_id']
     title = metadata['title']
     slug = title_to_slug(title)
@@ -1715,13 +1745,13 @@ def upsert_material(client: Client, metadata: Dict, transcript: List[Dict],
             material_id = result.data[0]['id']
             log(f"   ✅ 创建成功 (ID: {material_id})")
 
-        return True
+        return {'id': material_id, 'success': True}
 
     except Exception as e:
         log(f"   ❌ 入库失败: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        return {'success': False}
 
 
 # ============ 主函数 ============
@@ -1743,11 +1773,17 @@ def print_help():
     print("  python3 scripts/ingest_youtube_ytdlp.py <YouTube_URL> [选项]")
     print("")
     print("选项：")
-    print("  --category <分类>    素材分类（默认: Science and Facts）")
-    print("  --difficulty <难度>  难度等级（默认: B2）")
-    print("  --basic-only         仅翻译 3 种基础语言（默认开启，避免与后台抢 API）")
-    print("  --full-translation   翻译全部 19 种语言（慎用，可能导致 429 错误）")
-    print("  --help              显示此帮助信息")
+    print("  --category <分类>       素材分类（默认: Science and Facts）")
+    print("  --difficulty <难度>     难度等级（默认: B2）")
+    print("  --skip-translation      跳过翻译，仅入库（推荐：API 达到上限时使用）")
+    print("  --basic-only            仅翻译 3 种基础语言（默认开启）")
+    print("  --full-translation      翻译全部 19 种语言（慎用，可能导致 429 错误）")
+    print("  --help                  显示此帮助信息")
+    print("")
+    print("推荐工作流（避免 API 限制）：")
+    print("  1. python3 scripts/ingest_youtube_ytdlp.py <URL> --skip-translation")
+    print("  2. 确认入库成功，记录数据库 ID")
+    print("  3. python3 scripts/retry_failed_translations.py（补全翻译）")
     print("")
     print("=" * 70)
 
@@ -1764,6 +1800,7 @@ def main():
     category = DEFAULT_CATEGORY
     difficulty = DEFAULT_DIFFICULTY
     basic_only = True  # 🔴 默认只翻译 3 种基础语言
+    skip_translation = False  # 🔴 跳过翻译，仅入库
 
     i = 2
     while i < len(sys.argv):
@@ -1781,6 +1818,9 @@ def main():
         elif sys.argv[i] == '--full-translation':
             basic_only = False
             i += 1
+        elif sys.argv[i] == '--skip-translation':
+            skip_translation = True
+            i += 1
         else:
             i += 1
 
@@ -1790,7 +1830,9 @@ def main():
     print(f"🔗 URL: {youtube_url}")
     print(f"📚 分类: {category}")
     print(f"📊 难度: {difficulty}")
-    if basic_only:
+    if skip_translation:
+        print(f"🌍 翻译模式: 跳过翻译，仅入库")
+    elif basic_only:
         print(f"🌍 翻译模式: 基础模式（仅 zh, zh_hant, vi）")
     else:
         print(f"🌍 翻译模式: 完整模式（19 种语言）⚠️")
@@ -1824,24 +1866,36 @@ def main():
         blank_count, weight_stats = generate_blanks_for_transcript(transcript)
 
         # 4. 翻译（根据模式选择）
-        translate_success, translate_failed, failed_groups = generate_translations_for_transcript(transcript, basic_only=basic_only)
+        if skip_translation:
+            # 跳过翻译，为所有句子添加空的翻译对象
+            for sentence in transcript:
+                sentence['translation'] = {}
+            translate_success, translate_failed, failed_groups = 0, 0, []
+            log("⏭️  跳过翻译阶段")
+        else:
+            translate_success, translate_failed, failed_groups = generate_translations_for_transcript(transcript, basic_only=basic_only)
 
         # 5. 入库
-        success = upsert_material(client, metadata, transcript, category, difficulty, failed_groups)
+        result = upsert_material(client, metadata, transcript, category, difficulty, failed_groups)
 
-        if success:
+        if result:
+            material_id = result.get('id') if isinstance(result, dict) else None
             print("\n" + "=" * 70)
             print("✅ 素材录入成功！")
             print("=" * 70)
+            print(f"🆔 数据库 ID: {material_id}")
             print(f"📹 视频 ID: {metadata['video_id']}")
             print(f"📌 标题: {metadata['title']}")
             print(f"📝 字幕条数: {len(transcript)}")
             print(f"🔍 挖空成功: {blank_count}")
-            print(f"🌍 翻译成功: {translate_success}, 失败: {translate_failed}")
-            if basic_only:
-                print(f"⏳ 后台 PID 88691 将自动补齐 16 国语言")
-            if failed_groups:
-                print(f"⚠️  待重试组: {', '.join(failed_groups)}")
+            if skip_translation:
+                print(f"🌍 翻译状态: 待翻译（使用 retry_failed_translations.py 补全）")
+            else:
+                print(f"🌍 翻译成功: {translate_success}, 失败: {translate_failed}")
+                if basic_only:
+                    print(f"⏳ 后台 PID 88691 将自动补齐 16 国语言")
+                if failed_groups:
+                    print(f"⚠️  待重试组: {', '.join(failed_groups)}")
             print(f"⏱️  时长: {metadata['duration'] // 60 if metadata.get('duration') else '?'}分{metadata['duration'] % 60 if metadata.get('duration') else '?'}秒")
             print(f"\n💡 测试页面: http://localhost:3000/topics/")
             print("=" * 70)
@@ -1873,6 +1927,7 @@ def main():
     category = DEFAULT_CATEGORY
     difficulty = DEFAULT_DIFFICULTY
     basic_only = True  # 🔴 默认只翻译 3 种基础语言
+    skip_translation = False  # 🔴 跳过翻译，仅入库
 
     i = 2
     while i < len(sys.argv):
@@ -1890,6 +1945,9 @@ def main():
         elif sys.argv[i] == '--full-translation':
             basic_only = False
             i += 1
+        elif sys.argv[i] == '--skip-translation':
+            skip_translation = True
+            i += 1
         else:
             i += 1
 
@@ -1899,7 +1957,9 @@ def main():
     print(f"🔗 URL: {youtube_url}")
     print(f"📚 分类: {category}")
     print(f"📊 难度: {difficulty}")
-    if basic_only:
+    if skip_translation:
+        print(f"🌍 翻译模式: 跳过翻译，仅入库")
+    elif basic_only:
         print(f"🌍 翻译模式: 基础模式（仅 zh, zh_hant, vi）")
     else:
         print(f"🌍 翻译模式: 完整模式（19 种语言）⚠️")
@@ -1933,24 +1993,36 @@ def main():
         blank_count, weight_stats = generate_blanks_for_transcript(transcript)
 
         # 4. 翻译（根据模式选择）
-        translate_success, translate_failed, failed_groups = generate_translations_for_transcript(transcript, basic_only=basic_only)
+        if skip_translation:
+            # 跳过翻译，为所有句子添加空的翻译对象
+            for sentence in transcript:
+                sentence['translation'] = {}
+            translate_success, translate_failed, failed_groups = 0, 0, []
+            log("⏭️  跳过翻译阶段")
+        else:
+            translate_success, translate_failed, failed_groups = generate_translations_for_transcript(transcript, basic_only=basic_only)
 
         # 5. 入库
-        success = upsert_material(client, metadata, transcript, category, difficulty, failed_groups)
+        result = upsert_material(client, metadata, transcript, category, difficulty, failed_groups)
 
-        if success:
+        if result:
+            material_id = result.get('id') if isinstance(result, dict) else None
             print("\n" + "=" * 70)
             print("✅ 素材录入成功！")
             print("=" * 70)
+            print(f"🆔 数据库 ID: {material_id}")
             print(f"📹 视频 ID: {metadata['video_id']}")
             print(f"📌 标题: {metadata['title']}")
             print(f"📝 字幕条数: {len(transcript)}")
             print(f"🔍 挖空成功: {blank_count}")
-            print(f"🌍 翻译成功: {translate_success}, 失败: {translate_failed}")
-            if basic_only:
-                print(f"⏳ 后台 PID 88691 将自动补齐 16 国语言")
-            if failed_groups:
-                print(f"⚠️  待重试组: {', '.join(failed_groups)}")
+            if skip_translation:
+                print(f"🌍 翻译状态: 待翻译（使用 retry_failed_translations.py 补全）")
+            else:
+                print(f"🌍 翻译成功: {translate_success}, 失败: {translate_failed}")
+                if basic_only:
+                    print(f"⏳ 后台 PID 88691 将自动补齐 16 国语言")
+                if failed_groups:
+                    print(f"⚠️  待重试组: {', '.join(failed_groups)}")
             print(f"⏱️  时长: {metadata['duration'] // 60 if metadata.get('duration') else '?'}分{metadata['duration'] % 60 if metadata.get('duration') else '?'}秒")
             print(f"\n💡 测试页面: http://localhost:3000/topics/")
             print("=" * 70)
