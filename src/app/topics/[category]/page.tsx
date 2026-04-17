@@ -40,6 +40,9 @@ async function getCategoryData(categorySlug: string) {
   const categoryName = slugToCategory(categorySlug)
   const DEFAULT_COVER = 'thumbnails/culture-history-cover.jpg'
 
+  console.log('🔍 DEBUG: Final Category Query Name:', categoryName)
+  console.log('🔍 DEBUG: categorySlug:', categorySlug)
+
   try {
     // 🔥 单次查询 - 获取该分类的所有素材（严格字段白名单）
     const { data: materials, error } = await supabase
