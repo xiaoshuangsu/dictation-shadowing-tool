@@ -16,6 +16,9 @@ import CategoryPage from '@/components/topics/CategoryPage'
 // 🔴 强制动态渲染：避免构建时查询数据库
 export const dynamic = 'force-dynamic'
 
+// 🔴 ISR 模式：每 60 秒重新生成页面，确保新素材能及时显示
+export const revalidate = 60
+
 /**
  * 🔥 v30.4.0: 服务端数据获取函数
  *
