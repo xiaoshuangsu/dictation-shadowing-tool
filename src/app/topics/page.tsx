@@ -14,6 +14,9 @@ import { MaterialsPageContent } from './MaterialsPageContent'
 // 🔴 强制动态渲染：避免构建时查询数据库
 export const dynamic = 'force-dynamic'
 
+// 🔴 ISR 模式：每 60 秒自动重新生成页面，确保素材计数和列表自动同步
+export const revalidate = 60
+
 // 🔴 SEO 优化：Topics 列表页元数据
 export const metadata: Metadata = {
   title: 'Explore English Practice Materials - ShadowHub Library',
