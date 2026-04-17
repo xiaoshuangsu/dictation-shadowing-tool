@@ -1,5 +1,55 @@
 # Changelog
 
+## [30.5.0] - 2026-04-17
+
+### 🚀 Script Enhancement - YouTube Import with Staged Translation
+- **分阶段导入功能** 📦
+  - **问题**：YouTube 素材导入过程中 API 达到上限导致整个素材入库失败
+  - **解决方案**：支持 `--skip-translation` 参数，先入库再补全翻译
+  - **工作流程**：
+    1. 运行 `ingest_youtube_ytdlp.py <URL> --skip-translation` 仅入库（跳过翻译）
+    2. 确认入库成功，记录数据库 ID
+    3. 运行 `retry_failed_translations.py --material-id=<ID> --fill-all` 补全翻译
+  - **优势**：避免 API 限制导致数据丢失，支持断点续传
+  - **新增参数**：
+    - `--skip-translation`：跳过翻译阶段，仅入库元数据和字幕
+    - `--material-id=<ID>`：指定素材 ID 进行翻译
+    - `--fill-all`：补全所有缺失的翻译（默认仅修复失败翻译）
+
+### 🎨 UX Optimization - ISR Auto-Refresh for New Materials
+- **全站启用 ISR 缓存自动刷新** 🔄
+  - **问题**：新素材入库后，生产环境页面不更新（缓存未刷新）
+  - **解决方案**：全站启用 ISR（增量静态再生成）
+  - **配置**：`export const revalidate = 60`（60 秒自动刷新）
+  - **影响页面**：
+    - `/topics` - 总览页（素材计数和列表）
+    - `/topics/[category]` - 分类详情页（素材列表）
+  - **效果**：
+    - ✅ 新素材入库后 1-2 分钟内自动显示
+    - ✅ 无需手动刷新页面或清除缓存
+    - ✅ 全站计数和列表自动同步
+  - **技术细节**：
+    - 总览页：动态渲染 + ISR
+    - 分类页：动态渲染 + ISR
+    - 每 60 秒在后台重新生成页面，获取最新数据
+
+### 📝 Technical Changes
+- **scripts/ingest_ytdlp.py**：
+  - 添加 `--skip-translation` 参数支持
+  - 修改 `upsert_material()` 返回包含 ID 的字典
+  - 更新帮助信息，添加推荐工作流
+- **scripts/retry_failed_translations.py**：
+  - 添加 `--material-id=<ID>` 参数支持指定素材翻译
+  - 添加 `--fill-all` 参数补全所有缺失翻译
+  - 支持两种模式：全局修复 / 指定素材
+- **src/app/topics/page.tsx**：
+  - 添加 `export const revalidate = 60`
+- **src/app/topics/[category]/page.tsx**：
+  - 添加 `export const revalidate = 60`
+- **package.json**：版本号更新至 30.5.0
+
+---
+
 ## [30.4.2] - 2026-04-16
 
 ### Architecture Upgrade 🏗️ (Major)
