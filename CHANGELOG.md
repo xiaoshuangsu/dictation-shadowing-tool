@@ -1,5 +1,32 @@
 # Changelog
 
+## [30.6.0] - 2026-04-21
+
+### ✨ New Feature
+- **新增 Business 分类** 💼
+  - **问题**：Supabase 中已导入 Business 素材，但前端页面不显示该分类
+  - **根本原因**：分类列表采用硬编码白名单机制，Business 未包含在白名单中
+  - **解决方案**：
+    - 在 `src/app/api/topics/route.ts` 添加 Business 到 CATEGORIES 白名单
+    - 在 `src/app/topics/page.tsx` 添加 Business 到 CATEGORIES 白名单
+    - 在 `src/lib/utils/category.ts` 添加 URL 映射和元数据
+  - **分类配置**：
+    - 显示标签：Business
+    - URL slug：business
+    - 图标：💼
+    - 颜色：蓝色（bg-blue-600 to-blue-700）
+  - **排列顺序**：倒数第二行，紧邻 IELTS Listening 上方
+
+### 📝 Technical Changes
+- **src/app/api/topics/route.ts**：添加 Business 到 CATEGORIES 数组
+- **src/app/topics/page.tsx**：添加 Business 到 CATEGORIES 数组
+- **src/lib/utils/category.ts**：
+  - 添加 `'Business': 'business'` 到 CATEGORY_SLUG_MAP
+  - 添加 Business 元数据到 CATEGORY_METADATA（图标、颜色、描述）
+- **package.json**：版本号更新至 30.6.0
+
+---
+
 ## [30.5.0] - 2026-04-17
 
 ### 🚀 Script Enhancement - YouTube Import with Staged Translation

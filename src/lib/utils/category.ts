@@ -4,6 +4,7 @@
 
 // Full category name to URL-friendly slug mapping
 export const CATEGORY_SLUG_MAP: Record<string, string> = {
+  'Business': 'business',
   '日常生活': 'daily-life',
   '历史演讲': 'historical-speeches',
   '文化历史': 'culture-history',
@@ -54,6 +55,14 @@ export interface CategoryMetadata {
  * Category metadata with descriptions, icons, and colors
  */
 export const CATEGORY_METADATA: Record<string, CategoryMetadata> = {
+  'Business': {
+    name: 'Business',
+    slug: 'business',
+    description: 'Business English learning materials for workplace communication',
+    icon: '💼',
+    color: 'bg-blue-600',
+    gradient: 'from-blue-600 to-blue-700',
+  },
   '日常生活': {
     name: 'Daily Life',
     slug: 'daily-life',
