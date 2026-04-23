@@ -1,5 +1,34 @@
 # Changelog
 
+## [30.6.1] - 2026-04-23
+
+### Bug Fixes 🔧 (Critical - SEO)
+- **修复 Google Search Console 软 404 错误** 🛠️
+  - **问题**：动态路由 `/topics/[category]/[slug]` 缺乏分类校验，导致错误分类路径返回 200 状态码
+  - **示例**：`/topics/daily-life/cam-15-academic-listening-test-1-part-3`（该素材实际属于 IELTS Listening）
+  - **根本原因**：
+    - `getMaterialData` 函数只通过 `slug` 查询素材，完全忽略 URL 中的 `category` 参数
+    - 导致 Google 索引了错误的分类路径，报告软 404 错误
+  - **解决方案**：
+    1. **严格分类校验**：在 `getMaterialData` 中增加 `urlCategory` 参数，对比数据库中的 `material.category`
+    2. **容错处理**：使用 `toLowerCase()` 进行不区分大小写的对比
+    3. **物理 404**：分类不匹配时调用 `notFound()`，返回真正的 404 状态码
+    4. **Canonical 规范化**：`generateMetadata` 中 canonical 链接使用数据库中的正确分类，而非 URL 中的错误分类
+  - **效果**：
+    - ✅ 正确路径：`/topics/ielts-listening/cam-15...` → 200 OK
+    - ✅ 错误分类：`/topics/daily-life/cam-15...` → 404 Not Found
+    - ✅ SEO 规范：canonical 始终指向正确的分类路径
+
+### 📝 Technical Changes
+- **src/app/topics/[category]/[slug]/page.tsx**：
+  - 新增 `import { notFound } from 'next/navigation'`
+  - `getMaterialData` 函数：增加 `urlCategory` 参数和分类校验逻辑
+  - 页面组件：当 `material` 为 `null` 时调用 `notFound()`
+  - `generateMetadata` 函数：canonical 使用数据库中的正确分类
+- **package.json**：版本号更新至 30.6.1
+
+---
+
 ## [30.6.0] - 2026-04-21
 
 ### ✨ New Feature

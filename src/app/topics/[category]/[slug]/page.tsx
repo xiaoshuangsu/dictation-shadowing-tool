@@ -13,6 +13,7 @@ import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
 import type { Metadata } from 'next'
 import PracticePage from './PracticePage'
+import { notFound } from 'next/navigation'
 
 // 🔴 强制动态渲染：避免构建时查询数据库
 export const dynamic = 'force-dynamic'
@@ -24,11 +25,12 @@ const SUPABASE_CONFIG = {
 }
 
 /**
- * 🔥 v30.4.2: 服务端数据获取函数
+ * 🔥 v30.6.1: 服务端数据获取函数（带分类校验）
  *
  * 在服务端获取素材的完整数据，避免客户端 CORS Preflight
+ * 同时校验 URL 中的 category 是否与数据库中的素材分类匹配
  */
-async function getMaterialData(materialSlug: string) {
+async function getMaterialData(materialSlug: string, urlCategory: string) {
   const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key)
 
   try {
@@ -41,6 +43,21 @@ async function getMaterialData(materialSlug: string) {
 
     if (error) {
       throw error
+    }
+
+    if (!material) {
+      return null
+    }
+
+    // 🔥 v30.6.1: 分类校验（防止软 404）
+    // 将数据库中的 category 转换为 slug，与 URL 中的 category 对比
+    const expectedCategorySlug = categoryToSlug(material.category).toLowerCase()
+    const urlCategoryNormalized = urlCategory.toLowerCase()
+
+    // 如果分类不匹配，返回 null（触发 404）
+    if (expectedCategorySlug !== urlCategoryNormalized) {
+      console.warn(`[MaterialDetailPage] Category mismatch: URL="${urlCategory}", DB="${material.category}" (slug="${expectedCategorySlug}")`)
+      return null
     }
 
     return material
@@ -78,7 +95,7 @@ export async function generateStaticParams() {
   }
 }
 
-// 🔴 SEO 优化：动态生成元数据
+// 🔴 SEO 优化：动态生成元数据（带分类校验）
 export async function generateMetadata(
   { params }: { params: { category: string; slug: string } }
 ): Promise<Metadata> {
@@ -102,7 +119,11 @@ export async function generateMetadata(
 
     // 构建基础 URL（不带参数）
     const baseUrl = 'https://shadowhub.app'
-    const canonicalUrl = `${baseUrl}/topics/${params.category}/${params.slug}`
+
+    // 🔥 v30.6.1: 使用数据库中的正确分类生成 canonical 链接
+    // 而不是使用 URL 中的 category（可能是错误的）
+    const correctCategorySlug = categoryToSlug(material.category)
+    const canonicalUrl = `${baseUrl}/topics/${correctCategorySlug}/${params.slug}`
 
     // 动态生成 Title 和 Description
     const title = `${material.title} - ShadowHub Dictation & Shadowing Material`
@@ -151,8 +172,13 @@ export async function generateMetadata(
 export const dynamicParams = true
 
 export default async function Page({ params }: { params: { category: string; slug: string } }) {
-  // 🔥 v30.4.2: 在服务端获取完整数据，避免客户端 CORS Preflight
-  const material = await getMaterialData(params.slug)
+  // 🔥 v30.6.1: 在服务端获取完整数据，并校验分类匹配
+  const material = await getMaterialData(params.slug, params.category)
+
+  // 🔥 如果素材不存在或分类不匹配，返回 404
+  if (!material) {
+    notFound()
+  }
 
   return (
     <Suspense fallback={
