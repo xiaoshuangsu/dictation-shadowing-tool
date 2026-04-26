@@ -13,7 +13,7 @@ import { titleToSlug } from '@/lib/utils/slug'
 import { categoryToSlug } from '@/lib/utils/category'
 import type { Metadata } from 'next'
 import PracticePage from './PracticePage'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 
 // 🔴 强制动态渲染：避免构建时查询数据库
 export const dynamic = 'force-dynamic'
@@ -25,10 +25,11 @@ const SUPABASE_CONFIG = {
 }
 
 /**
- * 🔥 v30.6.1: 服务端数据获取函数（带分类校验）
+ * 🔥 v30.6.2: 服务端数据获取函数（带分类校验和下架检测）
  *
  * 在服务端获取素材的完整数据，避免客户端 CORS Preflight
  * 同时校验 URL 中的 category 是否与数据库中的素材分类匹配
+ * 检测素材是否已下架（is_active = false），触发 301 重定向
  */
 async function getMaterialData(materialSlug: string, urlCategory: string) {
   const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key)
@@ -45,8 +46,14 @@ async function getMaterialData(materialSlug: string, urlCategory: string) {
       throw error
     }
 
+    // 情况 A：素材不存在（已物理删除）
     if (!material) {
-      return null
+      return { status: 'not_found' }
+    }
+
+    // 情况 B：素材已下架（is_active = false）
+    if (material.is_active === false) {
+      return { status: 'inactive', material }
     }
 
     // 🔥 v30.6.1: 分类校验（防止软 404）
@@ -57,13 +64,13 @@ async function getMaterialData(materialSlug: string, urlCategory: string) {
     // 如果分类不匹配，返回 null（触发 404）
     if (expectedCategorySlug !== urlCategoryNormalized) {
       console.warn(`[MaterialDetailPage] Category mismatch: URL="${urlCategory}", DB="${material.category}" (slug="${expectedCategorySlug}")`)
-      return null
+      return { status: 'not_found' }
     }
 
-    return material
+    return { status: 'active', material }
   } catch (error) {
     console.error('[MaterialDetailPage] Error fetching material:', error)
-    return null
+    return { status: 'not_found' }
   }
 }
 
@@ -172,13 +179,22 @@ export async function generateMetadata(
 export const dynamicParams = true
 
 export default async function Page({ params }: { params: { category: string; slug: string } }) {
-  // 🔥 v30.6.1: 在服务端获取完整数据，并校验分类匹配
-  const material = await getMaterialData(params.slug, params.category)
+  // 🔥 v30.6.2: 在服务端获取完整数据，并校验分类匹配和下架状态
+  const result = await getMaterialData(params.slug, params.category)
 
-  // 🔥 如果素材不存在或分类不匹配，返回 404
-  if (!material) {
-    notFound()
+  // 情况 A & B：素材不存在或已下架 -> 301 重定向到分类页
+  if (result.status === 'not_found' || result.status === 'inactive') {
+    // 如果素材存在但已下架，使用其分类；否则使用 URL 中的分类
+    const targetCategory = result.status === 'inactive' && result.material
+      ? categoryToSlug(result.material.category)
+      : params.category
+
+    // 🔥 301 永久重定向到分类页
+    permanentRedirect(`/topics/${targetCategory}`)
   }
+
+  // 正常情况：素材存在且激活
+  const material = result.material
 
   return (
     <Suspense fallback={

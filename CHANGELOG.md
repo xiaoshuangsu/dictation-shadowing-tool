@@ -1,5 +1,48 @@
 # Changelog
 
+## [30.6.2] - 2026-04-26
+
+### Bug Fixes 🔧 (Critical - SEO)
+- **修复 Google Search Console 软 404 报错** 🛠️
+  - **问题**：已删除或质量差的素材仍然被 Google 索引，导致软 404 错误
+  - **根本原因**：
+    - 物理删除的素材：数据库中不存在，但 Google 仍在抓取旧链接
+    - 需要下架的素材：缺少管理机制，无法隐藏质量差的素材
+  - **解决方案**：
+    1. **数据库层面**：添加 `is_active` 字段（boolean，默认 true）
+    2. **Sitemap 过滤**：仅收录 `is_active = true` 的素材
+    3. **永久重定向**：失效素材执行 308 永久重定向到分类页
+  - **处理逻辑**：
+    - **情况 A**：素材不存在（已物理删除）→ 308 重定向到分类页
+    - **情况 B**：素材存在但 `is_active = false` → 308 重定向到分类页
+    - **情况 C**：素材正常且激活 → 正常显示页面
+  - **效果**：
+    - ✅ 失效素材从 Sitemap 中自动消失
+    - ✅ Google 抓取失效链接时收到 308 状态码
+    - ✅ 用户和爬虫被引导到相关分类页
+    - ✅ 提供素材管理机制，可下架质量差的素材
+
+### 🎨 Feature - 素材管理机制
+- **新增素材下架功能** 📦
+  - 添加 `is_active` 字段到 `materials` 表
+  - 提供 `scripts/set_material_inactive.js` 工具快速下架素材
+  - 提供 `scripts/set_material_active.js` 工具恢复素材上架
+  - 添加索引优化查询性能：`idx_materials_is_active`
+
+### 📝 Technical Changes
+- **supabase/migrations/add_is_active_field.sql**：新增迁移文件
+- **src/app/sitemap.ts**：过滤 `is_active = false` 的素材
+- **src/app/topics/[category]/[slug]/page.tsx**：
+  - 导入 `permanentRedirect` 实现 308 永久重定向
+  - `getMaterialData` 返回状态对象：`{ status, material }`
+  - 处理三种状态：`active`、`inactive`、`not_found`
+  - 失效素材重定向到分类页
+- **scripts/set_material_inactive.js**：新增下架工具
+- **scripts/set_material_active.js**：新增恢复工具
+- **package.json**：版本号更新至 30.6.2
+
+---
+
 ## [30.6.1] - 2026-04-23
 
 ### Bug Fixes 🔧 (Critical - SEO)

@@ -28,10 +28,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key)
 
-    // 获取所有素材
+    // 获取所有激活的素材（过滤已下架的素材）
     const { data: materials, error } = await supabase
       .from('materials')
       .select('id, slug, category, updated_at')
+      .eq('is_active', true)
       .limit(1000)
 
     if (error) {
