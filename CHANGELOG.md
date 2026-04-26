@@ -1,5 +1,34 @@
 # Changelog
 
+## [30.6.3] - 2026-04-26
+
+### Bug Fixes 🔧 (Critical - Database Query)
+- **修复 Supabase 查询字段缺失问题** 🛠️
+  - **问题**：使用 `select('*')` 查询时，新添加的 `is_active` 字段不会被返回，导致素材状态判断失败
+  - **根本原因**：Supabase 的 `select('*')` 不会自动包含通过 ALTER TABLE 添加的新字段
+  - **解决方案**：明确指定需要查询的字段 `select('*, is_active')`
+  - **修复范围**：
+    - `src/app/topics/[category]/[slug]/page.tsx`：主查询函数
+    - `generateStaticParams`：过滤 `is_active = false` 的素材
+  - **效果**：素材下架功能正常工作，308 重定向成功触发
+
+### 🎨 Content - 批量下架低质量素材
+- **下架 4 个低质量素材** 📦
+  - The-Strange-Science-of-Why-We-Dream（Science and Facts）
+  - you-ve-been-lied-to-about-dna-evidence（Science and Facts）
+  - your-struggle-is-your-power-the-seed-that-never-gave-up-life-lesson-story（心灵故事）
+  - Loneliness（心灵故事）
+  - **原因**：内容质量不达标，影响用户体验
+  - **状态**：已从 Sitemap 移除，访问时 308 重定向到分类页
+
+### 📝 Technical Changes
+- **src/app/topics/[category]/[slug]/page.tsx**：
+  - `getMaterialData`：使用 `select('*, is_active')` 明确包含新字段
+  - `generateStaticParams`：添加 `.eq('is_active', true)` 过滤
+- **package.json**：版本号更新至 30.6.3
+
+---
+
 ## [30.6.2] - 2026-04-26
 
 ### Bug Fixes 🔧 (Critical - SEO)

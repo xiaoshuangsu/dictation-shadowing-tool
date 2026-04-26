@@ -35,10 +35,11 @@ async function getMaterialData(materialSlug: string, urlCategory: string) {
   const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.key)
 
   try {
-    // 🔥 查询全量字段 - 确保练习页面有所有必要数据
+    // 🔥 v30.6.2: 查询全量字段，明确包含 is_active 字段
+    // 注意：新添加的字段必须明确指定，否则 Supabase 不会返回
     const { data: material, error } = await supabase
       .from('materials')
-      .select('*')
+      .select('*, is_active')
       .eq('slug', materialSlug)
       .single()
 
@@ -83,6 +84,7 @@ export async function generateStaticParams() {
     const { data: materials, error } = await supabase
       .from('materials')
       .select('id, title, category, slug')
+      .eq('is_active', true)  // 只为激活的素材生成静态路由
       .limit(1000)
 
     if (error) {
@@ -182,14 +184,14 @@ export default async function Page({ params }: { params: { category: string; slu
   // 🔥 v30.6.2: 在服务端获取完整数据，并校验分类匹配和下架状态
   const result = await getMaterialData(params.slug, params.category)
 
-  // 情况 A & B：素材不存在或已下架 -> 301 重定向到分类页
+  // 情况 A & B：素材不存在或已下架 -> 308 永久重定向到分类页
   if (result.status === 'not_found' || result.status === 'inactive') {
     // 如果素材存在但已下架，使用其分类；否则使用 URL 中的分类
     const targetCategory = result.status === 'inactive' && result.material
       ? categoryToSlug(result.material.category)
       : params.category
 
-    // 🔥 301 永久重定向到分类页
+    // 🔥 308 永久重定向到分类页
     permanentRedirect(`/topics/${targetCategory}`)
   }
 
