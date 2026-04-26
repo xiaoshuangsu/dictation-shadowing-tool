@@ -23,9 +23,9 @@ interface YouTubePlayerProps {
   endBuffer?: number
   practiceMode?: boolean
   nextSentence?: Sentence | null
+  transcript?: Sentence[]
 }
 
-// 全局声明 YouTube API
 declare global {
   interface Window {
     YT: any
@@ -46,7 +46,8 @@ export default function YouTubePlayer({
   onDegraded,
   endBuffer = -0.2,
   practiceMode = false,
-  nextSentence = null
+  nextSentence = null,
+  transcript = []
 }: YouTubePlayerProps) {
   const playerRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -55,8 +56,8 @@ export default function YouTubePlayer({
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isPlayingRef = useRef(false)
   const isPracticeModeRef = useRef(false)
+  const [currentSubtitle, setCurrentSubtitle] = useState<string | null>(null)
 
-  // 时间戳重叠保护
   const getSafeEndTime = useCallback((sentence: Sentence): number => {
     const endTime = typeof sentence.endTime === 'string'
       ? parseFloat(sentence.endTime)
@@ -75,7 +76,28 @@ export default function YouTubePlayer({
     return endTime
   }, [nextSentence])
 
-  // 加载 YouTube Iframe API
+  const getCurrentSubtitle = useCallback((currentTime: number): { text: string; index: number } | null => {
+    if (!transcript || transcript.length === 0) return null
+
+    for (let i = 0; i < transcript.length; i++) {
+      const sentence = transcript[i]
+      const startTime = typeof sentence.startTime === 'string'
+        ? parseFloat(sentence.startTime)
+        : sentence.startTime
+      const endTime = typeof sentence.endTime === 'string'
+        ? parseFloat(sentence.endTime)
+        : sentence.endTime
+
+      const paddedEndTime = endTime + 0.25
+
+      if (currentTime >= startTime && currentTime <= paddedEndTime) {
+        return { text: sentence.text, index: i }
+      }
+    }
+
+    return null
+  }, [transcript])
+
   useEffect(() => {
     if (window.YT) {
       setIsPlayerReady(true)
@@ -98,26 +120,20 @@ export default function YouTubePlayer({
     }
   }, [])
 
-  // 初始化播放器
   useEffect(() => {
     if (!isPlayerReady || !containerRef.current || playerRef.current) {
       return
     }
 
-    // 🔥 手动创建 IFrame，完全控制 src URL
-    const origin = window.location.origin.replace(/\/$/, '') // 🔥 移除末尾斜杠
+    const origin = window.location.origin.replace(/\/$/, '')
     const iframeId = `youtube-player-${youtubeId}`
 
-    // 清空容器
     containerRef.current.innerHTML = ''
 
-    // 创建 IFrame
     const iframe = document.createElement('iframe')
     iframe.id = iframeId
     iframe.className = 'w-full h-full'
 
-    // 🔥 优化：构建 URL 参数，不设置 origin（让 YouTube 自动检测）
-    // origin 参数在 localhost 环境下会导致 postMessage 警告，但不影响功能
     const params = new URLSearchParams({
       enablejsapi: '1',
       playsinline: '1',
@@ -125,7 +141,6 @@ export default function YouTubePlayer({
       modestbranding: '1',
       rel: '0',
       disablekb: '1',
-      // 只在非 localhost 环境设置 origin
       ...(origin && !origin.includes('localhost') && !origin.includes('127.0.0.1') ? { origin } : {})
     })
 
@@ -135,15 +150,11 @@ export default function YouTubePlayer({
 
     containerRef.current.appendChild(iframe)
 
-    // 初始化 YouTube Player
     playerRef.current = new window.YT.Player(iframeId, {
       events: {
         onReady: (event: any) => {
           onReady?.()
           onLoadingChange?.(false)
-
-          // 🔥 播放器就绪后，不自动静音，确保有声音
-          // 移除了之前的 mute() 调用，避免视频无声
 
           if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
             prevTriggerRef.current = autoPlayTrigger
@@ -167,8 +178,6 @@ export default function YouTubePlayer({
           }
         },
         onError: (event: any) => {
-          console.error('[YouTubePlayer] 播放器错误:', event.data)
-          // 错误代码 2 = 无效参数
           if (event.data === 2 && onDegraded) {
             onDegraded()
           }
@@ -185,12 +194,10 @@ export default function YouTubePlayer({
     }
   }, [isPlayerReady, youtubeId])
 
-  // 同步 practiceMode
   useEffect(() => {
     isPracticeModeRef.current = practiceMode
   }, [practiceMode])
 
-  // 时间更新
   const startTimeUpdate = useCallback(() => {
     if (timeUpdateIntervalRef.current) return
 
@@ -198,6 +205,13 @@ export default function YouTubePlayer({
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const currentTime = playerRef.current.getCurrentTime()
         onTimeUpdate?.(currentTime)
+
+        const subtitleData = getCurrentSubtitle(currentTime)
+        if (subtitleData) {
+          setCurrentSubtitle(subtitleData.text)
+        } else {
+          setCurrentSubtitle(null)
+        }
 
         if (onPlaybackTimeUpdate && isPlayingRef.current) {
           onPlaybackTimeUpdate((prev: number) => prev + 0.1)
@@ -220,7 +234,7 @@ export default function YouTubePlayer({
         }
       }
     }, 100)
-  }, [currentSentence, endBuffer, onTimeUpdate, onPlaybackTimeUpdate, onPlayEnd, getSafeEndTime])
+  }, [currentSentence, endBuffer, onTimeUpdate, onPlaybackTimeUpdate, onPlayEnd, getSafeEndTime, getCurrentSubtitle])
 
   const stopTimeUpdate = useCallback(() => {
     if (timeUpdateIntervalRef.current) {
@@ -231,7 +245,6 @@ export default function YouTubePlayer({
 
   const playSentence = useCallback(() => {
     if (!playerRef.current || !playerRef.current.playVideo) {
-      console.warn('[YouTubePlayer] 播放器未就绪')
       return
     }
 
@@ -243,7 +256,6 @@ export default function YouTubePlayer({
 
     isPracticeModeRef.current = true
 
-    // 🔥 确保音量正常（取消静音并设置音量为 100）
     if (playerRef.current.unMute) {
       playerRef.current.unMute()
     }
@@ -257,7 +269,6 @@ export default function YouTubePlayer({
 
     playerRef.current.seekTo(startTime, true)
 
-    // 🔥 立即播放（YouTube playVideo() 不返回 Promise）
     setTimeout(() => {
       if (playerRef.current && playerRef.current.playVideo) {
         playerRef.current.playVideo()
@@ -267,7 +278,6 @@ export default function YouTubePlayer({
     startTimeUpdate()
   }, [currentSentence, playbackRate, startTimeUpdate, getSafeEndTime, onPlayEnd])
 
-  // 自动播放触发
   useEffect(() => {
     if (autoPlayTrigger > 0 && autoPlayTrigger !== prevTriggerRef.current) {
       prevTriggerRef.current = autoPlayTrigger
@@ -278,7 +288,6 @@ export default function YouTubePlayer({
     }
   }, [autoPlayTrigger, isPlayerReady, playSentence])
 
-  // 清理
   useEffect(() => {
     return () => {
       stopTimeUpdate()
@@ -288,6 +297,18 @@ export default function YouTubePlayer({
   return (
     <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
       <div ref={containerRef} className="w-full h-full" />
+
+      {currentSubtitle && (
+        <div className="absolute bottom-8 left-0 right-0 px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="inline-block bg-black/50 backdrop-blur-md rounded-lg px-4 py-2">
+              <p className="text-white text-center font-bold text-base md:text-lg leading-relaxed" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+                {currentSubtitle}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

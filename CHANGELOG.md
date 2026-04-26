@@ -1,5 +1,39 @@
 # Changelog
 
+## [30.6.5] - 2026-04-26
+
+### 🎨 Feature - 视频英文字幕叠加层（沉浸式观看模式）
+- **实现统一字幕渲染层** 📺
+  - 为 YouTube 和 R2 视频源统一实现英文字幕叠加层
+  - 实时根据视频播放时间匹配并显示对应的英文字幕
+  - 字幕层采用 absolute 定位，叠加在视频画面上
+
+### 🎯 UI/UX - 字幕样式优化
+- **精致字幕设计** ✨
+  - 半透明黑色背景框（bg-black/50）+ 毛玻璃效果（backdrop-blur-md）
+  - 大圆角设计（rounded-lg）
+  - 响应式字号：移动端 text-base、桌面端 text-lg
+  - 白色粗体文字 + 双重阴影确保在任何背景下清晰可读
+  - 位置优化：bottom-8 距离底部，留有呼吸空间
+
+### ⚡ Performance - 播放同步优化
+- **轮询机制优化** 🔄
+  - YouTube Iframe API：每 100ms 轮询 getCurrentTime()
+  - R2 HTML5 Video：监听 timeupdate 事件
+  - 集成 250ms 时间戳冗余逻辑，字幕自然停留不突兀
+  - 确保字幕与音频完美同步
+
+### 📝 Technical Changes
+- **src/components/YouTubePlayer.tsx**：
+  - 新增 `transcript` prop 接收完整字幕数组
+  - 新增 `getCurrentSubtitle()` 函数，应用 250ms 冗余匹配逻辑
+  - 新增字幕叠加层 UI（absolute 定位 + 半透明背景 + backdrop-blur）
+  - 移除 console.log 和临时注释，代码清理完成
+- **src/app/topics/[category]/[slug]/PracticePage.tsx**：
+  - 传递 `transcript={sampleSentences}` 给 YouTubePlayer
+
+---
+
 ## [30.6.4] - 2026-04-26
 
 ### 🎨 Content - 新增 TED 演讲素材

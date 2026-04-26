@@ -685,7 +685,8 @@ export default function PracticePage({ category, slug, initialMaterial }: Practi
                       onTimeUpdate={handleTimeUpdate}
                       onLoadingChange={() => {}}
                       practiceMode={hasStarted && autoPlayTrigger > 0}
-                      nextSentence={nextSentence}  // 🔴 传递下一句用于时间戳重叠保护
+                      nextSentence={nextSentence}
+                      transcript={sampleSentences}  // 🔥 传入完整字幕数组用于显示
                     />
                   )
                 }
