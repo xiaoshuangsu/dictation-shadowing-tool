@@ -18,6 +18,18 @@ import { notFound, permanentRedirect } from 'next/navigation'
 // 🔴 强制动态渲染：避免构建时查询数据库
 export const dynamic = 'force-dynamic'
 
+// 🔴 强制禁用缓存：确保 Vercel CDN 不缓存数据
+export const fetchCache = 'force-no-store'
+
+// 🔴 添加响应头：禁用所有缓存
+export function generateHeaders() {
+  return {
+    'Cache-Control': 'no-store, max-age=0, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  }
+}
+
 // 🔴 关键修复：从共享配置导入凭证，避免重复定义
 const SUPABASE_CONFIG = {
   url: 'https://cuxotlijjnxbsirpdkgr.supabase.co',

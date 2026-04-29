@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // 🔴 防御性修复：强制声明动态渲染
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 interface ClozeSentence {
   sentence_position: number

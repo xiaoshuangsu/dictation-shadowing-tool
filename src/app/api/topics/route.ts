@@ -33,6 +33,7 @@ const CATEGORIES = [
 ] as const
 
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
 
 /**
  * 获取 Supabase 客户端
@@ -126,7 +127,9 @@ export async function GET() {
       status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=300', // 5分钟缓存
+        'Cache-Control': 'no-store, max-age=0, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     })
   } catch (error: any) {
@@ -142,7 +145,9 @@ export async function GET() {
       status: 200, // 返回 200 而不是 500，避免前端崩溃
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, max-age=60', // 失败时减少缓存时间
+        'Cache-Control': 'no-store, max-age=0, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     })
   }
