@@ -1,5 +1,29 @@
 # Changelog
 
+## [30.6.10] - 2026-04-29
+
+### 🛡️ Security - 数据库安全紧急加固
+- **防止快速点击导致数据库过载** ⚠️
+  - **问题**：用户快速点击句子时产生密集 API 请求，威胁数据库稳定性
+  - **根本原因**：YouTube 播放器竞态冲突 + 客户端请求锁不足
+  - **解决方案**：
+    - **YouTubePlayer 锁定增强**：1200ms 跳转锁（PLAYING 事件或超时释放）
+    - **客户端 API 请求锁**：30 秒冷却时间，防止并发请求
+    - **SWR 去重优化**：dedupingInterval 增加到 30 秒
+    - **ClickableTranscript 防抖对齐**：1200ms 防抖，与播放器锁定时间同步
+  - **效果**：暴力连点下 Network 面板保持"死寂"，数据库负载可控
+
+### 🔧 Technical Changes
+- **修改文件清单**：
+  - `src/components/YouTubePlayer.tsx` - 锁定机制增强 + React.memo 优化
+  - `src/components/ClickableTranscript.tsx` - 防抖时间增加到 1200ms
+  - `src/lib/hooks/useUserVocabulary.ts` - 30 秒请求冷却时间
+  - `src/lib/hooks/useUserWords.ts` - SWR dedupingInterval 增加到 30 秒
+- **清理内容**：移除所有调试日志（console.log），保持生产环境整洁
+- **验证通过**：本地 Network 面板暴力连点测试通过，无重复请求
+
+---
+
 ## [30.6.7] - 2026-04-28
 
 ### 🎯 Fix - YouTube 素材数据质量全面提升

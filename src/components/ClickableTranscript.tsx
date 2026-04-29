@@ -49,6 +49,9 @@ export default function ClickableTranscript({
   const sentenceRefs = useRef<(HTMLDivElement | null)[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
   const isMountedRef = useRef(false)
+  const lastClickTimeRef = useRef(0)  // 🔥 v30.6.8: 防抖 - 记录上次点击时间
+  const clickDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)  // 🔥 v30.6.9: 防抖定时器
+  const DEBOUNCE_MS = 1200  // 🔥 v30.6.10: 防抖延迟增加到 1200ms，与 YouTubePlayer 锁定时间对齐
 
   useEffect(() => {
     isMountedRef.current = true
@@ -61,6 +64,11 @@ export default function ClickableTranscript({
 
     return () => {
       isMountedRef.current = false
+      // 🔥 v30.6.9: 清理防抖定时器
+      if (clickDebounceTimerRef.current) {
+        clearTimeout(clickDebounceTimerRef.current)
+        clickDebounceTimerRef.current = null
+      }
     }
   }, [])
 
@@ -118,6 +126,16 @@ export default function ClickableTranscript({
                 sentenceRefs.current[index] = el
               }}
               onClick={() => {
+                // 🔥 v30.6.10: 增强防抖 - 使用定时器机制，确保 1200ms 内只处理一次点击
+                if (clickDebounceTimerRef.current) {
+                  return
+                }
+
+                clickDebounceTimerRef.current = setTimeout(() => {
+                  clickDebounceTimerRef.current = null
+                }, DEBOUNCE_MS)
+
+                lastClickTimeRef.current = Date.now()
                 onSelectSentence(index)
               }}
               className={`p-3 rounded cursor-pointer transition-all relative ${

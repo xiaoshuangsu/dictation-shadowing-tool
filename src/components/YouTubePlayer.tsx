@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useEffect, useCallback } from "react"
+import { useRef, useState, useEffect, useCallback, memo } from "react"
 
 interface Sentence {
   id: number
@@ -33,7 +33,7 @@ declare global {
   }
 }
 
-export default function YouTubePlayer({
+function YouTubePlayer({
   youtubeId,
   currentSentence,
   playbackRate = 1,
@@ -56,6 +56,9 @@ export default function YouTubePlayer({
   const timeUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isPlayingRef = useRef(false)
   const isPracticeModeRef = useRef(false)
+  const isInternalSeekingRef = useRef(false)  // 🔥 v30.6.8: 内部跳转锁，防止竞态冲突
+  const seekingLockRef = useRef<NodeJS.Timeout | null>(null)  // 🔥 v30.6.9: 跳转锁定时器
+  const playLockRef = useRef(false)  // 🔥 v30.6.9: 播放锁，防止并发播放
   const [currentSubtitle, setCurrentSubtitle] = useState<string | null>(null)
 
   const getSafeEndTime = useCallback((sentence: Sentence): number => {
@@ -164,7 +167,10 @@ export default function YouTubePlayer({
         onStateChange: (event: any) => {
           const playerState = event.data
           if (playerState === 1) {
+            // 🔥 v30.6.10: PLAYING 事件触发时释放跳转锁（必须同时满足计时器和状态）
             isPlayingRef.current = true
+            isInternalSeekingRef.current = false
+            playLockRef.current = false
             onLoadingChange?.(false)
             startTimeUpdate()
           } else if (playerState === 2) {
@@ -191,6 +197,11 @@ export default function YouTubePlayer({
         playerRef.current = null
       }
       stopTimeUpdate()
+      // 🔥 v30.6.9: 清理跳转锁定时器
+      if (seekingLockRef.current) {
+        clearTimeout(seekingLockRef.current)
+        seekingLockRef.current = null
+      }
     }
   }, [isPlayerReady, youtubeId])
 
@@ -202,8 +213,15 @@ export default function YouTubePlayer({
     if (timeUpdateIntervalRef.current) return
 
     timeUpdateIntervalRef.current = setInterval(() => {
+      // 🔥 v30.6.9: 如果正在内部跳转或播放锁定，完全跳过所有逻辑
+      if (isInternalSeekingRef.current || playLockRef.current) {
+        return
+      }
+
       if (playerRef.current && playerRef.current.getCurrentTime) {
         const currentTime = playerRef.current.getCurrentTime()
+
+        // 🔥 v30.6.9: 只在非锁定状态下更新时间
         onTimeUpdate?.(currentTime)
 
         const subtitleData = getCurrentSubtitle(currentTime)
@@ -244,8 +262,28 @@ export default function YouTubePlayer({
   }, [])
 
   const playSentence = useCallback(() => {
+    // 🔥 v30.6.10: 播放锁 - 防止并发播放
+    if (playLockRef.current) {
+      return
+    }
+
     if (!playerRef.current || !playerRef.current.playVideo) {
       return
+    }
+
+    // 🔥 v30.6.10: 先杀掉之前的播放进程
+    try {
+      if (playerRef.current.pauseVideo) {
+        playerRef.current.pauseVideo()
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+
+    // 🔥 v30.6.10: 清理旧的跳转锁定时器
+    if (seekingLockRef.current) {
+      clearTimeout(seekingLockRef.current)
+      seekingLockRef.current = null
     }
 
     const startTime = typeof currentSentence.startTime === 'string'
@@ -254,6 +292,8 @@ export default function YouTubePlayer({
 
     const safeEndTime = getSafeEndTime(currentSentence)
 
+    // 🔥 v30.6.10: 设置播放锁
+    playLockRef.current = true
     isPracticeModeRef.current = true
 
     if (playerRef.current.unMute) {
@@ -267,8 +307,18 @@ export default function YouTubePlayer({
       playerRef.current.setPlaybackRate(playbackRate)
     }
 
+    // 🔥 v30.6.10: 设置内部跳转锁（必须等待 PLAYING 事件或超时）
+    isInternalSeekingRef.current = true
+
     playerRef.current.seekTo(startTime, true)
 
+    // 🔥 v30.6.10: 1200ms 后强制释放跳转锁（如果还没被 PLAYING 事件释放）
+    seekingLockRef.current = setTimeout(() => {
+      isInternalSeekingRef.current = false
+      playLockRef.current = false
+    }, 1200)
+
+    // 🔥 v30.6.10: 200ms 后开始播放（给 seekTo 足够时间）
     setTimeout(() => {
       if (playerRef.current && playerRef.current.playVideo) {
         playerRef.current.playVideo()
@@ -291,6 +341,13 @@ export default function YouTubePlayer({
   useEffect(() => {
     return () => {
       stopTimeUpdate()
+      // 🔥 v30.6.9: 组件卸载时清理所有锁定
+      isInternalSeekingRef.current = false
+      playLockRef.current = false
+      if (seekingLockRef.current) {
+        clearTimeout(seekingLockRef.current)
+        seekingLockRef.current = null
+      }
     }
   }, [stopTimeUpdate])
 
@@ -312,3 +369,17 @@ export default function YouTubePlayer({
     </div>
   )
 }
+
+// 🔥 v30.6.9: 使用 React.memo 优化渲染性能
+export default memo(YouTubePlayer, (prevProps, nextProps) => {
+  // 只在关键 props 变化时重新渲染
+  return (
+    prevProps.youtubeId === nextProps.youtubeId &&
+    prevProps.currentSentence.id === nextProps.currentSentence.id &&
+    prevProps.currentSentence.startTime === nextProps.currentSentence.startTime &&
+    prevProps.currentSentence.endTime === nextProps.currentSentence.endTime &&
+    prevProps.playbackRate === nextProps.playbackRate &&
+    prevProps.autoPlayTrigger === nextProps.autoPlayTrigger &&
+    prevProps.practiceMode === nextProps.practiceMode
+  )
+})

@@ -6,7 +6,7 @@
  * - 提供检查单词是否已保存的函数
  * - 添加/删除单词后自动刷新缓存
  * - 🔴 性能优化：全局缓存，避免重复请求
- * - 🔥 V30.3.6: 添加请求锁，防止并发请求
+ * - 🔥 V30.6.10: 添加 30 秒请求锁，防止快速点击时数据库过载
  */
 
 'use client'
@@ -24,9 +24,11 @@ let globalLoading = false
 let globalUser: string | null = null
 let listeners: Set<() => void> = new Set()
 
-// 🔥 V30.3.6: 请求锁，防止并发请求
+// 🔥 V30.6.10: 请求锁，防止并发请求（30 秒超时）
 let fetchPromise: Promise<void> | null = null
-let isFetching = false  // 🔥 V30.3.6: 额外的布尔锁，确保原子性
+let isFetching = false  // 🔥 V30.6.10: 额外的布尔锁，确保原子性
+let lastFetchTime = 0  // 🔥 V30.6.10: 上次请求时间戳
+const FETCH_COOLDOWN = 30000  // 🔥 V30.6.10: 30 秒冷却时间
 
 // 🔴 通知所有监听器更新
 const notifyListeners = () => {
@@ -54,7 +56,15 @@ export function useUserVocabulary() {
       return
     }
 
-    // 🔥 V30.3.6: 如果已有请求在进行中，等待其完成
+    // 🔥 V30.6.10: 30 秒冷却时间检查
+    const now = Date.now()
+    const timeSinceLastFetch = now - lastFetchTime
+    if (timeSinceLastFetch < FETCH_COOLDOWN && lastFetchTime > 0) {
+      setSavedWords({ ...globalSavedWords })
+      return
+    }
+
+    // 🔥 V30.6.10: 如果已有请求在进行中，等待其完成
     if (isFetching || fetchPromise) {
       if (fetchPromise) {
         await fetchPromise
@@ -63,12 +73,13 @@ export function useUserVocabulary() {
       return
     }
 
-    // 🔥 V30.3.6: 立即设置锁，防止并发
+    // 🔥 V30.6.10: 立即设置锁和更新时间戳，防止并发
     isFetching = true
+    lastFetchTime = now
     globalLoading = true
     setLoading(true)
 
-    // 🔥 V30.3.6: 创建新的请求 Promise
+    // 🔥 V30.6.10: 创建新的请求 Promise
     fetchPromise = (async () => {
       try {
         const response = await fetch('/api/user-words', {
@@ -91,7 +102,7 @@ export function useUserVocabulary() {
       } finally {
         globalLoading = false
         setLoading(false)
-        isFetching = false  // 🔥 V30.3.6: 释放请求锁
+        isFetching = false
         fetchPromise = null
       }
     })()

@@ -56,6 +56,7 @@ async function fetcher(url: string): Promise<UserWordsResponse> {
 
 /**
  * SWR 配置：优化性能 - 实现真正的零延迟切换
+ * 🔥 V30.6.10: 增加 30 秒去重时间，防止快速点击时数据库过载
  */
 const swrConfig: SWRConfiguration = {
   // 🔴 关键优化：使用全局缓存 provider，确保组件卸载后缓存保留
@@ -64,11 +65,11 @@ const swrConfig: SWRConfiguration = {
 
   // 🔴 禁用所有自动重新验证，从缓存瞬时加载
   revalidateIfStale: false,       // 即使数据过期也不重新验证
-  revalidateOnFocus: false,       // 焦点切换时不重新验证（避免 Loading 闪烁）
+  revalidateOnFocus: false,       // 🔥 焦点切换时不重新验证（防止标签页切换时请求）
   revalidateOnReconnect: false,   // 网络重连时不重新请求
 
-  // 🔴 长时间缓存：10秒内不重复请求（优化高频请求）
-  dedupingInterval: 10000,        // 10秒内不重复请求
+  // 🔥 V30.6.10: 超长时间缓存：30秒内不重复请求（防止数据库过载）
+  dedupingInterval: 30000,        // 30秒内不重复请求
 
   // 🔴 加载状态优化
   keepPreviousData: true,         // 请求期间保留旧数据（避免白屏）

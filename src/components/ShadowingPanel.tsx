@@ -373,16 +373,9 @@ export default function ShadowingPanel({
     }
   }, [audioRef])
 
-  // Track showResult changes for debugging
   useEffect(() => {
-    console.log("showResult changed to:", showResult)
-  }, [showResult])
-
-  useEffect(() => {
-    console.log("useEffect fired for sentence.id:", sentence.id)
     setUserTranscript("")
     setShowResult(false)
-    console.log("Reset showResult to false")
     setRecordedAudioUrl(null)
     setMicError(null)
     setWordDiffs([])  // 重置单词对比结果
@@ -411,7 +404,6 @@ export default function ShadowingPanel({
     // 记录页面开始时间（兜底逻辑）
     const now = Date.now()
     setPageStartTime(now)
-    console.log("Set pageStartTime to:", now)
   }, [sentence.id])
 
   /**
@@ -1367,10 +1359,6 @@ export default function ShadowingPanel({
       )}
 
       {/* 用户读音结果 - 单词级对比 */}
-      {(() => {
-        console.log("Rendering result section: showResult =", showResult, "wordDiffs.length =", wordDiffs.length, "isCorrect =", isCorrect)
-        return null
-      })()}
       {showResult && (
         <div className={`mb-4 p-4 rounded-lg border-2 ${
           isCorrect
